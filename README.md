@@ -1,1 +1,1 @@
-# AST24-SQL-dialects-comparison
+# AST24: Understanding the Difference between SQL Dialects using DBMS Test Suites
