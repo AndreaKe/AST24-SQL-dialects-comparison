@@ -4,6 +4,12 @@
 PG_ABS_SRCDIR=/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests
 export PG_ABS_SRCDIR
 
+PG_LIBDIR="/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress"
+export PG_LIBDIR
+
+PG_DLSUFFIX=".so"
+export PG_DLSUFFIX
+
 results_folder=postgres_results/
 
 # make sure database does not exist already
