@@ -1,11 +1,11 @@
 #!/bin/bash
 
 srcPath=$1 #path to regress folder of the postgres test suite
+targetTestPath=$2 # path to postgres_tests folder
 srcTestPath=${srcPath%/*}
 srcExpectedPath=$srcTestPath/expected
 srcDataPath=$srcTestPath/data
 srcTestPath=$srcTestPath/sql
-targetTestPath=$2 # path to postgres_tests folder
 targetTestPath=${targetTestPath%/*}
 
 echo "Delete and re-create test folder"
@@ -14,6 +14,9 @@ mkdir $targetTestPath
 
 echo "Copy data folder"
 cp -r $srcDataPath $targetTestPath
+
+rm $targetTestPath/parallel_schedule
+cp ${srcPath}parallel_schedule $targetTestPath
 
 
 for filepath in $(find $srcTestPath -name '*.sql'); do 
@@ -25,6 +28,6 @@ for filepath in $(find $srcTestPath -name '*.sql'); do
 
     mkdir $currTestFolder
     cp $filepath $currTestFolder/test.sql
-    #cp $srcTestPath/test_setup.sql $currTestFolder/setup.sql - this is not sufficient!
+    #cp $srcTestPath/test_setup.sql $currTestFolder/setup.sql - this is not sufficient! -> done in a dedicated python script
     cp $srcExpectedPath/$filename.out $currTestFolder/result.txt
 done

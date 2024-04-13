@@ -1,7 +1,7 @@
 
 import os
 
-test_path = "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests"
+test_path = "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests"  # TODO 
 
 for fname in os.listdir(test_path):
 
@@ -19,7 +19,8 @@ for fname in os.listdir(test_path):
         setup_file = open("{}/setup.sql".format(folder_path), "w")
 
         for t in ["test_setup", "create_index"]:
-            with open("{}/{}/test.sql".format(test_path, t.strip()), "r") as scan: # TODO: catch error
+            if(fname != t and fname != "test_setup"):
+                with open("{}/{}/test.sql".format(test_path, t.strip()), "r") as scan: # TODO: catch error
                             setup_file.write("-- START setup from {} \n".format(t))
                             setup_file.write(scan.read())
                             setup_file.write("-- END setup from {} \n".format(t))

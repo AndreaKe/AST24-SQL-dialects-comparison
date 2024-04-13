@@ -1,14 +1,22 @@
 #!/bin/bash
 
 # path to postgres_tests folder, e.g. /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/
-PG_ABS_SRCDIR=/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests
+PG_ABS_SRCDIR=/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests # TODO 
 export PG_ABS_SRCDIR
 
-PG_LIBDIR="/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress"
+PG_LIBDIR="/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress"  # TODO 
 export PG_LIBDIR
 
 PG_DLSUFFIX=".so"
 export PG_DLSUFFIX
+
+export PGTZ="PST8PDT"
+export PGDATESTYLE="Postgres, MDY"
+export LC_MESSAGES="C"
+echo $PGOPTIONS
+export PGOPTIONS="-c intervalstyle=postgres_verbose"
+export LANG="C"
+
 
 results_folder=postgres_results/
 
@@ -20,11 +28,17 @@ psql -X -q -c "DROP TABLESPACE IF EXISTS regress_tblspace;" postgres
 for currentTestPath in ${PG_ABS_SRCDIR}/*/; do 
 
     currentTest=$(basename "$currentTestPath")
+
+
+
     currentResults=$results_folder$currentTest
 
     if [ "$currentTest" == "data" ] || [ "$currentTest" == "test_setup" ] || [ "$currentTest" == "postgres_tests" ]; then   
     continue
     fi
+
+
+    # TODO probably we can just call run_postgres_single_test.sh
 
 
     echo ""
@@ -33,7 +47,7 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
     mkdir -p $currentResults
 
     #echo "Create database regression..."
-    psql -X -q -c "CREATE DATABASE \"regression\" TEMPLATE=template0" -c "ALTER DATABASE \"regression\" SET lc_messages TO 'C';ALTER DATABASE \"regression\" SET lc_monetary TO 'C';ALTER DATABASE \"regression\" SET lc_numeric TO 'C';ALTER DATABASE \"regression\" SET lc_time TO 'C';ALTER DATABASE \"regression\" SET bytea_output TO 'hex';ALTER DATABASE \"regression\" SET timezone_abbreviations TO 'Default';" postgres
+    psql -X -q -c "CREATE DATABASE \"regression\" WITH OWNER = postgres ENCODING = 'UTF8' TABLESPACE = pg_default LC_COLLATE = 'C' LC_CTYPE = 'en_US.UTF-8' TEMPLATE=template0" -c "ALTER DATABASE \"regression\" SET lc_messages TO 'C';ALTER DATABASE \"regression\" SET lc_monetary TO 'C';ALTER DATABASE \"regression\" SET lc_numeric TO 'C';ALTER DATABASE \"regression\" SET lc_time TO 'C';ALTER DATABASE \"regression\" SET bytea_output TO 'hex';ALTER DATABASE \"regression\" SET timezone_abbreviations TO 'Default';" postgres
 
     #echo "Run setup.sql..."
     psql -X -a -q -d "regression" -v HIDE_TABLEAM=on -v HIDE_TOAST_COMPRESSION=on < "${currentTestPath}setup.sql" > "${currentResults}/postgres_setup.txt" 2>&1
@@ -49,8 +63,6 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
     diff -q ${currentTestPath}result.txt ${currentResults}/postgres.txt
 
     echo "Test $currentTest finished"
-
-    sleep 2
 
 done
 

@@ -21,20 +21,12 @@ CREATE TABLE bt_f8_heap (
 );
 \set filename :abs_srcdir '/data/desc.data'
 COPY bt_i4_heap FROM :'filename';
-ERROR:  could not open file "postgres_tests//data/desc.data" for reading: No such file or directory
-HINT:  COPY FROM instructs the PostgreSQL server process to read a file. You may want a client-side facility such as psql's \copy.
 \set filename :abs_srcdir '/data/hash.data'
 COPY bt_name_heap FROM :'filename';
-ERROR:  could not open file "postgres_tests//data/hash.data" for reading: No such file or directory
-HINT:  COPY FROM instructs the PostgreSQL server process to read a file. You may want a client-side facility such as psql's \copy.
 \set filename :abs_srcdir '/data/desc.data'
 COPY bt_txt_heap FROM :'filename';
-ERROR:  could not open file "postgres_tests//data/desc.data" for reading: No such file or directory
-HINT:  COPY FROM instructs the PostgreSQL server process to read a file. You may want a client-side facility such as psql's \copy.
 \set filename :abs_srcdir '/data/hash.data'
 COPY bt_f8_heap FROM :'filename';
-ERROR:  could not open file "postgres_tests//data/hash.data" for reading: No such file or directory
-HINT:  COPY FROM instructs the PostgreSQL server process to read a file. You may want a client-side facility such as psql's \copy.
 ANALYZE bt_i4_heap;
 ANALYZE bt_name_heap;
 ANALYZE bt_txt_heap;
@@ -57,86 +49,98 @@ CREATE INDEX bt_f8_index ON bt_f8_heap USING btree (seqno float8_ops);
 SELECT b.*
    FROM bt_i4_heap b
    WHERE b.seqno < 1;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+     0 | 1935401906
+(1 row)
 
 SELECT b.*
    FROM bt_i4_heap b
    WHERE b.seqno >= 9999;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+  9999 | 1227676208
+(1 row)
 
 SELECT b.*
    FROM bt_i4_heap b
    WHERE b.seqno = 4500;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+  4500 | 2080851358
+(1 row)
 
 SELECT b.*
    FROM bt_name_heap b
    WHERE b.seqno < '1'::name;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+ 0     | 1935401906
+(1 row)
 
 SELECT b.*
    FROM bt_name_heap b
    WHERE b.seqno >= '9999'::name;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+ 9999  | 1227676208
+(1 row)
 
 SELECT b.*
    FROM bt_name_heap b
    WHERE b.seqno = '4500'::name;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+ 4500  | 2080851358
+(1 row)
 
 SELECT b.*
    FROM bt_txt_heap b
    WHERE b.seqno < '1'::text;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+ 0     | 1935401906
+(1 row)
 
 SELECT b.*
    FROM bt_txt_heap b
    WHERE b.seqno >= '9999'::text;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+ 9999  | 1227676208
+(1 row)
 
 SELECT b.*
    FROM bt_txt_heap b
    WHERE b.seqno = '4500'::text;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+ 4500  | 2080851358
+(1 row)
 
 SELECT b.*
    FROM bt_f8_heap b
    WHERE b.seqno < '1'::float8;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+     0 | 1935401906
+(1 row)
 
 SELECT b.*
    FROM bt_f8_heap b
    WHERE b.seqno >= '9999'::float8;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+  9999 | 1227676208
+(1 row)
 
 SELECT b.*
    FROM bt_f8_heap b
    WHERE b.seqno = '4500'::float8;
- seqno | random 
--------+--------
-(0 rows)
+ seqno |   random   
+-------+------------
+  4500 | 2080851358
+(1 row)
 
 --
 -- Add coverage for optimization of backwards scan index descents
@@ -154,38 +158,36 @@ set enable_indexscan to true;
 set enable_bitmapscan to false;
 explain (costs off)
 select hundred, twenty from tenk1 where hundred < 48 order by hundred desc limit 1;
-              QUERY PLAN              
---------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Limit
-   ->  Sort
-         Sort Key: hundred DESC
-         ->  Seq Scan on tenk1
-               Filter: (hundred < 48)
-(5 rows)
+   ->  Index Scan Backward using tenk1_hundred on tenk1
+         Index Cond: (hundred < 48)
+(3 rows)
 
 select hundred, twenty from tenk1 where hundred < 48 order by hundred desc limit 1;
  hundred | twenty 
 ---------+--------
-(0 rows)
+      47 |      7
+(1 row)
 
 -- This variant of the query need only return a single tuple located to the immediate
 -- right of the '(48, -inf)' high key.  It also only needs to scan one single
 -- leaf page (the right sibling of the page scanned by the last test case):
 explain (costs off)
 select hundred, twenty from tenk1 where hundred <= 48 order by hundred desc limit 1;
-              QUERY PLAN               
----------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Limit
-   ->  Sort
-         Sort Key: hundred DESC
-         ->  Seq Scan on tenk1
-               Filter: (hundred <= 48)
-(5 rows)
+   ->  Index Scan Backward using tenk1_hundred on tenk1
+         Index Cond: (hundred <= 48)
+(3 rows)
 
 select hundred, twenty from tenk1 where hundred <= 48 order by hundred desc limit 1;
  hundred | twenty 
 ---------+--------
-(0 rows)
+      48 |      8
+(1 row)
 
 --
 -- Check correct optimization of LIKE (special index operator support)
