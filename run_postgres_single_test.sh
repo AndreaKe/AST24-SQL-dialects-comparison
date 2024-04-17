@@ -3,15 +3,15 @@
 currentTest=$1
 
 # path to postgres_tests folder, e.g. /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/
+# TODO: remove the use of this environmentvariables from postgresql test scripts
 PG_ABS_SRCDIR=/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests # TODO 
 export PG_ABS_SRCDIR
-
 PG_LIBDIR="/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress"  # TODO 
 export PG_LIBDIR
-
 PG_DLSUFFIX=".so"
 export PG_DLSUFFIX
 
+# TODO check if those are even needed
 export PGTZ="PST8PDT"
 export PGDATESTYLE="Postgres, MDY"
 export LC_MESSAGES="C"

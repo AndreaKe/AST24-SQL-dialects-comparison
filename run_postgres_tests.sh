@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# NOTE: I use this script to debug the postgresql test in order to ensure that they return the
+# expected results (as defined in the postgres repository) 
+
 # path to postgres_tests folder, e.g. /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/
 PG_ABS_SRCDIR=/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests # TODO 
 export PG_ABS_SRCDIR
