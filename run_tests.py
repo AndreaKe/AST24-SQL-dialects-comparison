@@ -2,6 +2,7 @@ import os
 import sys, logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import re
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
@@ -59,19 +60,40 @@ def teardown_postgres_connection(postgres_cursor, postgres_conn):
     postgres_conn.close()
 
 
-def execute_sql_file_postgres(postgres_cursor, file, result_file):
-    logging.debug("POSTGRESQL: Executing {}".format(file))
+def execute_sql_file_postgres(postgres_cursor, sql_file, result_file, expected_results_file, printErrors=True):
+    logging.debug("POSTGRESQL: Executing {}".format(sql_file))
     # We write the results to a file such that results can be compare without needing to rerun the tests all the time
     result_file = open(result_file, 'w') 
 
-    test_file_stream = open(file, 'r')
+    test_file_stream = open(sql_file, 'r')
     test_file = test_file_stream.read()
     test_file_stream.close()
-    sql_commands = test_file.split(';') # here we get the individual sql commands!
 
-    for command in sql_commands:
+    expected_results_stream = open(expected_results_file, 'r')
+    expected_results = expected_results_stream.read()
+    expected_results_stream.close()
+
+    sql_commands = re.sub(r'(--[^\n]*\n)', '', test_file) # remove comments
+    sql_commands = sql_commands.split(';') # here we get the individual sql commands!
+    
+    i = 0
+    while i < len(sql_commands):
+        command = sql_commands[i]
+        dollar_count = command.count('$$')
+        double_quotes_count = command.count('"')
+        single_quotes_count = command.count("'")
+
+        while dollar_count % 2 != 0 or  double_quotes_count % 2 != 0 or single_quotes_count % 2 != 0:
+            i = i + 1
+            command = command + ";" + sql_commands[i]
+            dollar_count = command.count('$$')
+            double_quotes_count = command.count('"')
+            single_quotes_count = command.count("'")
+
         command_string = "{}\n".format(command)
-        logging.info(command_string)
+
+
+        logging.info("\n\tInfo: i={}, command={}".format(i, command_string))
         result_file.write(command_string)
         if command.strip() != '':
             try:
@@ -82,11 +104,16 @@ def execute_sql_file_postgres(postgres_cursor, file, result_file):
                 result_file.write(result_string)
             except psycopg2.ProgrammingError as e:
                 if str(e) != "no results to fetch": 
-                    logging.warning("ProgrammingError: {}\n".format(e))
-                    result_file.write("ProgrammingError: {}\n".format(e))
+                    pattern = r'.*{};[^\n]*\s*(ERROR)?:?\s*{}.*'.format(re.escape(command.strip()), re.escape(str(e)))
+                    if printErrors and not re.search(pattern, expected_results):
+                        logging.warning("ProgrammingError: {}\n{}\n".format(command, e))
+                        result_file.write("ProgrammingError: {}\n{}\n".format(command, e))
             except psycopg2.Error as e:
-                logging.warning("ERROR: {}\n".format(e))
-                result_file.write("ERROR: {}\n".format(e))
+                pattern = r'.*{};?[^\n]*\s*(ERROR)?:?\s*{}.*'.format(re.escape(command).strip(), re.escape(str(e)))
+                if printErrors and not re.search(pattern, expected_results):
+                    logging.warning("ERROR: {}\n{}\n".format(command, e))
+                    result_file.write("ERROR: {}\n{}\n".format(command, e))
+        i = i + 1
     result_file.close()
 
 def execute_single_test_postgres(test_folder, result_folder):
@@ -97,8 +124,8 @@ def execute_single_test_postgres(test_folder, result_folder):
     postgres_conn = setup_postgres_connection()
     postgres_cursor = get_postgres_cursor(postgres_conn)
 
-    execute_sql_file_postgres(postgres_cursor, test_folder + "/setup.sql", os.path.join(result_folder, "postgres_setup.txt")) 
-    execute_sql_file_postgres(postgres_cursor, test_folder + "/test.sql", os.path.join(result_folder, "postgres_results.txt"))
+    execute_sql_file_postgres(postgres_cursor, test_folder + "/setup.sql", os.path.join(result_folder, "postgres_setup.txt"), os.path.join(test_folder, 'result.txt'), False) 
+    execute_sql_file_postgres(postgres_cursor, test_folder + "/test.sql", os.path.join(result_folder, "postgres_results.txt"), os.path.join(test_folder, 'result.txt'))
 
     teardown_postgres_connection(postgres_cursor, postgres_conn)
 

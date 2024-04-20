@@ -21,7 +21,7 @@ export PGOPTIONS="-c intervalstyle=postgres_verbose"
 export LANG="C"
 
 
-results_folder=postgres_results/
+results_folder=../postgres_results/
 
 # make sure database does not exist already
 echo "Setup clean environment..."
@@ -36,7 +36,7 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
 
     currentResults=$results_folder$currentTest
 
-    if [ "$currentTest" == "data" ] || [ "$currentTest" == "test_setup" ] || [ "$currentTest" == "postgres_tests" ]; then   
+    if [ "$currentTest" == "data" ] || [ "$currentTest" == "postgres_tests" ]; then   
     continue
     fi
 
@@ -52,9 +52,13 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
     #echo "Create database regression..."
     psql -X -q -c "CREATE DATABASE \"regression\" WITH OWNER = postgres ENCODING = 'UTF8' TABLESPACE = pg_default LC_COLLATE = 'C' LC_CTYPE = 'en_US.UTF-8' TEMPLATE=template0" -c "ALTER DATABASE \"regression\" SET lc_messages TO 'C';ALTER DATABASE \"regression\" SET lc_monetary TO 'C';ALTER DATABASE \"regression\" SET lc_numeric TO 'C';ALTER DATABASE \"regression\" SET lc_time TO 'C';ALTER DATABASE \"regression\" SET bytea_output TO 'hex';ALTER DATABASE \"regression\" SET timezone_abbreviations TO 'Default';" postgres
 
+    touch "${currentResults}/postgres_setup.txt"
+
     #echo "Run setup.sql..."
     psql -X -a -q -d "regression" -v HIDE_TABLEAM=on -v HIDE_TOAST_COMPRESSION=on < "${currentTestPath}setup.sql" > "${currentResults}/postgres_setup.txt" 2>&1
 
+
+    touch "${currentResults}/postgres.txt"
     #echo "Run test.sql..."
     psql -X -a -q -d "regression" -v HIDE_TABLEAM=on -v HIDE_TOAST_COMPRESSION=on < "${currentTestPath}test.sql" > "${currentResults}/postgres.txt" 2>&1
 
