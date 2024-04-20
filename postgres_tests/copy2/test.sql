@@ -388,7 +388,7 @@ begin
   return $1.f1 > 0;
 end $$ language plpgsql immutable;
 alter table check_con_tbl add check (check_con_function(check_con_tbl.*));
-\d+ check_con_tbl
+-- \d+ check_con_tbl
 copy check_con_tbl from stdin;
 1
 \N

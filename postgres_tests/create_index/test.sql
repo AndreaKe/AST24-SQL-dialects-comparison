@@ -4,7 +4,7 @@
 --
 
 -- directory paths are passed to us in environment variables
-\getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
 
 --
 -- BTREE
@@ -70,8 +70,8 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
-\set filename :abs_srcdir '/data/rect.data'
-COPY slow_emp4000 FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/rect.data'
+COPY slow_emp4000 FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
 
@@ -268,8 +268,8 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
-\set filename :abs_srcdir '/data/array.data'
-COPY array_index_op_test FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
+COPY array_index_op_test FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
 ANALYZE array_index_op_test;
 
 SELECT * FROM array_index_op_test WHERE i = '{NULL}' ORDER BY seqno;
@@ -354,7 +354,7 @@ DROP TABLE array_gin_test;
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
-\d+ gin_relopts_test
+-- \d+ gin_relopts_test
 
 --
 -- HASH
@@ -363,7 +363,7 @@ CREATE UNLOGGED TABLE unlogged_hash_table (id int4);
 CREATE INDEX unlogged_hash_index ON unlogged_hash_table USING hash (id int4_ops);
 DROP TABLE unlogged_hash_table;
 
--- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops);
+-- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops) - 
 
 -- Test hash index build tuplesorting.  Force hash tuplesort using low
 -- maintenance_work_mem setting and fillfactor:
@@ -404,9 +404,9 @@ DELETE FROM unique_tbl WHERE t = 'seven';
 
 CREATE UNIQUE INDEX unique_idx4 ON unique_tbl (i) NULLS NOT DISTINCT;  -- ok now
 
-\d unique_tbl
-\d unique_idx3
-\d unique_idx4
+-- \d unique_tbl
+-- \d unique_idx3
+-- \d unique_idx4
 SELECT pg_get_indexdef('unique_idx3'::regclass);
 SELECT pg_get_indexdef('unique_idx4'::regclass);
 
@@ -428,8 +428,8 @@ INSERT INTO func_index_heap VALUES('ABCD', 'EF');
 INSERT INTO func_index_heap VALUES('QWERTY');
 
 -- while we're here, see that the metadata looks sane
-\d func_index_heap
-\d func_index_index
+-- \d func_index_heap
+-- \d func_index_index
 
 
 --
@@ -448,8 +448,8 @@ INSERT INTO func_index_heap VALUES('ABCD', 'EF');
 INSERT INTO func_index_heap VALUES('QWERTY');
 
 -- while we're here, see that the metadata looks sane
-\d func_index_heap
-\d func_index_index
+-- \d func_index_heap
+-- \d func_index_index
 
 -- this should fail because of unsafe column type (anonymous record)
 create index on func_index_heap ((f1 || f2), (row(f1, f2)));
@@ -525,9 +525,9 @@ VACUUM FULL concur_heap;
 REINDEX TABLE concur_heap;
 DELETE FROM concur_heap WHERE f1 = 'b';
 VACUUM FULL concur_heap;
-\d concur_heap
+-- \d concur_heap
 REINDEX TABLE concur_heap;
-\d concur_heap
+-- \d concur_heap
 
 -- Temporary tables with concurrent builds and on-commit actions
 -- CONCURRENTLY used with CREATE INDEX and DROP INDEX is ignored.
@@ -573,7 +573,7 @@ DROP INDEX CONCURRENTLY "concur_index5";
 DROP INDEX CONCURRENTLY "concur_index1";
 DROP INDEX CONCURRENTLY "concur_heap_expr_idx";
 
-\d concur_heap
+-- \d concur_heap
 
 DROP TABLE concur_heap;
 
@@ -590,16 +590,16 @@ INSERT INTO cwi_test VALUES(1, 2), (3, 4), (5, 6);
 CREATE UNIQUE INDEX cwi_uniq_idx ON cwi_test(a , b);
 ALTER TABLE cwi_test ADD primary key USING INDEX cwi_uniq_idx;
 
-\d cwi_test
-\d cwi_uniq_idx
+-- \d cwi_test
+-- \d cwi_uniq_idx
 
 CREATE UNIQUE INDEX cwi_uniq2_idx ON cwi_test(b , a);
 ALTER TABLE cwi_test DROP CONSTRAINT cwi_uniq_idx,
 	ADD CONSTRAINT cwi_replaced_pkey PRIMARY KEY
 		USING INDEX cwi_uniq2_idx;
 
-\d cwi_test
-\d cwi_replaced_pkey
+-- \d cwi_test
+-- \d cwi_replaced_pkey
 
 DROP INDEX cwi_replaced_pkey;	-- Should fail; a constraint depends on it
 
@@ -817,9 +817,9 @@ explain (costs off)
 -- REINDEX (VERBOSE)
 --
 CREATE TABLE reindex_verbose(id integer primary key);
-\set VERBOSITY terse \\ -- suppress machine-dependent details
+-- \set VERBOSITY terse \\ -- suppress machine-dependent details
 REINDEX (VERBOSE) TABLE reindex_verbose;
-\set VERBOSITY default
+-- \set VERBOSITY default
 DROP TABLE reindex_verbose;
 
 --
@@ -916,7 +916,7 @@ CREATE INDEX concur_appclass_ind on concur_appclass_tab
 CREATE INDEX concur_appclass_ind_2 on concur_appclass_tab
   USING gist (k tsvector_ops (siglen='300'), j tsvector_ops);
 REINDEX TABLE CONCURRENTLY concur_appclass_tab;
-\d concur_appclass_tab
+-- \d concur_appclass_tab
 DROP TABLE concur_appclass_tab;
 
 -- Partitions
@@ -1086,7 +1086,7 @@ REINDEX SCHEMA CONCURRENTLY pg_catalog;
 REINDEX DATABASE not_current_database;
 
 -- Check the relation status, there should not be invalid indexes
-\d concur_reindex_tab
+-- \d concur_reindex_tab
 DROP MATERIALIZED VIEW concur_reindex_matview;
 DROP TABLE concur_reindex_tab, concur_reindex_tab2, concur_reindex_tab3;
 
@@ -1098,16 +1098,16 @@ CREATE UNIQUE INDEX CONCURRENTLY concur_reindex_ind5 ON concur_reindex_tab4 (c1)
 -- Reindexing concurrently this index fails with the same failure.
 -- The extra index created is itself invalid, and can be dropped.
 REINDEX INDEX CONCURRENTLY concur_reindex_ind5;
-\d concur_reindex_tab4
+-- \d concur_reindex_tab4
 DROP INDEX concur_reindex_ind5_ccnew;
 -- This makes the previous failure go away, so the index can become valid.
 DELETE FROM concur_reindex_tab4 WHERE c1 = 1;
 -- The invalid index is not processed when running REINDEX TABLE.
 REINDEX TABLE CONCURRENTLY concur_reindex_tab4;
-\d concur_reindex_tab4
+-- \d concur_reindex_tab4
 -- But it is fixed with REINDEX INDEX.
 REINDEX INDEX CONCURRENTLY concur_reindex_ind5;
-\d concur_reindex_tab4
+-- \d concur_reindex_tab4
 DROP TABLE concur_reindex_tab4;
 
 -- Check handling of indexes with expressions and predicates.  The

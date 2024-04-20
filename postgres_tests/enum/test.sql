@@ -117,7 +117,7 @@ alter type insenum add value 'i30' before 'L2';
 
 -- The exact values of enumsortorder will now depend on the local properties
 -- of float4, but in any reasonable implementation we should get at least
--- 20 splits before having to renumber; so only hide values > 20.
+-- 20 splits before having to renumber -  so only hide values > 20.
 
 SELECT enumlabel,
        case when enumsortorder > 20 then null else enumsortorder end as so
@@ -301,7 +301,7 @@ WHERE enumtypid = 'bogus'::regtype
 ORDER BY 2;
 
 -- check that we recognize the case where the enum already existed but was
--- modified in the current txn; this should not be considered safe
+-- modified in the current txn -  this should not be considered safe
 BEGIN;
 ALTER TYPE bogus RENAME TO bogon;
 ALTER TYPE bogon ADD VALUE 'bad';
@@ -323,7 +323,7 @@ ALTER TYPE bogus RENAME TO bogon;
 select enum_range(null::bogon);
 ROLLBACK;
 
--- ideally, we'd allow this usage; but it requires keeping track of whether
+-- ideally, we'd allow this usage -  but it requires keeping track of whether
 -- the enum type was created in the current transaction, which is expensive
 BEGIN;
 CREATE TYPE bogus AS ENUM('good');

@@ -9,7 +9,7 @@
 --
 
 -- directory paths are passed to us in environment variables
-\getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
 
 --
 -- DEFAULT syntax
@@ -199,17 +199,17 @@ DROP TABLE ATACC1 CASCADE;
 -- NOT NULL NO INHERIT
 CREATE TABLE ATACC1 (a int, not null a no inherit);
 CREATE TABLE ATACC2 () INHERITS (ATACC1);
-\d+ ATACC2
+-- \d+ ATACC2
 DROP TABLE ATACC1, ATACC2;
 CREATE TABLE ATACC1 (a int);
 ALTER TABLE ATACC1 ADD NOT NULL a NO INHERIT;
 CREATE TABLE ATACC2 () INHERITS (ATACC1);
-\d+ ATACC2
+-- \d+ ATACC2
 DROP TABLE ATACC1, ATACC2;
 CREATE TABLE ATACC1 (a int);
 CREATE TABLE ATACC2 () INHERITS (ATACC1);
 ALTER TABLE ATACC1 ADD NOT NULL a NO INHERIT;
-\d+ ATACC2
+-- \d+ ATACC2
 DROP TABLE ATACC1, ATACC2;
 
 --
@@ -248,7 +248,7 @@ UPDATE INSERT_TBL SET x = z, z = x;
 
 SELECT * FROM INSERT_TBL;
 
--- DROP TABLE INSERT_TBL;
+-- DROP TABLE INSERT_TBL - 
 
 --
 -- Check constraints on COPY FROM
@@ -258,13 +258,13 @@ CREATE TABLE COPY_TBL (x INT, y TEXT, z INT,
 	CONSTRAINT COPY_CON
 	CHECK (x > 3 AND y <> 'check failed' AND x < 7 ));
 
-\set filename :abs_srcdir '/data/constro.data'
-COPY COPY_TBL FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constro.data'
+COPY COPY_TBL FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constro.data';
 
 SELECT * FROM COPY_TBL;
 
-\set filename :abs_srcdir '/data/constrf.data'
-COPY COPY_TBL FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constrf.data'
+COPY COPY_TBL FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constrf.data';
 
 SELECT * FROM COPY_TBL;
 
@@ -574,20 +574,20 @@ DROP TABLE deferred_excl;
 
 -- verify constraints created for NOT NULL clauses
 CREATE TABLE notnull_tbl1 (a INTEGER NOT NULL NOT NULL);
-\d+ notnull_tbl1
+-- \d+ notnull_tbl1
 select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
 -- no-op
 ALTER TABLE notnull_tbl1 ADD CONSTRAINT nn NOT NULL a;
-\d+ notnull_tbl1
+-- \d+ notnull_tbl1
 -- duplicate name
 ALTER TABLE notnull_tbl1 ADD COLUMN b INT CONSTRAINT notnull_tbl1_a_not_null NOT NULL;
 -- DROP NOT NULL gets rid of both the attnotnull flag and the constraint itself
 ALTER TABLE notnull_tbl1 ALTER a DROP NOT NULL;
-\d notnull_tbl1
+-- \d notnull_tbl1
 select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
 -- SET NOT NULL puts both back
 ALTER TABLE notnull_tbl1 ALTER a SET NOT NULL;
-\d notnull_tbl1
+-- \d notnull_tbl1
 select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
 -- Doing it twice doesn't create a redundant constraint
 ALTER TABLE notnull_tbl1 ALTER a SET NOT NULL;
@@ -595,7 +595,7 @@ select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl
 -- Using the "table constraint" syntax also works
 ALTER TABLE notnull_tbl1 ALTER a DROP NOT NULL;
 ALTER TABLE notnull_tbl1 ADD CONSTRAINT foobar NOT NULL a;
-\d notnull_tbl1
+-- \d notnull_tbl1
 select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
 DROP TABLE notnull_tbl1;
 
@@ -608,9 +608,9 @@ ALTER TABLE notnull_tbl2 ALTER a DROP NOT NULL;
 CREATE TABLE notnull_tbl3 (a INTEGER NOT NULL, CHECK (a IS NOT NULL));
 ALTER TABLE notnull_tbl3 ALTER A DROP NOT NULL;
 ALTER TABLE notnull_tbl3 ADD b int, ADD CONSTRAINT pk PRIMARY KEY (a, b);
-\d notnull_tbl3
+-- \d notnull_tbl3
 ALTER TABLE notnull_tbl3 DROP CONSTRAINT pk;
-\d notnull_tbl3
+-- \d notnull_tbl3
 
 -- Primary keys in parent table cause NOT NULL constraint to spawn on their
 -- children.  Verify that they work correctly.
@@ -621,12 +621,12 @@ CREATE TABLE cnn_child2 (NOT NULL a NO INHERIT) INHERITS (cnn_parent);
 CREATE TABLE cnn_grandchild2 () INHERITS (cnn_grandchild, cnn_child2);
 
 ALTER TABLE cnn_parent ADD PRIMARY KEY (b);
-\d+ cnn_grandchild
-\d+ cnn_grandchild2
+-- \d+ cnn_grandchild
+-- \d+ cnn_grandchild2
 ALTER TABLE cnn_parent DROP CONSTRAINT cnn_parent_pkey;
-\set VERBOSITY terse
+-- \set VERBOSITY terse
 DROP TABLE cnn_parent CASCADE;
-\set VERBOSITY default
+-- \set VERBOSITY default
 
 -- As above, but create the primary key ahead of time
 CREATE TABLE cnn_parent (a int, b int PRIMARY KEY);
@@ -636,12 +636,12 @@ CREATE TABLE cnn_child2 (NOT NULL a NO INHERIT) INHERITS (cnn_parent);
 CREATE TABLE cnn_grandchild2 () INHERITS (cnn_grandchild, cnn_child2);
 
 ALTER TABLE cnn_parent ADD PRIMARY KEY (b);
-\d+ cnn_grandchild
-\d+ cnn_grandchild2
+-- \d+ cnn_grandchild
+-- \d+ cnn_grandchild2
 ALTER TABLE cnn_parent DROP CONSTRAINT cnn_parent_pkey;
-\set VERBOSITY terse
+-- \set VERBOSITY terse
 DROP TABLE cnn_parent CASCADE;
-\set VERBOSITY default
+-- \set VERBOSITY default
 
 -- As above, but create the primary key using a UNIQUE index
 CREATE TABLE cnn_parent (a int, b int);
@@ -652,8 +652,8 @@ CREATE TABLE cnn_grandchild2 () INHERITS (cnn_grandchild, cnn_child2);
 
 CREATE UNIQUE INDEX b_uq ON cnn_parent (b);
 ALTER TABLE cnn_parent ADD PRIMARY KEY USING INDEX b_uq;
-\d+ cnn_grandchild
-\d+ cnn_grandchild2
+-- \d+ cnn_grandchild
+-- \d+ cnn_grandchild2
 ALTER TABLE cnn_parent DROP CONSTRAINT cnn_parent_pkey;
 -- keeps these tables around, for pg_upgrade testing
 
@@ -677,13 +677,13 @@ CREATE TABLE notnull_tbl4_lk3 (LIKE notnull_tbl4 INCLUDING INDEXES, CONSTRAINT a
 CREATE TABLE notnull_tbl4_cld () INHERITS (notnull_tbl4);
 CREATE TABLE notnull_tbl4_cld2 (PRIMARY KEY (a) DEFERRABLE) INHERITS (notnull_tbl4);
 CREATE TABLE notnull_tbl4_cld3 (PRIMARY KEY (a) DEFERRABLE, CONSTRAINT a_nn NOT NULL a) INHERITS (notnull_tbl4);
-\d+ notnull_tbl4
-\d+ notnull_tbl4_lk
-\d+ notnull_tbl4_lk2
-\d+ notnull_tbl4_lk3
-\d+ notnull_tbl4_cld
-\d+ notnull_tbl4_cld2
-\d+ notnull_tbl4_cld3
+-- \d+ notnull_tbl4
+-- \d+ notnull_tbl4_lk
+-- \d+ notnull_tbl4_lk2
+-- \d+ notnull_tbl4_lk3
+-- \d+ notnull_tbl4_cld
+-- \d+ notnull_tbl4_cld2
+-- \d+ notnull_tbl4_cld3
 -- leave these tables around for pg_upgrade testing
 
 -- also, if a NOT NULL is dropped underneath a deferrable PK, the column
@@ -691,7 +691,7 @@ CREATE TABLE notnull_tbl4_cld3 (PRIMARY KEY (a) DEFERRABLE, CONSTRAINT a_nn NOT 
 CREATE TABLE notnull_tbl5 (a INTEGER CONSTRAINT a_nn NOT NULL);
 ALTER TABLE notnull_tbl5 ADD PRIMARY KEY (a) DEFERRABLE;
 ALTER TABLE notnull_tbl5 DROP CONSTRAINT a_nn;
-\d+ notnull_tbl5
+-- \d+ notnull_tbl5
 DROP TABLE notnull_tbl5;
 
 -- Comments

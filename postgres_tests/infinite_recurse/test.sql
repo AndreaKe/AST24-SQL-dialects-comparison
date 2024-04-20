@@ -22,7 +22,7 @@ SELECT version() ~ 'powerpc64[^,]*-linux-gnu'
 -- The full error report is not very stable, so we show only SQLSTATE
 -- and primary error message.
 
-\set VERBOSITY sqlstate
+-- \set VERBOSITY sqlstate
 
 select infinite_recurse();
 

@@ -1033,7 +1033,7 @@ create rule r7 as on delete to rules_src do instead
   returning trgt.f1, trgt.f2;
 
 -- check display of all rules added above
-\d+ rules_src
+-- \d+ rules_src
 
 --
 -- Also check multiassignment deparsing.
@@ -1043,7 +1043,7 @@ create table rule_dest(f1 int, f2 int[], tag text);
 create rule rr as on update to rule_t1 do instead UPDATE rule_dest trgt
   SET (f2[1], f1, tag) = (SELECT new.f2, new.f1, 'updated'::varchar)
   WHERE trgt.f1 = new.f1 RETURNING new.*;
-\d+ rule_t1
+-- \d+ rule_t1
 drop table rule_t1, rule_dest;
 
 --
@@ -1079,7 +1079,7 @@ ALTER RULE InsertRule ON rule_v1 RENAME to NewInsertRule;
 INSERT INTO rule_v1 VALUES(1);
 SELECT * FROM rule_v1;
 
-\d+ rule_v1
+-- \d+ rule_v1
 
 --
 -- error conditions for alter rename rule
@@ -1095,18 +1095,18 @@ DROP TABLE rule_t1;
 -- check display of VALUES in view definitions
 --
 create view rule_v1 as values(1,2);
-\d+ rule_v1
+-- \d+ rule_v1
 alter table rule_v1 rename column column2 to q2;
-\d+ rule_v1
+-- \d+ rule_v1
 drop view rule_v1;
 create view rule_v1(x) as values(1,2);
-\d+ rule_v1
+-- \d+ rule_v1
 drop view rule_v1;
 create view rule_v1(x) as select * from (values(1,2)) v;
-\d+ rule_v1
+-- \d+ rule_v1
 drop view rule_v1;
 create view rule_v1(x) as select * from (values(1,2)) v(q,w);
-\d+ rule_v1
+-- \d+ rule_v1
 drop view rule_v1;
 
 --

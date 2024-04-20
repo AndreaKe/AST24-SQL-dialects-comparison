@@ -463,7 +463,7 @@ SELECT * from FKTABLE;
 DROP TABLE FKTABLE;
 DROP TABLE PKTABLE;
 
--- Test for ON DELETE SET NULL/DEFAULT (column_list);
+-- Test for ON DELETE SET NULL/DEFAULT (column_list) - 
 CREATE TABLE PKTABLE (tid int, id int, PRIMARY KEY (tid, id));
 CREATE TABLE FKTABLE (tid int, id int, foo int, FOREIGN KEY (tid, id) REFERENCES PKTABLE ON DELETE SET NULL (bar));
 CREATE TABLE FKTABLE (tid int, id int, foo int, FOREIGN KEY (tid, id) REFERENCES PKTABLE ON DELETE SET NULL (foo));
@@ -1230,12 +1230,12 @@ UPDATE fk_partitioned_fk SET a = a + 1 WHERE a = 2501;
 INSERT INTO fk_notpartitioned_pk (a,b) VALUES (2502, 2503);
 UPDATE fk_partitioned_fk SET a = a + 1 WHERE a = 2501;
 
--- these updates would leave lingering rows in the referencing table; disallow
+-- these updates would leave lingering rows in the referencing table -  disallow
 UPDATE fk_notpartitioned_pk SET b = 502 WHERE a = 500;
 UPDATE fk_notpartitioned_pk SET b = 1502 WHERE a = 1500;
 UPDATE fk_notpartitioned_pk SET b = 2504 WHERE a = 2500;
 -- check psql behavior
-\d fk_notpartitioned_pk
+-- \d fk_notpartitioned_pk
 ALTER TABLE fk_partitioned_fk DROP CONSTRAINT fk_partitioned_fk_a_b_fkey;
 -- done.
 DROP TABLE fk_notpartitioned_pk, fk_partitioned_fk;
@@ -1360,7 +1360,7 @@ ALTER TABLE fk_partitioned_fk DETACH PARTITION fk_partitioned_fk_2;
 BEGIN;
 DROP TABLE fk_partitioned_fk;
 -- constraint should still be there
-\d fk_partitioned_fk_2;
+-- \d fk_partitioned_fk_2;
 ROLLBACK;
 ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_2 FOR VALUES IN (1500,1502);
 DROP TABLE fk_partitioned_fk_2;
@@ -1369,7 +1369,7 @@ CREATE TABLE fk_partitioned_fk_2 (b int, c text, a int,
 ALTER TABLE fk_partitioned_fk_2 DROP COLUMN c;
 ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_2 FOR VALUES IN (1500,1502);
 -- should have only one constraint
-\d fk_partitioned_fk_2
+-- \d fk_partitioned_fk_2
 DROP TABLE fk_partitioned_fk_2;
 
 CREATE TABLE fk_partitioned_fk_4 (a int, b int, FOREIGN KEY (a, b) REFERENCES fk_notpartitioned_pk(a, b) ON UPDATE CASCADE ON DELETE CASCADE) PARTITION BY RANGE (b, a);
@@ -1380,10 +1380,10 @@ ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_4 FOR VALUES IN
 ALTER TABLE fk_partitioned_fk DETACH PARTITION fk_partitioned_fk_4;
 ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_4 FOR VALUES IN (3500,3502);
 -- should only have one constraint
-\d fk_partitioned_fk_4
-\d fk_partitioned_fk_4_1
+-- \d fk_partitioned_fk_4
+-- \d fk_partitioned_fk_4_1
 -- this one has an FK with mismatched properties
-\d fk_partitioned_fk_4_2
+-- \d fk_partitioned_fk_4_2
 
 CREATE TABLE fk_partitioned_fk_5 (a int, b int,
 	FOREIGN KEY (a, b) REFERENCES fk_notpartitioned_pk(a, b) ON UPDATE CASCADE ON DELETE CASCADE DEFERRABLE,
@@ -1396,12 +1396,12 @@ ALTER TABLE fk_partitioned_fk DETACH PARTITION fk_partitioned_fk_5;
 ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_5 FOR VALUES IN (4500);
 -- this one has two constraints, similar but not quite the one in the parent,
 -- so it gets a new one
-\d fk_partitioned_fk_5
+-- \d fk_partitioned_fk_5
 -- verify that it works to reattaching a child with multiple candidate
 -- constraints
 ALTER TABLE fk_partitioned_fk_5 DETACH PARTITION fk_partitioned_fk_5_1;
 ALTER TABLE fk_partitioned_fk_5 ATTACH PARTITION fk_partitioned_fk_5_1 FOR VALUES FROM (0) TO (10);
-\d fk_partitioned_fk_5_1
+-- \d fk_partitioned_fk_5_1
 
 -- verify that attaching a table checks that the existing data satisfies the
 -- constraint
@@ -1511,23 +1511,23 @@ create schema fkpart0
   create table fk_part_23_2 partition of fk_part_23 for values in (2);
 
 alter table fkpart0.fk_part add foreign key (a) references fkpart0.pkey;
-\d fkpart0.fk_part_1	\\ -- should have only one FK
+-- \d fkpart0.fk_part_1	\\ -- should have only one FK
 alter table fkpart0.fk_part_1 drop constraint fk_part_1_a_fkey;
 
-\d fkpart0.fk_part_23	\\ -- should have only one FK
-\d fkpart0.fk_part_23_2	\\ -- should have only one FK
+-- \d fkpart0.fk_part_23	\\ -- should have only one FK
+-- \d fkpart0.fk_part_23_2	\\ -- should have only one FK
 alter table fkpart0.fk_part_23 drop constraint fk_part_23_a_fkey;
 alter table fkpart0.fk_part_23_2 drop constraint fk_part_23_a_fkey;
 
 create table fkpart0.fk_part_4 partition of fkpart0.fk_part for values in (4);
-\d fkpart0.fk_part_4
+-- \d fkpart0.fk_part_4
 alter table fkpart0.fk_part_4 drop constraint fk_part_a_fkey;
 
 create table fkpart0.fk_part_56 partition of fkpart0.fk_part
     for values in (5,6) partition by list (a);
 create table fkpart0.fk_part_56_5 partition of fkpart0.fk_part_56
     for values in (5);
-\d fkpart0.fk_part_56
+-- \d fkpart0.fk_part_56
 alter table fkpart0.fk_part_56 drop constraint fk_part_a_fkey;
 alter table fkpart0.fk_part_56_5 drop constraint fk_part_a_fkey;
 

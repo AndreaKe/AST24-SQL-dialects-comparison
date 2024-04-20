@@ -149,7 +149,7 @@ ON target2.tid = source.sid
 WHEN NOT MATCHED THEN
 	INSERT DEFAULT VALUES;
 
--- check if the target can be accessed from source relation subquery; we should
+-- check if the target can be accessed from source relation subquery -  we should
 -- not be able to do so
 MERGE INTO target t
 USING (SELECT * FROM source WHERE t.tid > sid) s

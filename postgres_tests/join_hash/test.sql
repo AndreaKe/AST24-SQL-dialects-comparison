@@ -87,7 +87,7 @@ update pg_class
 create table wide as select generate_series(1, 2) as id, rpad('', 320000, 'x') as t;
 alter table wide set (parallel_workers = 2);
 
--- The "optimal" case: the hash table fits in memory; we plan for 1
+-- The "optimal" case: the hash table fits in memory -  we plan for 1
 -- batch, we stick to that number, and peak memory usage stays within
 -- our work_mem budget
 
@@ -138,7 +138,7 @@ $$
 $$);
 rollback to settings;
 
--- The "good" case: batches required, but we plan the right number; we
+-- The "good" case: batches required, but we plan the right number -  we
 -- plan for some number of batches, and we stick to that number, and
 -- peak memory usage says within our work_mem budget
 
@@ -192,7 +192,7 @@ select count(*) from simple r full outer join simple s using (id);
 rollback to settings;
 
 -- The "bad" case: during execution we need to increase number of
--- batches; in this case we plan for 1 batch, and increase at least a
+-- batches -  in this case we plan for 1 batch, and increase at least a
 -- couple of times, and peak memory usage stays within our work_mem
 -- budget
 
@@ -245,7 +245,7 @@ rollback to settings;
 
 -- The "ugly" case: increasing the number of batches during execution
 -- doesn't help, so stop trying to fit in work_mem and hope for the
--- best; in this case we plan for 1 batch, increases just once and
+-- best -  in this case we plan for 1 batch, increases just once and
 -- then stop increasing because that didn't help at all, so we blow
 -- right through the work_mem budget and hope for the best...
 

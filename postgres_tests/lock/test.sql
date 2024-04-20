@@ -3,10 +3,10 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
-\getenv libdir PG_LIBDIR
-\getenv dlsuffix PG_DLSUFFIX
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
 
-\set regresslib :libdir '/regress' :dlsuffix
+-- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
 
 -- Setup
 CREATE SCHEMA lock_schema1;
@@ -23,7 +23,7 @@ CREATE ROLE regress_rol_lock1;
 ALTER ROLE regress_rol_lock1 SET search_path = lock_schema1;
 GRANT USAGE ON SCHEMA lock_schema1 TO regress_rol_lock1;
 
--- Try all valid lock options; also try omitting the optional TABLE keyword.
+-- Try all valid lock options -  also try omitting the optional TABLE keyword.
 BEGIN TRANSACTION;
 LOCK TABLE lock_tbl1 IN ACCESS SHARE MODE;
 LOCK lock_tbl1 IN ROW SHARE MODE;
@@ -194,7 +194,7 @@ RESET search_path;
 
 CREATE FUNCTION test_atomic_ops()
     RETURNS bool
-    AS :'regresslib'
+    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
     LANGUAGE C;
 
 SELECT test_atomic_ops();

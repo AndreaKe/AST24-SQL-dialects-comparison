@@ -1655,13 +1655,13 @@ set session role regress_priv_user3;
 grant select on dep_priv_test to regress_priv_user4 with grant option;
 set session role regress_priv_user4;
 grant select on dep_priv_test to regress_priv_user5;
-\dp dep_priv_test
+-- \dp dep_priv_test
 set session role regress_priv_user2;
 revoke select on dep_priv_test from regress_priv_user4 cascade;
-\dp dep_priv_test
+-- \dp dep_priv_test
 set session role regress_priv_user3;
 revoke select on dep_priv_test from regress_priv_user4 cascade;
-\dp dep_priv_test
+-- \dp dep_priv_test
 set session role regress_priv_user1;
 drop table dep_priv_test;
 
@@ -1903,7 +1903,7 @@ CREATE MATERIALIZED VIEW refresh_test AS SELECT 1;
 GRANT MAINTAIN ON refresh_test TO regress_maintain;
 CREATE SCHEMA reindex_test;
 
--- negative tests; should fail
+-- negative tests -  should fail
 SET ROLE regress_no_maintain;
 VACUUM maintain_test;
 ANALYZE maintain_test;

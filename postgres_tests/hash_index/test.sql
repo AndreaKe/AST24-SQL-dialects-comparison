@@ -3,7 +3,7 @@
 --
 
 -- directory paths are passed to us in environment variables
-\getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
 
 CREATE TABLE hash_i4_heap (
 	seqno 		int4,
@@ -25,19 +25,19 @@ CREATE TABLE hash_f8_heap (
 	random 		float8
 );
 
-\set filename :abs_srcdir '/data/hash.data'
-COPY hash_i4_heap FROM :'filename';
-COPY hash_name_heap FROM :'filename';
-COPY hash_txt_heap FROM :'filename';
-COPY hash_f8_heap FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
+COPY hash_i4_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+COPY hash_name_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+COPY hash_txt_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+COPY hash_f8_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
 
 -- the data in this file has a lot of duplicates in the index key
 -- fields, leading to long bucket chains and lots of table expansion.
 -- this is therefore a stress test of the bucket overflow code (unlike
 -- the data in hash.data, which has unique index keys).
 --
--- \set filename :abs_srcdir '/data/hashovfl.data'
--- COPY hash_ovfl_heap FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hashovfl.data'
+-- COPY hash_ovfl_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data' - 
 
 ANALYZE hash_i4_heap;
 ANALYZE hash_name_heap;
@@ -122,14 +122,14 @@ SELECT * FROM hash_f8_heap
 -- grep '^90[^0-9]' hashovfl.data
 --
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
---    WHERE x = 90;
+--    WHERE x = 90 - 
 
 --
 -- hash index
 -- grep '^1000[^0-9]' hashovfl.data
 --
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
---    WHERE x = 1000;
+--    WHERE x = 1000 - 
 
 --
 -- HASH
@@ -163,7 +163,7 @@ UPDATE hash_name_heap
    WHERE hash_name_heap.random = '76652222'::name;
 
 --
--- this is the row we just replaced; index scan should return zero rows
+-- this is the row we just replaced -  index scan should return zero rows
 --
 SELECT h.seqno AS emptyset
    FROM hash_name_heap h
@@ -203,16 +203,16 @@ SELECT h.seqno AS f20000
 
 -- UPDATE hash_ovfl_heap
 --    SET x = 1000
---   WHERE x = 90;
+--   WHERE x = 90 - 
 
 -- this vacuums the index as well
--- VACUUM hash_ovfl_heap;
+-- VACUUM hash_ovfl_heap - 
 
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
---   WHERE x = 90;
+--   WHERE x = 90 - 
 
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
---  WHERE x = 1000;
+--  WHERE x = 1000 - 
 
 --
 -- Cause some overflow insert and splits.

@@ -1,4 +1,4 @@
-\set HIDE_TOAST_COMPRESSION false
+-- \set HIDE_TOAST_COMPRESSION false
 
 -- ensure we get stable results regardless of installation's default
 SET default_toast_compression = 'pglz';
@@ -7,10 +7,10 @@ SET default_toast_compression = 'pglz';
 CREATE TABLE cmdata(f1 text COMPRESSION pglz);
 CREATE INDEX idx ON cmdata(f1);
 INSERT INTO cmdata VALUES(repeat('1234567890', 1000));
-\d+ cmdata
+-- \d+ cmdata
 CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4);
 INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004));
-\d+ cmdata1
+-- \d+ cmdata1
 
 -- verify stored compression method in the data
 SELECT pg_column_compression(f1) FROM cmdata;
@@ -22,7 +22,7 @@ SELECT SUBSTR(f1, 2000, 50) FROM cmdata1;
 
 -- copy with table creation
 SELECT * INTO cmmove1 FROM cmdata;
-\d+ cmmove1
+-- \d+ cmmove1
 SELECT pg_column_compression(f1) FROM cmmove1;
 
 -- copy to existing table
@@ -33,7 +33,7 @@ SELECT pg_column_compression(f1) FROM cmmove3;
 
 -- test LIKE INCLUDING COMPRESSION
 CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION);
-\d+ cmdata2
+-- \d+ cmdata2
 DROP TABLE cmdata2;
 
 -- try setting compression for incompressible data type
@@ -60,25 +60,25 @@ DROP TABLE cmdata2;
 
 --test column type update varlena/non-varlena
 CREATE TABLE cmdata2 (f1 int);
-\d+ cmdata2
+-- \d+ cmdata2
 ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar;
-\d+ cmdata2
+-- \d+ cmdata2
 ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE int USING f1::integer;
-\d+ cmdata2
+-- \d+ cmdata2
 
 --changing column storage should not impact the compression method
 --but the data should not be compressed
 ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar;
 ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION pglz;
-\d+ cmdata2
+-- \d+ cmdata2
 ALTER TABLE cmdata2 ALTER COLUMN f1 SET STORAGE plain;
-\d+ cmdata2
+-- \d+ cmdata2
 INSERT INTO cmdata2 VALUES (repeat('123456789', 800));
 SELECT pg_column_compression(f1) FROM cmdata2;
 
 -- test compression with materialized view
 CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1;
-\d+ compressmv
+-- \d+ compressmv
 SELECT pg_column_compression(f1) FROM cmdata1;
 SELECT pg_column_compression(x) FROM compressmv;
 
@@ -106,15 +106,15 @@ SET default_toast_compression = 'pglz';
 -- test alter compression method
 ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4;
 INSERT INTO cmdata VALUES (repeat('123456789', 4004));
-\d+ cmdata
+-- \d+ cmdata
 SELECT pg_column_compression(f1) FROM cmdata;
 
 ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION default;
-\d+ cmdata2
+-- \d+ cmdata2
 
 -- test alter compression method for materialized views
 ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4;
-\d+ compressmv
+-- \d+ compressmv
 
 -- test alter compression method for partitioned tables
 ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz;
@@ -150,4 +150,4 @@ CREATE TABLE badcompresstbl (a text);
 ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression; -- fails
 DROP TABLE badcompresstbl;
 
-\set HIDE_TOAST_COMPRESSION true
+-- \set HIDE_TOAST_COMPRESSION true

@@ -1,12 +1,12 @@
 -- directory paths are passed to us in environment variables
-\getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
 
 CREATE TABLE testjsonb (
        j jsonb
 );
 
-\set filename :abs_srcdir '/data/jsonb.data'
-COPY testjsonb FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/jsonb.data'
+COPY testjsonb FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/jsonb.data';
 
 -- Strings.
 SELECT '""'::jsonb;				-- OK.
@@ -920,7 +920,7 @@ SELECT count(*) FROM (SELECT j FROM (SELECT * FROM testjsonb UNION ALL SELECT * 
 SET enable_hashagg = on;
 SET enable_sort = off;
 SELECT count(*) FROM (SELECT j FROM (SELECT * FROM testjsonb UNION ALL SELECT * FROM testjsonb) js GROUP BY j) js2;
-SELECT distinct * FROM (values (jsonb '{}' || ''::text),('{}')) v(j);
+SELECT distinct * FROM (values (jsonb '{}'::text),('{}')) v(j);
 SET enable_sort = on;
 
 RESET enable_hashagg;
@@ -1114,10 +1114,10 @@ select '{"aa":1 , "b":2, "cq":3}'::jsonb || '{}';
 
 select '["a", "b"]'::jsonb || '["c"]';
 select '["a", "b"]'::jsonb || '["c", "d"]';
-select '["c"]' || '["a", "b"]'::jsonb;
+select '["c"]["a", "b"]'::jsonb;
 
 select '["a", "b"]'::jsonb || '"c"';
-select '"c"' || '["a", "b"]'::jsonb;
+select '"c"["a", "b"]'::jsonb;
 
 select '[]'::jsonb || '["a"]'::jsonb;
 select '[]'::jsonb || '"a"'::jsonb;
@@ -1127,7 +1127,7 @@ select '[]'::jsonb || '{"a":"b"}'::jsonb;
 select '{"a":"b"}'::jsonb || '[]'::jsonb;
 
 select '"a"'::jsonb || '{"a":1}';
-select '{"a":1}' || '"a"'::jsonb;
+select '{"a":1}"a"'::jsonb;
 
 select '[3]'::jsonb || '{}'::jsonb;
 select '3'::jsonb || '[]'::jsonb;

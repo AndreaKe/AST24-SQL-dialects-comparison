@@ -3,36 +3,36 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
-\getenv libdir PG_LIBDIR
-\getenv dlsuffix PG_DLSUFFIX
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
 
-\set autoinclib :libdir '/autoinc' :dlsuffix
-\set refintlib :libdir '/refint' :dlsuffix
-\set regresslib :libdir '/regress' :dlsuffix
+-- \set autoinclib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/autoinc' '.so'
+-- \set refintlib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/refint' '.so'
+-- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
 
 CREATE FUNCTION autoinc ()
 	RETURNS trigger
-	AS :'autoinclib'
+	AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/autoinc.so'
 	LANGUAGE C;
 
 CREATE FUNCTION check_primary_key ()
 	RETURNS trigger
-	AS :'refintlib'
+	AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
 	LANGUAGE C;
 
 CREATE FUNCTION check_foreign_key ()
 	RETURNS trigger
-	AS :'refintlib'
+	AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
 	LANGUAGE C;
 
 CREATE FUNCTION trigger_return_old ()
         RETURNS trigger
-        AS :'regresslib'
+        AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
         LANGUAGE C;
 
 CREATE FUNCTION set_ttdummy (int4)
         RETURNS int4
-        AS :'regresslib'
+        AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
         LANGUAGE C STRICT;
 
 create table pkeys (pkey1 int4 not null, pkey2 text not null);
@@ -689,7 +689,7 @@ CREATE TRIGGER z_min_update
 BEFORE UPDATE ON min_updates_test
 FOR EACH ROW EXECUTE PROCEDURE suppress_redundant_updates_trigger();
 
-\set QUIET false
+-- \set QUIET false
 
 UPDATE min_updates_test SET f1 = f1;
 
@@ -697,7 +697,7 @@ UPDATE min_updates_test SET f2 = f2 + 1;
 
 UPDATE min_updates_test SET f3 = 2 WHERE f3 is null;
 
-\set QUIET true
+-- \set QUIET true
 
 SELECT * FROM min_updates_test;
 
@@ -829,7 +829,7 @@ FOR EACH STATEMENT EXECUTE PROCEDURE view_trigger('after_view_upd_stmt');
 CREATE TRIGGER after_del_stmt_trig AFTER DELETE ON main_view
 FOR EACH STATEMENT EXECUTE PROCEDURE view_trigger('after_view_del_stmt');
 
-\set QUIET false
+-- \set QUIET false
 
 -- Insert into view using trigger
 INSERT INTO main_view VALUES (20, 30);
@@ -851,15 +851,15 @@ UPDATE main_view SET b = 0 WHERE false;
 DELETE FROM main_view WHERE a IN (20,21);
 DELETE FROM main_view WHERE a = 31 RETURNING a, b;
 
-\set QUIET true
+-- \set QUIET true
 
 -- Describe view should list triggers
-\d main_view
+-- \d main_view
 
 -- Test dropping view triggers
 DROP TRIGGER instead_of_insert_trig ON main_view;
 DROP TRIGGER instead_of_delete_trig ON main_view;
-\d+ main_view
+-- \d+ main_view
 DROP VIEW main_view;
 
 --
@@ -960,7 +960,7 @@ $$;
 CREATE TRIGGER city_update_trig INSTEAD OF UPDATE ON city_view
 FOR EACH ROW EXECUTE PROCEDURE city_update();
 
-\set QUIET false
+-- \set QUIET false
 
 -- INSERT .. RETURNING
 INSERT INTO city_view(city_name) VALUES('Tokyo') RETURNING *;
@@ -984,7 +984,7 @@ UPDATE city_view v1 SET country_name = v2.country_name FROM city_view v2
 -- DELETE .. RETURNING
 DELETE FROM city_view WHERE city_name = 'Birmingham' RETURNING *;
 
-\set QUIET true
+-- \set QUIET true
 
 -- read-only view with WHERE clause
 CREATE VIEW european_city_view AS
@@ -997,13 +997,13 @@ AS 'begin RETURN NULL; end';
 CREATE TRIGGER no_op_trig INSTEAD OF INSERT OR UPDATE OR DELETE
 ON european_city_view FOR EACH ROW EXECUTE PROCEDURE no_op_trig_fn();
 
-\set QUIET false
+-- \set QUIET false
 
 INSERT INTO european_city_view VALUES (0, 'x', 10000, 'y', 'z');
 UPDATE european_city_view SET population = 10000;
 DELETE FROM european_city_view;
 
-\set QUIET true
+-- \set QUIET true
 
 -- rules bypassing no-op triggers
 CREATE RULE european_city_insert_rule AS ON INSERT TO european_city_view
@@ -1022,7 +1022,7 @@ RETURNING NEW.*;
 CREATE RULE european_city_delete_rule AS ON DELETE TO european_city_view
 DO INSTEAD DELETE FROM city_view WHERE city_id = OLD.city_id RETURNING *;
 
-\set QUIET false
+-- \set QUIET false
 
 -- INSERT not limited by view's WHERE clause, but UPDATE AND DELETE are
 INSERT INTO european_city_view(city_name, country_name)
@@ -1046,7 +1046,7 @@ UPDATE city_view v SET population = 599657
     RETURNING co.country_id, v.country_name,
               v.city_id, v.city_name, v.population;
 
-\set QUIET true
+-- \set QUIET true
 
 SELECT * FROM city_view;
 
@@ -1446,7 +1446,7 @@ select tgrelid::regclass, tgname, tgfoid::regproc from pg_trigger
 
 -- check detach behavior
 create trigger trg1 after insert on trigpart for each row execute procedure trigger_nothing();
-\d trigpart3
+-- \d trigpart3
 alter table trigpart detach partition trigpart3;
 drop trigger trg1 on trigpart3; -- fail due to "does not exist"
 alter table trigpart detach partition trigpart4;
@@ -1461,14 +1461,14 @@ select tgrelid::regclass::text, tgname, tgfoid::regproc, tgenabled, tgisinternal
   where tgname ~ '^trg1' order by 1;
 create table trigpart3 (like trigpart);
 create trigger trg1 after insert on trigpart3 for each row execute procedure trigger_nothing();
-\d trigpart3
+-- \d trigpart3
 alter table trigpart attach partition trigpart3 FOR VALUES FROM (2000) to (3000); -- fail
 drop table trigpart3;
 
 -- check display of unrelated triggers
 create trigger samename after delete on trigpart execute function trigger_nothing();
 create trigger samename after delete on trigpart1 execute function trigger_nothing();
-\d trigpart1
+-- \d trigpart1
 
 drop table trigpart;
 drop function trigger_nothing();
@@ -1719,7 +1719,7 @@ insert into parted values (1, 1, 'uno uno');       -- works
 update parted set c = c || ' v6';                   -- works
 select tableoid::regclass, * from parted;
 
--- update itself moves tuple to new partition; trigger still works
+-- update itself moves tuple to new partition -  trigger still works
 truncate table parted;
 create table parted_2 partition of parted for values in (2);
 insert into parted values (1, 1, 'uno uno v5');
@@ -1783,7 +1783,7 @@ create constraint trigger parted_trig_two after insert on parted_constr
   for each row when (bark(new.b) AND new.a % 2 = 1)
   execute procedure trigger_notice_ab();
 
--- The immediate constraint is fired immediately; the WHEN clause of the
+-- The immediate constraint is fired immediately -  the WHEN clause of the
 -- deferred constraint is also called immediately.  The deferred constraint
 -- is fired at commit time.
 begin;
@@ -2189,7 +2189,7 @@ drop table child, parent;
 
 --
 -- Verify behavior of statement triggers on (non-partition)
--- inheritance hierarchy with transition tables; similar to the
+-- inheritance hierarchy with transition tables -  similar to the
 -- partition case, except there is no rerouting on insertion and child
 -- tables can have extra columns
 --
@@ -2730,7 +2730,7 @@ drop function convslot_trig1();
 drop function convslot_trig2();
 drop function convslot_trig3();
 
--- Bug #17607: variant of above in which trigger function raises an error;
+-- Bug #17607: variant of above in which trigger function raises an error - 
 -- we don't see any ill effects unless trigger tuple requires mapping
 
 create table convslot_test_parent (id int primary key, val int)
@@ -2802,7 +2802,7 @@ for each row execute procedure f();
 create trigger parenttrig after insert on child
 for each row execute procedure f();
 alter trigger parenttrig on parent rename to anothertrig;
-\d+ child
+-- \d+ child
 
 drop table parent, child;
 drop function f();

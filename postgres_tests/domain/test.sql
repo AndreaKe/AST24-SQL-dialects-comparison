@@ -171,7 +171,7 @@ explain (verbose, costs off)
   update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
 create rule silly as on delete to dcomptable do instead
   update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
-\d+ dcomptable
+-- \d+ dcomptable
 
 create function makedcomp(r float8, i float8) returns dcomptype
 as 'select row(r, i)' language sql;
@@ -246,7 +246,7 @@ explain (verbose, costs off)
 create rule silly as on delete to dcomptable do instead
   update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
     where d1[1].i > 0;
-\d+ dcomptable
+-- \d+ dcomptable
 
 drop table dcomptable;
 drop type comptype cascade;
@@ -390,7 +390,7 @@ create table defaulttest
 insert into defaulttest(col4) values(0); -- fails, col5 defaults to null
 alter table defaulttest alter column col5 drop default;
 insert into defaulttest default values; -- succeeds, inserts domain default
--- We used to treat SET DEFAULT NULL as equivalent to DROP DEFAULT; wrong
+-- We used to treat SET DEFAULT NULL as equivalent to DROP DEFAULT -  wrong
 alter table defaulttest alter column col5 set default null;
 insert into defaulttest(col4) values(0); -- fails
 alter table defaulttest alter column col5 drop default;
@@ -797,7 +797,7 @@ drop function dom_check(int);
 drop domain di;
 
 --
--- Check use of a (non-inline-able) SQL function in a domain constraint;
+-- Check use of a (non-inline-able) SQL function in a domain constraint - 
 -- this has caused issues in the past
 --
 

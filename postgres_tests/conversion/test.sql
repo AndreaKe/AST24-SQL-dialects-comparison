@@ -3,13 +3,13 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
-\getenv libdir PG_LIBDIR
-\getenv dlsuffix PG_DLSUFFIX
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
 
-\set regresslib :libdir '/regress' :dlsuffix
+-- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
 
 CREATE FUNCTION test_enc_conversion(bytea, name, name, bool, validlen OUT int, result OUT bytea)
-    AS :'regresslib', 'test_enc_conversion'
+    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_enc_conversion'
     LANGUAGE C STRICT;
 
 CREATE USER regress_conversion_user WITH NOCREATEDB NOCREATEROLE;

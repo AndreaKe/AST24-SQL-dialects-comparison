@@ -280,7 +280,7 @@ FETCH ALL FROM c;
 ROLLBACK;
 
 --
--- Test behavior of both volatile and stable functions inside a cursor;
+-- Test behavior of both volatile and stable functions inside a cursor - 
 -- in particular we want to see what happens during commit of a holdable
 -- cursor
 --
@@ -336,7 +336,7 @@ PREPARE cprep AS
   SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 EXECUTE cprep;
 
--- test CLOSE ALL;
+-- test CLOSE ALL - 
 SELECT name FROM pg_cursors ORDER BY 1;
 CLOSE ALL;
 SELECT name FROM pg_cursors ORDER BY 1;
@@ -372,7 +372,7 @@ COMMIT;
 -- should still see deletion
 SELECT * FROM uctest;
 
--- Check UPDATE WHERE CURRENT; this time use FOR UPDATE
+-- Check UPDATE WHERE CURRENT -  this time use FOR UPDATE
 BEGIN;
 DECLARE c1 CURSOR FOR SELECT * FROM uctest FOR UPDATE;
 FETCH c1;

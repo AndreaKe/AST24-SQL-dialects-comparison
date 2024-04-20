@@ -3,7 +3,7 @@
 --
 
 -- directory paths are passed to us in environment variables
-\getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
 
 -- avoid bit-exact output here because operations may not be bit-exact.
 SET extra_float_digits = 0;
@@ -14,8 +14,8 @@ CREATE TABLE aggtest (
 	b			float4
 );
 
-\set filename :abs_srcdir '/data/agg.data'
-COPY aggtest FROM :'filename';
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/agg.data'
+COPY aggtest FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/agg.data';
 
 ANALYZE aggtest;
 

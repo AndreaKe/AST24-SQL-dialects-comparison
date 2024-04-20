@@ -4,7 +4,7 @@
 -- pg_type, pg_class, pg_attribute, pg_range.
 --
 -- None of the SELECTs here should ever find any matching entries,
--- so the expected output is easy to maintain ;-).
+-- so the expected output is easy to maintain  - -).
 -- A test failure indicates someone messed up an entry in the system tables.
 --
 -- NB: we assume the oidjoins test will have caught any dangling links,
@@ -415,7 +415,7 @@ WHERE c1.relnatts != (SELECT count(*) FROM pg_attribute AS a1
                       WHERE a1.attrelid = c1.oid AND a1.attnum > 0);
 
 -- Cross-check against pg_type entry
--- NOTE: we allow attstorage to be 'plain' even when typstorage is not;
+-- NOTE: we allow attstorage to be 'plain' even when typstorage is not - 
 -- this is mainly for toast tables.
 
 SELECT a1.attrelid, a1.attname, t1.oid, t1.typname

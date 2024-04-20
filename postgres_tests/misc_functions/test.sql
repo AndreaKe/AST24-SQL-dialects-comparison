@@ -1,8 +1,8 @@
 -- directory paths and dlsuffix are passed to us in environment variables
-\getenv libdir PG_LIBDIR
-\getenv dlsuffix PG_DLSUFFIX
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
 
-\set regresslib :libdir '/regress' :dlsuffix
+-- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
 
 --
 -- num_nulls()
@@ -42,7 +42,7 @@ SELECT num_nulls();
 
 CREATE FUNCTION test_canonicalize_path(text)
    RETURNS text
-   AS :'regresslib'
+   AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
    LANGUAGE C STRICT IMMUTABLE;
 
 SELECT test_canonicalize_path('/');
@@ -203,7 +203,7 @@ WHERE my_int_eq(a.unique2, 42);
 -- With support function that knows it's int4eq, we get a different plan
 CREATE FUNCTION test_support_func(internal)
     RETURNS internal
-    AS :'regresslib', 'test_support_func'
+    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_support_func'
     LANGUAGE C STRICT;
 
 ALTER FUNCTION my_int_eq(int, int) SUPPORT test_support_func;

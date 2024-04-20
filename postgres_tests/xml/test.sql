@@ -341,9 +341,9 @@ SELECT xml_is_well_formed('abc');
 -- attribute values.
 -- Since different libxml versions emit slightly different
 -- error messages, we suppress the DETAIL in this test.
-\set VERBOSITY terse
+-- \set VERBOSITY terse
 SELECT xpath('/*', '<invalidns xmlns=''&lt;''/>');
-\set VERBOSITY default
+-- \set VERBOSITY default
 
 -- Again, the XML isn't well-formed for namespace purposes
 SELECT xpath('/*', '<nosuchprefix:tag/>');

@@ -5,7 +5,7 @@
 CREATE TABLE TIMESTAMPTZ_TBL (d1 timestamp(2) with time zone);
 
 -- Test shorthand input values
--- We can't just "select" the results since they aren't constants; test for
+-- We can't just "select" the results since they aren't constants -  test for
 -- equality instead.  We can do that by running the test inside a transaction
 -- block, within which the value of 'now' shouldn't change, and so these
 -- related values shouldn't either.

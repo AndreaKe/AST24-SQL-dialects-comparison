@@ -42,7 +42,7 @@ CREATE TABLE temporal_rng (
 	valid_at daterange,
 	CONSTRAINT temporal_rng_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
 );
-\d temporal_rng
+-- \d temporal_rng
 SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng_pk';
 SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng_pk';
 
@@ -54,7 +54,7 @@ CREATE TABLE temporal_rng2 (
 	valid_at daterange,
 	CONSTRAINT temporal_rng2_pk PRIMARY KEY (id1, id2, valid_at WITHOUT OVERLAPS)
 );
-\d temporal_rng2
+-- \d temporal_rng2
 SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng2_pk';
 SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng2_pk';
 
@@ -76,7 +76,7 @@ CREATE TABLE temporal_mltrng (
   valid_at tsmultirange,
   CONSTRAINT temporal_mltrng_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
 );
-\d temporal_mltrng
+-- \d temporal_mltrng
 
 -- UNIQUE with no columns just WITHOUT OVERLAPS:
 
@@ -107,7 +107,7 @@ CREATE TABLE temporal_rng3 (
 	valid_at daterange,
 	CONSTRAINT temporal_rng3_uq UNIQUE (id, valid_at WITHOUT OVERLAPS)
 );
-\d temporal_rng3
+-- \d temporal_rng3
 SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
 SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
 DROP TABLE temporal_rng3;
@@ -119,7 +119,7 @@ CREATE TABLE temporal_rng3 (
 	valid_at daterange,
 	CONSTRAINT temporal_rng3_uq UNIQUE (id1, id2, valid_at WITHOUT OVERLAPS)
 );
-\d temporal_rng3
+-- \d temporal_rng3
 SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
 SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
 DROP TABLE temporal_rng3;

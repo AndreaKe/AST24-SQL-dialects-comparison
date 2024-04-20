@@ -21,7 +21,7 @@ CREATE TABLE collate_test1 (
     b text COLLATE "en-x-icu" NOT NULL
 );
 
-\d collate_test1
+-- \d collate_test1
 
 CREATE TABLE collate_test_fail (
     a int,
@@ -42,7 +42,7 @@ CREATE TABLE collate_test_like (
     LIKE collate_test1
 );
 
-\d collate_test_like
+-- \d collate_test_like
 
 CREATE TABLE collate_test2 (
     a int,
@@ -438,8 +438,8 @@ CREATE INDEX collate_dep_test4i ON collate_dep_test4t (b COLLATE test0);
 DROP COLLATION test0 RESTRICT; -- fail
 DROP COLLATION test0 CASCADE;
 
-\d collate_dep_test1
-\d collate_dep_test2
+-- \d collate_dep_test1
+-- \d collate_dep_test2
 
 DROP TABLE collate_dep_test1, collate_dep_test4t;
 DROP TYPE collate_dep_test2;

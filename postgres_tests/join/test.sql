@@ -265,7 +265,7 @@ FULL JOIN
 (SELECT * FROM t3) s3
 USING (name);
 
--- Cases with non-nullable expressions in subquery results;
+-- Cases with non-nullable expressions in subquery results - 
 -- make sure these go to null as expected
 SELECT * FROM
 (SELECT name, n as s2_n, 2 as s2_2 FROM t2) as s2
@@ -1839,7 +1839,7 @@ explain (costs off)
 
 --
 -- test that quals attached to an outer join have correct semantics,
--- specifically that they don't re-use expressions computed below the join;
+-- specifically that they don't re-use expressions computed below the join - 
 -- we force a mergejoin so that coalesce(b.q1, 1) appears as a join input
 --
 
@@ -2049,7 +2049,7 @@ select d.* from d left join (select distinct * from b) s
 
 -- join removal is not possible when the GROUP BY contains a column that is
 -- not in the join condition.  (Note: as of 9.6, we notice that b.id is a
--- primary key and so drop b.c_id from the GROUP BY of the resulting plan;
+-- primary key and so drop b.c_id from the GROUP BY of the resulting plan - 
 -- but this happens too late for join removal in the outer plan level.)
 explain (costs off)
 select d.* from d left join (select * from b group by b.id, b.c_id) s

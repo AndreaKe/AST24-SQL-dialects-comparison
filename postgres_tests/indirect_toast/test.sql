@@ -3,14 +3,14 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
-\getenv libdir PG_LIBDIR
-\getenv dlsuffix PG_DLSUFFIX
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
 
-\set regresslib :libdir '/regress' :dlsuffix
+-- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
 
 CREATE FUNCTION make_tuple_indirect (record)
         RETURNS record
-        AS :'regresslib'
+        AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
         LANGUAGE C STRICT;
 
 -- Other compression algorithms may cause the compressed data to be stored

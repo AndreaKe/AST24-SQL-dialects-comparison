@@ -107,8 +107,8 @@ CREATE POLICY p2r ON document AS RESTRICTIVE TO regress_rls_dave
 CREATE POLICY p1r ON document AS RESTRICTIVE TO regress_rls_dave
     USING (cid <> 44);
 
-\dp
-\d document
+-- \dp
+-- \d document
 SELECT * FROM pg_policies WHERE schemaname = 'regress_rls_schema' AND tablename = 'document' ORDER BY policyname;
 
 -- viewpoint from regress_rls_bob
@@ -355,7 +355,7 @@ CREATE POLICY pp1 ON part_document AS PERMISSIVE
 CREATE POLICY pp1r ON part_document AS RESTRICTIVE TO regress_rls_dave
     USING (cid < 55);
 
-\d+ part_document
+-- \d+ part_document
 SELECT * FROM pg_policies WHERE schemaname = 'regress_rls_schema' AND tablename like '%part_document%' ORDER BY policyname;
 
 -- viewpoint from regress_rls_bob
@@ -1551,14 +1551,14 @@ COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --ok
 SET row_security TO ON;
 COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --ok
 
--- Check COPY TO as user without permissions. SET row_security TO OFF;
+-- Check COPY TO as user without permissions. SET row_security TO OFF - 
 SET SESSION AUTHORIZATION regress_rls_carol;
 SET row_security TO OFF;
 COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --fail - would be affected by RLS
 SET row_security TO ON;
 COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --fail - permission denied
 
--- Check COPY relation TO; keep it just one row to avoid reordering issues
+-- Check COPY relation TO -  keep it just one row to avoid reordering issues
 RESET SESSION AUTHORIZATION;
 SET row_security TO ON;
 CREATE TABLE copy_rel_to (a integer, b text);
@@ -1591,7 +1591,7 @@ COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 SET row_security TO ON;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 
--- Check COPY TO as user without permissions. SET row_security TO OFF;
+-- Check COPY TO as user without permissions. SET row_security TO OFF - 
 SET SESSION AUTHORIZATION regress_rls_carol;
 SET row_security TO OFF;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --fail - permission denied
@@ -1625,7 +1625,7 @@ COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 SET row_security TO ON;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 
--- Check COPY TO as user without permissions. SET row_security TO OFF;
+-- Check COPY TO as user without permissions. SET row_security TO OFF - 
 SET SESSION AUTHORIZATION regress_rls_carol;
 SET row_security TO OFF;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --fail - permission denied

@@ -268,7 +268,7 @@ SELECT EXTRACT(MILLENNIUM FROM DATE '1000-12-31');    --  1
 SELECT EXTRACT(MILLENNIUM FROM DATE '1001-01-01');    --  2
 SELECT EXTRACT(MILLENNIUM FROM DATE '2000-12-31');    --  2
 SELECT EXTRACT(MILLENNIUM FROM DATE '2001-01-01');    --  3
--- next test to be fixed on the turn of the next millennium;-)
+-- next test to be fixed on the turn of the next millennium - -)
 SELECT EXTRACT(MILLENNIUM FROM CURRENT_DATE);         --  3
 --
 -- decade

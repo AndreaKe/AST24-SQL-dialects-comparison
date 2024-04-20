@@ -145,7 +145,7 @@ rollback;
 
 -- Commit table creation
 COMMIT PREPARED 'regress-one';
-\d pxtest2
+-- \d pxtest2
 SELECT * FROM pxtest2;
 
 -- There should be one prepared transaction

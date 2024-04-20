@@ -3,8 +3,8 @@
 --
 
 -- directory paths are passed to us in environment variables
-\getenv abs_srcdir PG_ABS_SRCDIR
-\getenv abs_builddir PG_ABS_BUILDDIR
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_builddir PG_ABS_BUILDDIR
 
 -- ensure consistent test output regardless of the default bytea format
 SET bytea_output TO escape;
@@ -26,7 +26,7 @@ RESET SESSION AUTHORIZATION;
 \lo_list
 \lo_list+
 \lo_unlink 42
-\dl
+-- \dl
 
 -- Load a file
 CREATE TABLE lotest_stash_values (loid oid, fd integer);
@@ -88,7 +88,7 @@ SELECT lo_close(fd) FROM lotest_stash_values;
 END;
 
 -- Copy to another large object.
--- Note: we intentionally don't remove the object created here;
+-- Note: we intentionally don't remove the object created here - 
 -- it's left behind to help test pg_dump.
 
 SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
@@ -132,13 +132,13 @@ BEGIN;
 SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
 ABORT;
 
-\set filename :abs_builddir '/results/invalid/path'
-\set dobody 'DECLARE loid oid; BEGIN '
-\set dobody :dobody 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl; '
-\set dobody :dobody 'PERFORM lo_export(loid, ' :'filename' '); '
-\set dobody :dobody 'EXCEPTION WHEN UNDEFINED_FILE THEN '
-\set dobody :dobody 'RAISE NOTICE ''could not open file, as expected''; END'
-DO :'dobody';
+-- \set filename PG_ABS_BUILDDIR '/results/invalid/path'
+-- \set dobody 'DECLARE loid oid; BEGIN '
+-- \set dobody 'DECLARE || loid || oid; || BEGIN || ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl; '
+-- \set dobody 'DECLARE || || || loid || || || oid; || || || BEGIN || || || SELECT || tbl.loid || INTO || loid || FROM || lotest_stash_values || tbl; || ' 'PERFORM lo_export(loid, ' PG_ABS_BUILDDIR || '/results/invalid/path' '); '
+-- \set dobody 'DECLARE || || || || || || || loid || || || || || || || oid; || || || || || || || BEGIN || || || || || || || SELECT || || || tbl.loid || || || INTO || || || loid || || || FROM || || || lotest_stash_values || || || tbl; || || || PERFORM || lo_export(loid, || ' || PG_ABS_BUILDDIR || || || '/results/invalid/path); || ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
+-- \set dobody 'DECLARE || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || oid; || || || || || || || || || || || || || || || BEGIN || || || || || || || || || || || || || || || SELECT || || || || || || || tbl.loid || || || || || || || INTO || || || || || || || loid || || || || || || || FROM || || || || || || || lotest_stash_values || || || || || || || tbl; || || || || || || || PERFORM || || || lo_export(loid, || || || ' || || || PG_ABS_BUILDDIR || || || || || || || '/results/invalid/path); || || || EXCEPTION || WHEN || UNDEFINED_FILE || THEN || ' 'RAISE NOTICE ''could not open file, as expected''; END'
+DO 'DECLARE || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || oid; || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || BEGIN || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || SELECT || || || || || || || || || || || || || || || tbl.loid || || || || || || || || || || || || || || || INTO || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || FROM || || || || || || || || || || || || || || || lotest_stash_values || || || || || || || || || || || || || || || tbl; || || || || || || || || || || || || || || || PERFORM || || || || || || || lo_export(loid, || || || || || || || ' || || || || || || || PG_ABS_BUILDDIR || || || || || || || || || || || || || || || '/results/invalid/path); || || || || || || || EXCEPTION || || || WHEN || || || UNDEFINED_FILE || || || THEN || || || RAISE || NOTICE || ''could || not || open || file, || as || expected''; || END';
 
 -- Test truncation.
 BEGIN;
@@ -188,8 +188,8 @@ SELECT lo_unlink(loid) from lotest_stash_values;
 
 TRUNCATE lotest_stash_values;
 
-\set filename :abs_srcdir '/data/tenk.data'
-INSERT INTO lotest_stash_values (loid) SELECT lo_import(:'filename');
+-- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+INSERT INTO lotest_stash_values (loid) SELECT lo_import('/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
 
 BEGIN;
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
@@ -218,60 +218,60 @@ SELECT loread(fd, 36) FROM lotest_stash_values;
 SELECT lo_close(fd) FROM lotest_stash_values;
 END;
 
-\set filename :abs_builddir '/results/lotest.txt'
-SELECT lo_export(loid, :'filename') FROM lotest_stash_values;
+-- \set filename PG_ABS_BUILDDIR '/results/lotest.txt'
+SELECT lo_export(loid, PG_ABS_BUILDDIR || '/results/lotest.txt') FROM lotest_stash_values;
 
-\lo_import :filename
+\lo_import PG_ABS_BUILDDIR || '/results/lotest.txt'
 
-\set newloid :LASTOID
+-- \set newloid :LASTOID
 
 -- just make sure \lo_export does not barf
-\set filename :abs_builddir '/results/lotest2.txt'
-\lo_export :newloid :filename
+-- \set filename PG_ABS_BUILDDIR '/results/lotest2.txt'
+\lo_export :LASTOID PG_ABS_BUILDDIR || '/results/lotest2.txt'
 
 -- This is a hack to test that export/import are reversible
 -- This uses knowledge about the inner workings of large object mechanism
 -- which should not be used outside it.  This makes it a HACK
 SELECT pageno, data FROM pg_largeobject WHERE loid = (SELECT loid from lotest_stash_values)
 EXCEPT
-SELECT pageno, data FROM pg_largeobject WHERE loid = :newloid;
+SELECT pageno, data FROM pg_largeobject WHERE loid = :LASTOID;
 
 SELECT lo_unlink(loid) FROM lotest_stash_values;
 
 TRUNCATE lotest_stash_values;
 
-\lo_unlink :newloid
+\lo_unlink :LASTOID
 
-\set filename :abs_builddir '/results/lotest.txt'
-\lo_import :filename
+-- \set filename PG_ABS_BUILDDIR '/results/lotest.txt'
+\lo_import PG_ABS_BUILDDIR || '/results/lotest.txt'
 
-\set newloid_1 :LASTOID
+-- \set newloid_1 :LASTOID
 
-SELECT lo_from_bytea(0, lo_get(:newloid_1)) AS newloid_2
+SELECT lo_from_bytea(0, lo_get(:LASTOID_1)) AS newloid_2
 \gset
 
-SELECT fipshash(lo_get(:newloid_1)) = fipshash(lo_get(:newloid_2));
+SELECT fipshash(lo_get(:LASTOID_1)) = fipshash(lo_get(:LASTOID_2));
 
-SELECT lo_get(:newloid_1, 0, 20);
-SELECT lo_get(:newloid_1, 10, 20);
-SELECT lo_put(:newloid_1, 5, decode('afafafaf', 'hex'));
-SELECT lo_get(:newloid_1, 0, 20);
+SELECT lo_get(:LASTOID_1, 0, 20);
+SELECT lo_get(:LASTOID_1, 10, 20);
+SELECT lo_put(:LASTOID_1, 5, decode('afafafaf', 'hex'));
+SELECT lo_get(:LASTOID_1, 0, 20);
 
-SELECT lo_put(:newloid_1, 4294967310, 'foo');
-SELECT lo_get(:newloid_1);
-SELECT lo_get(:newloid_1, 4294967294, 100);
+SELECT lo_put(:LASTOID_1, 4294967310, 'foo');
+SELECT lo_get(:LASTOID_1);
+SELECT lo_get(:LASTOID_1, 4294967294, 100);
 
-\lo_unlink :newloid_1
-\lo_unlink :newloid_2
+\lo_unlink :LASTOID_1
+\lo_unlink :LASTOID_2
 
 -- This object is left in the database for pg_dump test purposes
 SELECT lo_from_bytea(0, E'\\xdeadbeef') AS newloid
 \gset
 
 SET bytea_output TO hex;
-SELECT lo_get(:newloid);
+SELECT lo_get(:LASTOID);
 
--- Create one more object that we leave behind for testing pg_dump/pg_upgrade;
+-- Create one more object that we leave behind for testing pg_dump/pg_upgrade - 
 -- this one intentionally has an OID in the system range
 SELECT lo_create(2121);
 
@@ -302,7 +302,7 @@ SELECT lowrite(42, 'x');
 ROLLBACK;
 
 START TRANSACTION READ ONLY;
-SELECT lo_import(:'filename');
+SELECT lo_import(PG_ABS_BUILDDIR || '/results/lotest.txt');
 ROLLBACK;
 
 START TRANSACTION READ ONLY;

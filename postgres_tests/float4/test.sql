@@ -165,7 +165,7 @@ create cast (integer as xfloat4) without function;
 -- float4: seeeeeee emmmmmmm mmmmmmmm mmmmmmmm
 
 -- we don't care to assume the platform's strtod() handles subnormals
--- correctly; those are "use at your own risk". However we do test
+-- correctly -  those are "use at your own risk". However we do test
 -- subnormal outputs, since those are under our control.
 
 with testdata(bits) as (values

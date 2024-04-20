@@ -2,7 +2,7 @@
 -- PATH
 --
 
---DROP TABLE PATH_TBL;
+--DROP TABLE PATH_TBL - 
 
 CREATE TABLE PATH_TBL (f1 path);
 
