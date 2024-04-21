@@ -2,10 +2,18 @@ import os
 import sys, logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-import re
 import duckdb
 
+
+TEST_PATH = "postgres_tests"
+RESULT_PATH = "postgres_results"  
+if(len(sys.argv) > 1):
+    TEST_PATH = str(sys.argv[1]) # 1. command line argument = TEST_PATH
+if(len(sys.argv) > 2):
+    RESULT_PATH = str(sys.argv[2]) # 2. command line argument = RESULT_PATH
+
 logging.basicConfig(stream=sys.stderr, level=logging.ERROR) # change level to INFO or DEBUG to see more output
+
 
 class SQLDialectWrapper(object):
     name = ""
@@ -65,6 +73,7 @@ class DuckDB(SQLDialectWrapper):
 
     def setup_connection(self):
         self.db_conn = duckdb.connect()
+        # check if we can / need to change the settings (see PostgreSQL)
 
     def teardown_connection(self):
         pass
@@ -90,7 +99,7 @@ class DuckDB(SQLDialectWrapper):
             return self.create_result_dict(self.PASS, result)
         except Exception as e:
             self.result_file.write("ERROR: {}\n{}\n".format(command, e))
-            if printErrors: #and not re.search(pattern, expected_results):
+            if printErrors:
                 logging.warning("ERROR: {}\n{}\n".format(command, e))
             return self.create_error_dict()
 
@@ -139,7 +148,6 @@ class PostgreSQL(SQLDialectWrapper):
         self.db_cursor = self.db_conn.cursor()
 
     def teardown_connection(self):
-        # postgres_cursor.execute(DROP_DB_STMT) -> need to close connection first
         logging.info("POSTGRESQL: Close connection to database")
         self.db_cursor.close()
         self.db_conn.close()
@@ -156,7 +164,7 @@ class PostgreSQL(SQLDialectWrapper):
     def exec_command(self, printErrors, command):
         try:
             self.db_cursor.execute(command)
-            result = self.db_cursor.fetchall() # TODO: here we can compare results to other DBMS results
+            result = self.db_cursor.fetchall()
             result_string = "RESULT: \n\t{}\n".format(result)
             logging.info(result_string)
             self.result_file.write(result_string)
@@ -166,15 +174,13 @@ class PostgreSQL(SQLDialectWrapper):
                 return self.create_no_result_dict()
             else:
                 self.result_file.write("ProgrammingError: {}\n{}\n".format(command, e))
-                        # pattern = r'.*{};[^\n]*\s*(ERROR)?:?\s*{}.*'.format(re.escape(command.strip()), re.escape(str(e)))
-                if printErrors: # and not re.search(pattern, expected_results):
+                if printErrors:
                     logging.warning("ProgrammingError: {}\n{}\n".format(command, e))
                 return self.create_error_dict()
                 
         except psycopg2.Error as e:
-                    #pattern = r'.*{};?[^\n]*\s*(ERROR)?:?\s*{}.*'.format(re.escape(command).strip(), re.escape(str(e)))
             self.result_file.write("ERROR: {}\n{}\n".format(command, e))
-            if printErrors: #and not re.search(pattern, expected_results):
+            if printErrors:
                 logging.warning("ERROR: {}\n{}\n".format(command, e))
             return self.create_error_dict()
         except Exception as e:
@@ -182,14 +188,6 @@ class PostgreSQL(SQLDialectWrapper):
             if printErrors:
                 logging.warning("ERROR: {}\n{}\n".format(command, e))
             return self.create_error_dict()
-
-
-TEST_PATH = "postgres_tests"
-RESULT_PATH = "postgres_results"  
-if(len(sys.argv) > 1):
-    TEST_PATH = str(sys.argv[1]) # 1. command line argument = TEST_PATH
-if(len(sys.argv) > 2):
-    RESULT_PATH = str(sys.argv[2]) # 2. command line argument = RESULT_PATH
 
 
 def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
@@ -202,11 +200,6 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
     test_file = test_file_stream.read()
     test_file_stream.close()
 
-    # expected_results_stream = open(expected_results_file, 'r')
-    # expected_results = expected_results_stream.read()
-    # expected_results_stream.close()
-
-    #sql_commands = re.sub(r'(--[^\n]*\n)', '', test_file) # remove comments
     sql_commands = test_file.split(';') # here we get the individual sql commands!
     command_iter = iter(sql_commands)
     
@@ -221,7 +214,7 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
                 results = []
                 for dialect in sql_dialects:
                     results.append(dialect.exec_command(printErrors, command))
-                # TODO compare results
+                # TODO compare results & store them to some output file
         except StopIteration:
             break
 
@@ -255,14 +248,14 @@ def execute_single_test(test_folder, result_folder):
     print("execute single test {} and storing results in {}\n".format(test_folder, result_folder))
     # we always want to drop and recreate the database because some tests might modify the data
 
-    dialects = [PostgreSQL(), DuckDB()] # TODO add MySQL
+    dialects = init_dialects()
 
     execute_sql_file(dialects, test_folder + "/setup.sql", result_folder, False) 
 
     for dialect in dialects:
         if dialect.name == "postgres":
             dialect.db_cursor.execute("SELECT pg_catalog.set_config('search_path', 'public', false);")
-        # TODO check if we have to do something for MySQL, DuckDB
+        # TODO check if we have to do something for other dialects
 
     execute_sql_file(dialects, test_folder + "/test.sql", result_folder)
 
@@ -288,5 +281,7 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
             return # we assume there are no subfolders with tests
 
 
+def init_dialects():
+    return [PostgreSQL(), DuckDB()] # TODO other SQL dialects here
 
 execute_tests_in_folder_rec(TEST_PATH, RESULT_PATH)
