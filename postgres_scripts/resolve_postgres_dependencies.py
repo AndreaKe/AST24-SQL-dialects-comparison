@@ -25,6 +25,7 @@ for fname in os.listdir(test_path):
                 line = ls[0] + "--" + ls[1].replace(";", " /* REPLACED */," ).replace("'", "''").replace('"', "''").replace("$$", "$$$$")
                 
 
+            # TODO probably we should do this when executing the tests such that people can share the test cases with each other
             if 'PG_ABS_SRCDIR' in line or 'PG_LIBDIR' in line or 'PG_DLSUFFIX' in line or 'PG_ABS_BUILDDIR' in line:
                 line = line.replace('PG_ABS_SRCDIR', "'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'")
                 line = line.replace('PG_LIBDIR', "'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'")
