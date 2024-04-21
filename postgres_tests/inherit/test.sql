@@ -228,7 +228,7 @@ alter table a alter column aa type integer using bit_length(aa);
 select * from d;
 
 -- The above verified that we can change the type of a multiply-inherited
--- column -  but we should reject that if any definition was inherited from
+-- column /* REPLACED */, but we should reject that if any definition was inherited from
 -- an unrelated parent.
 create temp table parent1(f1 int, f2 int);
 create temp table parent2(f1 int, f3 bigint);
@@ -575,7 +575,7 @@ create table matest3 (id integer primary key) inherits (matest0);
 
 create index matest0i on matest0 ((1-id));
 create index matest1i on matest1 ((1-id));
--- create index matest2i on matest2 ((1-id)) -   -- intentionally missing
+-- create index matest2i on matest2 ((1-id)) /* REPLACED */,  -- intentionally missing
 create index matest3i on matest3 ((1-id));
 
 insert into matest1 (name) values ('Test 1');

@@ -5,8 +5,8 @@ CREATE TABLE testjsonb (
        j jsonb
 );
 
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/jsonb.data'
-COPY testjsonb FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/jsonb.data';
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/jsonb.data'
+COPY testjsonb FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/jsonb.data';
 
 -- Strings.
 SELECT '""'::jsonb;				-- OK.

@@ -31,3 +31,13 @@ for filepath in $(find $srcTestPath -name '*.sql'); do
     #cp $srcTestPath/test_setup.sql $currTestFolder/setup.sql - this is not sufficient! -> done in a dedicated python script
     cp $srcExpectedPath/$filename.out $currTestFolder/result.txt
 done
+
+echo 'Extraction finished'
+
+echo '==============='
+echo 'Start dependency resolution'
+
+python3 resolve_postgres_dependencies.py
+
+echo 'Dependency resolution finished'
+echo '==============='

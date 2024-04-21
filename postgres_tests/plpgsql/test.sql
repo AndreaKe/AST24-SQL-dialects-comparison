@@ -1419,7 +1419,7 @@ insert into IFace values ('IF', 'orion', 'ethernet_interface_name_too_long', '')
 
 
 --
--- The following tests are unrelated to the scenario outlined above - 
+-- The following tests are unrelated to the scenario outlined above /* REPLACED */,
 -- they merely exercise specific parts of PL/pgSQL
 --
 
@@ -1676,7 +1676,7 @@ drop function f1(a anyelement, b anyarray,
 
 --
 -- Test handling of OUT parameters, including polymorphic cases.
--- Note that RETURN is optional with OUT params -  we try both ways.
+-- Note that RETURN is optional with OUT params /* REPLACED */, we try both ways.
 --
 
 -- wrong way to do it:
@@ -2691,7 +2691,7 @@ declare
 begin
   select 1, 2 into t;  -- should be ok
   raise notice 'ok';
-  select 1, 2, 3 into t; -- should fail;
+  select 1, 2, 3 into t; -- should fail /* REPLACED */,
 end;
 $$;
 
@@ -2699,7 +2699,7 @@ do $$
 declare
   t test_01;
 begin
-  select 1 into t; -- should fail;
+  select 1 into t; -- should fail /* REPLACED */,
 end;
 $$;
 
@@ -3237,7 +3237,7 @@ $$ language plpgsql;
 select raise_test();
 
 -- Since we can't actually see the thrown SQLSTATE in default psql output,
--- test it like this -  this also tests re-RAISE
+-- test it like this /* REPLACED */, this also tests re-RAISE
 
 create or replace function raise_test() returns void as $$
 begin

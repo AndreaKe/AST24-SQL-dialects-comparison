@@ -4,7 +4,7 @@
 -- This test is mainly meant to provide some code coverage for the
 -- set-returning functions that underlie certain system views.
 -- The output of most of these functions is very environment-dependent,
--- so our ability to test with fixed expected output is pretty limited - 
+-- so our ability to test with fixed expected output is pretty limited /* REPLACED */,
 -- but even a trivial check of count(*) will exercise the normal code path
 -- through the SRF.
 
@@ -17,10 +17,10 @@ select count(*) >= 0 as ok from pg_available_extensions;
 select name, ident, parent, level, total_bytes >= free_bytes
   from pg_backend_memory_contexts where level = 0;
 
--- At introduction, pg_config had 23 entries -  it may grow
+-- At introduction, pg_config had 23 entries /* REPLACED */, it may grow
 select count(*) > 20 as ok from pg_config;
 
--- We expect no cursors in this test -  see also portals.sql
+-- We expect no cursors in this test /* REPLACED */, see also portals.sql
 select count(*) = 0 as ok from pg_cursors;
 
 select count(*) >= 0 as ok from pg_file_settings;
@@ -36,7 +36,7 @@ select count(*) >= 0 as ok, count(*) FILTER (WHERE error IS NOT NULL) = 0 AS no_
 -- There will surely be at least one active lock
 select count(*) > 0 as ok from pg_locks;
 
--- We expect no prepared statements in this test -  see also prepare.sql
+-- We expect no prepared statements in this test /* REPLACED */, see also prepare.sql
 select count(*) = 0 as ok from pg_prepared_statements;
 
 -- See also prepared_xacts.sql

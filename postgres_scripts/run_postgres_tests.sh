@@ -67,9 +67,11 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
     psql -X -q -c "DROP TABLESPACE IF EXISTS regress_tblspace;" postgres
 
     #echo "Compare result.txt to expected output..."
-    diff -q ${currentTestPath}result.txt ${currentResults}/postgres.txt
+    python3 postgres_compare_results.py ${currentResults}/postgres.txt ${currentTestPath}result.txt 
 
     echo "Test $currentTest finished"
+
+    
 
 done
 

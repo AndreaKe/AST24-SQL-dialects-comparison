@@ -10,13 +10,13 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 --
 -- Check LOAD command.  (The alternative of implicitly loading the library
 -- is checked in many other test scripts.)
 --
-LOAD '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so';
+LOAD /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so';
 
 -- Things that shouldn't work:
 
@@ -27,7 +27,7 @@ CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
 -- of the regresslib file out of the error message in this test.
 -- \set VERBOSITY sqlstate
 CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
-    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'nosuchsymbol';
+    AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'nosuchsymbol';
 -- \set VERBOSITY default
 SELECT regexp_replace(:'LAST_ERROR_MESSAGE', 'file ".*"', 'file "..."');
 

@@ -38,7 +38,7 @@ CREATE OPERATOR CLASS box_ops DEFAULT
 -- Create gist2 index on fast_emp4000
 CREATE INDEX grect2ind2 ON fast_emp4000 USING gist2 (home_base);
 
--- Now check the results from plain indexscan -  temporarily drop existing
+-- Now check the results from plain indexscan /* REPLACED */, temporarily drop existing
 -- index grect2ind to ensure it doesn't capture the plan
 BEGIN;
 DROP INDEX grect2ind;

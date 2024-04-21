@@ -106,7 +106,7 @@ SELECT setseed(0.5);
 
 SELECT random() FROM generate_series(1, 10);
 
--- Likewise for random_normal() -  however, since its implementation relies
+-- Likewise for random_normal() /* REPLACED */, however, since its implementation relies
 -- on libm functions that have different roundoff behaviors on different
 -- machines, we have to round off the results a bit to get consistent output.
 SET extra_float_digits = -1;

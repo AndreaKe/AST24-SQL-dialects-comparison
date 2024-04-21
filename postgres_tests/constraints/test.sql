@@ -248,7 +248,7 @@ UPDATE INSERT_TBL SET x = z, z = x;
 
 SELECT * FROM INSERT_TBL;
 
--- DROP TABLE INSERT_TBL - 
+-- DROP TABLE INSERT_TBL /* REPLACED */,
 
 --
 -- Check constraints on COPY FROM
@@ -258,13 +258,13 @@ CREATE TABLE COPY_TBL (x INT, y TEXT, z INT,
 	CONSTRAINT COPY_CON
 	CHECK (x > 3 AND y <> 'check failed' AND x < 7 ));
 
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constro.data'
-COPY COPY_TBL FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constro.data';
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constro.data'
+COPY COPY_TBL FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constro.data';
 
 SELECT * FROM COPY_TBL;
 
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constrf.data'
-COPY COPY_TBL FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constrf.data';
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constrf.data'
+COPY COPY_TBL FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constrf.data';
 
 SELECT * FROM COPY_TBL;
 

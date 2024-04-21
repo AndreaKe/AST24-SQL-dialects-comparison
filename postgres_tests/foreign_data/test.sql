@@ -6,11 +6,11 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 CREATE FUNCTION test_fdw_handler()
     RETURNS fdw_handler
-    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_fdw_handler'
+    AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_fdw_handler'
     LANGUAGE C;
 
 -- Clean up in case a prior regression run failed

@@ -239,7 +239,7 @@ UPDATE f_star SET f = 10;
 
 ALTER TABLE e_star* ADD COLUMN e int4;
 
---UPDATE e_star* SET e = 42 - 
+--UPDATE e_star* SET e = 42 /* REPLACED */,
 
 SELECT * FROM e_star*;
 
@@ -253,6 +253,6 @@ SELECT relname, reltoastrelid <> 0 AS has_toast_table
 
 --UPDATE b_star*
 --   SET a = text 'gazpacho'
---   WHERE aa > 4 - 
+--   WHERE aa > 4 /* REPLACED */,
 
 SELECT class, aa, a FROM a_star*;

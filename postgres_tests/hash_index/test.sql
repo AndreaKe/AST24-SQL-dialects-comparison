@@ -25,19 +25,19 @@ CREATE TABLE hash_f8_heap (
 	random 		float8
 );
 
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
-COPY hash_i4_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
-COPY hash_name_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
-COPY hash_txt_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
-COPY hash_f8_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
+COPY hash_i4_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+COPY hash_name_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+COPY hash_txt_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+COPY hash_f8_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
 
 -- the data in this file has a lot of duplicates in the index key
 -- fields, leading to long bucket chains and lots of table expansion.
 -- this is therefore a stress test of the bucket overflow code (unlike
 -- the data in hash.data, which has unique index keys).
 --
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hashovfl.data'
--- COPY hash_ovfl_heap FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data' - 
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hashovfl.data'
+-- COPY hash_ovfl_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data' /* REPLACED */,
 
 ANALYZE hash_i4_heap;
 ANALYZE hash_name_heap;
@@ -122,14 +122,14 @@ SELECT * FROM hash_f8_heap
 -- grep '^90[^0-9]' hashovfl.data
 --
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
---    WHERE x = 90 - 
+--    WHERE x = 90 /* REPLACED */,
 
 --
 -- hash index
 -- grep '^1000[^0-9]' hashovfl.data
 --
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
---    WHERE x = 1000 - 
+--    WHERE x = 1000 /* REPLACED */,
 
 --
 -- HASH
@@ -163,7 +163,7 @@ UPDATE hash_name_heap
    WHERE hash_name_heap.random = '76652222'::name;
 
 --
--- this is the row we just replaced -  index scan should return zero rows
+-- this is the row we just replaced /* REPLACED */, index scan should return zero rows
 --
 SELECT h.seqno AS emptyset
    FROM hash_name_heap h
@@ -203,16 +203,16 @@ SELECT h.seqno AS f20000
 
 -- UPDATE hash_ovfl_heap
 --    SET x = 1000
---   WHERE x = 90 - 
+--   WHERE x = 90 /* REPLACED */,
 
 -- this vacuums the index as well
--- VACUUM hash_ovfl_heap - 
+-- VACUUM hash_ovfl_heap /* REPLACED */,
 
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
---   WHERE x = 90 - 
+--   WHERE x = 90 /* REPLACED */,
 
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
---  WHERE x = 1000 - 
+--  WHERE x = 1000 /* REPLACED */,
 
 --
 -- Cause some overflow insert and splits.

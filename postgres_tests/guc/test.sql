@@ -1,4 +1,4 @@
--- pg_regress should ensure that this default value applies -  however
+-- pg_regress should ensure that this default value applies /* REPLACED */, however
 -- we can't rely on any specific default value of vacuum_cost_delay
 SHOW datestyle;
 
@@ -298,7 +298,7 @@ select current_setting('nosuch.setting', false);
 select current_setting('nosuch.setting', true);
 
 -- Normally, CREATE FUNCTION should complain about invalid values in
--- function SET options -  but not if check_function_bodies is off,
+-- function SET options /* REPLACED */, but not if check_function_bodies is off,
 -- because that creates ordering hazards for pg_dump
 
 create function func_with_bad_set() returns int as $$ select 1 $$

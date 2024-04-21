@@ -9,11 +9,11 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 CREATE FUNCTION interpt_pp(path, path)
     RETURNS point
-    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+    AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
     LANGUAGE C STRICT;
 
 CREATE TABLE real_city (
@@ -22,8 +22,8 @@ CREATE TABLE real_city (
 	outline 	path
 );
 
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/real_city.data'
-COPY real_city FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/real_city.data';
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/real_city.data'
+COPY real_city FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/real_city.data';
 ANALYZE real_city;
 
 SELECT *

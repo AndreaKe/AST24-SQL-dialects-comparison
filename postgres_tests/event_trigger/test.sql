@@ -163,7 +163,7 @@ drop event trigger regress_event_trigger;
 drop role regress_evt_user;
 
 -- cleanup before next test
--- these are all OK -  the second one should emit a NOTICE
+-- these are all OK /* REPLACED */, the second one should emit a NOTICE
 drop event trigger if exists regress_event_trigger2;
 drop event trigger if exists regress_event_trigger2;
 drop event trigger regress_event_trigger3;
@@ -207,7 +207,7 @@ CREATE TABLE dropped_objects (
 	object text
 );
 
--- This tests errors raised within event triggers -  the one in audit_tbls
+-- This tests errors raised within event triggers /* REPLACED */, the one in audit_tbls
 -- uses 2nd-level recursive invocation via test_evtrig_dropped_objects().
 CREATE OR REPLACE FUNCTION undroppable() RETURNS event_trigger
 LANGUAGE plpgsql AS $$

@@ -463,7 +463,7 @@ SELECT * from FKTABLE;
 DROP TABLE FKTABLE;
 DROP TABLE PKTABLE;
 
--- Test for ON DELETE SET NULL/DEFAULT (column_list) - 
+-- Test for ON DELETE SET NULL/DEFAULT (column_list) /* REPLACED */,
 CREATE TABLE PKTABLE (tid int, id int, PRIMARY KEY (tid, id));
 CREATE TABLE FKTABLE (tid int, id int, foo int, FOREIGN KEY (tid, id) REFERENCES PKTABLE ON DELETE SET NULL (bar));
 CREATE TABLE FKTABLE (tid int, id int, foo int, FOREIGN KEY (tid, id) REFERENCES PKTABLE ON DELETE SET NULL (foo));
@@ -1230,7 +1230,7 @@ UPDATE fk_partitioned_fk SET a = a + 1 WHERE a = 2501;
 INSERT INTO fk_notpartitioned_pk (a,b) VALUES (2502, 2503);
 UPDATE fk_partitioned_fk SET a = a + 1 WHERE a = 2501;
 
--- these updates would leave lingering rows in the referencing table -  disallow
+-- these updates would leave lingering rows in the referencing table /* REPLACED */, disallow
 UPDATE fk_notpartitioned_pk SET b = 502 WHERE a = 500;
 UPDATE fk_notpartitioned_pk SET b = 1502 WHERE a = 1500;
 UPDATE fk_notpartitioned_pk SET b = 2504 WHERE a = 2500;

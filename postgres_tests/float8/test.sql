@@ -222,7 +222,7 @@ SELECT asinh(float8 'infinity');
 SELECT asinh(float8 '-infinity');
 SELECT asinh(float8 'nan');
 -- acosh(Inf) should be Inf, but some mingw versions produce NaN, so skip test
--- SELECT acosh(float8 'infinity') - 
+-- SELECT acosh(float8 'infinity') /* REPLACED */,
 SELECT acosh(float8 '-infinity');
 SELECT acosh(float8 'nan');
 SELECT atanh(float8 'infinity');
@@ -337,7 +337,7 @@ create cast (bigint as xfloat8) without function;
 -- float8: seeeeeee eeeeeeee eeeeeeee mmmmmmmm mmmmmmmm(x4)
 
 -- we don't care to assume the platform's strtod() handles subnormals
--- correctly -  those are "use at your own risk". However we do test
+-- correctly /* REPLACED */, those are "use at your own risk". However we do test
 -- subnormal outputs, since those are under our control.
 
 with testdata(bits) as (values

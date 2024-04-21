@@ -316,7 +316,7 @@ explain (costs off) select * from rp where a <> 1 and a <> 2;
 -- null partition should be eliminated due to strict <> clause.
 explain (costs off) select * from lp where a <> 'a';
 
--- ensure we detect contradictions in clauses -  a can't be NULL and NOT NULL.
+-- ensure we detect contradictions in clauses /* REPLACED */, a can't be NULL and NOT NULL.
 explain (costs off) select * from lp where a <> 'a' and a is null;
 explain (costs off) select * from lp where (a <> 'a' and a <> 'd') or a is null;
 

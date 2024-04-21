@@ -105,7 +105,7 @@ SELECT date '1991-02-03' + time with time zone '04:05:06 PST' AS "Date + Time PS
 SELECT date '2001-02-03' + time with time zone '04:05:06 UTC' AS "Date + Time UTC";
 SELECT date '1991-02-03' + interval '2 years' AS "Add Two Years";
 SELECT date '2001-12-13' - interval '2 years' AS "Subtract Two Years";
--- subtract time from date should not make sense -  use interval instead
+-- subtract time from date should not make sense /* REPLACED */, use interval instead
 SELECT date '1991-02-03' - time '04:05:06' AS "Subtract Time";
 SELECT date '1991-02-03' - time with time zone '04:05:06 UTC' AS "Subtract Time UTC";
 
@@ -197,8 +197,8 @@ SELECT time with time zone '02:30-08' + interval '36:01' AS "14:31:00-08";
 
 -- These two tests cannot be used because they default to current timezone,
 -- which may be either -08 or -07 depending on the time of year.
--- SELECT time with time zone '01:30' + interval '02:01' AS "03:31:00-08" - 
--- SELECT time with time zone '03:30' + interval '1 month 04:01' AS "07:31:00-08" - 
+-- SELECT time with time zone '01:30' + interval '02:01' AS "03:31:00-08" /* REPLACED */,
+-- SELECT time with time zone '03:30' + interval '1 month 04:01' AS "07:31:00-08" /* REPLACED */,
 -- Try the following two tests instead, as a poor substitute
 
 SELECT CAST(CAST(date 'today' + time with time zone '05:30'
@@ -421,7 +421,7 @@ RESET DateStyle;
 -- to_timestamp()
 --
 
-SELECT to_timestamp('0097/Feb/16 --> 08:14:30', 'YYYY/Mon/DD --> HH:MI:SS');
+SELECT to_timestamp('0097/Feb/16 --> 08:14:30', 'YYYY/Mon/DD --> HH:MI:SS') /* REPLACED */,
 
 SELECT to_timestamp('97/2/16 8:14:30', 'FMYYYY/FMMM/FMDD FMHH:FMMI:FMSS');
 

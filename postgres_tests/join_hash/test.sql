@@ -87,7 +87,7 @@ update pg_class
 create table wide as select generate_series(1, 2) as id, rpad('', 320000, 'x') as t;
 alter table wide set (parallel_workers = 2);
 
--- The "optimal" case: the hash table fits in memory -  we plan for 1
+-- The "optimal" case: the hash table fits in memory /* REPLACED */, we plan for 1
 -- batch, we stick to that number, and peak memory usage stays within
 -- our work_mem budget
 
@@ -138,7 +138,7 @@ $$
 $$);
 rollback to settings;
 
--- The "good" case: batches required, but we plan the right number -  we
+-- The "good" case: batches required, but we plan the right number /* REPLACED */, we
 -- plan for some number of batches, and we stick to that number, and
 -- peak memory usage says within our work_mem budget
 
@@ -192,7 +192,7 @@ select count(*) from simple r full outer join simple s using (id);
 rollback to settings;
 
 -- The "bad" case: during execution we need to increase number of
--- batches -  in this case we plan for 1 batch, and increase at least a
+-- batches /* REPLACED */, in this case we plan for 1 batch, and increase at least a
 -- couple of times, and peak memory usage stays within our work_mem
 -- budget
 
@@ -245,7 +245,7 @@ rollback to settings;
 
 -- The "ugly" case: increasing the number of batches during execution
 -- doesn't help, so stop trying to fit in work_mem and hope for the
--- best -  in this case we plan for 1 batch, increases just once and
+-- best /* REPLACED */, in this case we plan for 1 batch, increases just once and
 -- then stop increasing because that didn't help at all, so we blow
 -- right through the work_mem budget and hope for the best...
 
@@ -563,7 +563,7 @@ INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 2); -- matches
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 3, 'another', 7); -- fails id join condition
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 90);  -- fails < 55
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 3); -- fails (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
-INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'text', 1); --  fails hjtest_1.a <> hjtest_2.b;
+INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'text', 1); --  fails hjtest_1.a <> hjtest_2.b /* REPLACED */,
 
 EXPLAIN (COSTS OFF, VERBOSE)
 SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2

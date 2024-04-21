@@ -5,7 +5,7 @@
 -- (type textrange was already made in test_setup.sql)
 --
 
--- negative tests -  should fail
+-- negative tests /* REPLACED */, should fail
 select ''::textrange;
 select '-[a,z)'::textrange;
 select '[a,z) - '::textrange;

@@ -25,7 +25,7 @@ select '$.a.**{last}.b'::jsonpath;
 select '$.a.**{last to 5}.b'::jsonpath;
 select '$+1'::jsonpath;
 select '$-1'::jsonpath;
-select '$--+1'::jsonpath;
+select '$--+1'::jsonpath /* REPLACED */,
 select '$.a/+-1'::jsonpath;
 select '1 * 2 + 4 % -3 != false'::jsonpath;
 

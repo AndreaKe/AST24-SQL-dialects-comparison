@@ -45,7 +45,7 @@ INSERT INTO trunc_stats_test DEFAULT VALUES;
 INSERT INTO trunc_stats_test DEFAULT VALUES;
 TRUNCATE trunc_stats_test;
 
--- test involving a truncate in a transaction -  4 ins but only 1 live
+-- test involving a truncate in a transaction /* REPLACED */, 4 ins but only 1 live
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
@@ -782,7 +782,7 @@ DECLARE
   start_time timestamptz := clock_timestamp();
   updated bool;
 BEGIN
-  -- we don't want to wait forever; loop will exit after 30 seconds
+  -- we don't want to wait forever /* REPLACED */, loop will exit after 30 seconds
   FOR i IN 1 .. 300 LOOP
     SELECT (pg_stat_get_tuples_hot_updated('brin_hot'::regclass::oid) > 0) INTO updated;
     EXIT WHEN updated;

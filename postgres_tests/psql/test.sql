@@ -13,13 +13,13 @@
 -- check handling of built-in boolean variable
 \echo :ON_ERROR_ROLLBACK
 -- \set ON_ERROR_ROLLBACK
-\echo 
+\echo /* REPLACED */ 
 -- \set ON_ERROR_ROLLBACK foo
-\echo foo
+\echo /* REPLACED */ foo
 -- \set ON_ERROR_ROLLBACK on
-\echo on
+\echo /* REPLACED */ on
 \unset ON_ERROR_ROLLBACK
-\echo on
+\echo /* REPLACED */ on
 
 -- \g and \gx
 
@@ -81,7 +81,7 @@ select 7 as x, 8 as y \g \gset pref01_ \echo :pref01_x :pref01_y
 -- NULL should unset the variable
 -- \set var2 xyz
 select 1 as var1, NULL as var2, 3 as var3 \gset
-\echo :var1 xyz :var3
+\echo :var1 /* REPLACED */ xyz :var3
 
 -- \gset requires just one tuple
 select 10 as test01, 20 as test02 from generate_series(1,3) \gset
@@ -173,11 +173,11 @@ select 'drop table gexec_test', 'select ''2000-01-01''::date as party_over'
 -- \setenv MYVAR
 -- in which case, reading it doesn't change the target
 -- \getenv res MYVAR
-\echo MYVAR
+\echo /* REPLACED */ MYVAR
 -- now set it
 -- \setenv MYVAR 'environment value'
 -- \getenv res MYVAR
-\echo MYVAR
+\echo /* REPLACED */ MYVAR
 
 -- show all pset options
 \pset
@@ -845,13 +845,13 @@ drop table psql_serial_tab;
 \echo '-n' with newline
 
 -- \set foo bar
-\echo foo = bar
+\echo foo = /* REPLACED */ bar
 
 \qecho this is a test
-\qecho foo = bar
+\qecho foo = /* REPLACED */ bar
 
 \warn this is a test
-\warn foo = bar
+\warn foo = /* REPLACED */ bar
 
 -- tests for \if ... \endif
 
@@ -978,16 +978,16 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 
 -- show that vars and backticks are not expanded when ignoring extra args
 -- \set foo bar
-\echo bar bar :"foo"
-\pset fieldsep | `nosuchcommand` bar bar :"foo"
+\echo /* REPLACED */ bar /* REPLACED */ bar :"foo"
+\pset fieldsep | `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :"foo"
 
 -- show that vars and backticks are not expanded and commands are ignored
 -- when in a false if-branch
 -- \set try_to_quit '\\q'
 \if false
-	'\\q'
-	\echo `nosuchcommand` bar bar :"foo"
-	\pset fieldsep | `nosuchcommand` bar bar :"foo"
+	/* REPLACED */ '\\q'
+	\echo `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :"foo"
+	\pset fieldsep | `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :"foo"
 	\a
 	SELECT $1 \bind 1 \g
 	\C arg1
@@ -1427,20 +1427,20 @@ DROP FUNCTION warn(TEXT);
 --
 -- \g with file
 --
--- \getenv abs_builddir PG_ABS_BUILDDIR
--- \set g_out_file PG_ABS_BUILDDIR '/results/psql-output1'
+-- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \set g_out_file /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/psql-output1'
 
 CREATE TEMPORARY TABLE reload_output(
   lineno int NOT NULL GENERATED ALWAYS AS IDENTITY,
   line text
 );
 
-SELECT 1 AS a \g PG_ABS_BUILDDIR || '/results/psql-output1'
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output1';
-SELECT 2 AS b\; SELECT 3 AS c\; SELECT 4 AS d \g PG_ABS_BUILDDIR || '/results/psql-output1'
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output1';
-COPY (SELECT 'foo') TO STDOUT \; COPY (SELECT 'bar') TO STDOUT \g PG_ABS_BUILDDIR || '/results/psql-output1'
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output1';
+SELECT 1 AS a \g /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
+SELECT 2 AS b\; SELECT 3 AS c\; SELECT 4 AS d \g /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
+COPY (SELECT 'foo') TO STDOUT \; COPY (SELECT 'bar') TO STDOUT \g /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
 
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
@@ -1448,42 +1448,42 @@ TRUNCATE TABLE reload_output;
 --
 -- \o with file
 --
--- \set o_out_file PG_ABS_BUILDDIR '/results/psql-output2'
+-- \set o_out_file /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/psql-output2'
 
-\o PG_ABS_BUILDDIR || '/results/psql-output2'
+\o /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
 SELECT max(unique1) FROM onek;
 SELECT 1 AS a\; SELECT 2 AS b\; SELECT 3 AS c;
 
 -- COPY TO file
--- The data goes to PG_ABS_BUILDDIR || '/results/psql-output1' and the status to PG_ABS_BUILDDIR || '/results/psql-output2'
+-- The data goes to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1' and the status to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
 -- \set QUIET false
-COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO PG_ABS_BUILDDIR || '/results/psql-output1';
+COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
 -- DML command status
 UPDATE onek SET unique1 = unique1 WHERE false;
 -- \set QUIET true
 \o
 
 -- Check the contents of the files generated.
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output1';
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output2';
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
 
 -- Multiple COPY TO STDOUT with output file
-\o PG_ABS_BUILDDIR || '/results/psql-output2'
--- The data goes to PG_ABS_BUILDDIR || '/results/psql-output2' with no status generated.
+\o /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
+-- The data goes to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2' with no status generated.
 COPY (SELECT 'foo1') TO STDOUT \; COPY (SELECT 'bar1') TO STDOUT;
 -- Combination of \o and \g file with multiple COPY queries.
-COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g PG_ABS_BUILDDIR || '/results/psql-output1'
+COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
 \o
 
 -- Check the contents of the files generated.
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output1';
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
-COPY reload_output(line) FROM PG_ABS_BUILDDIR || '/results/psql-output2';
+COPY reload_output(line) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2';
 SELECT line FROM reload_output ORDER BY lineno;
 
 DROP TABLE reload_output;
@@ -1492,7 +1492,7 @@ DROP TABLE reload_output;
 -- AUTOCOMMIT and combined queries
 --
 -- \set AUTOCOMMIT off
-\echo '# AUTOCOMMIT:' off
+\echo '# AUTOCOMMIT:' /* REPLACED */ off
 -- BEGIN is now implicit
 
 CREATE TABLE foo(s TEXT) \;
@@ -1511,7 +1511,7 @@ DROP TABLE foo \;
 COMMIT;
 
 -- \set AUTOCOMMIT on
-\echo '# AUTOCOMMIT:' on
+\echo '# AUTOCOMMIT:' /* REPLACED */ on
 -- BEGIN now explicit for multi-statement transactions
 
 BEGIN \;
@@ -1537,8 +1537,8 @@ CREATE FUNCTION psql_error(msg TEXT) RETURNS BOOLEAN AS $$
 $$ LANGUAGE plpgsql;
 
 -- \set ON_ERROR_ROLLBACK on
-\echo '# ON_ERROR_ROLLBACK:' on
-\echo '# AUTOCOMMIT:' on
+\echo '# ON_ERROR_ROLLBACK:' /* REPLACED */ on
+\echo '# AUTOCOMMIT:' /* REPLACED */ on
 
 BEGIN;
 CREATE TABLE bla(s NO_SUCH_TYPE);               -- fails
@@ -1564,7 +1564,7 @@ SELECT * FROM bla ORDER BY 1;
 
 -- some with autocommit off
 -- \set AUTOCOMMIT off
-\echo '# AUTOCOMMIT:' off
+\echo '# AUTOCOMMIT:' /* REPLACED */ off
 
 -- implicit BEGIN
 INSERT INTO bla VALUES ('Dad');           -- succeeds
@@ -1584,7 +1584,7 @@ COMMIT;
 -- reset all
 -- \set AUTOCOMMIT on
 -- \set ON_ERROR_ROLLBACK off
-\echo '# final ON_ERROR_ROLLBACK:' off
+\echo '# final ON_ERROR_ROLLBACK:' /* REPLACED */ off
 DROP TABLE bla;
 DROP FUNCTION psql_error;
 

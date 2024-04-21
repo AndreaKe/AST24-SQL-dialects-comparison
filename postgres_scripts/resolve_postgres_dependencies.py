@@ -19,32 +19,35 @@ for fname in os.listdir(test_path):
         variables = {}
         
         for line in lines:
-            if line.startswith("--"):
-                line = line.replace(";", " - ") # ';' is used later on as a delimiter of sql commands. Therefore, we need to remove them from comments
+            # ';' is used later on as a delimiter of sql commands. Therefore, we need to remove them from comments
+            if "--" in line:
+                ls = line.split("--", 1)
+                line = ls[0] + "--" + ls[1].replace(";", " /* REPLACED */," )
+                
 
-            if 'PG_ABS_SRCDIR' in line or 'PG_LIBDIR' in line or 'PG_DLSUFFIX' in line:
+            if 'PG_ABS_SRCDIR' in line or 'PG_LIBDIR' in line or 'PG_DLSUFFIX' in line or 'PG_ABS_BUILDDIR' in line:
                 line = line.replace('PG_ABS_SRCDIR', "'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'")
                 line = line.replace('PG_LIBDIR', "'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'")
                 line = line.replace('PG_DLSUFFIX', "'.so'")
                 line = line.replace('PG_ABS_BUILDDIR', "'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'")
 
             for var in variables:
-                print("original line: ", line)
-                line = line.replace(":'" + var + "'", variables.get(var))
-                line = line.replace(":" + var, variables.get(var))
+                #print("original line: ", line)
+                line = line.replace(":'" + var + "'", "/* REPLACED */ " + variables.get(var))
+                line = line.replace(":" + var, "/* REPLACED */ " + variables.get(var))
                 line = line.replace("' || '", "")
-                print("new line: ", line)
+                #print("new line: ", line)
             
             if line.startswith("\set") or line.startswith("\getenv"):
-                print("original line: ", line)
-                components = line.replace("\n", "").split(" ")
+                #print("original line: ", line)
+                components = line.replace("\n", "").replace("/* REPLACED */ ", "").split(" ")
                 variables[components[1]] = ' || '.join(components[2:])
-                print("variables: ", variables)
-                test_file.write("-- " + line)
+                line = "-- " + line
+                #print("variables: ", variables)
             elif line.startswith('\d'):
-                test_file.write("-- " + line)
-            else:
-                test_file.write(line)
+                line = "-- " + line
+            
+            test_file.write(line)
         
         test_file.close()
 

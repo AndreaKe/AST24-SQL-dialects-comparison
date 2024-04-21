@@ -48,8 +48,8 @@ CREATE TABLE test_tsvector(
 	a tsvector
 );
 
--- \set filename '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tsearch.data'
-COPY test_tsvector FROM '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tsearch.data';
+-- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tsearch.data'
+COPY test_tsvector FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tsearch.data';
 
 ANALYZE test_tsvector;
 
@@ -872,7 +872,7 @@ select websearch_to_tsquery('english', '"A fat cat" has just eaten a -rat.');
 select websearch_to_tsquery('english', '"A fat cat" has just eaten OR !rat.');
 select websearch_to_tsquery('english', '"A fat cat" has just (+eaten OR -rat)');
 
-select websearch_to_tsquery('english', 'this is ----fine');
+select websearch_to_tsquery('english', 'this is ----fine') /* REPLACED */,
 select websearch_to_tsquery('english', '(()) )))) this ||| is && -fine, "dear friend" OR good');
 select websearch_to_tsquery('english', 'an old <-> cat " is fine &&& too');
 

@@ -154,7 +154,7 @@ alter table idxpart attach partition idxpart1 for values from (0) to (1000);
 -- \d idxpart1
 drop table idxpart;
 
--- If CREATE INDEX ONLY, don't create indexes on partitions -  and existing
+-- If CREATE INDEX ONLY, don't create indexes on partitions /* REPLACED */, and existing
 -- indexes on partitions don't change parent.  ALTER INDEX ATTACH can change
 -- the parent after the fact.
 create table idxpart (a int) partition by range (a);
@@ -167,7 +167,7 @@ create index on idxpart22 (a);
 create index on only idxpart2 (a);
 create index on idxpart (a);
 -- Here we expect that idxpart1 and idxpart2 have a new index, but idxpart21
--- does not -  also, idxpart22 is not attached.
+-- does not /* REPLACED */, also, idxpart22 is not attached.
 -- \d idxpart1
 -- \d idxpart2
 -- \d idxpart21
@@ -596,7 +596,7 @@ select conname, contype, conrelid::regclass, conindid::regclass, conkey
 drop table idxpart;
 
 -- If a partitioned table has a unique/PK constraint, then it's not possible
--- to drop the corresponding constraint in the children -  nor it's possible
+-- to drop the corresponding constraint in the children /* REPLACED */, nor it's possible
 -- to drop the indexes individually.  Dropping the constraint in the parent
 -- gets rid of the lot.
 create table idxpart (i int) partition by hash (i);
@@ -676,7 +676,7 @@ alter table idxpart0 alter column a drop not null;  -- fail, pkey needs it
 drop table idxpart;
 
 -- if a partition has a unique index without a constraint, does not attach
--- automatically -  creates a new index instead.
+-- automatically /* REPLACED */, creates a new index instead.
 create table idxpart (a int, b int) partition by range (a);
 create table idxpart1 (a int not null, b int);
 create unique index on idxpart1 (a);
@@ -757,7 +757,7 @@ create table idxpart32 partition of idxpart3 for values from (1200) to (1400);
 alter table idxpart attach partition idxpart3 for values from (1000) to (2000);
 
 -- More objects intentionally left behind, to verify some pg_dump/pg_upgrade
--- behavior -  see https://postgr.es/m/20190321204928.GA17535@alvherre.pgsql
+-- behavior /* REPLACED */, see https://postgr.es/m/20190321204928.GA17535@alvherre.pgsql
 create schema regress_indexing;
 set search_path to regress_indexing;
 create table pk (a int primary key) partition by range (a);

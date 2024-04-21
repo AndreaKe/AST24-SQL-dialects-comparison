@@ -792,7 +792,7 @@ select * from
 select nextval('ts1');
 
 --
--- Check that volatile quals aren't pushed down past a set-returning function - 
+-- Check that volatile quals aren't pushed down past a set-returning function /* REPLACED */,
 -- while a nonvolatile qual can be, if it doesn't reference the SRF.
 --
 create function tattle(x int, y int) returns bool

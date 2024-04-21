@@ -37,7 +37,7 @@ WHERE p1.prolang = 0 OR p1.prorettype = 0 OR
        provolatile NOT IN ('i', 's', 'v') OR
        proparallel NOT IN ('s', 'r', 'u');
 
--- prosrc should never be null -  it can be empty only if prosqlbody isn't null
+-- prosrc should never be null /* REPLACED */, it can be empty only if prosqlbody isn't null
 SELECT p1.oid, p1.proname
 FROM pg_proc as p1
 WHERE prosrc IS NULL;
@@ -50,7 +50,7 @@ SELECT p1.oid, p1.proname
 FROM pg_proc AS p1
 WHERE proretset AND prokind != 'f';
 
--- currently, no built-in functions should be SECURITY DEFINER - 
+-- currently, no built-in functions should be SECURITY DEFINER /* REPLACED */,
 -- this might change in future, but there will probably never be many.
 SELECT p1.oid, p1.proname
 FROM pg_proc AS p1
@@ -86,7 +86,7 @@ WHERE p1.oid != p2.oid AND
 -- of the same internal function (ie, matching prosrc fields).  It's OK to
 -- have several entries with different pronames for the same internal function,
 -- but conflicts in the number of arguments and other critical items should
--- be complained of.  (We don't check data types here -  see next query.)
+-- be complained of.  (We don't check data types here /* REPLACED */, see next query.)
 -- Note: ignore aggregate functions here, since they all point to the same
 -- dummy built-in function.
 
@@ -275,7 +275,7 @@ ORDER BY 2;
 
 -- Look for functions that accept cstring and are neither datatype input
 -- functions nor encoding conversion functions.  It's almost never a good
--- idea to use cstring input for a function meant to be called from SQL - 
+-- idea to use cstring input for a function meant to be called from SQL /* REPLACED */,
 -- text should be used instead, because cstring lacks suitable casts.
 -- As of 9.6 this query should find only cstring_out and cstring_send.
 -- However, we must manually exclude shell_in, which might or might not be
@@ -581,7 +581,7 @@ WHERE o1.oid != o2.oid AND
 
 -- Look for commutative operators that don't commute.
 -- DEFINITIONAL NOTE: If A.oprcom = B, then x A y has the same result as y B x.
--- We expect that B will always say that B.oprcom = A as well -  that's not
+-- We expect that B will always say that B.oprcom = A as well /* REPLACED */, that's not
 -- inherently essential, but it would be inefficient not to mark it so.
 
 SELECT o1.oid, o1.oprcode, o2.oid, o2.oprcode
@@ -597,7 +597,7 @@ WHERE o1.oprcom = o2.oid AND
 -- DEFINITIONAL NOTE: If A.oprnegate = B, then both A and B must yield
 -- boolean results, and (x A y) == ! (x B y), or the equivalent for
 -- single-operand operators.
--- We expect that B will always say that B.oprnegate = A as well -  that's not
+-- We expect that B will always say that B.oprnegate = A as well /* REPLACED */, that's not
 -- inherently essential, but it would be inefficient not to mark it so.
 -- Also, A and B had better not be the same operator.
 
@@ -753,12 +753,12 @@ WHERE d.classoid IS NULL AND o1.oid <= 9999;
 
 -- Check that operators' underlying functions have suitable comments,
 -- namely 'implementation of XXX operator'.  (Note: it's not necessary to
--- put such comments into pg_proc.dat -  initdb will generate them as needed.)
+-- put such comments into pg_proc.dat /* REPLACED */, initdb will generate them as needed.)
 -- In some cases involving legacy names for operators, there are multiple
 -- operators referencing the same pg_proc entry, so ignore operators whose
 -- comments say they are deprecated.
 -- We also have a few functions that are both operator support and meant to
--- be called directly -  those should have comments matching their operator.
+-- be called directly /* REPLACED */, those should have comments matching their operator.
 WITH funcdescs AS (
   SELECT p.oid as p_oid, proname, o.oid as o_oid,
     pd.description as prodesc,
@@ -779,7 +779,7 @@ SELECT * FROM funcdescs
 -- Show all the operator-implementation functions that have their own
 -- comments.  This should happen only in cases where the function and
 -- operator syntaxes are both documented at the user level.
--- This should be a pretty short list -  it's mostly legacy cases.
+-- This should be a pretty short list /* REPLACED */, it's mostly legacy cases.
 WITH funcdescs AS (
   SELECT p.oid as p_oid, proname, o.oid as o_oid,
     pd.description as prodesc,
@@ -1052,7 +1052,7 @@ WHERE (aggserialfn != 0 OR aggdeserialfn != 0)
 
 -- Check that all serialization functions have signature
 -- serialize(internal) returns bytea
--- Also insist that they be strict -  it's wasteful to run them on NULLs.
+-- Also insist that they be strict /* REPLACED */, it's wasteful to run them on NULLs.
 
 SELECT a.aggfnoid, p.proname
 FROM pg_aggregate as a, pg_proc as p
@@ -1063,7 +1063,7 @@ WHERE a.aggserialfn = p.oid AND
 
 -- Check that all deserialization functions have signature
 -- deserialize(bytea, internal) returns internal
--- Also insist that they be strict -  it's wasteful to run them on NULLs.
+-- Also insist that they be strict /* REPLACED */, it's wasteful to run them on NULLs.
 
 SELECT a.aggfnoid, p.proname
 FROM pg_aggregate as a, pg_proc as p
@@ -1128,7 +1128,7 @@ ORDER BY 1, 2;
 -- to avoid this because it opens the door for confusion in connection with
 -- ORDER BY: novices frequently put the ORDER BY in the wrong place.
 -- See the fate of the single-argument form of string_agg() for history.
--- (Note: we don't forbid users from creating such aggregates -  the policy is
+-- (Note: we don't forbid users from creating such aggregates /* REPLACED */, the policy is
 -- just to think twice before creating built-in aggregates like this.)
 -- The only aggregates that should show up here are count(x) and count(*).
 

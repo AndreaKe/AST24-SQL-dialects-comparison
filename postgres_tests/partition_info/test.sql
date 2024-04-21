@@ -106,7 +106,7 @@ SELECT pg_partition_root('ptif_normal_table');
 DROP TABLE ptif_normal_table;
 
 -- Various partitioning-related functions return empty/NULL if passed relations
--- of types that cannot be part of a partition tree -  for example, views,
+-- of types that cannot be part of a partition tree /* REPLACED */, for example, views,
 -- materialized views, legacy inheritance children or parents, etc.
 CREATE VIEW ptif_test_view AS SELECT 1;
 CREATE MATERIALIZED VIEW ptif_test_matview AS SELECT 1;

@@ -45,7 +45,7 @@ ALTER TABLE attmp ADD COLUMN m xid;
 
 ALTER TABLE attmp ADD COLUMN n oidvector;
 
---ALTER TABLE attmp ADD COLUMN o lock - 
+--ALTER TABLE attmp ADD COLUMN o lock /* REPLACED */,
 ALTER TABLE attmp ADD COLUMN p boolean;
 
 ALTER TABLE attmp ADD COLUMN q point;
@@ -108,7 +108,7 @@ ALTER TABLE attmp ADD COLUMN m xid;
 
 ALTER TABLE attmp ADD COLUMN n oidvector;
 
---ALTER TABLE attmp ADD COLUMN o lock - 
+--ALTER TABLE attmp ADD COLUMN o lock /* REPLACED */,
 ALTER TABLE attmp ADD COLUMN p boolean;
 
 ALTER TABLE attmp ADD COLUMN q point;
@@ -1525,7 +1525,7 @@ create table test_storage (a text, c text storage plain);
 select reltoastrelid <> 0 as has_toast_table
   from pg_class where oid = 'test_storage'::regclass;
 alter table test_storage alter a set storage plain;
--- rewrite table to remove its TOAST table -  need a non-constant column default
+-- rewrite table to remove its TOAST table /* REPLACED */, need a non-constant column default
 alter table test_storage add b int default random()::int;
 select reltoastrelid <> 0 as has_toast_table
   from pg_class where oid = 'test_storage'::regclass;
@@ -2521,7 +2521,7 @@ CREATE TABLE part_3_4 (
 
 -- however, if a list partition does not accept nulls, there should be
 -- an explicit NOT NULL constraint on the partition key column for the
--- validation scan to be skipped - 
+-- validation scan to be skipped /* REPLACED */,
 ALTER TABLE list_parted2 ATTACH PARTITION part_3_4 FOR VALUES IN (3, 4);
 
 -- adding a NOT NULL constraint will cause the scan to be skipped
@@ -2833,8 +2833,8 @@ ALTER TABLE inh_test INHERIT part_2;
 ALTER TABLE part_2 INHERIT inh_test;
 
 -- cannot drop or alter type of partition key columns of lower level
--- partitioned tables -  for example, part_5, which is list_parted2's
--- partition, is partitioned on b - 
+-- partitioned tables /* REPLACED */, for example, part_5, which is list_parted2's
+-- partition, is partitioned on b /* REPLACED */,
 ALTER TABLE list_parted2 DROP COLUMN b;
 ALTER TABLE list_parted2 ALTER COLUMN b TYPE text;
 

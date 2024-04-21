@@ -14,7 +14,7 @@ COMMENT ON AGGREGATE newavg_wrong (int4) IS 'an agg comment';
 COMMENT ON AGGREGATE newavg (int4) IS 'an agg comment';
 COMMENT ON AGGREGATE newavg (int4) IS NULL;
 
--- without finalfunc -  test obsolete spellings 'sfunc1' etc
+-- without finalfunc /* REPLACED */, test obsolete spellings 'sfunc1' etc
 CREATE AGGREGATE newsum (
    sfunc1 = int4pl, basetype = int4, stype1 = int4,
    initcond1 = '0'
@@ -26,7 +26,7 @@ CREATE AGGREGATE newcnt (*) (
    initcond = '0', parallel = safe
 );
 
--- old-style spelling of same (except without parallel-safe -  that's too new)
+-- old-style spelling of same (except without parallel-safe /* REPLACED */, that's too new)
 CREATE AGGREGATE oldcnt (
    sfunc = int8inc, basetype = 'ANY', stype = int8,
    initcond = '0'

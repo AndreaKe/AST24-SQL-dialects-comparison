@@ -6,11 +6,11 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 CREATE FUNCTION test_opclass_options_func(internal)
     RETURNS void
-    AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_opclass_options_func'
+    AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_opclass_options_func'
     LANGUAGE C;
 
 -- Clean up in case a prior regression run failed
@@ -197,7 +197,7 @@ ALTER OPERATOR @+@(int4, int4) OWNER TO regress_alter_generic_user2;  -- failed 
 ALTER OPERATOR @-@(int4, int4) OWNER TO regress_alter_generic_user3;  -- failed (no role membership)
 ALTER OPERATOR @+@(int4, int4) SET SCHEMA alt_nsp2;   -- failed (not owner)
 -- can't test this: the error message includes the raw oid of namespace
--- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 -    -- failed (name conflict)
+-- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 /* REPLACED */,   -- failed (name conflict)
 
 RESET SESSION AUTHORIZATION;
 

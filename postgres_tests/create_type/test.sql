@@ -6,7 +6,7 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 --
 -- Test the "old style" approach of making the I/O functions first,
@@ -14,22 +14,22 @@
 --
 CREATE FUNCTION widget_in(cstring)
    RETURNS widget
-   AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE FUNCTION widget_out(widget)
    RETURNS cstring
-   AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE FUNCTION int44in(cstring)
    RETURNS city_budget
-   AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE FUNCTION int44out(city_budget)
    RETURNS cstring
-   AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE TYPE widget (
@@ -204,7 +204,7 @@ SELECT pg_input_is_valid('("(1,2)")', 'mytab');  -- hard error expected
 
 CREATE FUNCTION pt_in_widget(point, widget)
    RETURNS bool
-   AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
    LANGUAGE C STRICT;
 
 CREATE OPERATOR <% (

@@ -6,11 +6,11 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 CREATE FUNCTION make_tuple_indirect (record)
         RETURNS record
-        AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
         LANGUAGE C STRICT;
 
 -- Other compression algorithms may cause the compressed data to be stored

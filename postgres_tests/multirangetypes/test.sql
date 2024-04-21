@@ -4,7 +4,7 @@
 -- test input parser
 --
 
--- negative tests -  should fail
+-- negative tests /* REPLACED */, should fail
 select ''::textmultirange;
 select '{,}'::textmultirange;
 select '{(,)}.'::textmultirange;

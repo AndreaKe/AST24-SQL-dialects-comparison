@@ -6,33 +6,33 @@
 -- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
 -- \getenv dlsuffix '.so'
 
--- \set autoinclib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/autoinc' '.so'
--- \set refintlib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/refint' '.so'
--- \set regresslib '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' '.so'
+-- \set autoinclib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/autoinc' /* REPLACED */ '.so'
+-- \set refintlib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/refint' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
 
 CREATE FUNCTION autoinc ()
 	RETURNS trigger
-	AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/autoinc.so'
+	AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/autoinc.so'
 	LANGUAGE C;
 
 CREATE FUNCTION check_primary_key ()
 	RETURNS trigger
-	AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
+	AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
 	LANGUAGE C;
 
 CREATE FUNCTION check_foreign_key ()
 	RETURNS trigger
-	AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
+	AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
 	LANGUAGE C;
 
 CREATE FUNCTION trigger_return_old ()
         RETURNS trigger
-        AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
         LANGUAGE C;
 
 CREATE FUNCTION set_ttdummy (int4)
         RETURNS int4
-        AS '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
         LANGUAGE C STRICT;
 
 create table pkeys (pkey1 int4 not null, pkey2 text not null);
@@ -1719,7 +1719,7 @@ insert into parted values (1, 1, 'uno uno');       -- works
 update parted set c = c || ' v6';                   -- works
 select tableoid::regclass, * from parted;
 
--- update itself moves tuple to new partition -  trigger still works
+-- update itself moves tuple to new partition /* REPLACED */, trigger still works
 truncate table parted;
 create table parted_2 partition of parted for values in (2);
 insert into parted values (1, 1, 'uno uno v5');
@@ -1783,7 +1783,7 @@ create constraint trigger parted_trig_two after insert on parted_constr
   for each row when (bark(new.b) AND new.a % 2 = 1)
   execute procedure trigger_notice_ab();
 
--- The immediate constraint is fired immediately -  the WHEN clause of the
+-- The immediate constraint is fired immediately /* REPLACED */, the WHEN clause of the
 -- deferred constraint is also called immediately.  The deferred constraint
 -- is fired at commit time.
 begin;
@@ -2189,7 +2189,7 @@ drop table child, parent;
 
 --
 -- Verify behavior of statement triggers on (non-partition)
--- inheritance hierarchy with transition tables -  similar to the
+-- inheritance hierarchy with transition tables /* REPLACED */, similar to the
 -- partition case, except there is no rerouting on insertion and child
 -- tables can have extra columns
 --
@@ -2730,7 +2730,7 @@ drop function convslot_trig1();
 drop function convslot_trig2();
 drop function convslot_trig3();
 
--- Bug #17607: variant of above in which trigger function raises an error - 
+-- Bug #17607: variant of above in which trigger function raises an error /* REPLACED */,
 -- we don't see any ill effects unless trigger tuple requires mapping
 
 create table convslot_test_parent (id int primary key, val int)

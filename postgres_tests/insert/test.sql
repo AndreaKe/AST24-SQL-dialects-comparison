@@ -337,9 +337,9 @@ create table hpart3 partition of hash_parted for values with (modulus 4, remaind
 
 insert into hash_parted values(generate_series(1,10));
 
--- direct insert of values divisible by 4 - ok - 
+-- direct insert of values divisible by 4 - ok /* REPLACED */,
 insert into hpart0 values(12),(16);
--- fail - 
+-- fail /* REPLACED */,
 insert into hpart0 values(11);
 -- 11 % 4 -> 3 remainder i.e. valid data for hpart3 partition
 insert into hpart3 values(11);

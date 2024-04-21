@@ -6,7 +6,7 @@
 -- for handling "broken" ECs.  This is because an EC can only become broken
 -- if its underlying btree operator family doesn't include a complete set
 -- of cross-type equality operators.  There are not (and should not be)
--- any such families built into Postgres -  so we have to hack things up
+-- any such families built into Postgres /* REPLACED */, so we have to hack things up
 -- to create one.  We do this by making two alias types that are really
 -- int8 (so we need no new C code) and adding only some operators for them
 -- into the standard integer_ops opfamily.
@@ -242,7 +242,7 @@ explain (costs off)
 set session authorization regress_user_ectest;
 
 -- with RLS active, the non-leakproof a.ff = 43 clause is not treated
--- as a suitable source for an EquivalenceClass -  currently, this is true
+-- as a suitable source for an EquivalenceClass /* REPLACED */, currently, this is true
 -- even though the RLS clause has nothing to do directly with the EC
 explain (costs off)
   select * from ec0 a, ec1 b

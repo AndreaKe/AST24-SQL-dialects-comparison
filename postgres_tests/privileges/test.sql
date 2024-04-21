@@ -244,7 +244,7 @@ INSERT INTO atest2 VALUES ('foo', true); -- fail
 INSERT INTO atest1 SELECT 1, b FROM atest1; -- fail
 UPDATE atest1 SET a = 1 WHERE a = 2; -- fail
 UPDATE atest2 SET col2 = NULL; -- ok
-UPDATE atest2 SET col2 = NOT col2; -- fails; requires SELECT on atest2
+UPDATE atest2 SET col2 = NOT col2; -- fails /* REPLACED */, requires SELECT on atest2
 UPDATE atest2 SET col2 = true FROM atest1 WHERE atest1.a = 5; -- ok
 SELECT * FROM atest1 FOR UPDATE; -- fail
 SELECT * FROM atest2 FOR UPDATE; -- fail
@@ -1903,7 +1903,7 @@ CREATE MATERIALIZED VIEW refresh_test AS SELECT 1;
 GRANT MAINTAIN ON refresh_test TO regress_maintain;
 CREATE SCHEMA reindex_test;
 
--- negative tests -  should fail
+-- negative tests /* REPLACED */, should fail
 SET ROLE regress_no_maintain;
 VACUUM maintain_test;
 ANALYZE maintain_test;
