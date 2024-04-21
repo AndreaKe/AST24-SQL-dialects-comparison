@@ -1,0 +1,1422 @@
+--
+-- CREATE_FUNCTION_SQL
+--
+-- Assorted tests using SQL-language functions
+--
+
+-- All objects made in this test are in temp_func_test schema
+
+CREATE USER regress_unpriv_user
+ERROR: --
+-- CREATE_FUNCTION_SQL
+--
+-- Assorted tests using SQL-language functions
+--
+
+-- All objects made in this test are in temp_func_test schema
+
+CREATE USER regress_unpriv_user
+
+Parser Error: syntax error at or near "USER"
+
+
+CREATE SCHEMA temp_func_test
+
+GRANT ALL ON SCHEMA temp_func_test TO public
+ERROR: 
+GRANT ALL ON SCHEMA temp_func_test TO public
+
+Parser Error: syntax error at or near "GRANT"
+
+
+SET search_path TO temp_func_test, public
+ERROR: 
+
+SET search_path TO temp_func_test, public
+
+Parser Error: SET needs a single scalar value parameter
+
+
+--
+-- Make sanity checks on the pg_proc entries created by CREATE FUNCTION
+--
+
+--
+-- ARGUMENT and RETURN TYPES
+--
+CREATE FUNCTION functest_A_1(text, date) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 = ''abcd'' AND $2 > ''2001-01-01'''
+ERROR: 
+
+--
+-- Make sanity checks on the pg_proc entries created by CREATE FUNCTION
+--
+
+--
+-- ARGUMENT and RETURN TYPES
+--
+CREATE FUNCTION functest_A_1(text, date) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 = ''abcd'' AND $2 > ''2001-01-01'''
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_A_2(text[]) RETURNS int LANGUAGE 'sql'
+       AS 'SELECT $1[1]::int'
+ERROR: 
+CREATE FUNCTION functest_A_2(text[]) RETURNS int LANGUAGE 'sql'
+       AS 'SELECT $1[1]::int'
+
+Parser Error: syntax error at or near "]"
+
+CREATE FUNCTION functest_A_3() RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT false'
+ERROR: 
+CREATE FUNCTION functest_A_3() RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT false'
+
+Parser Error: syntax error at or near "RETURNS"
+
+SELECT proname, prorettype::regtype, proargtypes::regtype[] FROM pg_proc
+       WHERE oid in ('functest_A_1'::regproc,
+                     'functest_A_2'::regproc,
+                     'functest_A_3'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, prorettype::regtype, proargtypes::regtype[] FROM pg_proc
+       WHERE oid in ('functest_A_1'::regproc,
+                     'functest_A_2'::regproc,
+                     'functest_A_3'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+SELECT functest_A_1('abcd', '2020-01-01')
+ERROR: 
+
+SELECT functest_A_1('abcd', '2020-01-01')
+
+Catalog Error: Scalar Function with name functest_a_1 does not exist!
+Did you mean "count_star"?
+
+SELECT functest_A_2(ARRAY['1', '2', '3'])
+ERROR: 
+SELECT functest_A_2(ARRAY['1', '2', '3'])
+
+Catalog Error: Scalar Function with name functest_a_2 does not exist!
+Did you mean "count_star"?
+
+SELECT functest_A_3()
+ERROR: 
+SELECT functest_A_3()
+
+Catalog Error: Scalar Function with name functest_a_3 does not exist!
+Did you mean "count_star"?
+
+
+--
+-- IMMUTABLE | STABLE | VOLATILE
+--
+CREATE FUNCTION functest_B_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 0'
+ERROR: 
+
+--
+-- IMMUTABLE | STABLE | VOLATILE
+--
+CREATE FUNCTION functest_B_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_B_2(int) RETURNS bool LANGUAGE 'sql'
+       IMMUTABLE AS 'SELECT $1 > 0'
+ERROR: 
+CREATE FUNCTION functest_B_2(int) RETURNS bool LANGUAGE 'sql'
+       IMMUTABLE AS 'SELECT $1 > 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_B_3(int) RETURNS bool LANGUAGE 'sql'
+       STABLE AS 'SELECT $1 = 0'
+ERROR: 
+CREATE FUNCTION functest_B_3(int) RETURNS bool LANGUAGE 'sql'
+       STABLE AS 'SELECT $1 = 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_B_4(int) RETURNS bool LANGUAGE 'sql'
+       VOLATILE AS 'SELECT $1 < 0'
+ERROR: 
+CREATE FUNCTION functest_B_4(int) RETURNS bool LANGUAGE 'sql'
+       VOLATILE AS 'SELECT $1 < 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+SELECT proname, provolatile FROM pg_proc
+       WHERE oid in ('functest_B_1'::regproc,
+                     'functest_B_2'::regproc,
+                     'functest_B_3'::regproc,
+		     'functest_B_4'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, provolatile FROM pg_proc
+       WHERE oid in ('functest_B_1'::regproc,
+                     'functest_B_2'::regproc,
+                     'functest_B_3'::regproc,
+		     'functest_B_4'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+ALTER FUNCTION functest_B_2(int) VOLATILE
+ERROR: 
+
+ALTER FUNCTION functest_B_2(int) VOLATILE
+
+Parser Error: syntax error at or near "FUNCTION"
+
+ALTER FUNCTION functest_B_3(int) COST 100
+ERROR: 
+ALTER FUNCTION functest_B_3(int) COST 100
+
+Parser Error: syntax error at or near "FUNCTION"
+	-- unrelated change, no effect
+SELECT proname, provolatile FROM pg_proc
+       WHERE oid in ('functest_B_1'::regproc,
+                     'functest_B_2'::regproc,
+                     'functest_B_3'::regproc,
+		     'functest_B_4'::regproc) ORDER BY proname
+ERROR: 	-- unrelated change, no effect
+SELECT proname, provolatile FROM pg_proc
+       WHERE oid in ('functest_B_1'::regproc,
+                     'functest_B_2'::regproc,
+                     'functest_B_3'::regproc,
+		     'functest_B_4'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+--
+-- SECURITY DEFINER | INVOKER
+--
+CREATE FUNCTION functest_C_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 0'
+ERROR: 
+
+--
+-- SECURITY DEFINER | INVOKER
+--
+CREATE FUNCTION functest_C_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_C_2(int) RETURNS bool LANGUAGE 'sql'
+       SECURITY DEFINER AS 'SELECT $1 = 0'
+ERROR: 
+CREATE FUNCTION functest_C_2(int) RETURNS bool LANGUAGE 'sql'
+       SECURITY DEFINER AS 'SELECT $1 = 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_C_3(int) RETURNS bool LANGUAGE 'sql'
+       SECURITY INVOKER AS 'SELECT $1 < 0'
+ERROR: 
+CREATE FUNCTION functest_C_3(int) RETURNS bool LANGUAGE 'sql'
+       SECURITY INVOKER AS 'SELECT $1 < 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+SELECT proname, prosecdef FROM pg_proc
+       WHERE oid in ('functest_C_1'::regproc,
+                     'functest_C_2'::regproc,
+                     'functest_C_3'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, prosecdef FROM pg_proc
+       WHERE oid in ('functest_C_1'::regproc,
+                     'functest_C_2'::regproc,
+                     'functest_C_3'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+ALTER FUNCTION functest_C_1(int) IMMUTABLE
+ERROR: 
+
+ALTER FUNCTION functest_C_1(int) IMMUTABLE
+
+Parser Error: syntax error at or near "FUNCTION"
+	-- unrelated change, no effect
+ALTER FUNCTION functest_C_2(int) SECURITY INVOKER
+ERROR: 	-- unrelated change, no effect
+ALTER FUNCTION functest_C_2(int) SECURITY INVOKER
+
+Parser Error: syntax error at or near "FUNCTION"
+
+ALTER FUNCTION functest_C_3(int) SECURITY DEFINER
+ERROR: 
+ALTER FUNCTION functest_C_3(int) SECURITY DEFINER
+
+Parser Error: syntax error at or near "FUNCTION"
+
+SELECT proname, prosecdef FROM pg_proc
+       WHERE oid in ('functest_C_1'::regproc,
+                     'functest_C_2'::regproc,
+                     'functest_C_3'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, prosecdef FROM pg_proc
+       WHERE oid in ('functest_C_1'::regproc,
+                     'functest_C_2'::regproc,
+                     'functest_C_3'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+--
+-- LEAKPROOF
+--
+CREATE FUNCTION functest_E_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 100'
+ERROR: 
+
+--
+-- LEAKPROOF
+--
+CREATE FUNCTION functest_E_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 100'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_E_2(int) RETURNS bool LANGUAGE 'sql'
+       LEAKPROOF AS 'SELECT $1 > 100'
+ERROR: 
+CREATE FUNCTION functest_E_2(int) RETURNS bool LANGUAGE 'sql'
+       LEAKPROOF AS 'SELECT $1 > 100'
+
+Parser Error: syntax error at or near "RETURNS"
+
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+ALTER FUNCTION functest_E_1(int) LEAKPROOF
+ERROR: 
+
+ALTER FUNCTION functest_E_1(int) LEAKPROOF
+
+Parser Error: syntax error at or near "FUNCTION"
+
+ALTER FUNCTION functest_E_2(int) STABLE
+ERROR: 
+ALTER FUNCTION functest_E_2(int) STABLE
+
+Parser Error: syntax error at or near "FUNCTION"
+	-- unrelated change, no effect
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname
+ERROR: 	-- unrelated change, no effect
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+ALTER FUNCTION functest_E_2(int) NOT LEAKPROOF
+ERROR: 
+
+ALTER FUNCTION functest_E_2(int) NOT LEAKPROOF
+
+Parser Error: syntax error at or near "FUNCTION"
+	-- remove leakproof attribute
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname
+ERROR: 	-- remove leakproof attribute
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+-- it takes superuser privilege to turn on leakproof, but not to turn off
+ALTER FUNCTION functest_E_1(int) OWNER TO regress_unpriv_user
+ERROR: 
+
+-- it takes superuser privilege to turn on leakproof, but not to turn off
+ALTER FUNCTION functest_E_1(int) OWNER TO regress_unpriv_user
+
+Parser Error: syntax error at or near "FUNCTION"
+
+ALTER FUNCTION functest_E_2(int) OWNER TO regress_unpriv_user
+ERROR: 
+ALTER FUNCTION functest_E_2(int) OWNER TO regress_unpriv_user
+
+Parser Error: syntax error at or near "FUNCTION"
+
+
+SET SESSION AUTHORIZATION regress_unpriv_user
+ERROR: 
+
+SET SESSION AUTHORIZATION regress_unpriv_user
+
+Parser Error: syntax error at or near "AUTHORIZATION"
+
+SET search_path TO temp_func_test, public
+ERROR: 
+SET search_path TO temp_func_test, public
+
+Parser Error: SET needs a single scalar value parameter
+
+ALTER FUNCTION functest_E_1(int) NOT LEAKPROOF
+ERROR: 
+ALTER FUNCTION functest_E_1(int) NOT LEAKPROOF
+
+Parser Error: syntax error at or near "FUNCTION"
+
+ALTER FUNCTION functest_E_2(int) LEAKPROOF
+ERROR: 
+ALTER FUNCTION functest_E_2(int) LEAKPROOF
+
+Parser Error: syntax error at or near "FUNCTION"
+
+
+CREATE FUNCTION functest_E_3(int) RETURNS bool LANGUAGE 'sql'
+       LEAKPROOF AS 'SELECT $1 < 200'
+ERROR: 
+
+CREATE FUNCTION functest_E_3(int) RETURNS bool LANGUAGE 'sql'
+       LEAKPROOF AS 'SELECT $1 < 200'
+
+Parser Error: syntax error at or near "RETURNS"
+	-- fail
+
+RESET SESSION AUTHORIZATION
+ERROR: 	-- fail
+
+RESET SESSION AUTHORIZATION
+
+Parser Error: syntax error at or near "AUTHORIZATION"
+
+
+--
+-- CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT
+--
+CREATE FUNCTION functest_F_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 50'
+ERROR: 
+
+--
+-- CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT
+--
+CREATE FUNCTION functest_F_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 50'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_F_2(int) RETURNS bool LANGUAGE 'sql'
+       CALLED ON NULL INPUT AS 'SELECT $1 = 50'
+ERROR: 
+CREATE FUNCTION functest_F_2(int) RETURNS bool LANGUAGE 'sql'
+       CALLED ON NULL INPUT AS 'SELECT $1 = 50'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_F_3(int) RETURNS bool LANGUAGE 'sql'
+       RETURNS NULL ON NULL INPUT AS 'SELECT $1 < 50'
+ERROR: 
+CREATE FUNCTION functest_F_3(int) RETURNS bool LANGUAGE 'sql'
+       RETURNS NULL ON NULL INPUT AS 'SELECT $1 < 50'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_F_4(int) RETURNS bool LANGUAGE 'sql'
+       STRICT AS 'SELECT $1 = 50'
+ERROR: 
+CREATE FUNCTION functest_F_4(int) RETURNS bool LANGUAGE 'sql'
+       STRICT AS 'SELECT $1 = 50'
+
+Parser Error: syntax error at or near "RETURNS"
+
+SELECT proname, proisstrict FROM pg_proc
+       WHERE oid in ('functest_F_1'::regproc,
+                     'functest_F_2'::regproc,
+                     'functest_F_3'::regproc,
+                     'functest_F_4'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, proisstrict FROM pg_proc
+       WHERE oid in ('functest_F_1'::regproc,
+                     'functest_F_2'::regproc,
+                     'functest_F_3'::regproc,
+                     'functest_F_4'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+ALTER FUNCTION functest_F_1(int) IMMUTABLE
+ERROR: 
+
+ALTER FUNCTION functest_F_1(int) IMMUTABLE
+
+Parser Error: syntax error at or near "FUNCTION"
+	-- unrelated change, no effect
+ALTER FUNCTION functest_F_2(int) STRICT
+ERROR: 	-- unrelated change, no effect
+ALTER FUNCTION functest_F_2(int) STRICT
+
+Parser Error: syntax error at or near "FUNCTION"
+
+ALTER FUNCTION functest_F_3(int) CALLED ON NULL INPUT
+ERROR: 
+ALTER FUNCTION functest_F_3(int) CALLED ON NULL INPUT
+
+Parser Error: syntax error at or near "FUNCTION"
+
+SELECT proname, proisstrict FROM pg_proc
+       WHERE oid in ('functest_F_1'::regproc,
+                     'functest_F_2'::regproc,
+                     'functest_F_3'::regproc,
+                     'functest_F_4'::regproc) ORDER BY proname
+ERROR: 
+SELECT proname, proisstrict FROM pg_proc
+       WHERE oid in ('functest_F_1'::regproc,
+                     'functest_F_2'::regproc,
+                     'functest_F_3'::regproc,
+                     'functest_F_4'::regproc) ORDER BY proname
+
+Catalog Error: Type with name regproc does not exist!
+Did you mean "dec"?
+
+
+
+-- pg_get_functiondef tests
+
+SELECT pg_get_functiondef('functest_A_1'::regproc)
+ERROR: 
+
+
+-- pg_get_functiondef tests
+
+SELECT pg_get_functiondef('functest_A_1'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_B_3'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_B_3'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_C_3'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_C_3'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_F_2'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_F_2'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+
+
+--
+-- SQL-standard body
+--
+CREATE FUNCTION functest_S_1(a text, b date) RETURNS boolean
+    LANGUAGE SQL
+    RETURN a = 'abcd' AND b > '2001-01-01'
+ERROR: 
+
+
+--
+-- SQL-standard body
+--
+CREATE FUNCTION functest_S_1(a text, b date) RETURNS boolean
+    LANGUAGE SQL
+    RETURN a = 'abcd' AND b > '2001-01-01'
+
+Parser Error: syntax error at or near "text"
+
+CREATE FUNCTION functest_S_2(a text[]) RETURNS int
+    RETURN a[1]::int
+ERROR: 
+CREATE FUNCTION functest_S_2(a text[]) RETURNS int
+    RETURN a[1]::int
+
+Parser Error: syntax error at or near "text"
+
+CREATE FUNCTION functest_S_3() RETURNS boolean
+    RETURN false
+ERROR: 
+CREATE FUNCTION functest_S_3() RETURNS boolean
+    RETURN false
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_S_3a() RETURNS boolean
+    BEGIN ATOMIC
+        
+ERROR: 
+CREATE FUNCTION functest_S_3a() RETURNS boolean
+    BEGIN ATOMIC
+        
+
+Parser Error: syntax error at or near "RETURNS"
+
+RETURN false
+ERROR: RETURN false
+
+Parser Error: syntax error at or near "RETURN"
+
+
+    END
+ERROR: 
+    END
+
+TransactionContext Error: cannot commit - no transaction is active
+
+
+CREATE FUNCTION functest_S_10(a text, b date) RETURNS boolean
+    LANGUAGE SQL
+    BEGIN ATOMIC
+        SELECT a = 'abcd' AND b > '2001-01-01'
+ERROR: 
+
+CREATE FUNCTION functest_S_10(a text, b date) RETURNS boolean
+    LANGUAGE SQL
+    BEGIN ATOMIC
+        SELECT a = 'abcd' AND b > '2001-01-01'
+
+Parser Error: syntax error at or near "text"
+
+    END
+ERROR: 
+    END
+
+TransactionContext Error: cannot commit - no transaction is active
+
+
+CREATE FUNCTION functest_S_13() RETURNS boolean
+    BEGIN ATOMIC
+        SELECT 1
+ERROR: 
+
+CREATE FUNCTION functest_S_13() RETURNS boolean
+    BEGIN ATOMIC
+        SELECT 1
+
+Parser Error: syntax error at or near "RETURNS"
+
+        SELECT false
+RESULT: 
+	[(False,)]
+
+    END
+ERROR: 
+    END
+
+TransactionContext Error: cannot commit - no transaction is active
+
+
+-- check display of function arguments in sub-SELECT
+CREATE TABLE functest1 (i int)
+
+CREATE FUNCTION functest_S_16(a int, b int) RETURNS void
+    LANGUAGE SQL
+    BEGIN ATOMIC
+        INSERT INTO functest1 SELECT a + $2
+ERROR: 
+CREATE FUNCTION functest_S_16(a int, b int) RETURNS void
+    LANGUAGE SQL
+    BEGIN ATOMIC
+        INSERT INTO functest1 SELECT a + $2
+
+Parser Error: syntax error at or near "int"
+
+    END
+ERROR: 
+    END
+
+TransactionContext Error: cannot commit - no transaction is active
+
+
+-- error: duplicate function body
+CREATE FUNCTION functest_S_xxx(x int) RETURNS int
+    LANGUAGE SQL
+    AS $$ SELECT x * 2 $$
+    RETURN x * 3
+ERROR: 
+
+-- error: duplicate function body
+CREATE FUNCTION functest_S_xxx(x int) RETURNS int
+    LANGUAGE SQL
+    AS $$ SELECT x * 2 $$
+    RETURN x * 3
+
+Parser Error: syntax error at or near "int"
+
+
+-- polymorphic arguments not allowed in this form
+CREATE FUNCTION functest_S_xx(x anyarray) RETURNS anyelement
+    LANGUAGE SQL
+    RETURN x[1]
+ERROR: 
+
+-- polymorphic arguments not allowed in this form
+CREATE FUNCTION functest_S_xx(x anyarray) RETURNS anyelement
+    LANGUAGE SQL
+    RETURN x[1]
+
+Parser Error: syntax error at or near "anyarray"
+
+
+-- check reporting of parse-analysis errors
+CREATE FUNCTION functest_S_xx(x date) RETURNS boolean
+    LANGUAGE SQL
+    RETURN x > 1
+ERROR: 
+
+-- check reporting of parse-analysis errors
+CREATE FUNCTION functest_S_xx(x date) RETURNS boolean
+    LANGUAGE SQL
+    RETURN x > 1
+
+Parser Error: syntax error at or near "date"
+
+
+-- tricky parsing
+CREATE FUNCTION functest_S_15(x int) RETURNS boolean
+LANGUAGE SQL
+BEGIN ATOMIC
+    select case when x % 2 = 0 then true else false end
+ERROR: 
+
+-- tricky parsing
+CREATE FUNCTION functest_S_15(x int) RETURNS boolean
+LANGUAGE SQL
+BEGIN ATOMIC
+    select case when x % 2 = 0 then true else false end
+
+Parser Error: syntax error at or near "int"
+
+END
+ERROR: 
+END
+
+TransactionContext Error: cannot commit - no transaction is active
+
+
+SELECT functest_S_1('abcd', '2020-01-01')
+ERROR: 
+
+SELECT functest_S_1('abcd', '2020-01-01')
+
+Catalog Error: Scalar Function with name functest_s_1 does not exist!
+Did you mean "concat_ws"?
+
+SELECT functest_S_2(ARRAY['1', '2', '3'])
+ERROR: 
+SELECT functest_S_2(ARRAY['1', '2', '3'])
+
+Catalog Error: Scalar Function with name functest_s_2 does not exist!
+Did you mean "concat_ws"?
+
+SELECT functest_S_3()
+ERROR: 
+SELECT functest_S_3()
+
+Catalog Error: Scalar Function with name functest_s_3 does not exist!
+Did you mean "concat_ws"?
+
+
+SELECT functest_S_10('abcd', '2020-01-01')
+ERROR: 
+
+SELECT functest_S_10('abcd', '2020-01-01')
+
+Catalog Error: Scalar Function with name functest_s_10 does not exist!
+Did you mean "concat_ws"?
+
+SELECT functest_S_13()
+ERROR: 
+SELECT functest_S_13()
+
+Catalog Error: Scalar Function with name functest_s_13 does not exist!
+Did you mean "concat_ws"?
+
+
+SELECT pg_get_functiondef('functest_S_1'::regproc)
+ERROR: 
+
+SELECT pg_get_functiondef('functest_S_1'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_2'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_2'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_3'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_3'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_3a'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_3a'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_10'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_10'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_13'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_13'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_15'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_15'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+SELECT pg_get_functiondef('functest_S_16'::regproc)
+ERROR: 
+SELECT pg_get_functiondef('functest_S_16'::regproc)
+
+Catalog Error: Scalar Function with name pg_get_functiondef does not exist!
+Did you mean "pg_get_constraintdef"?
+
+
+DROP TABLE functest1 CASCADE
+
+
+-- test with views
+CREATE TABLE functest3 (a int)
+
+INSERT INTO functest3 VALUES (1), (2)
+
+CREATE VIEW functestv3 AS SELECT * FROM functest3
+
+
+CREATE FUNCTION functest_S_14() RETURNS bigint
+    RETURN (SELECT count(*) FROM functestv3)
+ERROR: 
+
+CREATE FUNCTION functest_S_14() RETURNS bigint
+    RETURN (SELECT count(*) FROM functestv3)
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+SELECT functest_S_14()
+ERROR: 
+
+SELECT functest_S_14()
+
+Catalog Error: Scalar Function with name functest_s_14 does not exist!
+Did you mean "concat_ws"?
+
+
+DROP TABLE functest3 CASCADE
+
+
+
+-- information_schema tests
+
+CREATE FUNCTION functest_IS_1(a int, b int default 1, c text default 'foo')
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1 + $2'
+ERROR: 
+
+
+-- information_schema tests
+
+CREATE FUNCTION functest_IS_1(a int, b int default 1, c text default 'foo')
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1 + $2'
+
+Parser Error: syntax error at or near "int"
+
+
+CREATE FUNCTION functest_IS_2(out a int, b int default 1)
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1'
+ERROR: 
+
+CREATE FUNCTION functest_IS_2(out a int, b int default 1)
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1'
+
+Parser Error: syntax error at or near "a"
+
+
+CREATE FUNCTION functest_IS_3(a int default 1, out b int)
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1'
+ERROR: 
+
+CREATE FUNCTION functest_IS_3(a int default 1, out b int)
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1'
+
+Parser Error: syntax error at or near "int"
+
+
+SELECT routine_name, ordinal_position, parameter_name, parameter_default
+    FROM information_schema.parameters JOIN information_schema.routines USING (specific_schema, specific_name)
+    WHERE routine_schema = 'temp_func_test' AND routine_name ~ '^functest_is_'
+    ORDER BY 1, 2
+ERROR: 
+
+SELECT routine_name, ordinal_position, parameter_name, parameter_default
+    FROM information_schema.parameters JOIN information_schema.routines USING (specific_schema, specific_name)
+    WHERE routine_schema = 'temp_func_test' AND routine_name ~ '^functest_is_'
+    ORDER BY 1, 2
+
+Catalog Error: Table with name parameters does not exist!
+Did you mean "pg_catalog.pg_am"?
+
+
+DROP FUNCTION functest_IS_1(int, int, text), functest_IS_2(int), functest_IS_3(int)
+ERROR: 
+
+DROP FUNCTION functest_IS_1(int, int, text), functest_IS_2(int), functest_IS_3(int)
+
+Parser Error: syntax error at or near "("
+
+
+-- routine usage views
+
+CREATE FUNCTION functest_IS_4a() RETURNS int LANGUAGE SQL AS 'SELECT 1'
+ERROR: 
+
+-- routine usage views
+
+CREATE FUNCTION functest_IS_4a() RETURNS int LANGUAGE SQL AS 'SELECT 1'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE FUNCTION functest_IS_4b(x int DEFAULT functest_IS_4a()) RETURNS int LANGUAGE SQL AS 'SELECT x'
+ERROR: 
+CREATE FUNCTION functest_IS_4b(x int DEFAULT functest_IS_4a()) RETURNS int LANGUAGE SQL AS 'SELECT x'
+
+Parser Error: syntax error at or near "int"
+
+
+CREATE SEQUENCE functest1
+
+CREATE FUNCTION functest_IS_5(x int DEFAULT nextval('functest1'))
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT x'
+ERROR: 
+CREATE FUNCTION functest_IS_5(x int DEFAULT nextval('functest1'))
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT x'
+
+Parser Error: syntax error at or near "int"
+
+
+CREATE FUNCTION functest_IS_6()
+    RETURNS int
+    LANGUAGE SQL
+    RETURN nextval('functest1')
+ERROR: 
+
+CREATE FUNCTION functest_IS_6()
+    RETURNS int
+    LANGUAGE SQL
+    RETURN nextval('functest1')
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+CREATE TABLE functest2 (a int, b int)
+
+
+CREATE FUNCTION functest_IS_7()
+    RETURNS int
+    LANGUAGE SQL
+    RETURN (SELECT count(a) FROM functest2)
+ERROR: 
+
+CREATE FUNCTION functest_IS_7()
+    RETURNS int
+    LANGUAGE SQL
+    RETURN (SELECT count(a) FROM functest2)
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+SELECT r0.routine_name, r1.routine_name
+  FROM information_schema.routine_routine_usage rru
+       JOIN information_schema.routines r0 ON r0.specific_name = rru.specific_name
+       JOIN information_schema.routines r1 ON r1.specific_name = rru.routine_name
+  WHERE r0.routine_schema = 'temp_func_test' AND
+        r1.routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+ERROR: 
+
+SELECT r0.routine_name, r1.routine_name
+  FROM information_schema.routine_routine_usage rru
+       JOIN information_schema.routines r0 ON r0.specific_name = rru.specific_name
+       JOIN information_schema.routines r1 ON r1.specific_name = rru.routine_name
+  WHERE r0.routine_schema = 'temp_func_test' AND
+        r1.routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+
+Catalog Error: Table with name routine_routine_usage does not exist!
+Did you mean "key_column_usage"?
+
+SELECT routine_name, sequence_name FROM information_schema.routine_sequence_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+ERROR: 
+SELECT routine_name, sequence_name FROM information_schema.routine_sequence_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+
+Catalog Error: Table with name routine_sequence_usage does not exist!
+Did you mean "pg_catalog.pg_sequences"?
+
+SELECT routine_name, table_name, column_name FROM information_schema.routine_column_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+ERROR: 
+SELECT routine_name, table_name, column_name FROM information_schema.routine_column_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+
+Catalog Error: Table with name routine_column_usage does not exist!
+Did you mean "key_column_usage"?
+
+SELECT routine_name, table_name FROM information_schema.routine_table_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+ERROR: 
+SELECT routine_name, table_name FROM information_schema.routine_table_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2
+
+Catalog Error: Table with name routine_table_usage does not exist!
+Did you mean "tables"?
+
+
+DROP FUNCTION functest_IS_4a CASCADE
+ERROR: 
+
+DROP FUNCTION functest_IS_4a CASCADE
+
+Catalog Error: Macro Function with name functest_IS_4a does not exist!
+Did you mean "ceil"?
+
+DROP SEQUENCE functest1 CASCADE
+
+DROP TABLE functest2 CASCADE
+
+
+
+-- overload
+CREATE FUNCTION functest_B_2(bigint) RETURNS bool LANGUAGE 'sql'
+       IMMUTABLE AS 'SELECT $1 > 0'
+ERROR: 
+
+
+-- overload
+CREATE FUNCTION functest_B_2(bigint) RETURNS bool LANGUAGE 'sql'
+       IMMUTABLE AS 'SELECT $1 > 0'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+DROP FUNCTION functest_b_1
+ERROR: 
+
+DROP FUNCTION functest_b_1
+
+Catalog Error: Macro Function with name functest_b_1 does not exist!
+Did you mean "cos"?
+
+DROP FUNCTION functest_b_1
+ERROR: 
+DROP FUNCTION functest_b_1
+
+Catalog Error: Macro Function with name functest_b_1 does not exist!
+Did you mean "cos"?
+  -- error, not found
+DROP FUNCTION functest_b_2
+ERROR:   -- error, not found
+DROP FUNCTION functest_b_2
+
+Catalog Error: Macro Function with name functest_b_2 does not exist!
+Did you mean "cos"?
+  -- error, ambiguous
+
+
+-- CREATE OR REPLACE tests
+
+CREATE FUNCTION functest1(a int) RETURNS int LANGUAGE SQL AS 'SELECT $1'
+ERROR:   -- error, ambiguous
+
+
+-- CREATE OR REPLACE tests
+
+CREATE FUNCTION functest1(a int) RETURNS int LANGUAGE SQL AS 'SELECT $1'
+
+Parser Error: syntax error at or near "int"
+
+CREATE OR REPLACE FUNCTION functest1(a int) RETURNS int LANGUAGE SQL WINDOW AS 'SELECT $1'
+ERROR: 
+CREATE OR REPLACE FUNCTION functest1(a int) RETURNS int LANGUAGE SQL WINDOW AS 'SELECT $1'
+
+Parser Error: syntax error at or near "int"
+
+CREATE OR REPLACE PROCEDURE functest1(a int) LANGUAGE SQL AS 'SELECT $1'
+ERROR: 
+CREATE OR REPLACE PROCEDURE functest1(a int) LANGUAGE SQL AS 'SELECT $1'
+
+Parser Error: syntax error at or near "PROCEDURE"
+
+DROP FUNCTION functest1(a int)
+ERROR: 
+DROP FUNCTION functest1(a int)
+
+Parser Error: syntax error at or near "("
+
+
+
+-- inlining of set-returning functions
+
+CREATE TABLE functest3 (a int)
+
+INSERT INTO functest3 VALUES (1), (2), (3)
+
+
+CREATE FUNCTION functest_sri1() RETURNS SETOF int
+LANGUAGE SQL
+STABLE
+AS '
+    SELECT * FROM functest3;
+'
+ERROR: 
+
+CREATE FUNCTION functest_sri1() RETURNS SETOF int
+LANGUAGE SQL
+STABLE
+AS '
+    SELECT * FROM functest3;
+'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+SELECT * FROM functest_sri1()
+ERROR: 
+
+SELECT * FROM functest_sri1()
+
+Catalog Error: Table Function with name functest_sri1 does not exist!
+Did you mean "unnest"?
+
+EXPLAIN (verbose, costs off) SELECT * FROM functest_sri1()
+ERROR: 
+EXPLAIN (verbose, costs off) SELECT * FROM functest_sri1()
+
+Not implemented Error: Unimplemented explain type: verbose
+
+
+CREATE FUNCTION functest_sri2() RETURNS SETOF int
+LANGUAGE SQL
+STABLE
+BEGIN ATOMIC
+    SELECT * FROM functest3
+ERROR: 
+
+CREATE FUNCTION functest_sri2() RETURNS SETOF int
+LANGUAGE SQL
+STABLE
+BEGIN ATOMIC
+    SELECT * FROM functest3
+
+Parser Error: syntax error at or near "RETURNS"
+
+END
+ERROR: 
+END
+
+TransactionContext Error: cannot commit - no transaction is active
+
+
+SELECT * FROM functest_sri2()
+ERROR: 
+
+SELECT * FROM functest_sri2()
+
+Catalog Error: Table Function with name functest_sri2 does not exist!
+Did you mean "unnest"?
+
+EXPLAIN (verbose, costs off) SELECT * FROM functest_sri2()
+ERROR: 
+EXPLAIN (verbose, costs off) SELECT * FROM functest_sri2()
+
+Not implemented Error: Unimplemented explain type: verbose
+
+
+DROP TABLE functest3 CASCADE
+
+
+
+-- Check behavior of VOID-returning SQL functions
+
+CREATE FUNCTION voidtest1(a int) RETURNS VOID LANGUAGE SQL AS
+$$ SELECT a + 1 $$
+ERROR: 
+
+
+-- Check behavior of VOID-returning SQL functions
+
+CREATE FUNCTION voidtest1(a int) RETURNS VOID LANGUAGE SQL AS
+$$ SELECT a + 1 $$
+
+Parser Error: syntax error at or near "int"
+
+SELECT voidtest1(42)
+ERROR: 
+SELECT voidtest1(42)
+
+Catalog Error: Scalar Function with name voidtest1 does not exist!
+Did you mean "divide"?
+
+
+CREATE FUNCTION voidtest2(a int, b int) RETURNS VOID LANGUAGE SQL AS
+$$ SELECT voidtest1(a + b) $$
+ERROR: 
+
+CREATE FUNCTION voidtest2(a int, b int) RETURNS VOID LANGUAGE SQL AS
+$$ SELECT voidtest1(a + b) $$
+
+Parser Error: syntax error at or near "int"
+
+SELECT voidtest2(11,22)
+ERROR: 
+SELECT voidtest2(11,22)
+
+Catalog Error: Scalar Function with name voidtest2 does not exist!
+Did you mean "divide"?
+
+
+-- currently, we can inline voidtest2 but not voidtest1
+EXPLAIN (verbose, costs off) SELECT voidtest2(11,22)
+ERROR: 
+
+-- currently, we can inline voidtest2 but not voidtest1
+EXPLAIN (verbose, costs off) SELECT voidtest2(11,22)
+
+Not implemented Error: Unimplemented explain type: verbose
+
+
+CREATE TEMP TABLE sometable(f1 int)
+
+
+CREATE FUNCTION voidtest3(a int) RETURNS VOID LANGUAGE SQL AS
+$$ INSERT INTO sometable VALUES(a + 1) $$
+ERROR: 
+
+CREATE FUNCTION voidtest3(a int) RETURNS VOID LANGUAGE SQL AS
+$$ INSERT INTO sometable VALUES(a + 1) $$
+
+Parser Error: syntax error at or near "int"
+
+SELECT voidtest3(17)
+ERROR: 
+SELECT voidtest3(17)
+
+Catalog Error: Scalar Function with name voidtest3 does not exist!
+Did you mean "divide"?
+
+
+CREATE FUNCTION voidtest4(a int) RETURNS VOID LANGUAGE SQL AS
+$$ INSERT INTO sometable VALUES(a - 1) RETURNING f1 $$
+ERROR: 
+
+CREATE FUNCTION voidtest4(a int) RETURNS VOID LANGUAGE SQL AS
+$$ INSERT INTO sometable VALUES(a - 1) RETURNING f1 $$
+
+Parser Error: syntax error at or near "int"
+
+SELECT voidtest4(39)
+ERROR: 
+SELECT voidtest4(39)
+
+Catalog Error: Scalar Function with name voidtest4 does not exist!
+Did you mean "divide"?
+
+
+TABLE sometable
+RESULT: 
+	[]
+
+
+CREATE FUNCTION voidtest5(a int) RETURNS SETOF VOID LANGUAGE SQL AS
+$$ SELECT generate_series(1, a) $$ STABLE
+ERROR: 
+
+CREATE FUNCTION voidtest5(a int) RETURNS SETOF VOID LANGUAGE SQL AS
+$$ SELECT generate_series(1, a) $$ STABLE
+
+Parser Error: syntax error at or near "int"
+
+SELECT * FROM voidtest5(3)
+ERROR: 
+SELECT * FROM voidtest5(3)
+
+Catalog Error: Table Function with name voidtest5 does not exist!
+Did you mean "unnest"?
+
+
+-- Regression tests for bugs:
+
+-- Check that arguments that are R/W expanded datums aren''t corrupted by
+-- multiple uses.  This test knows that array_append() returns a R/W datum
+-- and will modify a R/W array input in-place.  We use SETOF to prevent
+-- inlining of the SQL function.
+CREATE FUNCTION double_append(anyarray, anyelement) RETURNS SETOF anyarray
+LANGUAGE SQL IMMUTABLE AS
+$$ SELECT array_append($1, $2) || array_append($1, $2) $$
+ERROR: 
+
+-- Regression tests for bugs:
+
+-- Check that arguments that are R/W expanded datums aren''t corrupted by
+-- multiple uses.  This test knows that array_append() returns a R/W datum
+-- and will modify a R/W array input in-place.  We use SETOF to prevent
+-- inlining of the SQL function.
+CREATE FUNCTION double_append(anyarray, anyelement) RETURNS SETOF anyarray
+LANGUAGE SQL IMMUTABLE AS
+$$ SELECT array_append($1, $2) || array_append($1, $2) $$
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+SELECT double_append(array_append(ARRAY[q1], q2), q3)
+  FROM (VALUES(1,2,3), (4,5,6)) v(q1,q2,q3)
+ERROR: 
+
+SELECT double_append(array_append(ARRAY[q1], q2), q3)
+  FROM (VALUES(1,2,3), (4,5,6)) v(q1,q2,q3)
+
+Catalog Error: Scalar Function with name double_append does not exist!
+Did you mean "list_append"?
+
+
+-- Things that shouldn''t work:
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT ''not an integer'';'
+ERROR: 
+
+-- Things that shouldn''t work:
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT ''not an integer'';'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'not even SQL'
+ERROR: 
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'not even SQL'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT 1, 2, 3;'
+ERROR: 
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT 1, 2, 3;'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT $2;'
+ERROR: 
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT $2;'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'a', 'b'
+ERROR: 
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'a', 'b'
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+-- Cleanup
+DROP SCHEMA temp_func_test CASCADE
+
+DROP USER regress_unpriv_user
+ERROR: 
+DROP USER regress_unpriv_user
+
+Parser Error: syntax error at or near "USER"
+
+RESET search_path
+
+

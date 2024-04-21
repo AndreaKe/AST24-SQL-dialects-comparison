@@ -1,0 +1,477 @@
+--
+-- NUMEROLOGY
+-- Test various combinations of numeric types and functions.
+--
+
+
+--
+-- numeric literals
+--
+
+SELECT 0b100101
+RESULT: 
+	[(0,)]
+
+SELECT 0o273
+RESULT: 
+	[(0,)]
+
+SELECT 0x42F
+RESULT: 
+	[(0,)]
+
+
+-- cases near int4 overflow
+SELECT 0b1111111111111111111111111111111
+RESULT: 
+	[(0,)]
+
+SELECT 0b10000000000000000000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT 0o17777777777
+RESULT: 
+	[(0,)]
+
+SELECT 0o20000000000
+RESULT: 
+	[(0,)]
+
+SELECT 0x7FFFFFFF
+RESULT: 
+	[(0,)]
+
+SELECT 0x80000000
+RESULT: 
+	[(0,)]
+
+
+SELECT -0b10000000000000000000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT -0b10000000000000000000000000000001
+RESULT: 
+	[(0,)]
+
+SELECT -0o20000000000
+RESULT: 
+	[(0,)]
+
+SELECT -0o20000000001
+RESULT: 
+	[(0,)]
+
+SELECT -0x80000000
+RESULT: 
+	[(0,)]
+
+SELECT -0x80000001
+RESULT: 
+	[(0,)]
+
+
+-- cases near int8 overflow
+SELECT 0b111111111111111111111111111111111111111111111111111111111111111
+RESULT: 
+	[(0,)]
+
+SELECT 0b1000000000000000000000000000000000000000000000000000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT 0o777777777777777777777
+RESULT: 
+	[(0,)]
+
+SELECT 0o1000000000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT 0x7FFFFFFFFFFFFFFF
+RESULT: 
+	[(0,)]
+
+SELECT 0x8000000000000000
+RESULT: 
+	[(0,)]
+
+
+SELECT -0b1000000000000000000000000000000000000000000000000000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT -0b1000000000000000000000000000000000000000000000000000000000000001
+RESULT: 
+	[(0,)]
+
+SELECT -0o1000000000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT -0o1000000000000000000001
+RESULT: 
+	[(0,)]
+
+SELECT -0x8000000000000000
+RESULT: 
+	[(0,)]
+
+SELECT -0x8000000000000001
+RESULT: 
+	[(0,)]
+
+
+-- error cases
+SELECT 123abc
+RESULT: 
+	[(123,)]
+
+SELECT 0x0o
+RESULT: 
+	[(0,)]
+
+SELECT 0.a
+RESULT: 
+	[(Decimal('0'),)]
+
+SELECT 0.0a
+RESULT: 
+	[(Decimal('0.0'),)]
+
+SELECT .0a
+RESULT: 
+	[(Decimal('0.0'),)]
+
+SELECT 0.0e1a
+RESULT: 
+	[(0.0,)]
+
+SELECT 0.0e
+RESULT: 
+	[(Decimal('0.0'),)]
+
+SELECT 0.0e+a
+ERROR: 
+SELECT 0.0e+a
+
+Parser Error: syntax error at or near "+"
+
+PREPARE p1 AS SELECT $1a
+
+
+SELECT 0b
+RESULT: 
+	[(0,)]
+
+SELECT 1b
+RESULT: 
+	[(1,)]
+
+SELECT 0b0x
+RESULT: 
+	[(0,)]
+
+
+SELECT 0o
+RESULT: 
+	[(0,)]
+
+SELECT 1o
+RESULT: 
+	[(1,)]
+
+SELECT 0o0x
+RESULT: 
+	[(0,)]
+
+
+SELECT 0x
+RESULT: 
+	[(0,)]
+
+SELECT 1x
+RESULT: 
+	[(1,)]
+
+SELECT 0x0y
+RESULT: 
+	[(0,)]
+
+
+-- underscores
+SELECT 1_000_000
+RESULT: 
+	[(1000000,)]
+
+SELECT 1_2_3
+RESULT: 
+	[(123,)]
+
+SELECT 0x1EEE_FFFF
+RESULT: 
+	[(0,)]
+
+SELECT 0o2_73
+RESULT: 
+	[(0,)]
+
+SELECT 0b_10_0101
+RESULT: 
+	[(0,)]
+
+
+SELECT 1_000.000_005
+RESULT: 
+	[(Decimal('1000.000005'),)]
+
+SELECT 1_000.
+RESULT: 
+	[(Decimal('1000'),)]
+
+SELECT .000_005
+RESULT: 
+	[(Decimal('0.000005'),)]
+
+SELECT 1_000.5e0_1
+RESULT: 
+	[(10005.0,)]
+
+
+-- error cases
+SELECT _100
+ERROR: 
+
+-- error cases
+SELECT _100
+
+Binder Error: Referenced column "_100" not found in FROM clause!
+
+SELECT 100_
+RESULT: 
+	[(100,)]
+
+SELECT 100__000
+RESULT: 
+	[(100,)]
+
+
+SELECT _1_000.5
+ERROR: 
+
+SELECT _1_000.5
+
+Parser Error: syntax error at or near ".5"
+
+SELECT 1_000_.5
+ERROR: 
+SELECT 1_000_.5
+
+Parser Error: syntax error at or near ".5"
+
+SELECT 1_000._5
+RESULT: 
+	[(Decimal('1000'),)]
+
+SELECT 1_000.5_
+RESULT: 
+	[(Decimal('1000.5'),)]
+
+SELECT 1_000.5e_1
+RESULT: 
+	[(Decimal('1000.5'),)]
+
+
+
+--
+-- Test implicit type conversions
+-- This fails for Postgres v6.1 (and earlier?)
+--  so let''s try explicit conversions for now - tgl 97/05/07
+--
+
+CREATE TABLE TEMP_FLOAT (f1 FLOAT8)
+
+
+INSERT INTO TEMP_FLOAT (f1)
+  SELECT float8(f1) FROM INT4_TBL
+ERROR: 
+
+INSERT INTO TEMP_FLOAT (f1)
+  SELECT float8(f1) FROM INT4_TBL
+
+Catalog Error: Scalar Function with name float8 does not exist!
+Did you mean "format"?
+LINE 4:   SELECT float8(f1) FROM INT4_TBL
+                 ^
+
+
+INSERT INTO TEMP_FLOAT (f1)
+  SELECT float8(f1) FROM INT2_TBL
+ERROR: 
+
+INSERT INTO TEMP_FLOAT (f1)
+  SELECT float8(f1) FROM INT2_TBL
+
+Catalog Error: Scalar Function with name float8 does not exist!
+Did you mean "format"?
+LINE 4:   SELECT float8(f1) FROM INT2_TBL
+                 ^
+
+
+SELECT f1 FROM TEMP_FLOAT
+  ORDER BY f1
+RESULT: 
+	[]
+
+
+-- int4
+
+CREATE TABLE TEMP_INT4 (f1 INT4)
+
+
+INSERT INTO TEMP_INT4 (f1)
+  SELECT int4(f1) FROM FLOAT8_TBL
+  WHERE (f1 > -2147483647) AND (f1 < 2147483647)
+ERROR: 
+
+INSERT INTO TEMP_INT4 (f1)
+  SELECT int4(f1) FROM FLOAT8_TBL
+  WHERE (f1 > -2147483647) AND (f1 < 2147483647)
+
+Catalog Error: Scalar Function with name int4 does not exist!
+Did you mean "bin"?
+LINE 4:   SELECT int4(f1) FROM FLOAT8_TBL
+                 ^
+
+
+INSERT INTO TEMP_INT4 (f1)
+  SELECT int4(f1) FROM INT2_TBL
+ERROR: 
+
+INSERT INTO TEMP_INT4 (f1)
+  SELECT int4(f1) FROM INT2_TBL
+
+Catalog Error: Scalar Function with name int4 does not exist!
+Did you mean "bin"?
+LINE 4:   SELECT int4(f1) FROM INT2_TBL
+                 ^
+
+
+SELECT f1 FROM TEMP_INT4
+  ORDER BY f1
+RESULT: 
+	[]
+
+
+-- int2
+
+CREATE TABLE TEMP_INT2 (f1 INT2)
+
+
+INSERT INTO TEMP_INT2 (f1)
+  SELECT int2(f1) FROM FLOAT8_TBL
+  WHERE (f1 >= -32767) AND (f1 <= 32767)
+ERROR: 
+
+INSERT INTO TEMP_INT2 (f1)
+  SELECT int2(f1) FROM FLOAT8_TBL
+  WHERE (f1 >= -32767) AND (f1 <= 32767)
+
+Catalog Error: Scalar Function with name int2 does not exist!
+Did you mean "bin"?
+LINE 4:   SELECT int2(f1) FROM FLOAT8_TBL
+                 ^
+
+
+INSERT INTO TEMP_INT2 (f1)
+  SELECT int2(f1) FROM INT4_TBL
+  WHERE (f1 >= -32767) AND (f1 <= 32767)
+ERROR: 
+
+INSERT INTO TEMP_INT2 (f1)
+  SELECT int2(f1) FROM INT4_TBL
+  WHERE (f1 >= -32767) AND (f1 <= 32767)
+
+Catalog Error: Scalar Function with name int2 does not exist!
+Did you mean "bin"?
+LINE 4:   SELECT int2(f1) FROM INT4_TBL
+                 ^
+
+
+SELECT f1 FROM TEMP_INT2
+  ORDER BY f1
+RESULT: 
+	[]
+
+
+--
+-- Group-by combinations
+--
+
+CREATE TABLE TEMP_GROUP (f1 INT4, f2 INT4, f3 FLOAT8)
+
+
+INSERT INTO TEMP_GROUP
+  SELECT 1, (- i.f1), (- f.f1)
+  FROM INT4_TBL i, FLOAT8_TBL f
+
+
+INSERT INTO TEMP_GROUP
+  SELECT 2, i.f1, f.f1
+  FROM INT4_TBL i, FLOAT8_TBL f
+
+
+SELECT DISTINCT f1 AS two FROM TEMP_GROUP ORDER BY 1
+RESULT: 
+	[(1,), (2,)]
+
+
+SELECT f1 AS two, max(f3) AS max_float, min(f3) as min_float
+  FROM TEMP_GROUP
+  GROUP BY f1
+  ORDER BY two, max_float, min_float
+RESULT: 
+	[(1, 1.2345678901234e+200, -0.0), (2, 0.0, -1.2345678901234e+200)]
+
+
+-- GROUP BY a result column name is not legal per SQL92, but we accept it
+-- anyway (if the name is not the name of any column exposed by FROM).
+SELECT f1 AS two, max(f3) AS max_float, min(f3) AS min_float
+  FROM TEMP_GROUP
+  GROUP BY two
+  ORDER BY two, max_float, min_float
+RESULT: 
+	[(1, 1.2345678901234e+200, -0.0), (2, 0.0, -1.2345678901234e+200)]
+
+
+SELECT f1 AS two, (max(f3) + 1) AS max_plus_1, (min(f3) - 1) AS min_minus_1
+  FROM TEMP_GROUP
+  GROUP BY f1
+  ORDER BY two, min_minus_1
+RESULT: 
+	[(1, 1.2345678901234e+200, -1.0), (2, 1.0, -1.2345678901234e+200)]
+
+
+SELECT f1 AS two,
+       max(f2) + min(f2) AS max_plus_min,
+       min(f3) - 1 AS min_minus_1
+  FROM TEMP_GROUP
+  GROUP BY f1
+  ORDER BY two, min_minus_1
+RESULT: 
+	[(1, 0, -1.0), (2, 0, -1.2345678901234e+200)]
+
+
+DROP TABLE TEMP_INT2
+
+
+DROP TABLE TEMP_INT4
+
+
+DROP TABLE TEMP_FLOAT
+
+
+DROP TABLE TEMP_GROUP
+
+

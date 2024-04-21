@@ -1,0 +1,944 @@
+-- only use parallelism when explicitly intending to do so
+SET max_parallel_maintenance_workers = 0
+ERROR: -- only use parallelism when explicitly intending to do so
+SET max_parallel_maintenance_workers = 0
+
+Catalog Error: unrecognized configuration parameter "max_parallel_maintenance_workers"
+
+Did you mean: "max_memory"
+
+SET max_parallel_workers = 0
+ERROR: 
+SET max_parallel_workers = 0
+
+Catalog Error: unrecognized configuration parameter "max_parallel_workers"
+
+Did you mean: "null_order"
+
+
+-- A table with contents that, when sorted, triggers abbreviated
+-- key aborts. One easy way to achieve that is to use uuids that all
+-- have the same prefix, as abbreviated keys for uuids just use the
+-- first sizeof(Datum) bytes.
+CREATE TEMP TABLE abbrev_abort_uuids (
+    id serial not null,
+    abort_increasing uuid,
+    abort_decreasing uuid,
+    noabort_increasing uuid,
+    noabort_decreasing uuid)
+ERROR: 
+
+-- A table with contents that, when sorted, triggers abbreviated
+-- key aborts. One easy way to achieve that is to use uuids that all
+-- have the same prefix, as abbreviated keys for uuids just use the
+-- first sizeof(Datum) bytes.
+CREATE TEMP TABLE abbrev_abort_uuids (
+    id serial not null,
+    abort_increasing uuid,
+    abort_decreasing uuid,
+    noabort_increasing uuid,
+    noabort_decreasing uuid)
+
+Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+
+INSERT INTO abbrev_abort_uuids (abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing)
+    SELECT
+        ('00000000-0000-0000-0000-'||to_char(g.i, '000000000000FM'))::uuid abort_increasing,
+        ('00000000-0000-0000-0000-'||to_char(20000 - g.i, '000000000000FM'))::uuid abort_decreasing,
+        (to_char(g.i % 10009, '00000000FM')||'-0000-0000-0000-'||to_char(g.i, '000000000000FM'))::uuid noabort_increasing,
+        (to_char(((20000 - g.i) % 10009), '00000000FM')||'-0000-0000-0000-'||to_char(20000 - g.i, '000000000000FM'))::uuid noabort_decreasing
+    FROM generate_series(0, 20000, 1) g(i)
+ERROR: 
+
+INSERT INTO abbrev_abort_uuids (abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing)
+    SELECT
+        ('00000000-0000-0000-0000-'||to_char(g.i, '000000000000FM'))::uuid abort_increasing,
+        ('00000000-0000-0000-0000-'||to_char(20000 - g.i, '000000000000FM'))::uuid abort_decreasing,
+        (to_char(g.i % 10009, '00000000FM')||'-0000-0000-0000-'||to_char(g.i, '000000000000FM'))::uuid noabort_increasing,
+        (to_char(((20000 - g.i) % 10009), '00000000FM')||'-0000-0000-0000-'||to_char(20000 - g.i, '000000000000FM'))::uuid noabort_decreasing
+    FROM generate_series(0, 20000, 1) g(i)
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- and a few NULLs
+INSERT INTO abbrev_abort_uuids(id) VALUES(0)
+ERROR: 
+
+-- and a few NULLs
+INSERT INTO abbrev_abort_uuids(id) VALUES(0)
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+INSERT INTO abbrev_abort_uuids DEFAULT VALUES
+ERROR: 
+INSERT INTO abbrev_abort_uuids DEFAULT VALUES
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+INSERT INTO abbrev_abort_uuids DEFAULT VALUES
+ERROR: 
+INSERT INTO abbrev_abort_uuids DEFAULT VALUES
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- add just a few duplicates
+INSERT INTO abbrev_abort_uuids (abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing)
+    SELECT abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+    FROM abbrev_abort_uuids
+    WHERE (id < 10 OR id > 19990) AND id % 3 = 0 AND abort_increasing is not null
+ERROR: 
+
+-- add just a few duplicates
+INSERT INTO abbrev_abort_uuids (abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing)
+    SELECT abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+    FROM abbrev_abort_uuids
+    WHERE (id < 10 OR id > 19990) AND id % 3 = 0 AND abort_increasing is not null
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+----
+-- Check sort node uses of tuplesort wrt. abbreviated keys
+----
+
+-- plain sort triggering abbreviated abort
+SELECT abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_increasing OFFSET 20000 - 4
+ERROR: 
+
+----
+-- Check sort node uses of tuplesort wrt. abbreviated keys
+----
+
+-- plain sort triggering abbreviated abort
+SELECT abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_increasing OFFSET 20000 - 4
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+SELECT abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_decreasing NULLS FIRST OFFSET 20000 - 4
+ERROR: 
+SELECT abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_decreasing NULLS FIRST OFFSET 20000 - 4
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- plain sort not triggering abbreviated abort
+SELECT noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_increasing OFFSET 20000 - 4
+ERROR: 
+
+-- plain sort not triggering abbreviated abort
+SELECT noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_increasing OFFSET 20000 - 4
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+SELECT noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing NULLS FIRST OFFSET 20000 - 4
+ERROR: 
+SELECT noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing NULLS FIRST OFFSET 20000 - 4
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- bounded sort (disables abbreviated keys)
+SELECT abort_increasing, noabort_increasing FROM abbrev_abort_uuids ORDER BY abort_increasing LIMIT 5
+ERROR: 
+
+-- bounded sort (disables abbreviated keys)
+SELECT abort_increasing, noabort_increasing FROM abbrev_abort_uuids ORDER BY abort_increasing LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+SELECT abort_increasing, noabort_increasing FROM abbrev_abort_uuids ORDER BY noabort_increasing NULLS FIRST LIMIT 5
+ERROR: 
+SELECT abort_increasing, noabort_increasing FROM abbrev_abort_uuids ORDER BY noabort_increasing NULLS FIRST LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+
+----
+-- Check index creation uses of tuplesort wrt. abbreviated keys
+----
+
+-- index creation using abbreviated keys successfully
+CREATE INDEX abbrev_abort_uuids__noabort_increasing_idx ON abbrev_abort_uuids (noabort_increasing)
+ERROR: 
+
+
+----
+-- Check index creation uses of tuplesort wrt. abbreviated keys
+----
+
+-- index creation using abbreviated keys successfully
+CREATE INDEX abbrev_abort_uuids__noabort_increasing_idx ON abbrev_abort_uuids (noabort_increasing)
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+CREATE INDEX abbrev_abort_uuids__noabort_decreasing_idx ON abbrev_abort_uuids (noabort_decreasing)
+ERROR: 
+CREATE INDEX abbrev_abort_uuids__noabort_decreasing_idx ON abbrev_abort_uuids (noabort_decreasing)
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- verify
+EXPLAIN (COSTS OFF)
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_increasing LIMIT 5
+ERROR: 
+
+-- verify
+EXPLAIN (COSTS OFF)
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_increasing LIMIT 5
+
+Not implemented Error: Unimplemented explain type: COSTS
+
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_increasing LIMIT 5
+ERROR: 
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_increasing LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+EXPLAIN (COSTS OFF)
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing LIMIT 5
+ERROR: 
+EXPLAIN (COSTS OFF)
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing LIMIT 5
+
+Not implemented Error: Unimplemented explain type: COSTS
+
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing LIMIT 5
+ERROR: 
+SELECT id, noabort_increasing, noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- index creation using abbreviated keys, hitting abort
+CREATE INDEX abbrev_abort_uuids__abort_increasing_idx ON abbrev_abort_uuids (abort_increasing)
+ERROR: 
+
+-- index creation using abbreviated keys, hitting abort
+CREATE INDEX abbrev_abort_uuids__abort_increasing_idx ON abbrev_abort_uuids (abort_increasing)
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+CREATE INDEX abbrev_abort_uuids__abort_decreasing_idx ON abbrev_abort_uuids (abort_decreasing)
+ERROR: 
+CREATE INDEX abbrev_abort_uuids__abort_decreasing_idx ON abbrev_abort_uuids (abort_decreasing)
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- verify
+EXPLAIN (COSTS OFF)
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_increasing LIMIT 5
+ERROR: 
+
+-- verify
+EXPLAIN (COSTS OFF)
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_increasing LIMIT 5
+
+Not implemented Error: Unimplemented explain type: COSTS
+
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_increasing LIMIT 5
+ERROR: 
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_increasing LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+EXPLAIN (COSTS OFF)
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_decreasing LIMIT 5
+ERROR: 
+EXPLAIN (COSTS OFF)
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_decreasing LIMIT 5
+
+Not implemented Error: Unimplemented explain type: COSTS
+
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_decreasing LIMIT 5
+ERROR: 
+SELECT id, abort_increasing, abort_decreasing FROM abbrev_abort_uuids ORDER BY abort_decreasing LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+
+----
+-- Check CLUSTER uses of tuplesort wrt. abbreviated keys
+----
+
+-- when aborting, increasing order
+BEGIN
+
+SET LOCAL enable_indexscan = false
+ERROR: 
+SET LOCAL enable_indexscan = false
+
+Not implemented Error: SET LOCAL is not implemented.
+
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__abort_increasing_idx
+ERROR: 
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__abort_increasing_idx
+
+Parser Error: syntax error at or near "CLUSTER"
+
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+ERROR: 
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+ERROR: 
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+ROLLBACK
+
+
+-- when aborting, decreasing order
+BEGIN
+
+SET LOCAL enable_indexscan = false
+ERROR: 
+SET LOCAL enable_indexscan = false
+
+Not implemented Error: SET LOCAL is not implemented.
+
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__abort_decreasing_idx
+ERROR: 
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__abort_decreasing_idx
+
+Parser Error: syntax error at or near "CLUSTER"
+
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+ERROR: 
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+ERROR: 
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+ROLLBACK
+
+
+-- when not aborting, increasing order
+BEGIN
+
+SET LOCAL enable_indexscan = false
+ERROR: 
+SET LOCAL enable_indexscan = false
+
+Not implemented Error: SET LOCAL is not implemented.
+
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__noabort_increasing_idx
+ERROR: 
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__noabort_increasing_idx
+
+Parser Error: syntax error at or near "CLUSTER"
+
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+ERROR: 
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+ERROR: 
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+ROLLBACK
+
+
+-- when no aborting, decreasing order
+BEGIN
+
+SET LOCAL enable_indexscan = false
+ERROR: 
+SET LOCAL enable_indexscan = false
+
+Not implemented Error: SET LOCAL is not implemented.
+
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__noabort_decreasing_idx
+ERROR: 
+CLUSTER abbrev_abort_uuids USING abbrev_abort_uuids__noabort_decreasing_idx
+
+Parser Error: syntax error at or near "CLUSTER"
+
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+ERROR: 
+
+-- head
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+ERROR: 
+
+-- tail
+SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
+FROM abbrev_abort_uuids
+ORDER BY ctid DESC LIMIT 5
+
+Catalog Error: Table with name abbrev_abort_uuids does not exist!
+Did you mean "system.information_schema.tables"?
+
+ROLLBACK
+
+
+----
+-- test forward and backward scans for in-memory and disk based tuplesort
+----
+
+-- in-memory
+BEGIN
+
+SET LOCAL enable_indexscan = false
+ERROR: 
+SET LOCAL enable_indexscan = false
+
+Not implemented Error: SET LOCAL is not implemented.
+
+-- unfortunately can''t show analyze output confirming sort method,
+-- the memory used output wouldn''t be stable
+EXPLAIN (COSTS OFF) DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+ERROR: 
+-- unfortunately can''t show analyze output confirming sort method,
+-- the memory used output wouldn''t be stable
+EXPLAIN (COSTS OFF) DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+
+Parser Error: syntax error at or near "DECLARE"
+
+DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+ERROR: 
+DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+
+Parser Error: syntax error at or near "DECLARE"
+
+
+-- first and second
+FETCH NEXT FROM c
+ERROR: 
+
+-- first and second
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+
+-- scroll beyond beginning
+FETCH BACKWARD FROM c
+ERROR: 
+
+-- scroll beyond beginning
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+
+-- scroll beyond end
+FETCH LAST FROM c
+ERROR: 
+
+-- scroll beyond end
+FETCH LAST FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+
+COMMIT
+
+
+-- disk based
+BEGIN
+
+SET LOCAL enable_indexscan = false
+ERROR: 
+SET LOCAL enable_indexscan = false
+
+Not implemented Error: SET LOCAL is not implemented.
+
+SET LOCAL work_mem = '100kB'
+ERROR: 
+SET LOCAL work_mem = '100kB'
+
+Not implemented Error: SET LOCAL is not implemented.
+
+-- unfortunately can''t show analyze output confirming sort method,
+-- the memory used output wouldn''t be stable
+EXPLAIN (COSTS OFF) DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+ERROR: 
+-- unfortunately can''t show analyze output confirming sort method,
+-- the memory used output wouldn''t be stable
+EXPLAIN (COSTS OFF) DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+
+Parser Error: syntax error at or near "DECLARE"
+
+DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+ERROR: 
+DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing
+
+Parser Error: syntax error at or near "DECLARE"
+
+
+-- first and second
+FETCH NEXT FROM c
+ERROR: 
+
+-- first and second
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+
+-- scroll beyond beginning
+FETCH BACKWARD FROM c
+ERROR: 
+
+-- scroll beyond beginning
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+
+-- scroll beyond end
+FETCH LAST FROM c
+ERROR: 
+
+-- scroll beyond end
+FETCH LAST FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH BACKWARD FROM c
+ERROR: 
+FETCH BACKWARD FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+FETCH NEXT FROM c
+ERROR: 
+FETCH NEXT FROM c
+
+Parser Error: syntax error at or near "FETCH"
+
+
+COMMIT
+
+
+
+----
+-- test tuplesort using both in-memory and disk sort
+---
+
+-- memory based
+SELECT
+    -- fixed-width by-value datum
+    (array_agg(id ORDER BY id DESC NULLS FIRST))[0:5],
+    -- fixed-width by-ref datum
+    (array_agg(abort_increasing ORDER BY abort_increasing DESC NULLS LAST))[0:5],
+    -- variable-width datum
+    (array_agg(id::text ORDER BY id::text DESC NULLS LAST))[0:5],
+    -- fixed width by-value datum tuplesort
+    percentile_disc(0.99) WITHIN GROUP (ORDER BY id),
+    -- ensure state is shared
+    percentile_disc(0.01) WITHIN GROUP (ORDER BY id),
+    -- fixed width by-ref datum tuplesort
+    percentile_disc(0.8) WITHIN GROUP (ORDER BY abort_increasing),
+    -- variable width by-ref datum tuplesort
+    percentile_disc(0.2) WITHIN GROUP (ORDER BY id::text),
+    -- multi-column tuplesort
+    rank('00000000-0000-0000-0000-000000000000', '2', '2') WITHIN GROUP (ORDER BY noabort_increasing, id, id::text)
+FROM (
+    SELECT * FROM abbrev_abort_uuids
+    UNION ALL
+    SELECT NULL, NULL, NULL, NULL, NULL) s
+ERROR: 
+
+
+----
+-- test tuplesort using both in-memory and disk sort
+---
+
+-- memory based
+SELECT
+    -- fixed-width by-value datum
+    (array_agg(id ORDER BY id DESC NULLS FIRST))[0:5],
+    -- fixed-width by-ref datum
+    (array_agg(abort_increasing ORDER BY abort_increasing DESC NULLS LAST))[0:5],
+    -- variable-width datum
+    (array_agg(id::text ORDER BY id::text DESC NULLS LAST))[0:5],
+    -- fixed width by-value datum tuplesort
+    percentile_disc(0.99) WITHIN GROUP (ORDER BY id),
+    -- ensure state is shared
+    percentile_disc(0.01) WITHIN GROUP (ORDER BY id),
+    -- fixed width by-ref datum tuplesort
+    percentile_disc(0.8) WITHIN GROUP (ORDER BY abort_increasing),
+    -- variable width by-ref datum tuplesort
+    percentile_disc(0.2) WITHIN GROUP (ORDER BY id::text),
+    -- multi-column tuplesort
+    rank('00000000-0000-0000-0000-000000000000', '2', '2') WITHIN GROUP (ORDER BY noabort_increasing, id, id::text)
+FROM (
+    SELECT * FROM abbrev_abort_uuids
+    UNION ALL
+    SELECT NULL, NULL, NULL, NULL, NULL) s
+
+Parser Error: Cannot use multiple ORDER BY clauses with WITHIN GROUP
+
+
+-- disk based (see also above)
+BEGIN
+
+SET LOCAL work_mem = '100kB'
+ERROR: 
+SET LOCAL work_mem = '100kB'
+
+Not implemented Error: SET LOCAL is not implemented.
+
+
+SELECT
+    (array_agg(id ORDER BY id DESC NULLS FIRST))[0:5],
+    (array_agg(abort_increasing ORDER BY abort_increasing DESC NULLS LAST))[0:5],
+    (array_agg(id::text ORDER BY id::text DESC NULLS LAST))[0:5],
+    percentile_disc(0.99) WITHIN GROUP (ORDER BY id),
+    percentile_disc(0.01) WITHIN GROUP (ORDER BY id),
+    percentile_disc(0.8) WITHIN GROUP (ORDER BY abort_increasing),
+    percentile_disc(0.2) WITHIN GROUP (ORDER BY id::text),
+    rank('00000000-0000-0000-0000-000000000000', '2', '2') WITHIN GROUP (ORDER BY noabort_increasing, id, id::text)
+FROM (
+    SELECT * FROM abbrev_abort_uuids
+    UNION ALL
+    SELECT NULL, NULL, NULL, NULL, NULL) s
+ERROR: 
+
+SELECT
+    (array_agg(id ORDER BY id DESC NULLS FIRST))[0:5],
+    (array_agg(abort_increasing ORDER BY abort_increasing DESC NULLS LAST))[0:5],
+    (array_agg(id::text ORDER BY id::text DESC NULLS LAST))[0:5],
+    percentile_disc(0.99) WITHIN GROUP (ORDER BY id),
+    percentile_disc(0.01) WITHIN GROUP (ORDER BY id),
+    percentile_disc(0.8) WITHIN GROUP (ORDER BY abort_increasing),
+    percentile_disc(0.2) WITHIN GROUP (ORDER BY id::text),
+    rank('00000000-0000-0000-0000-000000000000', '2', '2') WITHIN GROUP (ORDER BY noabort_increasing, id, id::text)
+FROM (
+    SELECT * FROM abbrev_abort_uuids
+    UNION ALL
+    SELECT NULL, NULL, NULL, NULL, NULL) s
+
+Parser Error: Cannot use multiple ORDER BY clauses with WITHIN GROUP
+
+
+ROLLBACK
+
+
+
+----
+-- test tuplesort mark/restore
+---
+
+CREATE TEMP TABLE test_mark_restore(col1 int, col2 int, col12 int)
+
+-- need a few duplicates for mark/restore to matter
+INSERT INTO test_mark_restore(col1, col2, col12)
+   SELECT a.i, b.i, a.i * b.i FROM generate_series(1, 500) a(i), generate_series(1, 5) b(i)
+
+
+BEGIN
+
+
+SET LOCAL enable_nestloop = off
+ERROR: 
+
+SET LOCAL enable_nestloop = off
+
+Not implemented Error: SET LOCAL is not implemented.
+
+SET LOCAL enable_hashjoin = off
+ERROR: 
+SET LOCAL enable_hashjoin = off
+
+Not implemented Error: SET LOCAL is not implemented.
+
+SET LOCAL enable_material = off
+ERROR: 
+SET LOCAL enable_material = off
+
+Not implemented Error: SET LOCAL is not implemented.
+
+
+-- set query into variable once, to avoid repetition of the fairly long query
+SELECT $$
+    SELECT col12, count(distinct a.col1), count(distinct a.col2), count(distinct b.col1), count(distinct b.col2), count(*)
+    FROM test_mark_restore a
+        JOIN test_mark_restore b USING(col12)
+    GROUP BY 1
+    HAVING count(*) > 1
+    ORDER BY 2 DESC, 1 DESC, 3 DESC, 4 DESC, 5 DESC, 6 DESC
+    LIMIT 10
+$$ AS qry \gset
+
+-- test mark/restore with in-memory sorts
+EXPLAIN (COSTS OFF) :qry
+ERROR: 
+
+-- set query into variable once, to avoid repetition of the fairly long query
+SELECT $$
+    SELECT col12, count(distinct a.col1), count(distinct a.col2), count(distinct b.col1), count(distinct b.col2), count(*)
+    FROM test_mark_restore a
+        JOIN test_mark_restore b USING(col12)
+    GROUP BY 1
+    HAVING count(*) > 1
+    ORDER BY 2 DESC, 1 DESC, 3 DESC, 4 DESC, 5 DESC, 6 DESC
+    LIMIT 10
+$$ AS qry \gset
+
+-- test mark/restore with in-memory sorts
+EXPLAIN (COSTS OFF) :qry
+
+Parser Error: syntax error at or near "\"
+
+:qry
+ERROR: 
+:qry
+
+Parser Error: syntax error at or near ":"
+
+
+-- test mark/restore with on-disk sorts
+SET LOCAL work_mem = '100kB'
+ERROR: 
+
+-- test mark/restore with on-disk sorts
+SET LOCAL work_mem = '100kB'
+
+Not implemented Error: SET LOCAL is not implemented.
+
+EXPLAIN (COSTS OFF) :qry
+ERROR: 
+EXPLAIN (COSTS OFF) :qry
+
+Parser Error: syntax error at or near ":"
+
+:qry
+ERROR: 
+:qry
+
+Parser Error: syntax error at or near ":"
+
+
+COMMIT
+
+

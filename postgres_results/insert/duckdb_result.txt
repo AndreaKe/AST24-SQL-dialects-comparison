@@ -1,0 +1,2962 @@
+--
+-- insert with DEFAULT in the target_list
+--
+create table inserttest (col1 int4, col2 int4 NOT NULL, col3 text default 'testing')
+
+insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT, DEFAULT)
+ERROR: 
+insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT, DEFAULT)
+
+Constraint Error: NOT NULL constraint failed: inserttest.col2
+
+insert into inserttest (col2, col3) values (3, DEFAULT)
+
+insert into inserttest (col1, col2, col3) values (DEFAULT, 5, DEFAULT)
+
+insert into inserttest values (DEFAULT, 5, 'test')
+
+insert into inserttest values (DEFAULT, 7)
+ERROR: 
+insert into inserttest values (DEFAULT, 7)
+
+Binder Error: table inserttest has 3 columns but 2 values were supplied
+
+
+select * from inserttest
+RESULT: 
+	[(None, 3, 'testing'), (None, 5, 'testing'), (None, 5, 'test')]
+
+
+--
+-- insert with similar expression / target_list values (all fail)
+--
+insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT)
+ERROR: 
+
+--
+-- insert with similar expression / target_list values (all fail)
+--
+insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT)
+
+Binder Error: Column name/value mismatch for insert on inserttest: expected 3 columns but 2 values were supplied
+
+insert into inserttest (col1, col2, col3) values (1, 2)
+ERROR: 
+insert into inserttest (col1, col2, col3) values (1, 2)
+
+Binder Error: Column name/value mismatch for insert on inserttest: expected 3 columns but 2 values were supplied
+
+insert into inserttest (col1) values (1, 2)
+ERROR: 
+insert into inserttest (col1) values (1, 2)
+
+Binder Error: Column name/value mismatch for insert on inserttest: expected 1 columns but 2 values were supplied
+
+insert into inserttest (col1) values (DEFAULT, DEFAULT)
+ERROR: 
+insert into inserttest (col1) values (DEFAULT, DEFAULT)
+
+Binder Error: Column name/value mismatch for insert on inserttest: expected 1 columns but 2 values were supplied
+
+
+select * from inserttest
+RESULT: 
+	[(None, 3, 'testing'), (None, 5, 'testing'), (None, 5, 'test')]
+
+
+--
+-- VALUES test
+--
+insert into inserttest values(10, 20, '40'), (-1, 2, DEFAULT),
+    ((select 2), (select i from (values(3)) as foo (i)), 'values are fun!')
+
+
+select * from inserttest
+RESULT: 
+	[(None, 3, 'testing'), (None, 5, 'testing'), (None, 5, 'test'), (10, 20, '40'), (-1, 2, 'testing'), (2, 3, 'values are fun!')]
+
+
+--
+-- TOASTed value test
+--
+insert into inserttest values(30, 50, repeat('x', 10000))
+
+
+select col1, col2, char_length(col3) from inserttest
+ERROR: 
+
+select col1, col2, char_length(col3) from inserttest
+
+Catalog Error: Scalar Function with name char_length does not exist!
+Did you mean "array_length"?
+
+
+drop table inserttest
+
+
+--
+-- tuple larger than fillfactor
+--
+CREATE TABLE large_tuple_test (a int, b text) WITH (fillfactor = 10)
+
+ALTER TABLE large_tuple_test ALTER COLUMN b SET STORAGE plain
+ERROR: 
+ALTER TABLE large_tuple_test ALTER COLUMN b SET STORAGE plain
+
+Not implemented Error: No support for that ALTER TABLE option yet!
+
+
+-- create page w/ free space in range [nearlyEmptyFreeSpace, MaxHeapTupleSize)
+INSERT INTO large_tuple_test (select 1, NULL)
+
+
+-- should still fit on the page
+INSERT INTO large_tuple_test (select 2, repeat('a', 1000))
+
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'))
+ERROR: 
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'))
+
+Catalog Error: Scalar Function with name pg_relation_size does not exist!
+Did you mean "get_block_size"?
+
+
+-- add small record to the second page
+INSERT INTO large_tuple_test (select 3, NULL)
+
+
+-- now this tuple won''t fit on the second page, but the insert should
+-- still succeed by extending the relation
+INSERT INTO large_tuple_test (select 4, repeat('a', 8126))
+
+
+DROP TABLE large_tuple_test
+
+
+--
+-- check indirection (field/array assignment), cf bug #14265
+--
+-- these tests are aware that transformInsertStmt has 3 separate code paths
+--
+
+create type insert_test_type as (if1 int, if2 text[])
+ERROR: 
+
+--
+-- check indirection (field/array assignment), cf bug #14265
+--
+-- these tests are aware that transformInsertStmt has 3 separate code paths
+--
+
+create type insert_test_type as (if1 int, if2 text[])
+
+Parser Error: syntax error at or near "("
+
+
+create table inserttest (f1 int, f2 int[],
+                         f3 insert_test_type, f4 insert_test_type[])
+ERROR: 
+
+create table inserttest (f1 int, f2 int[],
+                         f3 insert_test_type, f4 insert_test_type[])
+
+Catalog Error: Type with name insert_test_type does not exist!
+Did you mean "int"?
+
+
+insert into inserttest (f2[1], f2[2]) values (1,2)
+ERROR: 
+
+insert into inserttest (f2[1], f2[2]) values (1,2)
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f2[1], f2[2]) values (3,4), (5,6)
+ERROR: 
+insert into inserttest (f2[1], f2[2]) values (3,4), (5,6)
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f2[1], f2[2]) select 7,8
+ERROR: 
+insert into inserttest (f2[1], f2[2]) select 7,8
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f2[1], f2[2]) values (1,default)
+ERROR: 
+insert into inserttest (f2[1], f2[2]) values (1,default)
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+  -- not supported
+
+insert into inserttest (f3.if1, f3.if2) values (1,array['foo'])
+ERROR:   -- not supported
+
+insert into inserttest (f3.if1, f3.if2) values (1,array['foo'])
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f3.if1, f3.if2) values (1,'{foo}'), (2,'{bar}')
+ERROR: 
+insert into inserttest (f3.if1, f3.if2) values (1,'{foo}'), (2,'{bar}')
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f3.if1, f3.if2) select 3, '{baz,quux}'
+ERROR: 
+insert into inserttest (f3.if1, f3.if2) select 3, '{baz,quux}'
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f3.if1, f3.if2) values (1,default)
+ERROR: 
+insert into inserttest (f3.if1, f3.if2) values (1,default)
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+  -- not supported
+
+insert into inserttest (f3.if2[1], f3.if2[2]) values ('foo', 'bar')
+ERROR:   -- not supported
+
+insert into inserttest (f3.if2[1], f3.if2[2]) values ('foo', 'bar')
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f3.if2[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux')
+ERROR: 
+insert into inserttest (f3.if2[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux')
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f3.if2[1], f3.if2[2]) select 'bear', 'beer'
+ERROR: 
+insert into inserttest (f3.if2[1], f3.if2[2]) select 'bear', 'beer'
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) values ('foo', 'bar')
+ERROR: 
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) values ('foo', 'bar')
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) values ('foo', 'bar'), ('baz', 'quux')
+ERROR: 
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) values ('foo', 'bar'), ('baz', 'quux')
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) select 'bear', 'beer'
+ERROR: 
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) select 'bear', 'beer'
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+
+select * from inserttest
+ERROR: 
+
+select * from inserttest
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+
+-- also check reverse-listing
+create table inserttest2 (f1 bigint, f2 text)
+
+create rule irule1 as on insert to inserttest2 do also
+  insert into inserttest (f3.if2[1], f3.if2[2])
+  values (new.f1,new.f2)
+ERROR: 
+create rule irule1 as on insert to inserttest2 do also
+  insert into inserttest (f3.if2[1], f3.if2[2])
+  values (new.f1,new.f2)
+
+Parser Error: syntax error at or near "rule"
+
+create rule irule2 as on insert to inserttest2 do also
+  insert into inserttest (f4[1].if1, f4[1].if2[2])
+  values (1,'fool'),(new.f1,new.f2)
+ERROR: 
+create rule irule2 as on insert to inserttest2 do also
+  insert into inserttest (f4[1].if1, f4[1].if2[2])
+  values (1,'fool'),(new.f1,new.f2)
+
+Parser Error: syntax error at or near "rule"
+
+create rule irule3 as on insert to inserttest2 do also
+  insert into inserttest (f4[1].if1, f4[1].if2[2])
+  select new.f1, new.f2
+ERROR: 
+create rule irule3 as on insert to inserttest2 do also
+  insert into inserttest (f4[1].if1, f4[1].if2[2])
+  select new.f1, new.f2
+
+Parser Error: syntax error at or near "rule"
+
+-- \d+ inserttest2
+
+drop table inserttest2
+
+drop table inserttest
+ERROR: 
+drop table inserttest
+
+Catalog Error: Table with name inserttest does not exist!
+Did you mean "pg_indexes"?
+
+
+-- Make the same tests with domains over the array and composite fields
+
+create domain insert_pos_ints as int[] check (value[1] > 0)
+ERROR: 
+
+-- Make the same tests with domains over the array and composite fields
+
+create domain insert_pos_ints as int[] check (value[1] > 0)
+
+Parser Error: syntax error at or near "domain"
+
+
+create domain insert_test_domain as insert_test_type
+  check ((value).if2[1] is not null)
+ERROR: 
+
+create domain insert_test_domain as insert_test_type
+  check ((value).if2[1] is not null)
+
+Parser Error: syntax error at or near "domain"
+
+
+create table inserttesta (f1 int, f2 insert_pos_ints)
+ERROR: 
+
+create table inserttesta (f1 int, f2 insert_pos_ints)
+
+Catalog Error: Type with name insert_pos_ints does not exist!
+Did you mean "int"?
+
+create table inserttestb (f3 insert_test_domain, f4 insert_test_domain[])
+ERROR: 
+create table inserttestb (f3 insert_test_domain, f4 insert_test_domain[])
+
+Catalog Error: Type with name insert_test_domain does not exist!
+Did you mean "bitstring"?
+
+
+insert into inserttesta (f2[1], f2[2]) values (1,2)
+ERROR: 
+
+insert into inserttesta (f2[1], f2[2]) values (1,2)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttesta (f2[1], f2[2]) values (3,4), (5,6)
+ERROR: 
+insert into inserttesta (f2[1], f2[2]) values (3,4), (5,6)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttesta (f2[1], f2[2]) select 7,8
+ERROR: 
+insert into inserttesta (f2[1], f2[2]) select 7,8
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttesta (f2[1], f2[2]) values (1,default)
+ERROR: 
+insert into inserttesta (f2[1], f2[2]) values (1,default)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+  -- not supported
+insert into inserttesta (f2[1], f2[2]) values (0,2)
+ERROR:   -- not supported
+insert into inserttesta (f2[1], f2[2]) values (0,2)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttesta (f2[1], f2[2]) values (3,4), (0,6)
+ERROR: 
+insert into inserttesta (f2[1], f2[2]) values (3,4), (0,6)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+insert into inserttesta (f2[1], f2[2]) select 0,8
+ERROR: 
+insert into inserttesta (f2[1], f2[2]) select 0,8
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+
+insert into inserttestb (f3.if1, f3.if2) values (1,array['foo'])
+ERROR: 
+
+insert into inserttestb (f3.if1, f3.if2) values (1,array['foo'])
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if1, f3.if2) values (1,'{foo}'), (2,'{bar}')
+ERROR: 
+insert into inserttestb (f3.if1, f3.if2) values (1,'{foo}'), (2,'{bar}')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if1, f3.if2) select 3, '{baz,quux}'
+ERROR: 
+insert into inserttestb (f3.if1, f3.if2) select 3, '{baz,quux}'
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if1, f3.if2) values (1,default)
+ERROR: 
+insert into inserttestb (f3.if1, f3.if2) values (1,default)
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+  -- not supported
+insert into inserttestb (f3.if1, f3.if2) values (1,array[null])
+ERROR:   -- not supported
+insert into inserttestb (f3.if1, f3.if2) values (1,array[null])
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if1, f3.if2) values (1,'{null}'), (2,'{bar}')
+ERROR: 
+insert into inserttestb (f3.if1, f3.if2) values (1,'{null}'), (2,'{bar}')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if1, f3.if2) select 3, '{null,quux}'
+ERROR: 
+insert into inserttestb (f3.if1, f3.if2) select 3, '{null,quux}'
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) values ('foo', 'bar')
+ERROR: 
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) values ('foo', 'bar')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux')
+ERROR: 
+insert into inserttestb (f3.if2[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) select 'bear', 'beer'
+ERROR: 
+insert into inserttestb (f3.if2[1], f3.if2[2]) select 'bear', 'beer'
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar')
+ERROR: 
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar'), (row(2,'{y}'), 'baz', 'quux')
+ERROR: 
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar'), (row(2,'{y}'), 'baz', 'quux')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) select row(1,'{x}')::insert_test_domain, 'bear', 'beer'
+ERROR: 
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) select row(1,'{x}')::insert_test_domain, 'bear', 'beer'
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+
+select * from inserttesta
+ERROR: 
+
+select * from inserttesta
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+select * from inserttestb
+ERROR: 
+select * from inserttestb
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+
+-- also check reverse-listing
+create table inserttest2 (f1 bigint, f2 text)
+
+create rule irule1 as on insert to inserttest2 do also
+  insert into inserttestb (f3.if2[1], f3.if2[2])
+  values (new.f1,new.f2)
+ERROR: 
+create rule irule1 as on insert to inserttest2 do also
+  insert into inserttestb (f3.if2[1], f3.if2[2])
+  values (new.f1,new.f2)
+
+Parser Error: syntax error at or near "rule"
+
+create rule irule2 as on insert to inserttest2 do also
+  insert into inserttestb (f4[1].if1, f4[1].if2[2])
+  values (1,'fool'),(new.f1,new.f2)
+ERROR: 
+create rule irule2 as on insert to inserttest2 do also
+  insert into inserttestb (f4[1].if1, f4[1].if2[2])
+  values (1,'fool'),(new.f1,new.f2)
+
+Parser Error: syntax error at or near "rule"
+
+create rule irule3 as on insert to inserttest2 do also
+  insert into inserttestb (f4[1].if1, f4[1].if2[2])
+  select new.f1, new.f2
+ERROR: 
+create rule irule3 as on insert to inserttest2 do also
+  insert into inserttestb (f4[1].if1, f4[1].if2[2])
+  select new.f1, new.f2
+
+Parser Error: syntax error at or near "rule"
+
+-- \d+ inserttest2
+
+drop table inserttest2
+
+drop table inserttesta
+ERROR: 
+drop table inserttesta
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+drop table inserttestb
+ERROR: 
+drop table inserttestb
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+drop domain insert_pos_ints
+ERROR: 
+drop domain insert_pos_ints
+
+Parser Error: syntax error at or near "domain"
+
+drop domain insert_test_domain
+ERROR: 
+drop domain insert_test_domain
+
+Parser Error: syntax error at or near "domain"
+
+
+-- Verify that multiple inserts to subfields of a domain-over-container
+-- check the domain constraints only on the finished value
+
+create domain insert_nnarray as int[]
+  check (value[1] is not null and value[2] is not null)
+ERROR: 
+
+-- Verify that multiple inserts to subfields of a domain-over-container
+-- check the domain constraints only on the finished value
+
+create domain insert_nnarray as int[]
+  check (value[1] is not null and value[2] is not null)
+
+Parser Error: syntax error at or near "domain"
+
+
+create domain insert_test_domain as insert_test_type
+  check ((value).if1 is not null and (value).if2 is not null)
+ERROR: 
+
+create domain insert_test_domain as insert_test_type
+  check ((value).if1 is not null and (value).if2 is not null)
+
+Parser Error: syntax error at or near "domain"
+
+
+create table inserttesta (f1 insert_nnarray)
+ERROR: 
+
+create table inserttesta (f1 insert_nnarray)
+
+Catalog Error: Type with name insert_nnarray does not exist!
+Did you mean "binary"?
+
+insert into inserttesta (f1[1]) values (1)
+ERROR: 
+insert into inserttesta (f1[1]) values (1)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+  -- fail
+insert into inserttesta (f1[1], f1[2]) values (1, 2)
+ERROR:   -- fail
+insert into inserttesta (f1[1], f1[2]) values (1, 2)
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+
+create table inserttestb (f1 insert_test_domain)
+ERROR: 
+
+create table inserttestb (f1 insert_test_domain)
+
+Catalog Error: Type with name insert_test_domain does not exist!
+Did you mean "bitstring"?
+
+insert into inserttestb (f1.if1) values (1)
+ERROR: 
+insert into inserttestb (f1.if1) values (1)
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+  -- fail
+insert into inserttestb (f1.if1, f1.if2) values (1, '{foo}')
+ERROR:   -- fail
+insert into inserttestb (f1.if1, f1.if2) values (1, '{foo}')
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+
+drop table inserttesta
+ERROR: 
+
+drop table inserttesta
+
+Catalog Error: Table with name inserttesta does not exist!
+Did you mean "pg_indexes"?
+
+drop table inserttestb
+ERROR: 
+drop table inserttestb
+
+Catalog Error: Table with name inserttestb does not exist!
+Did you mean "INT2_TBL"?
+
+drop domain insert_nnarray
+ERROR: 
+drop domain insert_nnarray
+
+Parser Error: syntax error at or near "domain"
+
+drop type insert_test_type cascade
+ERROR: 
+drop type insert_test_type cascade
+
+Catalog Error: Type with name insert_test_type does not exist!
+Did you mean "int"?
+
+
+-- direct partition inserts should check partition bound constraint
+create table range_parted (
+	a text,
+	b int
+) partition by range (a, (b+0))
+ERROR: 
+
+-- direct partition inserts should check partition bound constraint
+create table range_parted (
+	a text,
+	b int
+) partition by range (a, (b+0))
+
+Parser Error: syntax error at or near "partition"
+
+
+-- no partitions, so fail
+insert into range_parted values ('a', 11)
+ERROR: 
+
+-- no partitions, so fail
+insert into range_parted values ('a', 11)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+
+create table part1 partition of range_parted for values from ('a', 1) to ('a', 10)
+ERROR: 
+
+create table part1 partition of range_parted for values from ('a', 1) to ('a', 10)
+
+Parser Error: syntax error at or near "partition"
+
+create table part2 partition of range_parted for values from ('a', 10) to ('a', 20)
+ERROR: 
+create table part2 partition of range_parted for values from ('a', 10) to ('a', 20)
+
+Parser Error: syntax error at or near "partition"
+
+create table part3 partition of range_parted for values from ('b', 1) to ('b', 10)
+ERROR: 
+create table part3 partition of range_parted for values from ('b', 1) to ('b', 10)
+
+Parser Error: syntax error at or near "partition"
+
+create table part4 partition of range_parted for values from ('b', 10) to ('b', 20)
+ERROR: 
+create table part4 partition of range_parted for values from ('b', 10) to ('b', 20)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- fail
+insert into part1 values ('a', 11)
+ERROR: 
+
+-- fail
+insert into part1 values ('a', 11)
+
+Catalog Error: Table with name part1 does not exist!
+Did you mean "pg_am"?
+
+insert into part1 values ('b', 1)
+ERROR: 
+insert into part1 values ('b', 1)
+
+Catalog Error: Table with name part1 does not exist!
+Did you mean "pg_am"?
+
+-- ok
+insert into part1 values ('a', 1)
+ERROR: 
+-- ok
+insert into part1 values ('a', 1)
+
+Catalog Error: Table with name part1 does not exist!
+Did you mean "pg_am"?
+
+-- fail
+insert into part4 values ('b', 21)
+ERROR: 
+-- fail
+insert into part4 values ('b', 21)
+
+Catalog Error: Table with name part4 does not exist!
+Did you mean "pg_am"?
+
+insert into part4 values ('a', 10)
+ERROR: 
+insert into part4 values ('a', 10)
+
+Catalog Error: Table with name part4 does not exist!
+Did you mean "pg_am"?
+
+-- ok
+insert into part4 values ('b', 10)
+ERROR: 
+-- ok
+insert into part4 values ('b', 10)
+
+Catalog Error: Table with name part4 does not exist!
+Did you mean "pg_am"?
+
+
+-- fail (partition key a has a NOT NULL constraint)
+insert into part1 values (null)
+ERROR: 
+
+-- fail (partition key a has a NOT NULL constraint)
+insert into part1 values (null)
+
+Catalog Error: Table with name part1 does not exist!
+Did you mean "pg_am"?
+
+-- fail (expression key (b+0) cannot be null either)
+insert into part1 values (1)
+ERROR: 
+-- fail (expression key (b+0) cannot be null either)
+insert into part1 values (1)
+
+Catalog Error: Table with name part1 does not exist!
+Did you mean "pg_am"?
+
+
+create table list_parted (
+	a text,
+	b int
+) partition by list (lower(a))
+ERROR: 
+
+create table list_parted (
+	a text,
+	b int
+) partition by list (lower(a))
+
+Parser Error: syntax error at or near "partition"
+
+create table part_aa_bb partition of list_parted FOR VALUES IN ('aa', 'bb')
+ERROR: 
+create table part_aa_bb partition of list_parted FOR VALUES IN ('aa', 'bb')
+
+Parser Error: syntax error at or near "partition"
+
+create table part_cc_dd partition of list_parted FOR VALUES IN ('cc', 'dd')
+ERROR: 
+create table part_cc_dd partition of list_parted FOR VALUES IN ('cc', 'dd')
+
+Parser Error: syntax error at or near "partition"
+
+create table part_null partition of list_parted FOR VALUES IN (null)
+ERROR: 
+create table part_null partition of list_parted FOR VALUES IN (null)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- fail
+insert into part_aa_bb values ('cc', 1)
+ERROR: 
+
+-- fail
+insert into part_aa_bb values ('cc', 1)
+
+Catalog Error: Table with name part_aa_bb does not exist!
+Did you mean "pg_am"?
+
+insert into part_aa_bb values ('AAa', 1)
+ERROR: 
+insert into part_aa_bb values ('AAa', 1)
+
+Catalog Error: Table with name part_aa_bb does not exist!
+Did you mean "pg_am"?
+
+insert into part_aa_bb values (null)
+ERROR: 
+insert into part_aa_bb values (null)
+
+Catalog Error: Table with name part_aa_bb does not exist!
+Did you mean "pg_am"?
+
+-- ok
+insert into part_cc_dd values ('cC', 1)
+ERROR: 
+-- ok
+insert into part_cc_dd values ('cC', 1)
+
+Catalog Error: Table with name part_cc_dd does not exist!
+Did you mean "pg_am"?
+
+insert into part_null values (null, 0)
+ERROR: 
+insert into part_null values (null, 0)
+
+Catalog Error: Table with name part_null does not exist!
+Did you mean "pg_enum"?
+
+
+-- check in case of multi-level partitioned table
+create table part_ee_ff partition of list_parted for values in ('ee', 'ff') partition by range (b)
+ERROR: 
+
+-- check in case of multi-level partitioned table
+create table part_ee_ff partition of list_parted for values in ('ee', 'ff') partition by range (b)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_ee_ff1 partition of part_ee_ff for values from (1) to (10)
+ERROR: 
+create table part_ee_ff1 partition of part_ee_ff for values from (1) to (10)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_ee_ff2 partition of part_ee_ff for values from (10) to (20)
+ERROR: 
+create table part_ee_ff2 partition of part_ee_ff for values from (10) to (20)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- test default partition
+create table part_default partition of list_parted default
+ERROR: 
+
+-- test default partition
+create table part_default partition of list_parted default
+
+Parser Error: syntax error at or near "partition"
+
+-- Negative test: a row, which would fit in other partition, does not fit
+-- default partition, even when inserted directly
+insert into part_default values ('aa', 2)
+ERROR: 
+-- Negative test: a row, which would fit in other partition, does not fit
+-- default partition, even when inserted directly
+insert into part_default values ('aa', 2)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default values (null, 2)
+ERROR: 
+insert into part_default values (null, 2)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+-- ok
+insert into part_default values ('Zz', 2)
+ERROR: 
+-- ok
+insert into part_default values ('Zz', 2)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+-- test if default partition works as expected for multi-level partitioned
+-- table as well as when default partition itself is further partitioned
+drop table part_default
+ERROR: 
+-- test if default partition works as expected for multi-level partitioned
+-- table as well as when default partition itself is further partitioned
+drop table part_default
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+create table part_xx_yy partition of list_parted for values in ('xx', 'yy') partition by list (a)
+ERROR: 
+create table part_xx_yy partition of list_parted for values in ('xx', 'yy') partition by list (a)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_xx_yy_p1 partition of part_xx_yy for values in ('xx')
+ERROR: 
+create table part_xx_yy_p1 partition of part_xx_yy for values in ('xx')
+
+Parser Error: syntax error at or near "partition"
+
+create table part_xx_yy_defpart partition of part_xx_yy default
+ERROR: 
+create table part_xx_yy_defpart partition of part_xx_yy default
+
+Parser Error: syntax error at or near "partition"
+
+create table part_default partition of list_parted default partition by range(b)
+ERROR: 
+create table part_default partition of list_parted default partition by range(b)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_default_p1 partition of part_default for values from (20) to (30)
+ERROR: 
+create table part_default_p1 partition of part_default for values from (20) to (30)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_default_p2 partition of part_default for values from (30) to (40)
+ERROR: 
+create table part_default_p2 partition of part_default for values from (30) to (40)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- fail
+insert into part_ee_ff1 values ('EE', 11)
+ERROR: 
+
+-- fail
+insert into part_ee_ff1 values ('EE', 11)
+
+Catalog Error: Table with name part_ee_ff1 does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default_p2 values ('gg', 43)
+ERROR: 
+insert into part_default_p2 values ('gg', 43)
+
+Catalog Error: Table with name part_default_p2 does not exist!
+Did you mean "pg_attrdef"?
+
+-- fail (even the parent''s, ie, part_ee_ff''s partition constraint applies)
+insert into part_ee_ff1 values ('cc', 1)
+ERROR: 
+-- fail (even the parent''s, ie, part_ee_ff''s partition constraint applies)
+insert into part_ee_ff1 values ('cc', 1)
+
+Catalog Error: Table with name part_ee_ff1 does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default values ('gg', 43)
+ERROR: 
+insert into part_default values ('gg', 43)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+-- ok
+insert into part_ee_ff1 values ('ff', 1)
+ERROR: 
+-- ok
+insert into part_ee_ff1 values ('ff', 1)
+
+Catalog Error: Table with name part_ee_ff1 does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_ee_ff2 values ('ff', 11)
+ERROR: 
+insert into part_ee_ff2 values ('ff', 11)
+
+Catalog Error: Table with name part_ee_ff2 does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default_p1 values ('cd', 25)
+ERROR: 
+insert into part_default_p1 values ('cd', 25)
+
+Catalog Error: Table with name part_default_p1 does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default_p2 values ('de', 35)
+ERROR: 
+insert into part_default_p2 values ('de', 35)
+
+Catalog Error: Table with name part_default_p2 does not exist!
+Did you mean "pg_attrdef"?
+
+insert into list_parted values ('ab', 21)
+ERROR: 
+insert into list_parted values ('ab', 21)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into list_parted values ('xx', 1)
+ERROR: 
+insert into list_parted values ('xx', 1)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into list_parted values ('yy', 2)
+ERROR: 
+insert into list_parted values ('yy', 2)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+select tableoid::regclass, * from list_parted
+ERROR: 
+select tableoid::regclass, * from list_parted
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+
+-- Check tuple routing for partitioned tables
+
+-- fail
+insert into range_parted values ('a', 0)
+ERROR: 
+
+-- Check tuple routing for partitioned tables
+
+-- fail
+insert into range_parted values ('a', 0)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+-- ok
+insert into range_parted values ('a', 1)
+ERROR: 
+-- ok
+insert into range_parted values ('a', 1)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+insert into range_parted values ('a', 10)
+ERROR: 
+insert into range_parted values ('a', 10)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+-- fail
+insert into range_parted values ('a', 20)
+ERROR: 
+-- fail
+insert into range_parted values ('a', 20)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+-- ok
+insert into range_parted values ('b', 1)
+ERROR: 
+-- ok
+insert into range_parted values ('b', 1)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+insert into range_parted values ('b', 10)
+ERROR: 
+insert into range_parted values ('b', 10)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+-- fail (partition key (b+0) is null)
+insert into range_parted values ('a')
+ERROR: 
+-- fail (partition key (b+0) is null)
+insert into range_parted values ('a')
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+
+-- Check default partition
+create table part_def partition of range_parted default
+ERROR: 
+
+-- Check default partition
+create table part_def partition of range_parted default
+
+Parser Error: syntax error at or near "partition"
+
+-- fail
+insert into part_def values ('b', 10)
+ERROR: 
+-- fail
+insert into part_def values ('b', 10)
+
+Catalog Error: Table with name part_def does not exist!
+Did you mean "pg_attrdef"?
+
+-- ok
+insert into part_def values ('c', 10)
+ERROR: 
+-- ok
+insert into part_def values ('c', 10)
+
+Catalog Error: Table with name part_def does not exist!
+Did you mean "pg_attrdef"?
+
+insert into range_parted values (null, null)
+ERROR: 
+insert into range_parted values (null, null)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+insert into range_parted values ('a', null)
+ERROR: 
+insert into range_parted values ('a', null)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+insert into range_parted values (null, 19)
+ERROR: 
+insert into range_parted values (null, 19)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+insert into range_parted values ('b', 20)
+ERROR: 
+insert into range_parted values ('b', 20)
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+
+select tableoid::regclass, * from range_parted
+ERROR: 
+
+select tableoid::regclass, * from range_parted
+
+Catalog Error: Table with name range_parted does not exist!
+Did you mean "pg_am"?
+
+-- ok
+insert into list_parted values (null, 1)
+ERROR: 
+-- ok
+insert into list_parted values (null, 1)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into list_parted (a) values ('aA')
+ERROR: 
+insert into list_parted (a) values ('aA')
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+-- fail (partition of part_ee_ff not found in both cases)
+insert into list_parted values ('EE', 0)
+ERROR: 
+-- fail (partition of part_ee_ff not found in both cases)
+insert into list_parted values ('EE', 0)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into part_ee_ff values ('EE', 0)
+ERROR: 
+insert into part_ee_ff values ('EE', 0)
+
+Catalog Error: Table with name part_ee_ff does not exist!
+Did you mean "pg_attrdef"?
+
+-- ok
+insert into list_parted values ('EE', 1)
+ERROR: 
+-- ok
+insert into list_parted values ('EE', 1)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into part_ee_ff values ('EE', 10)
+ERROR: 
+insert into part_ee_ff values ('EE', 10)
+
+Catalog Error: Table with name part_ee_ff does not exist!
+Did you mean "pg_attrdef"?
+
+select tableoid::regclass, * from list_parted
+ERROR: 
+select tableoid::regclass, * from list_parted
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+
+-- some more tests to exercise tuple-routing with multi-level partitioning
+create table part_gg partition of list_parted for values in ('gg') partition by range (b)
+ERROR: 
+
+-- some more tests to exercise tuple-routing with multi-level partitioning
+create table part_gg partition of list_parted for values in ('gg') partition by range (b)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_gg1 partition of part_gg for values from (minvalue) to (1)
+ERROR: 
+create table part_gg1 partition of part_gg for values from (minvalue) to (1)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_gg2 partition of part_gg for values from (1) to (10) partition by range (b)
+ERROR: 
+create table part_gg2 partition of part_gg for values from (1) to (10) partition by range (b)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_gg2_1 partition of part_gg2 for values from (1) to (5)
+ERROR: 
+create table part_gg2_1 partition of part_gg2 for values from (1) to (5)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_gg2_2 partition of part_gg2 for values from (5) to (10)
+ERROR: 
+create table part_gg2_2 partition of part_gg2 for values from (5) to (10)
+
+Parser Error: syntax error at or near "partition"
+
+
+create table part_ee_ff3 partition of part_ee_ff for values from (20) to (30) partition by range (b)
+ERROR: 
+
+create table part_ee_ff3 partition of part_ee_ff for values from (20) to (30) partition by range (b)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_ee_ff3_1 partition of part_ee_ff3 for values from (20) to (25)
+ERROR: 
+create table part_ee_ff3_1 partition of part_ee_ff3 for values from (20) to (25)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_ee_ff3_2 partition of part_ee_ff3 for values from (25) to (30)
+ERROR: 
+create table part_ee_ff3_2 partition of part_ee_ff3 for values from (25) to (30)
+
+Parser Error: syntax error at or near "partition"
+
+
+truncate list_parted
+ERROR: 
+
+truncate list_parted
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+LINE 3: truncate list_parted
+                 ^
+
+insert into list_parted values ('aa'), ('cc')
+ERROR: 
+insert into list_parted values ('aa'), ('cc')
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into list_parted select 'Ff', s.a from generate_series(1, 29) s(a)
+ERROR: 
+insert into list_parted select 'Ff', s.a from generate_series(1, 29) s(a)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into list_parted select 'gg', s.a from generate_series(1, 9) s(a)
+ERROR: 
+insert into list_parted select 'gg', s.a from generate_series(1, 9) s(a)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+insert into list_parted (b) values (1)
+ERROR: 
+insert into list_parted (b) values (1)
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+select tableoid::regclass::text, a, min(b) as min_b, max(b) as max_b from list_parted group by 1, 2 order by 1
+ERROR: 
+select tableoid::regclass::text, a, min(b) as min_b, max(b) as max_b from list_parted group by 1, 2 order by 1
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+
+-- direct partition inserts should check hash partition bound constraint
+
+create table hash_parted (
+	a int
+) partition by hash (a part_test_int4_ops)
+ERROR: 
+
+-- direct partition inserts should check hash partition bound constraint
+
+create table hash_parted (
+	a int
+) partition by hash (a part_test_int4_ops)
+
+Parser Error: syntax error at or near "partition"
+
+create table hpart0 partition of hash_parted for values with (modulus 4, remainder 0)
+ERROR: 
+create table hpart0 partition of hash_parted for values with (modulus 4, remainder 0)
+
+Parser Error: syntax error at or near "partition"
+
+create table hpart1 partition of hash_parted for values with (modulus 4, remainder 1)
+ERROR: 
+create table hpart1 partition of hash_parted for values with (modulus 4, remainder 1)
+
+Parser Error: syntax error at or near "partition"
+
+create table hpart2 partition of hash_parted for values with (modulus 4, remainder 2)
+ERROR: 
+create table hpart2 partition of hash_parted for values with (modulus 4, remainder 2)
+
+Parser Error: syntax error at or near "partition"
+
+create table hpart3 partition of hash_parted for values with (modulus 4, remainder 3)
+ERROR: 
+create table hpart3 partition of hash_parted for values with (modulus 4, remainder 3)
+
+Parser Error: syntax error at or near "partition"
+
+
+insert into hash_parted values(generate_series(1,10))
+ERROR: 
+
+insert into hash_parted values(generate_series(1,10))
+
+Catalog Error: Table with name hash_parted does not exist!
+Did you mean "CHAR_TBL"?
+
+
+-- direct insert of values divisible by 4 - ok /* REPLACED */,
+insert into hpart0 values(12),(16)
+ERROR: 
+
+-- direct insert of values divisible by 4 - ok /* REPLACED */,
+insert into hpart0 values(12),(16)
+
+Catalog Error: Table with name hpart0 does not exist!
+Did you mean "CHAR_TBL"?
+
+-- fail /* REPLACED */,
+insert into hpart0 values(11)
+ERROR: 
+-- fail /* REPLACED */,
+insert into hpart0 values(11)
+
+Catalog Error: Table with name hpart0 does not exist!
+Did you mean "CHAR_TBL"?
+
+-- 11 % 4 -> 3 remainder i.e. valid data for hpart3 partition
+insert into hpart3 values(11)
+ERROR: 
+-- 11 % 4 -> 3 remainder i.e. valid data for hpart3 partition
+insert into hpart3 values(11)
+
+Catalog Error: Table with name hpart3 does not exist!
+Did you mean "CHAR_TBL"?
+
+
+-- view data
+select tableoid::regclass as part, a, a%4 as "remainder = a % 4"
+from hash_parted order by part
+ERROR: 
+
+-- view data
+select tableoid::regclass as part, a, a%4 as "remainder = a % 4"
+from hash_parted order by part
+
+Catalog Error: Table with name hash_parted does not exist!
+Did you mean "CHAR_TBL"?
+
+
+-- test \d+ output on a table which has both partitioned and unpartitioned
+-- partitions
+-- \d+ list_parted
+
+-- cleanup
+drop table range_parted, list_parted
+ERROR: 
+
+-- test \d+ output on a table which has both partitioned and unpartitioned
+-- partitions
+-- \d+ list_parted
+
+-- cleanup
+drop table range_parted, list_parted
+
+Not implemented Error: Can only drop one object at a time
+
+drop table hash_parted
+ERROR: 
+drop table hash_parted
+
+Catalog Error: Table with name hash_parted does not exist!
+Did you mean "CHAR_TBL"?
+
+
+-- test that a default partition added as the first partition accepts any value
+-- including null
+create table list_parted (a int) partition by list (a)
+ERROR: 
+
+-- test that a default partition added as the first partition accepts any value
+-- including null
+create table list_parted (a int) partition by list (a)
+
+Parser Error: syntax error at or near "partition"
+
+create table part_default partition of list_parted default
+ERROR: 
+create table part_default partition of list_parted default
+
+Parser Error: syntax error at or near "partition"
+
+-- \d+ part_default
+insert into part_default values (null)
+ERROR: 
+-- \d+ part_default
+insert into part_default values (null)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default values (1)
+ERROR: 
+insert into part_default values (1)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+insert into part_default values (-1)
+ERROR: 
+insert into part_default values (-1)
+
+Catalog Error: Table with name part_default does not exist!
+Did you mean "pg_attrdef"?
+
+select tableoid::regclass, a from list_parted
+ERROR: 
+select tableoid::regclass, a from list_parted
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+-- cleanup
+drop table list_parted
+ERROR: 
+-- cleanup
+drop table list_parted
+
+Catalog Error: Table with name list_parted does not exist!
+Did you mean "sqlite_master"?
+
+
+-- more tests for certain multi-level partitioning scenarios
+create table mlparted (a int, b int) partition by range (a, b)
+ERROR: 
+
+-- more tests for certain multi-level partitioning scenarios
+create table mlparted (a int, b int) partition by range (a, b)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted1 (b int not null, a int not null) partition by range ((b+0))
+ERROR: 
+create table mlparted1 (b int not null, a int not null) partition by range ((b+0))
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted11 (like mlparted1)
+ERROR: 
+create table mlparted11 (like mlparted1)
+
+Not implemented Error: ColumnDef type not handled yet
+
+alter table mlparted11 drop a
+ERROR: 
+alter table mlparted11 drop a
+
+Catalog Error: Table with name mlparted11 does not exist!
+Did you mean "pg_am"?
+
+alter table mlparted11 add a int
+ERROR: 
+alter table mlparted11 add a int
+
+Catalog Error: Table with name mlparted11 does not exist!
+Did you mean "pg_am"?
+
+alter table mlparted11 drop a
+ERROR: 
+alter table mlparted11 drop a
+
+Catalog Error: Table with name mlparted11 does not exist!
+Did you mean "pg_am"?
+
+alter table mlparted11 add a int not null
+ERROR: 
+alter table mlparted11 add a int not null
+
+Parser Error: Adding columns with constraints not yet supported
+
+-- attnum for key attribute ''a'' is different in mlparted, mlparted1, and mlparted11
+select attrelid::regclass, attname, attnum
+from pg_attribute
+where attname = 'a'
+ and (attrelid = 'mlparted'::regclass
+   or attrelid = 'mlparted1'::regclass
+   or attrelid = 'mlparted11'::regclass)
+order by attrelid::regclass::text
+ERROR: 
+-- attnum for key attribute ''a'' is different in mlparted, mlparted1, and mlparted11
+select attrelid::regclass, attname, attnum
+from pg_attribute
+where attname = 'a'
+ and (attrelid = 'mlparted'::regclass
+   or attrelid = 'mlparted1'::regclass
+   or attrelid = 'mlparted11'::regclass)
+order by attrelid::regclass::text
+
+Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+
+alter table mlparted1 attach partition mlparted11 for values from (2) to (5)
+ERROR: 
+
+alter table mlparted1 attach partition mlparted11 for values from (2) to (5)
+
+Parser Error: syntax error at or near "attach"
+
+alter table mlparted attach partition mlparted1 for values from (1, 2) to (1, 10)
+ERROR: 
+alter table mlparted attach partition mlparted1 for values from (1, 2) to (1, 10)
+
+Parser Error: syntax error at or near "attach"
+
+
+-- check that ''(1, 2)'' is correctly routed to mlparted11.
+insert into mlparted values (1, 2)
+ERROR: 
+
+-- check that ''(1, 2)'' is correctly routed to mlparted11.
+insert into mlparted values (1, 2)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "pg_am"?
+
+select tableoid::regclass, * from mlparted
+ERROR: 
+select tableoid::regclass, * from mlparted
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "pg_am"?
+
+
+-- check that proper message is shown after failure to route through mlparted1
+insert into mlparted (a, b) values (1, 5)
+ERROR: 
+
+-- check that proper message is shown after failure to route through mlparted1
+insert into mlparted (a, b) values (1, 5)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "pg_am"?
+
+
+truncate mlparted
+ERROR: 
+
+truncate mlparted
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "pg_am"?
+LINE 3: truncate mlparted
+                 ^
+
+alter table mlparted add constraint check_b check (b = 3)
+ERROR: 
+alter table mlparted add constraint check_b check (b = 3)
+
+Not implemented Error: No support for that ALTER TABLE option yet!
+
+
+-- have a BR trigger modify the row such that the check_b is violated
+create function mlparted11_trig_fn()
+returns trigger AS
+$$
+begin
+  NEW.b := 4;
+  return NEW;
+end;
+$$
+language plpgsql
+ERROR: 
+
+-- have a BR trigger modify the row such that the check_b is violated
+create function mlparted11_trig_fn()
+returns trigger AS
+$$
+begin
+  NEW.b := 4;
+  return NEW;
+end;
+$$
+language plpgsql
+
+Parser Error: syntax error at or near "returns"
+
+create trigger mlparted11_trig before insert ON mlparted11
+  for each row execute procedure mlparted11_trig_fn()
+ERROR: 
+create trigger mlparted11_trig before insert ON mlparted11
+  for each row execute procedure mlparted11_trig_fn()
+
+Parser Error: syntax error at or near "trigger"
+
+
+-- check that the correct row is shown when constraint check_b fails after
+-- ''(1, 2)'' is routed to mlparted11 (actually ''(1, 4)'' would be shown due
+-- to the BR trigger mlparted11_trig_fn)
+insert into mlparted values (1, 2)
+ERROR: 
+
+-- check that the correct row is shown when constraint check_b fails after
+-- ''(1, 2)'' is routed to mlparted11 (actually ''(1, 4)'' would be shown due
+-- to the BR trigger mlparted11_trig_fn)
+insert into mlparted values (1, 2)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "pg_am"?
+
+drop trigger mlparted11_trig on mlparted11
+ERROR: 
+drop trigger mlparted11_trig on mlparted11
+
+Not implemented Error: Cannot drop this type yet
+
+drop function mlparted11_trig_fn()
+ERROR: 
+drop function mlparted11_trig_fn()
+
+Parser Error: syntax error at or near "("
+
+
+-- check that inserting into an internal partition successfully results in
+-- checking its partition constraint before inserting into the leaf partition
+-- selected by tuple-routing
+insert into mlparted1 (a, b) values (2, 3)
+ERROR: 
+
+-- check that inserting into an internal partition successfully results in
+-- checking its partition constraint before inserting into the leaf partition
+-- selected by tuple-routing
+insert into mlparted1 (a, b) values (2, 3)
+
+Catalog Error: Table with name mlparted1 does not exist!
+Did you mean "pg_am"?
+
+
+-- check routing error through a list partitioned table when the key is null
+create table lparted_nonullpart (a int, b char) partition by list (b)
+ERROR: 
+
+-- check routing error through a list partitioned table when the key is null
+create table lparted_nonullpart (a int, b char) partition by list (b)
+
+Parser Error: syntax error at or near "partition"
+
+create table lparted_nonullpart_a partition of lparted_nonullpart for values in ('a')
+ERROR: 
+create table lparted_nonullpart_a partition of lparted_nonullpart for values in ('a')
+
+Parser Error: syntax error at or near "partition"
+
+insert into lparted_nonullpart values (1)
+ERROR: 
+insert into lparted_nonullpart values (1)
+
+Catalog Error: Table with name lparted_nonullpart does not exist!
+Did you mean "pg_am"?
+
+drop table lparted_nonullpart
+ERROR: 
+drop table lparted_nonullpart
+
+Catalog Error: Table with name lparted_nonullpart does not exist!
+Did you mean "pg_am"?
+
+
+-- check that RETURNING works correctly with tuple-routing
+alter table mlparted drop constraint check_b
+ERROR: 
+
+-- check that RETURNING works correctly with tuple-routing
+alter table mlparted drop constraint check_b
+
+Not implemented Error: No support for that ALTER TABLE option yet!
+
+create table mlparted12 partition of mlparted1 for values from (5) to (10)
+ERROR: 
+create table mlparted12 partition of mlparted1 for values from (5) to (10)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted2 (b int not null, a int not null)
+
+alter table mlparted attach partition mlparted2 for values from (1, 10) to (1, 20)
+ERROR: 
+alter table mlparted attach partition mlparted2 for values from (1, 10) to (1, 20)
+
+Parser Error: syntax error at or near "attach"
+
+create table mlparted3 partition of mlparted for values from (1, 20) to (1, 30)
+ERROR: 
+create table mlparted3 partition of mlparted for values from (1, 20) to (1, 30)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted4 (like mlparted)
+ERROR: 
+create table mlparted4 (like mlparted)
+
+Not implemented Error: ColumnDef type not handled yet
+
+alter table mlparted4 drop a
+ERROR: 
+alter table mlparted4 drop a
+
+Catalog Error: Table with name mlparted4 does not exist!
+Did you mean "mlparted2"?
+
+alter table mlparted4 add a int not null
+ERROR: 
+alter table mlparted4 add a int not null
+
+Parser Error: Adding columns with constraints not yet supported
+
+alter table mlparted attach partition mlparted4 for values from (1, 30) to (1, 40)
+ERROR: 
+alter table mlparted attach partition mlparted4 for values from (1, 30) to (1, 40)
+
+Parser Error: syntax error at or near "attach"
+
+with ins (a, b, c) as
+  (insert into mlparted (b, a) select s.a, 1 from generate_series(2, 39) s(a) returning tableoid::regclass, *)
+  select a, b, min(c), max(c) from ins group by a, b order by 1
+ERROR: 
+with ins (a, b, c) as
+  (insert into mlparted (b, a) select s.a, 1 from generate_series(2, 39) s(a) returning tableoid::regclass, *)
+  select a, b, min(c), max(c) from ins group by a, b order by 1
+
+Not implemented Error: A CTE needs a SELECT
+
+
+alter table mlparted add c text
+ERROR: 
+
+alter table mlparted add c text
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+create table mlparted5 (c text, a int not null, b int not null) partition by list (c)
+ERROR: 
+create table mlparted5 (c text, a int not null, b int not null) partition by list (c)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted5a (a int not null, c text, b int not null)
+
+alter table mlparted5 attach partition mlparted5a for values in ('a')
+ERROR: 
+alter table mlparted5 attach partition mlparted5a for values in ('a')
+
+Parser Error: syntax error at or near "attach"
+
+alter table mlparted attach partition mlparted5 for values from (1, 40) to (1, 50)
+ERROR: 
+alter table mlparted attach partition mlparted5 for values from (1, 40) to (1, 50)
+
+Parser Error: syntax error at or near "attach"
+
+alter table mlparted add constraint check_b check (a = 1 and b < 45)
+ERROR: 
+alter table mlparted add constraint check_b check (a = 1 and b < 45)
+
+Not implemented Error: No support for that ALTER TABLE option yet!
+
+insert into mlparted values (1, 45, 'a')
+ERROR: 
+insert into mlparted values (1, 45, 'a')
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+create function mlparted5abrtrig_func() returns trigger as $$ begin new.c = 'b'; return new; end; $$ language plpgsql
+ERROR: 
+create function mlparted5abrtrig_func() returns trigger as $$ begin new.c = 'b'; return new; end; $$ language plpgsql
+
+Parser Error: syntax error at or near "returns"
+
+create trigger mlparted5abrtrig before insert on mlparted5a for each row execute procedure mlparted5abrtrig_func()
+ERROR: 
+create trigger mlparted5abrtrig before insert on mlparted5a for each row execute procedure mlparted5abrtrig_func()
+
+Parser Error: syntax error at or near "trigger"
+
+insert into mlparted5 (a, b, c) values (1, 40, 'a')
+ERROR: 
+insert into mlparted5 (a, b, c) values (1, 40, 'a')
+
+Catalog Error: Table with name mlparted5 does not exist!
+Did you mean "mlparted5a"?
+
+drop table mlparted5
+ERROR: 
+drop table mlparted5
+
+Catalog Error: Table with name mlparted5 does not exist!
+Did you mean "mlparted5a"?
+
+alter table mlparted drop constraint check_b
+ERROR: 
+alter table mlparted drop constraint check_b
+
+Not implemented Error: No support for that ALTER TABLE option yet!
+
+
+-- Check multi-level default partition
+create table mlparted_def partition of mlparted default partition by range(a)
+ERROR: 
+
+-- Check multi-level default partition
+create table mlparted_def partition of mlparted default partition by range(a)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted_def1 partition of mlparted_def for values from (40) to (50)
+ERROR: 
+create table mlparted_def1 partition of mlparted_def for values from (40) to (50)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted_def2 partition of mlparted_def for values from (50) to (60)
+ERROR: 
+create table mlparted_def2 partition of mlparted_def for values from (50) to (60)
+
+Parser Error: syntax error at or near "partition"
+
+insert into mlparted values (40, 100)
+ERROR: 
+insert into mlparted values (40, 100)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted_def1 values (42, 100)
+ERROR: 
+insert into mlparted_def1 values (42, 100)
+
+Catalog Error: Table with name mlparted_def1 does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted_def2 values (54, 50)
+ERROR: 
+insert into mlparted_def2 values (54, 50)
+
+Catalog Error: Table with name mlparted_def2 does not exist!
+Did you mean "mlparted2"?
+
+-- fail
+insert into mlparted values (70, 100)
+ERROR: 
+-- fail
+insert into mlparted values (70, 100)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted_def1 values (52, 50)
+ERROR: 
+insert into mlparted_def1 values (52, 50)
+
+Catalog Error: Table with name mlparted_def1 does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted_def2 values (34, 50)
+ERROR: 
+insert into mlparted_def2 values (34, 50)
+
+Catalog Error: Table with name mlparted_def2 does not exist!
+Did you mean "mlparted2"?
+
+-- ok
+create table mlparted_defd partition of mlparted_def default
+ERROR: 
+-- ok
+create table mlparted_defd partition of mlparted_def default
+
+Parser Error: syntax error at or near "partition"
+
+insert into mlparted values (70, 100)
+ERROR: 
+insert into mlparted values (70, 100)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+
+select tableoid::regclass, * from mlparted_def
+ERROR: 
+
+select tableoid::regclass, * from mlparted_def
+
+Catalog Error: Table with name mlparted_def does not exist!
+Did you mean "mlparted2"?
+
+
+-- Check multi-level tuple routing with attributes dropped from the
+-- top-most parent.  First remove the last attribute.
+alter table mlparted add d int, add e int
+ERROR: 
+
+-- Check multi-level tuple routing with attributes dropped from the
+-- top-most parent.  First remove the last attribute.
+alter table mlparted add d int, add e int
+
+Parser Error: Only one ALTER command per statement is supported
+
+alter table mlparted drop e
+ERROR: 
+alter table mlparted drop e
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+create table mlparted5 partition of mlparted
+  for values from (1, 40) to (1, 50) partition by range (c)
+ERROR: 
+create table mlparted5 partition of mlparted
+  for values from (1, 40) to (1, 50) partition by range (c)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted5_ab partition of mlparted5
+  for values from ('a') to ('c') partition by list (c)
+ERROR: 
+create table mlparted5_ab partition of mlparted5
+  for values from ('a') to ('c') partition by list (c)
+
+Parser Error: syntax error at or near "partition"
+
+-- This partitioned table should remain with no partitions.
+create table mlparted5_cd partition of mlparted5
+  for values from ('c') to ('e') partition by list (c)
+ERROR: 
+-- This partitioned table should remain with no partitions.
+create table mlparted5_cd partition of mlparted5
+  for values from ('c') to ('e') partition by list (c)
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted5_a partition of mlparted5_ab for values in ('a')
+ERROR: 
+create table mlparted5_a partition of mlparted5_ab for values in ('a')
+
+Parser Error: syntax error at or near "partition"
+
+create table mlparted5_b (d int, b int, c text, a int)
+
+alter table mlparted5_ab attach partition mlparted5_b for values in ('b')
+ERROR: 
+alter table mlparted5_ab attach partition mlparted5_b for values in ('b')
+
+Parser Error: syntax error at or near "attach"
+
+truncate mlparted
+ERROR: 
+truncate mlparted
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+LINE 2: truncate mlparted
+                 ^
+
+insert into mlparted values (1, 2, 'a', 1)
+ERROR: 
+insert into mlparted values (1, 2, 'a', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted values (1, 40, 'a', 1)
+ERROR: 
+insert into mlparted values (1, 40, 'a', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5_a
+insert into mlparted values (1, 45, 'b', 1)
+ERROR:   -- goes to mlparted5_a
+insert into mlparted values (1, 45, 'b', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5_b
+insert into mlparted values (1, 45, 'c', 1)
+ERROR:   -- goes to mlparted5_b
+insert into mlparted values (1, 45, 'c', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5_cd, fails
+insert into mlparted values (1, 45, 'f', 1)
+ERROR:   -- goes to mlparted5_cd, fails
+insert into mlparted values (1, 45, 'f', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5, fails
+select tableoid::regclass, * from mlparted order by a, b, c, d
+ERROR:   -- goes to mlparted5, fails
+select tableoid::regclass, * from mlparted order by a, b, c, d
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+alter table mlparted drop d
+ERROR: 
+alter table mlparted drop d
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+truncate mlparted
+ERROR: 
+truncate mlparted
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+LINE 2: truncate mlparted
+                 ^
+
+-- Remove the before last attribute.
+alter table mlparted add e int, add d int
+ERROR: 
+-- Remove the before last attribute.
+alter table mlparted add e int, add d int
+
+Parser Error: Only one ALTER command per statement is supported
+
+alter table mlparted drop e
+ERROR: 
+alter table mlparted drop e
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted values (1, 2, 'a', 1)
+ERROR: 
+insert into mlparted values (1, 2, 'a', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mlparted values (1, 40, 'a', 1)
+ERROR: 
+insert into mlparted values (1, 40, 'a', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5_a
+insert into mlparted values (1, 45, 'b', 1)
+ERROR:   -- goes to mlparted5_a
+insert into mlparted values (1, 45, 'b', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5_b
+insert into mlparted values (1, 45, 'c', 1)
+ERROR:   -- goes to mlparted5_b
+insert into mlparted values (1, 45, 'c', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5_cd, fails
+insert into mlparted values (1, 45, 'f', 1)
+ERROR:   -- goes to mlparted5_cd, fails
+insert into mlparted values (1, 45, 'f', 1)
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+  -- goes to mlparted5, fails
+select tableoid::regclass, * from mlparted order by a, b, c, d
+ERROR:   -- goes to mlparted5, fails
+select tableoid::regclass, * from mlparted order by a, b, c, d
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+alter table mlparted drop d
+ERROR: 
+alter table mlparted drop d
+
+Catalog Error: Table with name mlparted does not exist!
+Did you mean "mlparted2"?
+
+drop table mlparted5
+ERROR: 
+drop table mlparted5
+
+Catalog Error: Table with name mlparted5 does not exist!
+Did you mean "mlparted5a"?
+
+
+-- check that message shown after failure to find a partition shows the
+-- appropriate key description (or none) in various situations
+create table key_desc (a int, b int) partition by list ((a+0))
+ERROR: 
+
+-- check that message shown after failure to find a partition shows the
+-- appropriate key description (or none) in various situations
+create table key_desc (a int, b int) partition by list ((a+0))
+
+Parser Error: syntax error at or near "partition"
+
+create table key_desc_1 partition of key_desc for values in (1) partition by range (b)
+ERROR: 
+create table key_desc_1 partition of key_desc for values in (1) partition by range (b)
+
+Parser Error: syntax error at or near "partition"
+
+
+create user regress_insert_other_user
+ERROR: 
+
+create user regress_insert_other_user
+
+Parser Error: syntax error at or near "user"
+
+grant select (a) on key_desc_1 to regress_insert_other_user
+ERROR: 
+grant select (a) on key_desc_1 to regress_insert_other_user
+
+Parser Error: syntax error at or near "grant"
+
+grant insert on key_desc to regress_insert_other_user
+ERROR: 
+grant insert on key_desc to regress_insert_other_user
+
+Parser Error: syntax error at or near "grant"
+
+
+set role regress_insert_other_user
+ERROR: 
+
+set role regress_insert_other_user
+
+Parser Error: syntax error at or near "regress_insert_other_user"
+
+-- no key description is shown
+insert into key_desc values (1, 1)
+ERROR: 
+-- no key description is shown
+insert into key_desc values (1, 1)
+
+Catalog Error: Table with name key_desc does not exist!
+Did you mean "pg_index"?
+
+
+reset role
+ERROR: 
+
+reset role
+
+Catalog Error: unrecognized configuration parameter "role"
+
+Did you mean: "threads", "Calendar", "profile_output", "errors_as_json", "home_directory"
+
+grant select (b) on key_desc_1 to regress_insert_other_user
+ERROR: 
+grant select (b) on key_desc_1 to regress_insert_other_user
+
+Parser Error: syntax error at or near "grant"
+
+set role regress_insert_other_user
+ERROR: 
+set role regress_insert_other_user
+
+Parser Error: syntax error at or near "regress_insert_other_user"
+
+-- key description (b)=(1) is now shown
+insert into key_desc values (1, 1)
+ERROR: 
+-- key description (b)=(1) is now shown
+insert into key_desc values (1, 1)
+
+Catalog Error: Table with name key_desc does not exist!
+Did you mean "pg_index"?
+
+
+-- key description is not shown if key contains expression
+insert into key_desc values (2, 1)
+ERROR: 
+
+-- key description is not shown if key contains expression
+insert into key_desc values (2, 1)
+
+Catalog Error: Table with name key_desc does not exist!
+Did you mean "pg_index"?
+
+reset role
+ERROR: 
+reset role
+
+Catalog Error: unrecognized configuration parameter "role"
+
+Did you mean: "threads", "Calendar", "profile_output", "errors_as_json", "home_directory"
+
+revoke all on key_desc from regress_insert_other_user
+ERROR: 
+revoke all on key_desc from regress_insert_other_user
+
+Parser Error: syntax error at or near "revoke"
+
+revoke all on key_desc_1 from regress_insert_other_user
+ERROR: 
+revoke all on key_desc_1 from regress_insert_other_user
+
+Parser Error: syntax error at or near "revoke"
+
+drop role regress_insert_other_user
+ERROR: 
+drop role regress_insert_other_user
+
+Parser Error: syntax error at or near "role"
+
+drop table key_desc, key_desc_1
+ERROR: 
+drop table key_desc, key_desc_1
+
+Not implemented Error: Can only drop one object at a time
+
+
+-- test minvalue/maxvalue restrictions
+create table mcrparted (a int, b int, c int) partition by range (a, abs(b), c)
+ERROR: 
+
+-- test minvalue/maxvalue restrictions
+create table mcrparted (a int, b int, c int) partition by range (a, abs(b), c)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted0 partition of mcrparted for values from (minvalue, 0, 0) to (1, maxvalue, maxvalue)
+ERROR: 
+create table mcrparted0 partition of mcrparted for values from (minvalue, 0, 0) to (1, maxvalue, maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted2 partition of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, minvalue)
+ERROR: 
+create table mcrparted2 partition of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, minvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted4 partition of mcrparted for values from (21, minvalue, 0) to (30, 20, minvalue)
+ERROR: 
+create table mcrparted4 partition of mcrparted for values from (21, minvalue, 0) to (30, 20, minvalue)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- check multi-column range partitioning expression enforces the same
+-- constraint as what tuple-routing would determine it to be
+create table mcrparted0 partition of mcrparted for values from (minvalue, minvalue, minvalue) to (1, maxvalue, maxvalue)
+ERROR: 
+
+-- check multi-column range partitioning expression enforces the same
+-- constraint as what tuple-routing would determine it to be
+create table mcrparted0 partition of mcrparted for values from (minvalue, minvalue, minvalue) to (1, maxvalue, maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted1 partition of mcrparted for values from (2, 1, minvalue) to (10, 5, 10)
+ERROR: 
+create table mcrparted1 partition of mcrparted for values from (2, 1, minvalue) to (10, 5, 10)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted2 partition of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, maxvalue)
+ERROR: 
+create table mcrparted2 partition of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted3 partition of mcrparted for values from (11, 1, 1) to (20, 10, 10)
+ERROR: 
+create table mcrparted3 partition of mcrparted for values from (11, 1, 1) to (20, 10, 10)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted4 partition of mcrparted for values from (21, minvalue, minvalue) to (30, 20, maxvalue)
+ERROR: 
+create table mcrparted4 partition of mcrparted for values from (21, minvalue, minvalue) to (30, 20, maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted5 partition of mcrparted for values from (30, 21, 20) to (maxvalue, maxvalue, maxvalue)
+ERROR: 
+create table mcrparted5 partition of mcrparted for values from (30, 21, 20) to (maxvalue, maxvalue, maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- null not allowed in range partition
+insert into mcrparted values (null, null, null)
+ERROR: 
+
+-- null not allowed in range partition
+insert into mcrparted values (null, null, null)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+
+-- routed to mcrparted0
+insert into mcrparted values (0, 1, 1)
+ERROR: 
+
+-- routed to mcrparted0
+insert into mcrparted values (0, 1, 1)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted0 values (0, 1, 1)
+ERROR: 
+insert into mcrparted0 values (0, 1, 1)
+
+Catalog Error: Table with name mcrparted0 does not exist!
+Did you mean "mlparted2"?
+
+
+-- routed to mcparted1
+insert into mcrparted values (9, 1000, 1)
+ERROR: 
+
+-- routed to mcparted1
+insert into mcrparted values (9, 1000, 1)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted1 values (9, 1000, 1)
+ERROR: 
+insert into mcrparted1 values (9, 1000, 1)
+
+Catalog Error: Table with name mcrparted1 does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted values (10, 5, -1)
+ERROR: 
+insert into mcrparted values (10, 5, -1)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted1 values (10, 5, -1)
+ERROR: 
+insert into mcrparted1 values (10, 5, -1)
+
+Catalog Error: Table with name mcrparted1 does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted values (2, 1, 0)
+ERROR: 
+insert into mcrparted values (2, 1, 0)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted1 values (2, 1, 0)
+ERROR: 
+insert into mcrparted1 values (2, 1, 0)
+
+Catalog Error: Table with name mcrparted1 does not exist!
+Did you mean "mlparted2"?
+
+
+-- routed to mcparted2
+insert into mcrparted values (10, 6, 1000)
+ERROR: 
+
+-- routed to mcparted2
+insert into mcrparted values (10, 6, 1000)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted2 values (10, 6, 1000)
+ERROR: 
+insert into mcrparted2 values (10, 6, 1000)
+
+Catalog Error: Table with name mcrparted2 does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted values (10, 1000, 1000)
+ERROR: 
+insert into mcrparted values (10, 1000, 1000)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted2 values (10, 1000, 1000)
+ERROR: 
+insert into mcrparted2 values (10, 1000, 1000)
+
+Catalog Error: Table with name mcrparted2 does not exist!
+Did you mean "mlparted2"?
+
+
+-- no partition exists, nor does mcrparted3 accept it
+insert into mcrparted values (11, 1, -1)
+ERROR: 
+
+-- no partition exists, nor does mcrparted3 accept it
+insert into mcrparted values (11, 1, -1)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted3 values (11, 1, -1)
+ERROR: 
+insert into mcrparted3 values (11, 1, -1)
+
+Catalog Error: Table with name mcrparted3 does not exist!
+Did you mean "mlparted2"?
+
+
+-- routed to mcrparted5
+insert into mcrparted values (30, 21, 20)
+ERROR: 
+
+-- routed to mcrparted5
+insert into mcrparted values (30, 21, 20)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+insert into mcrparted5 values (30, 21, 20)
+ERROR: 
+insert into mcrparted5 values (30, 21, 20)
+
+Catalog Error: Table with name mcrparted5 does not exist!
+Did you mean "mlparted5a"?
+
+insert into mcrparted4 values (30, 21, 20)
+ERROR: 
+insert into mcrparted4 values (30, 21, 20)
+
+Catalog Error: Table with name mcrparted4 does not exist!
+Did you mean "mlparted2"?
+	-- error
+
+-- check rows
+select tableoid::regclass::text, * from mcrparted order by 1
+ERROR: 	-- error
+
+-- check rows
+select tableoid::regclass::text, * from mcrparted order by 1
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+
+-- cleanup
+drop table mcrparted
+ERROR: 
+
+-- cleanup
+drop table mcrparted
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+
+-- check that a BR constraint can''t make partition contain violating rows
+create table brtrigpartcon (a int, b text) partition by list (a)
+ERROR: 
+
+-- check that a BR constraint can''t make partition contain violating rows
+create table brtrigpartcon (a int, b text) partition by list (a)
+
+Parser Error: syntax error at or near "partition"
+
+create table brtrigpartcon1 partition of brtrigpartcon for values in (1)
+ERROR: 
+create table brtrigpartcon1 partition of brtrigpartcon for values in (1)
+
+Parser Error: syntax error at or near "partition"
+
+create or replace function brtrigpartcon1trigf() returns trigger as $$begin new.a := 2; return new; end$$ language plpgsql
+ERROR: 
+create or replace function brtrigpartcon1trigf() returns trigger as $$begin new.a := 2; return new; end$$ language plpgsql
+
+Parser Error: syntax error at or near "returns"
+
+create trigger brtrigpartcon1trig before insert on brtrigpartcon1 for each row execute procedure brtrigpartcon1trigf()
+ERROR: 
+create trigger brtrigpartcon1trig before insert on brtrigpartcon1 for each row execute procedure brtrigpartcon1trigf()
+
+Parser Error: syntax error at or near "trigger"
+
+insert into brtrigpartcon values (1, 'hi there')
+ERROR: 
+insert into brtrigpartcon values (1, 'hi there')
+
+Catalog Error: Table with name brtrigpartcon does not exist!
+Did you mean "pg_proc"?
+
+insert into brtrigpartcon1 values (1, 'hi there')
+ERROR: 
+insert into brtrigpartcon1 values (1, 'hi there')
+
+Catalog Error: Table with name brtrigpartcon1 does not exist!
+Did you mean "pg_proc"?
+
+
+-- check that the message shows the appropriate column description in a
+-- situation where the partitioned table is not the primary ModifyTable node
+create table inserttest3 (f1 text default 'foo', f2 text default 'bar', f3 int)
+
+create role regress_coldesc_role
+ERROR: 
+create role regress_coldesc_role
+
+Parser Error: syntax error at or near "role"
+
+grant insert on inserttest3 to regress_coldesc_role
+ERROR: 
+grant insert on inserttest3 to regress_coldesc_role
+
+Parser Error: syntax error at or near "grant"
+
+grant insert on brtrigpartcon to regress_coldesc_role
+ERROR: 
+grant insert on brtrigpartcon to regress_coldesc_role
+
+Parser Error: syntax error at or near "grant"
+
+revoke select on brtrigpartcon from regress_coldesc_role
+ERROR: 
+revoke select on brtrigpartcon from regress_coldesc_role
+
+Parser Error: syntax error at or near "revoke"
+
+set role regress_coldesc_role
+ERROR: 
+set role regress_coldesc_role
+
+Parser Error: syntax error at or near "regress_coldesc_role"
+
+with result as (insert into brtrigpartcon values (1, 'hi there') returning 1)
+  insert into inserttest3 (f3) select * from result
+ERROR: 
+with result as (insert into brtrigpartcon values (1, 'hi there') returning 1)
+  insert into inserttest3 (f3) select * from result
+
+Not implemented Error: A CTE needs a SELECT
+
+reset role
+ERROR: 
+reset role
+
+Catalog Error: unrecognized configuration parameter "role"
+
+Did you mean: "threads", "Calendar", "profile_output", "errors_as_json", "home_directory"
+
+
+-- cleanup
+revoke all on inserttest3 from regress_coldesc_role
+ERROR: 
+
+-- cleanup
+revoke all on inserttest3 from regress_coldesc_role
+
+Parser Error: syntax error at or near "revoke"
+
+revoke all on brtrigpartcon from regress_coldesc_role
+ERROR: 
+revoke all on brtrigpartcon from regress_coldesc_role
+
+Parser Error: syntax error at or near "revoke"
+
+drop role regress_coldesc_role
+ERROR: 
+drop role regress_coldesc_role
+
+Parser Error: syntax error at or near "role"
+
+drop table inserttest3
+
+drop table brtrigpartcon
+ERROR: 
+drop table brtrigpartcon
+
+Catalog Error: Table with name brtrigpartcon does not exist!
+Did you mean "pg_proc"?
+
+drop function brtrigpartcon1trigf()
+ERROR: 
+drop function brtrigpartcon1trigf()
+
+Parser Error: syntax error at or near "("
+
+
+-- check that ''do nothing'' BR triggers work with tuple-routing
+create table donothingbrtrig_test (a int, b text) partition by list (a)
+ERROR: 
+
+-- check that ''do nothing'' BR triggers work with tuple-routing
+create table donothingbrtrig_test (a int, b text) partition by list (a)
+
+Parser Error: syntax error at or near "partition"
+
+create table donothingbrtrig_test1 (b text, a int)
+
+create table donothingbrtrig_test2 (c text, b text, a int)
+
+alter table donothingbrtrig_test2 drop column c
+
+create or replace function donothingbrtrig_func() returns trigger as $$begin raise notice 'b: %', new.b; return NULL; end$$ language plpgsql
+ERROR: 
+create or replace function donothingbrtrig_func() returns trigger as $$begin raise notice 'b: %', new.b; return NULL; end$$ language plpgsql
+
+Parser Error: syntax error at or near "returns"
+
+create trigger donothingbrtrig1 before insert on donothingbrtrig_test1 for each row execute procedure donothingbrtrig_func()
+ERROR: 
+create trigger donothingbrtrig1 before insert on donothingbrtrig_test1 for each row execute procedure donothingbrtrig_func()
+
+Parser Error: syntax error at or near "trigger"
+
+create trigger donothingbrtrig2 before insert on donothingbrtrig_test2 for each row execute procedure donothingbrtrig_func()
+ERROR: 
+create trigger donothingbrtrig2 before insert on donothingbrtrig_test2 for each row execute procedure donothingbrtrig_func()
+
+Parser Error: syntax error at or near "trigger"
+
+alter table donothingbrtrig_test attach partition donothingbrtrig_test1 for values in (1)
+ERROR: 
+alter table donothingbrtrig_test attach partition donothingbrtrig_test1 for values in (1)
+
+Parser Error: syntax error at or near "attach"
+
+alter table donothingbrtrig_test attach partition donothingbrtrig_test2 for values in (2)
+ERROR: 
+alter table donothingbrtrig_test attach partition donothingbrtrig_test2 for values in (2)
+
+Parser Error: syntax error at or near "attach"
+
+insert into donothingbrtrig_test values (1, 'foo'), (2, 'bar')
+ERROR: 
+insert into donothingbrtrig_test values (1, 'foo'), (2, 'bar')
+
+Catalog Error: Table with name donothingbrtrig_test does not exist!
+Did you mean "donothingbrtrig_test1"?
+
+copy donothingbrtrig_test from stdout
+ERROR: 
+copy donothingbrtrig_test from stdout
+
+Catalog Error: Table with name donothingbrtrig_test does not exist!
+Did you mean "donothingbrtrig_test1"?
+
+1	baz
+2	qux
+\.
+select tableoid::regclass, * from donothingbrtrig_test
+ERROR: 
+1	baz
+2	qux
+\.
+select tableoid::regclass, * from donothingbrtrig_test
+
+Parser Error: syntax error at or near "1"
+
+
+-- cleanup
+drop table donothingbrtrig_test
+ERROR: 
+
+-- cleanup
+drop table donothingbrtrig_test
+
+Catalog Error: Table with name donothingbrtrig_test does not exist!
+Did you mean "donothingbrtrig_test1"?
+
+drop function donothingbrtrig_func()
+ERROR: 
+drop function donothingbrtrig_func()
+
+Parser Error: syntax error at or near "("
+
+
+-- check multi-column range partitioning with minvalue/maxvalue constraints
+create table mcrparted (a text, b int) partition by range(a, b)
+ERROR: 
+
+-- check multi-column range partitioning with minvalue/maxvalue constraints
+create table mcrparted (a text, b int) partition by range(a, b)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted1_lt_b partition of mcrparted for values from (minvalue, minvalue) to ('b', minvalue)
+ERROR: 
+create table mcrparted1_lt_b partition of mcrparted for values from (minvalue, minvalue) to ('b', minvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted2_b partition of mcrparted for values from ('b', minvalue) to ('c', minvalue)
+ERROR: 
+create table mcrparted2_b partition of mcrparted for values from ('b', minvalue) to ('c', minvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted3_c_to_common partition of mcrparted for values from ('c', minvalue) to ('common', minvalue)
+ERROR: 
+create table mcrparted3_c_to_common partition of mcrparted for values from ('c', minvalue) to ('common', minvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted4_common_lt_0 partition of mcrparted for values from ('common', minvalue) to ('common', 0)
+ERROR: 
+create table mcrparted4_common_lt_0 partition of mcrparted for values from ('common', minvalue) to ('common', 0)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted5_common_0_to_10 partition of mcrparted for values from ('common', 0) to ('common', 10)
+ERROR: 
+create table mcrparted5_common_0_to_10 partition of mcrparted for values from ('common', 0) to ('common', 10)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted6_common_ge_10 partition of mcrparted for values from ('common', 10) to ('common', maxvalue)
+ERROR: 
+create table mcrparted6_common_ge_10 partition of mcrparted for values from ('common', 10) to ('common', maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted7_gt_common_lt_d partition of mcrparted for values from ('common', maxvalue) to ('d', minvalue)
+ERROR: 
+create table mcrparted7_gt_common_lt_d partition of mcrparted for values from ('common', maxvalue) to ('d', minvalue)
+
+Parser Error: syntax error at or near "partition"
+
+create table mcrparted8_ge_d partition of mcrparted for values from ('d', minvalue) to (maxvalue, maxvalue)
+ERROR: 
+create table mcrparted8_ge_d partition of mcrparted for values from ('d', minvalue) to (maxvalue, maxvalue)
+
+Parser Error: syntax error at or near "partition"
+
+
+-- \d+ mcrparted
+-- \d+ mcrparted1_lt_b
+-- \d+ mcrparted2_b
+-- \d+ mcrparted3_c_to_common
+-- \d+ mcrparted4_common_lt_0
+-- \d+ mcrparted5_common_0_to_10
+-- \d+ mcrparted6_common_ge_10
+-- \d+ mcrparted7_gt_common_lt_d
+-- \d+ mcrparted8_ge_d
+
+insert into mcrparted values ('aaa', 0), ('b', 0), ('bz', 10), ('c', -10),
+    ('comm', -10), ('common', -10), ('common', 0), ('common', 10),
+    ('commons', 0), ('d', -10), ('e', 0)
+ERROR: 
+
+-- \d+ mcrparted
+-- \d+ mcrparted1_lt_b
+-- \d+ mcrparted2_b
+-- \d+ mcrparted3_c_to_common
+-- \d+ mcrparted4_common_lt_0
+-- \d+ mcrparted5_common_0_to_10
+-- \d+ mcrparted6_common_ge_10
+-- \d+ mcrparted7_gt_common_lt_d
+-- \d+ mcrparted8_ge_d
+
+insert into mcrparted values ('aaa', 0), ('b', 0), ('bz', 10), ('c', -10),
+    ('comm', -10), ('common', -10), ('common', 0), ('common', 10),
+    ('commons', 0), ('d', -10), ('e', 0)
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+select tableoid::regclass, * from mcrparted order by a, b
+ERROR: 
+select tableoid::regclass, * from mcrparted order by a, b
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+drop table mcrparted
+ERROR: 
+drop table mcrparted
+
+Catalog Error: Table with name mcrparted does not exist!
+Did you mean "mlparted2"?
+
+
+-- check that wholerow vars in the RETURNING list work with partitioned tables
+create table returningwrtest (a int) partition by list (a)
+ERROR: 
+
+-- check that wholerow vars in the RETURNING list work with partitioned tables
+create table returningwrtest (a int) partition by list (a)
+
+Parser Error: syntax error at or near "partition"
+
+create table returningwrtest1 partition of returningwrtest for values in (1)
+ERROR: 
+create table returningwrtest1 partition of returningwrtest for values in (1)
+
+Parser Error: syntax error at or near "partition"
+
+insert into returningwrtest values (1) returning returningwrtest
+ERROR: 
+insert into returningwrtest values (1) returning returningwrtest
+
+Catalog Error: Table with name returningwrtest does not exist!
+Did you mean "pg_settings"?
+
+
+-- check also that the wholerow vars in RETURNING list are converted as needed
+alter table returningwrtest add b text
+ERROR: 
+
+-- check also that the wholerow vars in RETURNING list are converted as needed
+alter table returningwrtest add b text
+
+Catalog Error: Table with name returningwrtest does not exist!
+Did you mean "pg_settings"?
+
+create table returningwrtest2 (b text, c int, a int)
+
+alter table returningwrtest2 drop c
+
+alter table returningwrtest attach partition returningwrtest2 for values in (2)
+ERROR: 
+alter table returningwrtest attach partition returningwrtest2 for values in (2)
+
+Parser Error: syntax error at or near "attach"
+
+insert into returningwrtest values (2, 'foo') returning returningwrtest
+ERROR: 
+insert into returningwrtest values (2, 'foo') returning returningwrtest
+
+Catalog Error: Table with name returningwrtest does not exist!
+Did you mean "returningwrtest2"?
+
+drop table returningwrtest
+ERROR: 
+drop table returningwrtest
+
+Catalog Error: Table with name returningwrtest does not exist!
+Did you mean "returningwrtest2"?
+
+
