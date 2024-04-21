@@ -44,7 +44,7 @@ INSERT INTO brintest_multi SELECT
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
 FROM tenk1 ORDER BY unique2 LIMIT 100;
 
--- throw in some NULL's and different values
+-- throw in some NULL''s and different values
 INSERT INTO brintest_multi (inetcol, cidrcol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
@@ -403,7 +403,7 @@ SELECT brin_summarize_range('brin_summarize_multi_idx', 0);
 SELECT brin_summarize_range('brin_summarize_multi_idx', 1);
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_multi_idx', 2);
--- nothing: page doesn't exist in table
+-- nothing: page doesn''t exist in table
 SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295);
 -- invalid block number values
 SELECT brin_summarize_range('brin_summarize_multi_idx', -1);
@@ -482,7 +482,7 @@ SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
 SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
 
 -- now do the same, but insert the rows with the indexes already created
--- so that we don't use the "build callback" and instead use the regular
+-- so that we don''t use the ''build callback'' and instead use the regular
 -- approach of adding rows into existing ranges
 TRUNCATE brin_test_multi_1;
 
@@ -565,7 +565,7 @@ SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b3555
 
 
 -- now do the same, but insert the rows with the indexes already created
--- so that we don't use the "build callback" and instead use the regular
+-- so that we don''t use the ''build callback'' and instead use the regular
 -- approach of adding rows into existing ranges
 
 TRUNCATE brin_test_multi_2;

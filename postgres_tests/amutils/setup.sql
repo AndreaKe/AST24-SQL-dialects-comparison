@@ -4,11 +4,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 --
 -- synchronous_commit=off delays when hint bits may be set. Some plans change
@@ -31,8 +31,8 @@ CREATE TABLESPACE regress_tblspace LOCATION '';
 --
 -- These tables have traditionally been referenced by many tests,
 -- so create and populate them.  Insert only non-error values here.
--- (Some subsequent tests try to insert erroneous values.  That's okay
--- because the table won't actually change.  Do not change the contents
+-- (Some subsequent tests try to insert erroneous values.  That''s okay
+-- because the table won''t actually change.  Do not change the contents
 -- of these tables in later tests, as it may affect other tests.)
 --
 
@@ -98,7 +98,7 @@ INSERT INTO POINT_TBL(f1) VALUES
   ('(Inf,1e+300)'),  -- Transposed
   (' ( Nan , NaN ) '),
   ('10.0,10.0');
--- We intentionally don't vacuum point_tbl here /* REPLACED */, geometry depends on that
+-- We intentionally don''t vacuum point_tbl here /* REPLACED */, geometry depends on that
 
 CREATE TABLE TEXT_TBL (f1 text);
 
@@ -135,7 +135,7 @@ CREATE TABLE onek (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/onek.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/onek.data''
 COPY onek FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
 VACUUM ANALYZE onek;
 
@@ -161,7 +161,7 @@ CREATE TABLE tenk1 (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/tenk.data''
 COPY tenk1 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
 VACUUM ANALYZE tenk1;
 
@@ -174,7 +174,7 @@ CREATE TABLE person (
 	location 	point
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/person.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/person.data''
 COPY person FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
 VACUUM ANALYZE person;
 
@@ -183,7 +183,7 @@ CREATE TABLE emp (
 	manager 	name
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/emp.data''
 COPY emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
 VACUUM ANALYZE emp;
 
@@ -191,7 +191,7 @@ CREATE TABLE student (
 	gpa 		float8
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/student.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/student.data''
 COPY student FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
 VACUUM ANALYZE student;
 
@@ -199,7 +199,7 @@ CREATE TABLE stud_emp (
 	percent 	int4
 ) INHERITS (emp, student);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/stud_emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/stud_emp.data''
 COPY stud_emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
 VACUUM ANALYZE stud_emp;
 
@@ -208,7 +208,7 @@ CREATE TABLE road (
 	thepath 	path
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/streets.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/streets.data''
 COPY road FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
 VACUUM ANALYZE road;
 
@@ -303,7 +303,7 @@ create function fipshash(text)
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
 
 --
 -- BTREE
@@ -369,7 +369,7 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/rect.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/rect.data''
 COPY slow_emp4000 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
@@ -567,7 +567,7 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/array.data''
 COPY array_index_op_test FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
 ANALYZE array_index_op_test;
 
@@ -649,7 +649,7 @@ SELECT COUNT(*) FROM array_gin_test WHERE a @> '{2}';
 DROP TABLE array_gin_test;
 
 --
--- Test GIN index's reloptions
+-- Test GIN index''s reloptions
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
@@ -723,10 +723,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn't:
+-- but this shouldn''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we're here, see that the metadata looks sane
+-- while we''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -743,10 +743,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn't:
+-- but this shouldn''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we're here, see that the metadata looks sane
+-- while we''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -764,7 +764,7 @@ INSERT INTO covering_index_heap VALUES(1,1,'AAA');
 INSERT INTO covering_index_heap VALUES(1,2,'AAA');
 -- this should fail because of unique index on f1,f2:
 INSERT INTO covering_index_heap VALUES(1,2,'BBB');
--- and this shouldn't:
+-- and this shouldn''t:
 INSERT INTO covering_index_heap VALUES(1,4,'AAA');
 -- Try to build index on table that already contains data
 CREATE UNIQUE INDEX covering_pkey on covering_index_heap (f1,f2) INCLUDE(f3);
@@ -797,7 +797,7 @@ CREATE INDEX CONCURRENTLY concur_index4 on concur_heap(f2) WHERE f1='a';
 CREATE INDEX CONCURRENTLY concur_index5 on concur_heap(f2) WHERE f1='x';
 -- here we also check that you can default the index name
 CREATE INDEX CONCURRENTLY on concur_heap((f2||f1));
--- You can't do a concurrent index build in a transaction
+-- You can''t do a concurrent index build in a transaction
 BEGIN;
 CREATE INDEX CONCURRENTLY concur_index7 ON concur_heap(f1);
 COMMIT;
@@ -1590,22 +1590,22 @@ SELECT (@@ f1) AS center
    FROM POLYGON_TBL
    WHERE (# f1) > 2;
 
--- "is horizontal" function
+-- ''is horizontal'' function
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE ishorizontal(p1.f1, point '(0,0)');
 
--- "is horizontal" operator
+-- ''is horizontal'' operator
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE p1.f1 ?- point '(0,0)';
 
--- "is vertical" function
+-- ''is vertical'' function
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE isvertical(p1.f1, point '(5.1,34.5)');
 
--- "is vertical" operator
+-- ''is vertical'' operator
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE p1.f1 ?| point '(5.1,34.5)';
@@ -2539,7 +2539,7 @@ RESET enable_bitmapscan;
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
 
 CREATE TABLE hash_i4_heap (
 	seqno 		int4,
@@ -2561,7 +2561,7 @@ CREATE TABLE hash_f8_heap (
 	random 		float8
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/hash.data''
 COPY hash_i4_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
 COPY hash_name_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
 COPY hash_txt_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
@@ -2572,8 +2572,8 @@ COPY hash_f8_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/projec
 -- this is therefore a stress test of the bucket overflow code (unlike
 -- the data in hash.data, which has unique index keys).
 --
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hashovfl.data'
--- COPY hash_ovfl_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data' /* REPLACED */,
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/hashovfl.data''
+-- COPY hash_ovfl_heap FROM /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data'' /* REPLACED */,
 
 ANALYZE hash_i4_heap;
 ANALYZE hash_name_heap;
@@ -2655,14 +2655,14 @@ SELECT * FROM hash_f8_heap
 
 --
 -- hash index
--- grep '^90[^0-9]' hashovfl.data
+-- grep ''^90[^0-9]'' hashovfl.data
 --
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
 --    WHERE x = 90 /* REPLACED */,
 
 --
 -- hash index
--- grep '^1000[^0-9]' hashovfl.data
+-- grep ''^1000[^0-9]'' hashovfl.data
 --
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
 --    WHERE x = 1000 /* REPLACED */,
@@ -2758,7 +2758,7 @@ INSERT INTO hash_split_heap SELECT 1 FROM generate_series(1, 500) a;
 CREATE INDEX hash_split_index on hash_split_heap USING HASH (keycol);
 INSERT INTO hash_split_heap SELECT 1 FROM generate_series(1, 5000) a;
 
--- Let's do a backward scan.
+-- Let''s do a backward scan.
 BEGIN;
 SET enable_seqscan = OFF;
 SET enable_bitmapscan = OFF;
@@ -2790,7 +2790,7 @@ CREATE INDEX hash_cleanup_index on hash_cleanup_heap USING HASH (keycol);
 -- Insert tuples to both the primary bucket page and overflow pages.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 500) as i;
 
--- Fill overflow pages by "dead" tuples.
+-- Fill overflow pages by ''dead'' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1000) as i;
 ROLLBACK;
@@ -2804,11 +2804,11 @@ VACUUM hash_cleanup_heap;
 
 TRUNCATE hash_cleanup_heap;
 
--- Insert a few tuples so that the primary bucket page doesn't get full and
+-- Insert a few tuples so that the primary bucket page doesn''t get full and
 -- tuples can be moved to it.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 50) as i;
 
--- Fill overflow pages by "dead" tuples.
+-- Fill overflow pages by ''dead'' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1500) as i;
 ROLLBACK;
@@ -2824,14 +2824,14 @@ TRUNCATE hash_cleanup_heap;
 
 -- Insert tuples to both the primary bucket page and overflow pages.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 500) as i;
--- Fill overflow pages by "dead" tuples.
+-- Fill overflow pages by ''dead'' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1500) as i;
 ROLLBACK;
 -- And insert some tuples again. During squeeze operation, these will be moved
 -- to other overflow pages and also allow overflow pages filled by dead tuples
 -- to be freed. Note the main purpose of this test is to test the case where
--- we don't need to move any tuple from the overflow page being freed.
+-- we don''t need to move any tuple from the overflow page being freed.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 50) as i;
 
 CHECKPOINT;
@@ -2920,7 +2920,7 @@ INSERT INTO brintest SELECT
 	box(point(odd, even), point(thousand, twothousand))
 FROM tenk1 ORDER BY unique2 LIMIT 100;
 
--- throw in some NULL's and different values
+-- throw in some NULL''s and different values
 INSERT INTO brintest (inetcol, cidrcol, int4rangecol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous,
@@ -3304,7 +3304,7 @@ SELECT brin_summarize_range('brin_summarize_idx', 0);
 SELECT brin_summarize_range('brin_summarize_idx', 1);
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_idx', 2);
--- nothing: page doesn't exist in table
+-- nothing: page doesn''t exist in table
 SELECT brin_summarize_range('brin_summarize_idx', 4294967295);
 -- invalid block number values
 SELECT brin_summarize_range('brin_summarize_idx', -1);

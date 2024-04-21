@@ -296,7 +296,7 @@ DROP ROUTINE IF EXISTS test_ambiguous_procname;
 DROP PROCEDURE test_ambiguous_procname(int);
 DROP PROCEDURE test_ambiguous_procname(text);
 
--- This test checks both the functionality of 'if exists' and the syntax
+-- This test checks both the functionality of ''if exists'' and the syntax
 -- of the drop database command.
 drop database test_database_exists (force);
 drop database test_database_exists with (force);

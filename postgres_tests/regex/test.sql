@@ -2,7 +2,7 @@
 -- Regular expression tests
 --
 
--- Don't want to have to double backslashes in regexes
+-- Don''t want to have to double backslashes in regexes
 set standard_conforming_strings = on;
 
 -- Test simple quantified backrefs

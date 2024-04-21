@@ -44,7 +44,7 @@ SELECT 1 AS one FROM test_having HAVING a > 1;
 SELECT 1 AS one FROM test_having HAVING 1 > 2;
 SELECT 1 AS one FROM test_having HAVING 1 < 2;
 
--- and just to prove that we aren't scanning the table:
+-- and just to prove that we aren''t scanning the table:
 SELECT 1 AS one FROM test_having WHERE 1/a = 1 HAVING 1 < 2;
 
 DROP TABLE test_having;

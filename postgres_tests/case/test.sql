@@ -63,7 +63,7 @@ SELECT '7' AS "None",
    CASE WHEN random() < 0 THEN 1
    END AS "NULL on no matches";
 
--- Constant-expression folding shouldn't evaluate unreachable subexpressions
+-- Constant-expression folding shouldn''t evaluate unreachable subexpressions
 SELECT CASE WHEN 1=0 THEN 1/0 WHEN 1=1 THEN 1 ELSE 2/0 END;
 SELECT CASE 1 WHEN 0 THEN 1/0 WHEN 1 THEN 1 ELSE 2/0 END;
 
@@ -177,13 +177,13 @@ SELECT * FROM CASE_TBL;
 --
 
 -- This test exercises a bug caused by aliasing econtext->caseValue_isNull
--- with the isNull argument of the inner CASE's CaseExpr evaluation.  After
--- evaluating the vol(null) expression in the inner CASE's second WHEN-clause,
+-- with the isNull argument of the inner CASE''s CaseExpr evaluation.  After
+-- evaluating the vol(null) expression in the inner CASE''s second WHEN-clause,
 -- the isNull flag for the case test value incorrectly became true, causing
 -- the third WHEN-clause not to match.  The volatile function calls are needed
 -- to prevent constant-folding in the planner, which would hide the bug.
 
--- Wrap this in a single transaction so the transient '=' operator doesn't
+-- Wrap this in a single transaction so the transient ''='' operator doesn''t
 -- cause problems in concurrent sessions
 BEGIN;
 
@@ -200,7 +200,7 @@ SELECT CASE
   WHEN 'it was bar!' THEN 'bar recognized'
   ELSE 'unrecognized' END;
 
--- In this case, we can't inline the SQL function without confusing things.
+-- In this case, we can''t inline the SQL function without confusing things.
 CREATE DOMAIN foodomain AS text;
 
 CREATE FUNCTION volfoo(text) returns foodomain as
@@ -217,7 +217,7 @@ SELECT CASE volfoo('bar') WHEN 'foo'::foodomain THEN 'is foo' ELSE 'is not foo' 
 ROLLBACK;
 
 -- Test multiple evaluation of a CASE arg that is a read/write object (#14472)
--- Wrap this in a single transaction so the transient '=' operator doesn't
+-- Wrap this in a single transaction so the transient ''='' operator doesn''t
 -- cause problems in concurrent sessions
 BEGIN;
 

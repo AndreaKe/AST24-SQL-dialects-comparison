@@ -82,7 +82,7 @@ DROP SUBSCRIPTION regress_testsub4;
 -- fail, connection string does not parse
 CREATE SUBSCRIPTION regress_testsub5 CONNECTION 'i_dont_exist=param' PUBLICATION testpub;
 
--- fail, connection string parses, but doesn't work (and does so without
+-- fail, connection string parses, but doesn''t work (and does so without
 -- connecting, so this is reliable and safe)
 CREATE SUBSCRIPTION regress_testsub5 CONNECTION 'port=-1' PUBLICATION testpub;
 
@@ -146,7 +146,7 @@ ALTER SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = foobar);
 -- rename back to keep the rest simple
 ALTER SUBSCRIPTION regress_testsub_foo RENAME TO regress_testsub;
 
--- ok, we're a superuser
+-- ok, we''re a superuser
 ALTER SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user2;
 
 -- fail - cannot do DROP SUBSCRIPTION inside transaction block with slot name
@@ -179,7 +179,7 @@ ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 
 DROP SUBSCRIPTION regress_testsub;
 
--- fail - streaming must be boolean or 'parallel'
+-- fail - streaming must be boolean or ''parallel''
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = foo);
 
 -- now it works
@@ -291,7 +291,7 @@ ALTER SUBSCRIPTION regress_testsub SET (disable_on_error = true);
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 DROP SUBSCRIPTION regress_testsub;
 
--- let's do some tests with pg_create_subscription rather than superuser
+-- let''s do some tests with pg_create_subscription rather than superuser
 SET SESSION AUTHORIZATION regress_subscription_user3;
 
 -- fail, not enough privileges
@@ -303,7 +303,7 @@ GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
 SET SESSION AUTHORIZATION regress_subscription_user3;
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
 
--- fail, can't set password_required=false
+-- fail, can''t set password_required=false
 RESET SESSION AUTHORIZATION;
 GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
 SET SESSION AUTHORIZATION regress_subscription_user3;
@@ -327,7 +327,7 @@ REVOKE pg_create_subscription FROM regress_subscription_user3;
 SET SESSION AUTHORIZATION regress_subscription_user3;
 ALTER SUBSCRIPTION regress_testsub2 RENAME TO regress_testsub;
 
--- fail, after losing CREATE on the database we can't rename it any more
+-- fail, after losing CREATE on the database we can''t rename it any more
 RESET SESSION AUTHORIZATION;
 REVOKE CREATE ON DATABASE REGRESSION FROM regress_subscription_user3;
 SET SESSION AUTHORIZATION regress_subscription_user3;

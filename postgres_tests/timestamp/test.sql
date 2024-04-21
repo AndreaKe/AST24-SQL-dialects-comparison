@@ -5,10 +5,10 @@
 CREATE TABLE TIMESTAMP_TBL (d1 timestamp(2) without time zone);
 
 -- Test shorthand input values
--- We can't just "select" the results since they aren't constants /* REPLACED */, test for
+-- We can''t just ''select'' the results since they aren''t constants /* REPLACED */, test for
 -- equality instead.  We can do that by running the test inside a transaction
--- block, within which the value of 'now' shouldn't change, and so these
--- related values shouldn't either.
+-- block, within which the value of ''now'' shouldn''t change, and so these
+-- related values shouldn''t either.
 
 BEGIN;
 
@@ -27,8 +27,8 @@ COMMIT;
 
 DELETE FROM TIMESTAMP_TBL;
 
--- Verify that 'now' *does* change over a reasonable interval such as 100 msec,
--- and that it doesn't change over the same interval within a transaction block
+-- Verify that ''now'' *does* change over a reasonable interval such as 100 msec,
+-- and that it doesn''t change over the same interval within a transaction block
 
 INSERT INTO TIMESTAMP_TBL VALUES ('now');
 SELECT pg_sleep(0.1);
@@ -357,7 +357,7 @@ SELECT to_char(d1, 'HH HH12 HH24 MI SS SSSS')
 SELECT to_char(d1, E'"HH:MI:SS is" HH:MI:SS "\\"text between quote marks\\""')
    FROM TIMESTAMP_TBL;
 
-SELECT to_char(d1, 'HH24--text--MI--text--SS')
+SELECT to_char(d1, 'HH24--text--MI--text--SS'')
    FROM TIMESTAMP_TBL;
 
 SELECT to_char(d1, 'YYYYTH YYYYth Jth')
@@ -397,7 +397,7 @@ select * from generate_series('2020-01-01 00:00'::timestamp,
                               '2020-01-02 03:00'::timestamp,
                               '1 hour'::interval);
 -- the LIMIT should allow this to terminate in a reasonable amount of time
--- (but that unfortunately doesn't work yet for SELECT * FROM ...)
+-- (but that unfortunately doesn''t work yet for SELECT * FROM ...)
 select generate_series('2022-01-01 00:00'::timestamp,
                        'infinity'::timestamp,
                        '1 month'::interval) limit 10;

@@ -160,7 +160,7 @@ SELECT (timestamp with time zone 'tomorrow' = (timestamp with time zone 'yesterd
 SELECT (timestamp with time zone 'tomorrow' > 'now') as "True";
 
 -- timestamp with time zone, interval arithmetic around DST change
--- (just for fun, let's use an intentionally nonstandard POSIX zone spec)
+-- (just for fun, let''s use an intentionally nonstandard POSIX zone spec)
 SET TIME ZONE 'CST7CDT,M4.1.0,M10.5.0';
 SELECT timestamp with time zone '2005-04-02 12:00-07' + interval '1 day' as "Apr 3, 12:00";
 SELECT timestamp with time zone '2005-04-02 12:00-07' + interval '24 hours' as "Apr 3, 13:00";
@@ -197,8 +197,8 @@ SELECT time with time zone '02:30-08' + interval '36:01' AS "14:31:00-08";
 
 -- These two tests cannot be used because they default to current timezone,
 -- which may be either -08 or -07 depending on the time of year.
--- SELECT time with time zone '01:30' + interval '02:01' AS "03:31:00-08" /* REPLACED */,
--- SELECT time with time zone '03:30' + interval '1 month 04:01' AS "07:31:00-08" /* REPLACED */,
+-- SELECT time with time zone ''01:30'' + interval ''02:01'' AS ''03:31:00-08'' /* REPLACED */,
+-- SELECT time with time zone ''03:30'' + interval ''1 month 04:01'' AS ''07:31:00-08'' /* REPLACED */,
 -- Try the following two tests instead, as a poor substitute
 
 SELECT CAST(CAST(date 'today' + time with time zone '05:30'
@@ -421,7 +421,7 @@ RESET DateStyle;
 -- to_timestamp()
 --
 
-SELECT to_timestamp('0097/Feb/16 --> 08:14:30', 'YYYY/Mon/DD --> HH:MI:SS') /* REPLACED */,
+SELECT to_timestamp('0097/Feb/16 --> 08:14:30'', ''YYYY/Mon/DD --> HH:MI:SS'') /* REPLACED */,
 
 SELECT to_timestamp('97/2/16 8:14:30', 'FMYYYY/FMMM/FMDD FMHH:FMMI:FMSS');
 
@@ -591,7 +591,7 @@ SELECT to_timestamp('19971', 'YYYYMMDD');
 -- Insufficient digit characters for a single node:
 SELECT to_timestamp('19971)24', 'YYYYMMDD');
 
--- We don't accept full-length day or month names if short form is specified:
+-- We don''t accept full-length day or month names if short form is specified:
 SELECT to_timestamp('Friday 1-January-1999', 'DY DD MON YYYY');
 SELECT to_timestamp('Fri 1-January-1999', 'DY DD MON YYYY');
 SELECT to_timestamp('Fri 1-Jan-1999', 'DY DD MON YYYY');  -- ok
@@ -602,7 +602,7 @@ SELECT to_timestamp('1997-11-Jan-16', 'YYYY-MM-Mon-DD');
 -- Non-numeric input:
 SELECT to_timestamp('199711xy', 'YYYYMMDD');
 
--- Input that doesn't fit in an int:
+-- Input that doesn''t fit in an int:
 SELECT to_timestamp('10000000000', 'FMYYYY');
 
 -- Out-of-range and not-quite-out-of-range fields:
@@ -628,9 +628,9 @@ SELECT to_date('2015 366', 'YYYY DDD');
 SELECT to_date('2016 365', 'YYYY DDD');  -- ok
 SELECT to_date('2016 366', 'YYYY DDD');  -- ok
 SELECT to_date('2016 367', 'YYYY DDD');
-SELECT to_date('0000-02-01','YYYY-MM-DD');  -- allowed, though it shouldn't be
+SELECT to_date('0000-02-01','YYYY-MM-DD');  -- allowed, though it shouldn''t be
 
--- to_char's TZ format code produces zone abbrev if known
+-- to_char''s TZ format code produces zone abbrev if known
 SELECT to_char('2012-12-12 12:00'::timestamptz, 'YYYY-MM-DD HH:MI:SS TZ');
 SELECT to_char('2012-12-12 12:00'::timestamptz, 'YYYY-MM-DD HH:MI:SS tz');
 

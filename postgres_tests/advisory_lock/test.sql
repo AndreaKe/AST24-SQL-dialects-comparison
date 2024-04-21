@@ -15,13 +15,13 @@ SELECT locktype, classid, objid, objsubid, mode, granted
 	ORDER BY classid, objid, objsubid;
 
 
--- pg_advisory_unlock_all() shouldn't release xact locks
+-- pg_advisory_unlock_all() shouldn''t release xact locks
 SELECT pg_advisory_unlock_all();
 
 SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND database = :datoid;
 
 
--- can't unlock xact locks
+-- can''t unlock xact locks
 SELECT
 	pg_advisory_unlock(1), pg_advisory_unlock_shared(2),
 	pg_advisory_unlock(1, 1), pg_advisory_unlock_shared(2, 2);

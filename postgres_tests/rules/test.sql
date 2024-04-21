@@ -1,6 +1,6 @@
 --
 -- RULES
--- From Jan's original setup_ruletest.sql and run_ruletest.sql
+-- From Jan''s original setup_ruletest.sql and run_ruletest.sql
 -- - thomas 1998-09-13
 --
 
@@ -602,7 +602,7 @@ SELECT * FROM shoe_ready WHERE total_avail >= 2 ORDER BY 1;
         log_when   timestamp      -- when
     );
 
--- Want "log_who" to be CURRENT_USER,
+-- Want ''log_who'' to be CURRENT_USER,
 -- but that is non-portable for the regression test
 -- - thomas 1999-02-21
 
@@ -876,7 +876,7 @@ insert into rule_and_refint_t3 values (1, 11, 13, 'row7');
 insert into rule_and_refint_t3 values (1, 13, 11, 'row8');
 
 --
--- disallow dropping a view's rule (bug #5072)
+-- disallow dropping a view''s rule (bug #5072)
 --
 
 create view rules_fooview as select 'rules_foo'::text;
@@ -884,7 +884,7 @@ drop rule "_RETURN" on rules_fooview;
 drop view rules_fooview;
 
 --
--- We used to allow converting a table to a view by creating a "_RETURN"
+-- We used to allow converting a table to a view by creating a ''_RETURN''
 -- rule for it, but no more.
 --
 
@@ -1084,7 +1084,7 @@ SELECT * FROM rule_v1;
 --
 -- error conditions for alter rename rule
 --
-ALTER RULE InsertRule ON rule_v1 RENAME TO NewInsertRule; -- doesn't exist
+ALTER RULE InsertRule ON rule_v1 RENAME TO NewInsertRule; -- doesn''t exist
 ALTER RULE NewInsertRule ON rule_v1 RENAME TO "_RETURN"; -- already exists
 ALTER RULE "_RETURN" ON rule_v1 RENAME TO abc; -- ON SELECT rule cannot be renamed
 
@@ -1369,7 +1369,7 @@ DROP TABLE ruletest2;
 
 --
 -- Test non-SELECT rule on security invoker view.
--- Should use view owner's permissions.
+-- Should use view owner''s permissions.
 --
 CREATE USER regress_rule_user1;
 
@@ -1387,8 +1387,8 @@ INSERT INTO ruletest_v1 VALUES (1);
 
 RESET SESSION AUTHORIZATION;
 
--- Test that main query's relation's permissions are checked before
--- the rule action's relation's.
+-- Test that main query''s relation''s permissions are checked before
+-- the rule action''s relation''s.
 CREATE TABLE ruletest_t3 (x int);
 CREATE RULE rule2 AS ON UPDATE TO ruletest_t1
     DO INSTEAD INSERT INTO ruletest_t2 VALUES (OLD.*);

@@ -612,7 +612,7 @@ DROP TABLE J1_TBL;
 DROP TABLE J2_TBL;
 
 -- Both DELETE and UPDATE allow the specification of additional tables
--- to "join" against to determine which rows should be modified.
+-- to ''join'' against to determine which rows should be modified.
 
 CREATE TEMP TABLE t1 (a int, b int);
 CREATE TEMP TABLE t2 (a int, b int);
@@ -1171,7 +1171,7 @@ select * from
 where thousand = a.q1 and tenthous = b.q1 and a.q2 = 1 and b.q2 = 2;
 
 --
--- test a corner case in which we shouldn't apply the star-schema optimization
+-- test a corner case in which we shouldn''t apply the star-schema optimization
 --
 
 explain (costs off)
@@ -1201,7 +1201,7 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
 
--- variant that isn't quite a star-schema case
+-- variant that isn''t quite a star-schema case
 
 select ss1.d1 from
   tenk1 as t1
@@ -1248,7 +1248,7 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
 
--- Here's a variant that we can't fold too aggressively, though,
+-- Here''s a variant that we can''t fold too aggressively, though,
 -- or we end up with noplace to evaluate the lateral PHV
 explain (verbose, costs off)
 select * from
@@ -1839,7 +1839,7 @@ explain (costs off)
 
 --
 -- test that quals attached to an outer join have correct semantics,
--- specifically that they don't re-use expressions computed below the join /* REPLACED */,
+-- specifically that they don''t re-use expressions computed below the join /* REPLACED */,
 -- we force a mergejoin so that coalesce(b.q1, 1) appears as a join input
 --
 
@@ -2158,7 +2158,7 @@ SELECT * FROM
      FROM int8_tbl LEFT JOIN innertab ON q2 = id) ss2
   ON true;
 
--- join removal bug #17769: can't remove if there's a pushed-down reference
+-- join removal bug #17769: can''t remove if there''s a pushed-down reference
 EXPLAIN (COSTS OFF)
 SELECT q2 FROM
   (SELECT *
@@ -2297,7 +2297,7 @@ select i8.*, ss.v, t.unique2
 where q2 = 456;
 
 -- and check a related issue where we miscompute required relids for
--- a PHV that's been translated to a child rel
+-- a PHV that''s been translated to a child rel
 create temp table parttbl (a integer primary key) partition by range (a);
 create temp table parttbl1 partition of parttbl for values from (1) to (100);
 insert into parttbl values (11), (12);
@@ -2312,7 +2312,7 @@ select * from
   right join int4_tbl on true
 where ss.a = ss.phv and f1 = 0;
 
--- bug #8444: we've historically allowed duplicate aliases within aliased JOINs
+-- bug #8444: we''ve historically allowed duplicate aliases within aliased JOINs
 
 select * from
   int8_tbl x join (int4_tbl x cross join int4_tbl y) j on q1 = f1; -- error
@@ -2348,7 +2348,7 @@ select * from sj p
 where exists (select * from sj q
               where q.a = p.a and q.b < 10);
 
--- Don't remove self-join for the case of equality of two different unique columns.
+-- Don''t remove self-join for the case of equality of two different unique columns.
 explain (costs off)
 select * from sj t1, sj t2 where t1.a = t2.c and t1.b is not null;
 
@@ -2359,7 +2359,7 @@ select * from
   (select a as y from sj where false) as q2
 where q1.x = q2.y;
 
--- We can't use a cross-EC generated self join qual because of current logic of
+-- We can''t use a cross-EC generated self join qual because of current logic of
 -- the generate_join_implied_equalities routine.
 explain (costs off)
 select * from sj t1, sj t2 where t1.a = t1.b and t1.b = t2.b and t2.b = t2.a;
@@ -2369,7 +2369,7 @@ where t1.a = t1.b and t1.b = t2.b and t2.b = t2.a and
       t1.b = t3.b and t3.b = t3.a;
 
 -- Double self-join removal.
--- Use a condition on "b + 1", not on "b", for the second join, so that
+-- Use a condition on ''b + 1'', not on ''b'', for the second join, so that
 -- the equivalence class is different from the first one, and we can
 -- test the non-ec code path.
 explain (costs off)
@@ -2444,7 +2444,7 @@ SELECT * FROM pg_am am WHERE am.amname IN (
 
 INSERT INTO sj VALUES (3, 1, 3);
 
--- Don't remove SJ
+-- Don''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND j1.a = 2 AND j2.a = 3;
 -- Return one row
@@ -2480,8 +2480,8 @@ SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND 1 = j1.a AND j2.a = 1;
 -- Return no rows
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND 1 = j1.a AND j2.a = 1;
 
--- SJE Corner case: a 'a.x=a.x' clause, have replaced with 'a.x IS NOT NULL'
--- after SJ elimination it shouldn't be a mergejoinable clause.
+-- SJE Corner case: a ''a.x=a.x'' clause, have replaced with ''a.x IS NOT NULL''
+-- after SJ elimination it shouldn''t be a mergejoinable clause.
 EXPLAIN (COSTS OFF)
 SELECT t4.*
 FROM (SELECT t1.*, t2.a AS a1 FROM sj t1, sj t2 WHERE t1.b = t2.b) AS t3
@@ -2497,7 +2497,7 @@ CREATE UNIQUE INDEX sj_fn_idx ON sj((a * a));
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2
 	WHERE j1.b = j2.b AND j1.a*j1.a = 1 AND j2.a*j2.a = 1;
--- Don't remove SJ
+-- Don''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2
 	WHERE j1.b = j2.b AND j1.a*j1.a = 1 AND j2.a*j2.a = 2;
@@ -2534,22 +2534,22 @@ EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2
 	WHERE j1.b = j2.b AND j1.a = 2 AND j1.c = 3 AND j2.a = 2 AND 3 = j2.c;
 
--- Don't remove SJ
+-- Don''t remove SJ
 EXPLAIN (COSTS OFF)
 	SELECT * FROM sj j1, sj j2
 	WHERE j1.b = j2.b AND 2 = j1.a AND j1.c = 3 AND j2.a = 1 AND 3 = j2.c;
 
 CREATE UNIQUE INDEX sj_temp_idx ON sj(a,b);
 
--- Don't remove SJ
+-- Don''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND j1.a = 2;
 
--- Don't remove SJ
+-- Don''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND 2 = j2.a;
 
--- Don't remove SJ
+-- Don''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND (j1.a = 1 OR j2.a = 1);
 
@@ -2580,11 +2580,11 @@ select 1 from (select y.* from sj x, sj y where x.a = y.a) q,
   lateral generate_series(1, q.a) gs(i);
 
 -- Test that a non-EC-derived join clause is processed correctly. Use an
--- outer join so that we can't form an EC.
+-- outer join so that we can''t form an EC.
 explain (costs off) select * from sj p join sj q on p.a = q.a
   left join sj r on p.a + q.a = r.a;
 
--- FIXME this constant false filter doesn't look good. Should we merge
+-- FIXME this constant false filter doesn''t look good. Should we merge
 -- equivalence classes?
 explain (costs off)
 select * from sj p, sj q where p.a = q.a and p.b = 1 and q.b = 2;
@@ -2592,7 +2592,7 @@ select * from sj p, sj q where p.a = q.a and p.b = 1 and q.b = 2;
 -- Check that attr_needed is updated correctly after self-join removal. In this
 -- test, the join of j1 with j2 is removed. k1.b is required at either j1 or j2.
 -- If this info is lost, join targetlist for (k1, k2) will not contain k1.b.
--- Use index scan for k1 so that we don't get 'b' from physical tlist used for
+-- Use index scan for k1 so that we don''t get ''b'' from physical tlist used for
 -- seqscan. Also disable reordering of joins because this test depends on a
 -- particular join tree.
 create table sk (a int, b int);
@@ -2668,7 +2668,7 @@ select * from emp1 t1
    inner join emp1 t2 on t1.id = t2.id
     left join emp1 t3 on t1.id > 1 and t1.id < 2;
 
--- Check that SJE doesn't replace the target relation
+-- Check that SJE doesn''t replace the target relation
 EXPLAIN (COSTS OFF)
 WITH t1 AS (SELECT * FROM emp1)
 UPDATE emp1 SET code = t1.code + 1 FROM t1
@@ -2716,9 +2716,9 @@ select * from emp1 t1 where exists (select * from emp1 t2
 select * from emp1 t1 where exists (select * from emp1 t2
                                     where t2.id = t1.code and t2.code > 0);
 
--- We can remove the join even if we find the join can't duplicate rows and
+-- We can remove the join even if we find the join can''t duplicate rows and
 -- the base quals of each side are different.  In the following case we end up
--- moving quals over to s1 to make it so it can't match any rows.
+-- moving quals over to s1 to make it so it can''t match any rows.
 create table sl(a int, b int, c int);
 create unique index on sl(a, b);
 vacuum analyze sl;
@@ -2741,7 +2741,7 @@ where t1.b = t2.b and t2.a = 3 and t1.a = 3
   and t2.b IS NOT NULL and t1.b IS NOT NULL
   and t1.a IS NOT NULL and t2.a IS NOT NULL;
 
--- Join qual isn't mergejoinable, but inner is unique.
+-- Join qual isn''t mergejoinable, but inner is unique.
 EXPLAIN (COSTS OFF)
 SELECT n2.a FROM sj n1, sj n2 WHERE n1.a <> n2.a AND n2.a = 1;
 
@@ -2796,9 +2796,9 @@ reset enable_mergejoin;
 --
 
 select t1.uunique1 from
-  tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, prefer "t1" suggestion
+  tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, prefer ''t1'' suggestion
 select t2.uunique1 from
-  tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, prefer "t2" suggestion
+  tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, prefer ''t2'' suggestion
 select uunique1 from
   tenk1 t1 join tenk2 t2 on t1.two = t2.two; -- error, suggest both at once
 select ctid from
@@ -2854,7 +2854,7 @@ explain (costs off)
   select count(*) from tenk1 a, lateral generate_series(1,two) g;
 explain (costs off)
   select count(*) from tenk1 a cross join lateral generate_series(1,two) g;
--- don't need the explicit LATERAL keyword for functions
+-- don''t need the explicit LATERAL keyword for functions
 explain (costs off)
   select count(*) from tenk1 a, generate_series(1,two) g;
 
@@ -3052,7 +3052,7 @@ select * from
 -- check the number of columns specified
 SELECT * FROM (int8_tbl i cross join int4_tbl j) ss(a,b,c,d);
 
--- check we don't try to do a unique-ified semijoin with LATERAL
+-- check we don''t try to do a unique-ified semijoin with LATERAL
 explain (verbose, costs off)
 select * from
   (values (0,9998), (1,1000)) v(id,x),
@@ -3065,7 +3065,7 @@ select * from
            where f1 = any (select unique1 from tenk1
                            where unique2 = v.x offset 0)) ss;
 
--- check proper extParam/allParam handling (this isn't exactly a LATERAL issue,
+-- check proper extParam/allParam handling (this isn''t exactly a LATERAL issue,
 -- but we can make the test case much more compact with LATERAL)
 explain (verbose, costs off)
 select * from (values (0), (1)) v(id),
@@ -3086,7 +3086,7 @@ lateral (select * from int8_tbl t1,
                                        and (select v.id=0)) offset 0) ss2) ss
          where t1.q1 = ss.q2) ss0;
 
--- test some error cases where LATERAL should have been used but wasn't
+-- test some error cases where LATERAL should have been used but wasn''t
 select f1,g from int4_tbl a, (select f1 as g) ss;
 select f1,g from int4_tbl a, (select a.f1 as g) ss;
 select f1,g from int4_tbl a cross join (select f1 as g) ss;
@@ -3104,12 +3104,12 @@ select 1 from tenk1 a, lateral (select max(a.unique1) from int4_tbl b) ss;
 
 create temp table xx1 as select f1 as x1, -f1 as x2 from int4_tbl;
 
--- error, can't do this:
+-- error, can''t do this:
 update xx1 set x2 = f1 from (select * from int4_tbl where f1 = x1) ss;
 update xx1 set x2 = f1 from (select * from int4_tbl where f1 = xx1.x1) ss;
--- can't do it even with LATERAL:
+-- can''t do it even with LATERAL:
 update xx1 set x2 = f1 from lateral (select * from int4_tbl where f1 = x1) ss;
--- we might in future allow something like this, but for now it's an error:
+-- we might in future allow something like this, but for now it''s an error:
 update xx1 set x2 = f1 from xx1, lateral (select * from int4_tbl where f1 = x1) ss;
 
 -- also errors:
@@ -3198,7 +3198,7 @@ where f.c = 1;
 rollback;
 
 --
--- test planner's ability to mark joins as unique
+-- test planner''s ability to mark joins as unique
 --
 
 create table j1 (id int primary key);
@@ -3237,7 +3237,7 @@ select * from j1 right join j2 on j1.id = j2.id;
 explain (verbose, costs off)
 select * from j1 full join j2 on j1.id = j2.id;
 
--- a clauseless (cross) join can't be unique
+-- a clauseless (cross) join can''t be unique
 explain (verbose, costs off)
 select * from j1 cross join j2;
 
@@ -3273,7 +3273,7 @@ analyze j1;
 analyze j2;
 analyze j3;
 
--- ensure there's no unique join when not all columns which are part of the
+-- ensure there''s no unique join when not all columns which are part of the
 -- unique index are seen in the join clause
 explain (verbose, costs off)
 select * from j1
@@ -3284,7 +3284,7 @@ explain (verbose, costs off)
 select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2;
 
--- ensure we don't detect the join to be unique when quals are not part of the
+-- ensure we don''t detect the join to be unique when quals are not part of the
 -- join condition
 explain (verbose, costs off)
 select * from j1
@@ -3297,7 +3297,7 @@ left join j2 on j1.id1 = j2.id1 where j1.id2 = 1;
 
 create unique index j1_id2_idx on j1(id2) where id2 is not null;
 
--- ensure we don't use a partial unique index as unique proofs
+-- ensure we don''t use a partial unique index as unique proofs
 explain (verbose, costs off)
 select * from j1
 inner join j2 on j1.id2 = j2.id2;
@@ -3336,7 +3336,7 @@ select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
 where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1 and j2.id1 = any (array[1]);
 
--- Exercise array keys "find extreme element" B-Tree code
+-- Exercise array keys ''find extreme element'' B-Tree code
 explain (costs off) select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
 where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1 and j2.id1 >= any (array[1,5]);

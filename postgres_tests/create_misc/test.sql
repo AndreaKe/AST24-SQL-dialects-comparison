@@ -252,7 +252,7 @@ SELECT relname, reltoastrelid <> 0 AS has_toast_table
    ORDER BY 1;
 
 --UPDATE b_star*
---   SET a = text 'gazpacho'
+--   SET a = text ''gazpacho''
 --   WHERE aa > 4 /* REPLACED */,
 
 SELECT class, aa, a FROM a_star*;

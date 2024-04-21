@@ -34,7 +34,7 @@ select '1'::xid8 != '1'::xid8;
 select '1'::xid = '1'::xid8::xid;
 select '1'::xid != '1'::xid8::xid;
 
--- we don't want relational operators for xid, due to use of modular arithmetic
+-- we don''t want relational operators for xid, due to use of modular arithmetic
 select '1'::xid < '2'::xid;
 select '1'::xid <= '2'::xid;
 select '1'::xid > '2'::xid;
@@ -111,7 +111,7 @@ where nr = 4;
 -- test current values also
 select pg_current_xact_id() >= pg_snapshot_xmin(pg_current_snapshot());
 
--- we can't assume current is always less than xmax, however
+-- we can''t assume current is always less than xmax, however
 
 select pg_visible_in_snapshot(pg_current_xact_id(), pg_current_snapshot());
 

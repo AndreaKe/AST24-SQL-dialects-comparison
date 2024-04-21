@@ -1,6 +1,6 @@
 --
 -- MISC_SANITY
--- Sanity checks for common errors in making system tables that don't fit
+-- Sanity checks for common errors in making system tables that don''t fit
 -- comfortably into either opr_sanity or type_sanity.
 --
 -- Every test failure in this file should be closely inspected.
@@ -56,7 +56,7 @@ ORDER BY 1, 2;
 -- system catalogs without primary keys
 --
 -- Current exceptions:
--- * pg_depend, pg_shdepend don't have a unique key
+-- * pg_depend, pg_shdepend don''t have a unique key
 SELECT relname
 FROM pg_class
 WHERE relnamespace = 'pg_catalog'::regnamespace AND relkind = 'r'

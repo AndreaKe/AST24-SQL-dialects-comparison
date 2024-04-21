@@ -1,9 +1,9 @@
 -- Perform tests on the Memoize node.
 
 -- The cache hits/misses/evictions from the Memoize node can vary between
--- machines.  Let's just replace the number with an 'N'.  In order to allow us
+-- machines.  Let''s just replace the number with an ''N''.  In order to allow us
 -- to perform validation when the measure was zero, we replace a zero value
--- with "Zero".  All other numbers are replaced with 'N'.
+-- with ''Zero''.  All other numbers are replaced with ''N''.
 create function explain_memoize(query text, hide_hitmiss bool) returns setof text
 language plpgsql as
 $$
@@ -99,7 +99,7 @@ DROP TABLE expr_key;
 -- Reduce work_mem and hash_mem_multiplier so that we see some cache evictions
 SET work_mem TO '64kB';
 SET hash_mem_multiplier TO 1.0;
--- Ensure we get some evictions.  We're unable to validate the hits and misses
+-- Ensure we get some evictions.  We''re unable to validate the hits and misses
 -- here as the number of entries that fit in the cache at once will vary
 -- between different machines.
 SELECT explain_memoize('

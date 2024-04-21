@@ -1,8 +1,8 @@
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 --
 -- num_nulls()
@@ -73,7 +73,7 @@ SELECT test_canonicalize_path('./abc/./def/.././ghi/../../../jkl/mno');
 --
 -- Memory contexts are logged and they are not returned to the function.
 -- Furthermore, their contents can vary depending on the timing. However,
--- we can at least verify that the code doesn't fail, and that the
+-- we can at least verify that the code doesn''t fail, and that the
 -- permissions are set properly.
 --
 
@@ -105,8 +105,8 @@ DROP ROLE regress_log_memory;
 --
 -- Test some built-in SRFs
 --
--- The outputs of these are variable, so we can't just print their results
--- directly, but we can at least verify that the code doesn't fail.
+-- The outputs of these are variable, so we can''t just print their results
+-- directly, but we can at least verify that the code doesn''t fail.
 --
 select setting as segsize
 from pg_settings where name = 'wal_segment_size'
@@ -195,12 +195,12 @@ CREATE FUNCTION my_int_eq(int, int) RETURNS bool
   LANGUAGE internal STRICT IMMUTABLE PARALLEL SAFE
   AS $$int4eq$$;
 
--- By default, planner does not think that's selective
+-- By default, planner does not think that''s selective
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN tenk1 b ON a.unique1 = b.unique1
 WHERE my_int_eq(a.unique2, 42);
 
--- With support function that knows it's int4eq, we get a different plan
+-- With support function that knows it''s int4eq, we get a different plan
 CREATE FUNCTION test_support_func(internal)
     RETURNS internal
     AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_support_func'

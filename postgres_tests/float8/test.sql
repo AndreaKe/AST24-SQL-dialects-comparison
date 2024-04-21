@@ -153,8 +153,8 @@ SELECT power(float8 'inf', float8 '-2');
 SELECT power(float8 'inf', float8 '2');
 SELECT power(float8 'inf', float8 'inf');
 SELECT power(float8 'inf', float8 '-inf');
--- Intel's icc misoptimizes the code that controls the sign of this result,
--- even with -mp1.  Pending a fix for that, only test for "is it zero".
+-- Intel''s icc misoptimizes the code that controls the sign of this result,
+-- even with -mp1.  Pending a fix for that, only test for ''is it zero''.
 SELECT power(float8 '-inf', float8 '-2') = '0';
 SELECT power(float8 '-inf', float8 '-3');
 SELECT power(float8 '-inf', float8 '2');
@@ -222,7 +222,7 @@ SELECT asinh(float8 'infinity');
 SELECT asinh(float8 '-infinity');
 SELECT asinh(float8 'nan');
 -- acosh(Inf) should be Inf, but some mingw versions produce NaN, so skip test
--- SELECT acosh(float8 'infinity') /* REPLACED */,
+-- SELECT acosh(float8 ''infinity'') /* REPLACED */,
 SELECT acosh(float8 '-infinity');
 SELECT acosh(float8 'nan');
 SELECT atanh(float8 'infinity');
@@ -319,9 +319,9 @@ FROM (SELECT 10*cosd(a), 10*sind(a)
 
 --
 -- test output (and round-trip safety) of various values.
--- To ensure we're testing what we think we're testing, start with
+-- To ensure we''re testing what we think we''re testing, start with
 -- float values specified by bit patterns (as a useful side effect,
--- this means we'll fail on non-IEEE platforms).
+-- this means we''ll fail on non-IEEE platforms).
 
 create type xfloat8;
 create function xfloat8in(cstring) returns xfloat8 immutable strict
@@ -336,8 +336,8 @@ create cast (bigint as xfloat8) without function;
 
 -- float8: seeeeeee eeeeeeee eeeeeeee mmmmmmmm mmmmmmmm(x4)
 
--- we don't care to assume the platform's strtod() handles subnormals
--- correctly /* REPLACED */, those are "use at your own risk". However we do test
+-- we don''t care to assume the platform''s strtod() handles subnormals
+-- correctly /* REPLACED */, those are ''use at your own risk''. However we do test
 -- subnormal outputs, since those are under our control.
 
 with testdata(bits) as (values
@@ -454,7 +454,7 @@ with testdata(bits) as (values
   (x'405edd3c07fb4c93'),
   (x'4028b0fcd32f7076'),
   (x'3ff3c0ca428c59f8'),
-  -- these cases come from the upstream's testsuite
+  -- these cases come from the upstream''s testsuite
   -- LotsOfTrailingZeros)
   (x'3e60000000000000'),
   -- Regression

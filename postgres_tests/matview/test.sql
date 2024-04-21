@@ -186,8 +186,8 @@ SELECT * FROM mvtest_mv_v_3;
 SELECT * FROM mvtest_mv_v_4;
 DROP TABLE mvtest_v CASCADE;
 
--- Check that unknown literals are converted to "text" in CREATE MATVIEW,
--- so that we don't end up with unknown-type columns.
+-- Check that unknown literals are converted to ''text'' in CREATE MATVIEW,
+-- so that we don''t end up with unknown-type columns.
 CREATE MATERIALIZED VIEW mv_unspecified_types AS
   SELECT 42 as i, 42.5 as num, 'foo' as u, 'foo'::unknown as u2, null as n;
 -- \d+ mv_unspecified_types
@@ -232,7 +232,7 @@ DROP OWNED BY regress_user_mvtest CASCADE;
 DROP ROLE regress_user_mvtest;
 
 -- Concurrent refresh requires a unique index on the materialized
--- view. Test what happens if it's dropped during the refresh.
+-- view. Test what happens if it''s dropped during the refresh.
 SET search_path = mvtest_mvschema, public;
 CREATE OR REPLACE FUNCTION mvtest_drop_the_index()
   RETURNS bool AS $$

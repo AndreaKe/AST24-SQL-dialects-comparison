@@ -4,11 +4,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 --
 -- synchronous_commit=off delays when hint bits may be set. Some plans change
@@ -31,8 +31,8 @@ CREATE TABLESPACE regress_tblspace LOCATION '';
 --
 -- These tables have traditionally been referenced by many tests,
 -- so create and populate them.  Insert only non-error values here.
--- (Some subsequent tests try to insert erroneous values.  That's okay
--- because the table won't actually change.  Do not change the contents
+-- (Some subsequent tests try to insert erroneous values.  That''s okay
+-- because the table won''t actually change.  Do not change the contents
 -- of these tables in later tests, as it may affect other tests.)
 --
 
@@ -98,7 +98,7 @@ INSERT INTO POINT_TBL(f1) VALUES
   ('(Inf,1e+300)'),  -- Transposed
   (' ( Nan , NaN ) '),
   ('10.0,10.0');
--- We intentionally don't vacuum point_tbl here /* REPLACED */, geometry depends on that
+-- We intentionally don''t vacuum point_tbl here /* REPLACED */, geometry depends on that
 
 CREATE TABLE TEXT_TBL (f1 text);
 
@@ -135,7 +135,7 @@ CREATE TABLE onek (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/onek.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/onek.data''
 COPY onek FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
 VACUUM ANALYZE onek;
 
@@ -161,7 +161,7 @@ CREATE TABLE tenk1 (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/tenk.data''
 COPY tenk1 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
 VACUUM ANALYZE tenk1;
 
@@ -174,7 +174,7 @@ CREATE TABLE person (
 	location 	point
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/person.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/person.data''
 COPY person FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
 VACUUM ANALYZE person;
 
@@ -183,7 +183,7 @@ CREATE TABLE emp (
 	manager 	name
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/emp.data''
 COPY emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
 VACUUM ANALYZE emp;
 
@@ -191,7 +191,7 @@ CREATE TABLE student (
 	gpa 		float8
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/student.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/student.data''
 COPY student FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
 VACUUM ANALYZE student;
 
@@ -199,7 +199,7 @@ CREATE TABLE stud_emp (
 	percent 	int4
 ) INHERITS (emp, student);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/stud_emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/stud_emp.data''
 COPY stud_emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
 VACUUM ANALYZE stud_emp;
 
@@ -208,7 +208,7 @@ CREATE TABLE road (
 	thepath 	path
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/streets.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/streets.data''
 COPY road FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
 VACUUM ANALYZE road;
 
@@ -303,7 +303,7 @@ create function fipshash(text)
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
 
 --
 -- BTREE
@@ -369,7 +369,7 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/rect.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/rect.data''
 COPY slow_emp4000 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
@@ -567,7 +567,7 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/array.data''
 COPY array_index_op_test FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
 ANALYZE array_index_op_test;
 
@@ -649,7 +649,7 @@ SELECT COUNT(*) FROM array_gin_test WHERE a @> '{2}';
 DROP TABLE array_gin_test;
 
 --
--- Test GIN index's reloptions
+-- Test GIN index''s reloptions
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
@@ -723,10 +723,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn't:
+-- but this shouldn''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we're here, see that the metadata looks sane
+-- while we''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -743,10 +743,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn't:
+-- but this shouldn''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we're here, see that the metadata looks sane
+-- while we''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -764,7 +764,7 @@ INSERT INTO covering_index_heap VALUES(1,1,'AAA');
 INSERT INTO covering_index_heap VALUES(1,2,'AAA');
 -- this should fail because of unique index on f1,f2:
 INSERT INTO covering_index_heap VALUES(1,2,'BBB');
--- and this shouldn't:
+-- and this shouldn''t:
 INSERT INTO covering_index_heap VALUES(1,4,'AAA');
 -- Try to build index on table that already contains data
 CREATE UNIQUE INDEX covering_pkey on covering_index_heap (f1,f2) INCLUDE(f3);
@@ -797,7 +797,7 @@ CREATE INDEX CONCURRENTLY concur_index4 on concur_heap(f2) WHERE f1='a';
 CREATE INDEX CONCURRENTLY concur_index5 on concur_heap(f2) WHERE f1='x';
 -- here we also check that you can default the index name
 CREATE INDEX CONCURRENTLY on concur_heap((f2||f1));
--- You can't do a concurrent index build in a transaction
+-- You can''t do a concurrent index build in a transaction
 BEGIN;
 CREATE INDEX CONCURRENTLY concur_index7 ON concur_heap(f1);
 COMMIT;
@@ -2137,10 +2137,10 @@ ROLLBACK;
 CREATE TABLE TIMESTAMP_TBL (d1 timestamp(2) without time zone);
 
 -- Test shorthand input values
--- We can't just "select" the results since they aren't constants /* REPLACED */, test for
+-- We can''t just ''select'' the results since they aren''t constants /* REPLACED */, test for
 -- equality instead.  We can do that by running the test inside a transaction
--- block, within which the value of 'now' shouldn't change, and so these
--- related values shouldn't either.
+-- block, within which the value of ''now'' shouldn''t change, and so these
+-- related values shouldn''t either.
 
 BEGIN;
 
@@ -2159,8 +2159,8 @@ COMMIT;
 
 DELETE FROM TIMESTAMP_TBL;
 
--- Verify that 'now' *does* change over a reasonable interval such as 100 msec,
--- and that it doesn't change over the same interval within a transaction block
+-- Verify that ''now'' *does* change over a reasonable interval such as 100 msec,
+-- and that it doesn''t change over the same interval within a transaction block
 
 INSERT INTO TIMESTAMP_TBL VALUES ('now');
 SELECT pg_sleep(0.1);
@@ -2489,7 +2489,7 @@ SELECT to_char(d1, 'HH HH12 HH24 MI SS SSSS')
 SELECT to_char(d1, E'"HH:MI:SS is" HH:MI:SS "\\"text between quote marks\\""')
    FROM TIMESTAMP_TBL;
 
-SELECT to_char(d1, 'HH24--text--MI--text--SS')
+SELECT to_char(d1, 'HH24--text--MI--text--SS'')
    FROM TIMESTAMP_TBL;
 
 SELECT to_char(d1, 'YYYYTH YYYYth Jth')
@@ -2529,7 +2529,7 @@ select * from generate_series('2020-01-01 00:00'::timestamp,
                               '2020-01-02 03:00'::timestamp,
                               '1 hour'::interval);
 -- the LIMIT should allow this to terminate in a reasonable amount of time
--- (but that unfortunately doesn't work yet for SELECT * FROM ...)
+-- (but that unfortunately doesn''t work yet for SELECT * FROM ...)
 select generate_series('2022-01-01 00:00'::timestamp,
                        'infinity'::timestamp,
                        '1 month'::interval) limit 10;
@@ -2565,10 +2565,10 @@ select age(timestamp '-infinity', timestamp '-infinity');
 CREATE TABLE TIMESTAMPTZ_TBL (d1 timestamp(2) with time zone);
 
 -- Test shorthand input values
--- We can't just "select" the results since they aren't constants /* REPLACED */, test for
+-- We can''t just ''select'' the results since they aren''t constants /* REPLACED */, test for
 -- equality instead.  We can do that by running the test inside a transaction
--- block, within which the value of 'now' shouldn't change, and so these
--- related values shouldn't either.
+-- block, within which the value of ''now'' shouldn''t change, and so these
+-- related values shouldn''t either.
 
 BEGIN;
 
@@ -2588,8 +2588,8 @@ COMMIT;
 
 DELETE FROM TIMESTAMPTZ_TBL;
 
--- Verify that 'now' *does* change over a reasonable interval such as 100 msec,
--- and that it doesn't change over the same interval within a transaction block
+-- Verify that ''now'' *does* change over a reasonable interval such as 100 msec,
+-- and that it doesn''t change over the same interval within a transaction block
 
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
 SELECT pg_sleep(0.1);
@@ -2717,7 +2717,7 @@ INSERT INTO TIMESTAMPTZ_TBL VALUES ('Jan 01 17:32:01 2001');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Feb 16 17:32:01 -0097');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Feb 16 17:32:01 5097 BC');
 
--- Alternative field order that we've historically supported (sort of)
+-- Alternative field order that we''ve historically supported (sort of)
 -- with regular and POSIXy timezone specs
 SELECT 'Wed Jul 11 10:51:14 America/New_York 2001'::timestamptz;
 SELECT 'Wed Jul 11 10:51:14 GMT-4 2001'::timestamptz;
@@ -2897,7 +2897,7 @@ SELECT to_char(d1, 'HH HH12 HH24 MI SS SSSS')
 SELECT to_char(d1, E'"HH:MI:SS is" HH:MI:SS "\\"text between quote marks\\""')
    FROM TIMESTAMPTZ_TBL;
 
-SELECT to_char(d1, 'HH24--text--MI--text--SS')
+SELECT to_char(d1, 'HH24--text--MI--text--SS'')
    FROM TIMESTAMPTZ_TBL;
 
 SELECT to_char(d1, 'YYYYTH YYYYth Jth')
@@ -3018,7 +3018,7 @@ select * from generate_series('2020-01-01 00:00'::timestamptz,
                               '2020-01-02 03:00'::timestamptz,
                               '1 hour'::interval);
 -- the LIMIT should allow this to terminate in a reasonable amount of time
--- (but that unfortunately doesn't work yet for SELECT * FROM ...)
+-- (but that unfortunately doesn''t work yet for SELECT * FROM ...)
 select generate_series('2022-01-01 00:00'::timestamptz,
                        'infinity'::timestamptz,
                        '1 month'::interval) limit 10;
@@ -3205,7 +3205,7 @@ DROP VIEW timestamp_local_view;
 COMMIT;
 
 --
--- Test that AT TIME ZONE isn't misoptimized when using an index (bug #14504)
+-- Test that AT TIME ZONE isn''t misoptimized when using an index (bug #14504)
 --
 create temp table tmptz (f1 timestamptz primary key);
 insert into tmptz values ('2017-01-18 00:00+00');
@@ -3238,7 +3238,7 @@ SELECT age(timestamptz '-infinity', timestamptz '-infinity');
 SET DATESTYLE = 'ISO';
 SET IntervalStyle to postgres;
 
--- check acceptance of "time zone style"
+-- check acceptance of ''time zone style''
 SELECT INTERVAL '01:00' AS "One hour";
 SELECT INTERVAL '+02:00' AS "Two hours";
 SELECT INTERVAL '-08:00' AS "Eight hours";
@@ -3351,7 +3351,7 @@ DROP TABLE INTERVAL_TBL_OF;
 -- Test multiplication and division with intervals.
 -- Floating point arithmetic rounding errors can lead to unexpected results,
 -- though the code attempts to do the right thing and round up to days and
--- minutes to avoid results such as '3 days 24:00 hours' or '14:20:60'.
+-- minutes to avoid results such as ''3 days 24:00 hours'' or ''14:20:60''.
 -- Note that it is expected for some day components to be greater than 29 and
 -- some time components be greater than 23:59:59 due to how intervals are
 -- stored internally.
@@ -3558,7 +3558,7 @@ select  interval '0'                                AS "zero",
         (interval '1-2' - interval '3 4:05:06.7')   AS "mixed sign",
         (- interval '1-2' + interval '3 4:05:06.7') AS "negative";
 
--- test inputting ISO 8601 4.4.2.1 "Format With Time Unit Designators"
+-- test inputting ISO 8601 4.4.2.1 ''Format With Time Unit Designators''
 SET IntervalStyle to sql_standard;
 select  interval 'P0Y'                    AS "zero",
         interval 'P1Y2M'                  AS "a year 2 months",
@@ -3568,7 +3568,7 @@ select  interval 'P0Y'                    AS "zero",
         interval 'P-1Y-2M-3DT-4H-5M-6.7S' AS "negative",
         interval 'PT-0.1S'                AS "fractional second";
 
--- test inputting ISO 8601 4.4.2.2 "Alternative Format"
+-- test inputting ISO 8601 4.4.2.2 ''Alternative Format''
 SET IntervalStyle to postgres;
 select  interval 'P00021015T103020'       AS "ISO8601 Basic Format",
         interval 'P0002-10-15T10:30:20'   AS "ISO8601 Extended Format";
@@ -3589,7 +3589,7 @@ select interval 'P1.0Y0M3DT4H5M6S';
 select interval 'P1.1Y0M3DT4H5M6S';
 select interval 'P1.Y0M3DT4H5M6S';
 select interval 'P.1Y0M3DT4H5M6S';
-select interval 'P10.5e4Y';  -- not per spec, but we've historically taken it
+select interval 'P10.5e4Y';  -- not per spec, but we''ve historically taken it
 select interval 'P.Y0M3DT4H5M6S';  -- error
 
 -- test a couple rounding cases that changed since 8.3 w/ HAVE_INT64_TIMESTAMP.
@@ -3797,7 +3797,7 @@ select interval '-2147483647 months -2147483648 days -9223372036854775808 us';
 SET IntervalStyle to postgres_verbose;
 select interval '-2147483647 months -2147483648 days -9223372036854775808 us';
 
--- check that '30 days' equals '1 month' according to the hash function
+-- check that ''30 days'' equals ''1 month'' according to the hash function
 select '30 days'::interval = '1 month'::interval as t;
 select interval_hash('30 days'::interval) = interval_hash('1 month'::interval) as t;
 
@@ -4010,7 +4010,7 @@ SELECT '-infinity'::interval::time;
 SELECT to_char('infinity'::interval, 'YYYY');
 SELECT to_char('-infinity'::interval, 'YYYY');
 
--- "ago" can only appear once at the end of an interval.
+-- ''ago'' can only appear once at the end of an interval.
 SELECT INTERVAL '42 days 2 seconds ago ago';
 SELECT INTERVAL '2 minutes ago 5 days';
 
@@ -4018,8 +4018,8 @@ SELECT INTERVAL '2 minutes ago 5 days';
 SELECT INTERVAL 'hour 5 months';
 SELECT INTERVAL '1 year months days 5 hours';
 
--- unacceptable reserved words in interval. Only "infinity", "+infinity" and
--- "-infinity" are allowed.
+-- unacceptable reserved words in interval. Only ''infinity'', ''+infinity'' and
+-- ''-infinity'' are allowed.
 SELECT INTERVAL 'now';
 SELECT INTERVAL 'today';
 SELECT INTERVAL 'tomorrow';

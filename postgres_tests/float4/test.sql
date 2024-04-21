@@ -147,9 +147,9 @@ SELECT float4send('1.17549435e-38'::float4);
 SELECT float4send('1.1754944e-38'::float4);
 
 -- test output (and round-trip safety) of various values.
--- To ensure we're testing what we think we're testing, start with
+-- To ensure we''re testing what we think we''re testing, start with
 -- float values specified by bit patterns (as a useful side effect,
--- this means we'll fail on non-IEEE platforms).
+-- this means we''ll fail on non-IEEE platforms).
 
 create type xfloat4;
 create function xfloat4in(cstring) returns xfloat4 immutable strict
@@ -164,8 +164,8 @@ create cast (integer as xfloat4) without function;
 
 -- float4: seeeeeee emmmmmmm mmmmmmmm mmmmmmmm
 
--- we don't care to assume the platform's strtod() handles subnormals
--- correctly /* REPLACED */, those are "use at your own risk". However we do test
+-- we don''t care to assume the platform''s strtod() handles subnormals
+-- correctly /* REPLACED */, those are ''use at your own risk''. However we do test
 -- subnormal outputs, since those are under our control.
 
 with testdata(bits) as (values
@@ -294,7 +294,7 @@ with testdata(bits) as (values
   (x'42f6e9d5'),
   (x'414587dd'),
   (x'3f9e064b'),
-  -- these cases come from the upstream's testsuite
+  -- these cases come from the upstream''s testsuite
   -- BoundaryRoundEven
   (x'4c000004'),
   (x'50061c46'),

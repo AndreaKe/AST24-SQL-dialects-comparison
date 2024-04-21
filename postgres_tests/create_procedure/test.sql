@@ -164,7 +164,7 @@ $$;
 
 -- standard way to do a call:
 CALL ptest9(NULL);
--- you can write an expression, but it's not evaluated
+-- you can write an expression, but it''s not evaluated
 CALL ptest9(1/0);  -- no error
 -- ... and it had better match the type of the parameter
 CALL ptest9(1./0.);  -- error

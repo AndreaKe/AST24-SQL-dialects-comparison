@@ -81,7 +81,7 @@ select * from pg_input_error_info('junk', 'positiveint');
 select * from pg_input_error_info('-1', 'positiveint');
 select * from pg_input_error_info('junk', 'weirdfloat');
 select * from pg_input_error_info('0.01', 'weirdfloat');
--- We currently can't trap errors raised in the CHECK expression itself
+-- We currently can''t trap errors raised in the CHECK expression itself
 select * from pg_input_error_info('0', 'weirdfloat');
 
 drop domain positiveint;
@@ -286,7 +286,7 @@ select pg_typeof(f1[1][1]) from dposintatable;
 select pg_typeof((f1[1])[1]) from dposintatable;
 update dposintatable set f1[2] = array[99];
 select f1, f1[1], (f1[2])[1] from dposintatable;
--- it'd be nice if you could do something like this, but for now you can't:
+-- it''d be nice if you could do something like this, but for now you can''t:
 update dposintatable set f1[2][1] = array[97];
 -- maybe someday we can make this syntax work:
 update dposintatable set (f1[2])[1] = array[98];
@@ -307,7 +307,7 @@ table dcomptable;
 update dcomptable set f1[1].cf1 = -1;  -- fail
 update dcomptable set f1[1].cf1 = 1;
 table dcomptable;
--- if there's no constraints, a different code path is taken:
+-- if there''s no constraints, a different code path is taken:
 alter domain dcomptype drop constraint dcomptype_check;
 update dcomptable set f1[1].cf1 = -1;  -- now ok
 table dcomptable;
@@ -561,7 +561,7 @@ drop table dtest;
 drop domain vchar4 cascade;
 
 -- Make sure that constraints of newly-added domain columns are
--- enforced correctly, even if there's no default value for the new
+-- enforced correctly, even if there''s no default value for the new
 -- column. Per bug #1433
 create domain str_domain as text not null;
 
@@ -623,7 +623,7 @@ select doubledecrement(3); -- good
 
 create domain posint as int4;
 
--- Currently, this doesn't work for composite types, but verify it complains
+-- Currently, this doesn''t work for composite types, but verify it complains
 create type ddtest1 as (f1 posint);
 create table ddtest2(f1 ddtest1);
 insert into ddtest2 values(row(-1));
@@ -652,7 +652,7 @@ alter domain posint add constraint c1 check(value >= 0);
 drop table ddtest2;
 drop domain ddtest1d;
 
--- Doesn't work for ranges, either
+-- Doesn''t work for ranges, either
 create type rposint as range (subtype = posint);
 create table ddtest2(f1 rposint);
 insert into ddtest2 values('(-1,3]');

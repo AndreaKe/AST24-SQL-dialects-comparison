@@ -12,7 +12,7 @@ CREATE TABLE deptest (f1 serial primary key, f2 text);
 GRANT SELECT ON TABLE deptest TO GROUP regress_dep_group;
 GRANT ALL ON TABLE deptest TO regress_dep_user, regress_dep_user2;
 
--- can't drop neither because they have privileges somewhere
+-- can''t drop neither because they have privileges somewhere
 DROP USER regress_dep_user;
 DROP GROUP regress_dep_group;
 
@@ -20,7 +20,7 @@ DROP GROUP regress_dep_group;
 REVOKE SELECT ON deptest FROM GROUP regress_dep_group;
 DROP GROUP regress_dep_group;
 
--- can't drop the user if we revoke the privileges partially
+-- can''t drop the user if we revoke the privileges partially
 REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, MAINTAIN ON deptest FROM regress_dep_user;
 DROP USER regress_dep_user;
 
@@ -32,7 +32,7 @@ DROP USER regress_dep_user;
 REVOKE ALL ON deptest FROM regress_dep_user2;
 DROP USER regress_dep_user2;
 
--- can't drop the owner of an object
+-- can''t drop the owner of an object
 -- the error message detail here would include a pg_toast_nnn name that
 -- is not constant, so suppress it
 -- \set VERBOSITY terse
@@ -105,7 +105,7 @@ REASSIGN OWNED BY regress_dep_user1 TO regress_dep_user2;
 SELECT typowner = relowner
 FROM pg_type JOIN pg_class c ON typrelid = c.oid WHERE typname = 'deptest_t';
 
--- doesn't work: grant still exists
+-- doesn''t work: grant still exists
 DROP USER regress_dep_user1;
 DROP OWNED BY regress_dep_user1;
 DROP USER regress_dep_user1;

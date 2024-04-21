@@ -3,10 +3,10 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 -- Setup
 CREATE SCHEMA lock_schema1;

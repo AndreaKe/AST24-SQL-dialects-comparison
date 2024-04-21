@@ -7,10 +7,10 @@
 -- test script that needs them.  All that remains here is error cases.
 
 -- directory path and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 --
 -- Check LOAD command.  (The alternative of implicitly loading the library
@@ -18,7 +18,7 @@
 --
 LOAD /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so';
 
--- Things that shouldn't work:
+-- Things that shouldn''t work:
 
 CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
     AS 'nosuchfile';

@@ -531,7 +531,7 @@ select conrelid::regclass::text as relname, conname,
 from pg_constraint where conname like 'inh\_check\_constraint%'
 order by 1, 2;
 
--- We don't drop the invalid_check_con* tables, to test dump/reload with
+-- We don''t drop the invalid_check_con* tables, to test dump/reload with
 
 --
 -- Test parameterized append plans for inheritance trees
@@ -593,7 +593,7 @@ select min(1-id) from matest0;
 reset enable_indexscan;
 
 set enable_seqscan = off;  -- plan with fewest seqscans should be merge
-set enable_parallel_append = off; -- Don't let parallel-append interfere
+set enable_parallel_append = off; -- Don''t let parallel-append interfere
 explain (verbose, costs off) select * from matest0 order by 1-id;
 select * from matest0 order by 1-id;
 explain (verbose, costs off) select min(1-id) from matest0;
@@ -604,7 +604,7 @@ reset enable_parallel_append;
 drop table matest0 cascade;
 
 --
--- Check that use of an index with an extraneous column doesn't produce
+-- Check that use of an index with an extraneous column doesn''t produce
 -- a plan with extraneous sorting
 --
 
@@ -677,7 +677,7 @@ SELECT min(y) FROM
    UNION ALL
    SELECT unique2 AS x, unique2 AS y FROM tenk1 b) s;
 
--- XXX planner doesn't recognize that index on unique2 is sufficiently sorted
+-- XXX planner doesn''t recognize that index on unique2 is sufficiently sorted
 explain (costs off)
 SELECT x, y FROM
   (SELECT thousand AS x, tenthous AS y FROM tenk1 a
@@ -780,10 +780,10 @@ alter table pp1 alter column f1 set not null;
 -- cannot create table with inconsistent NO INHERIT constraint
 create table cc3 (a2 int not null no inherit) inherits (cc1);
 
--- change NO INHERIT status of inherited constraint: no dice, it's inherited
+-- change NO INHERIT status of inherited constraint: no dice, it''s inherited
 alter table cc2 add not null a2 no inherit;
 
--- remove constraint from cc2: no dice, it's inherited
+-- remove constraint from cc2: no dice, it''s inherited
 alter table cc2 alter column a2 drop not null;
 
 -- remove constraint cc1, should succeed
@@ -888,7 +888,7 @@ alter table inh_child inherit inh_parent;		-- nope
 alter table inh_child alter a set not null;
 alter table inh_child inherit inh_parent;		-- now it works
 
--- don't interfere with other types of constraints
+-- don''t interfere with other types of constraints
 alter table inh_parent add constraint inh_parent_excl exclude ((1) with =);
 alter table inh_parent add constraint inh_parent_uq unique (a);
 alter table inh_parent add constraint inh_parent_fk foreign key (a) references inh_parent (a);
@@ -973,7 +973,7 @@ create table inh_parent (a int not null);
 set session authorization regress_bob;
 create table inh_child () inherits (inh_parent);
 set session authorization regress_alice;
--- alice can't do this: she doesn't own inh_child
+-- alice can''t do this: she doesn''t own inh_child
 alter table inh_parent alter a drop not null;
 set session authorization regress_bob;
 alter table inh_parent alter a drop not null;
@@ -1138,7 +1138,7 @@ explain (costs off) select * from mclparted where a in(3,4,5) order by a;
 create table mclparted_null partition of mclparted for values in(null);
 create table mclparted_def partition of mclparted default;
 
--- Append can be used providing we don't scan the interleaved partition
+-- Append can be used providing we don''t scan the interleaved partition
 explain (costs off) select * from mclparted where a in(1,2,4) order by a;
 explain (costs off) select * from mclparted where a in(1,2,4) or a is null order by a;
 
@@ -1160,7 +1160,7 @@ drop table mclparted;
 reset enable_sort;
 reset enable_bitmapscan;
 
--- Ensure subplans which don't have a path with the correct pathkeys get
+-- Ensure subplans which don''t have a path with the correct pathkeys get
 -- sorted correctly.
 drop index mcrparted_a_abs_c_idx;
 create index on mcrparted1 (a, abs(b), c);
@@ -1214,7 +1214,7 @@ explain (costs off) select * from range_parted order by a desc,b desc,c desc;
 
 drop table range_parted;
 
--- Check that we allow access to a child table's statistics when the user
+-- Check that we allow access to a child table''s statistics when the user
 -- has permissions only for the parent table.
 create table permtest_parent (a int, b text, c text) partition by list (a);
 create table permtest_child (b text, c text, a int) partition by list (b);
@@ -1243,7 +1243,7 @@ set session authorization regress_no_child_access;
 explain (costs off)
   select p2.a, p1.c from permtest_parent p1 inner join permtest_parent p2
   on p1.a = p2.a and p1.c ~ 'a1$';
--- we will not have access to the expression index's stats here:
+-- we will not have access to the expression index''s stats here:
 explain (costs off)
   select p2.a, p1.c from permtest_parent p1 inner join permtest_parent p2
   on p1.a = p2.a and left(p1.c, 3) ~ 'a1$';

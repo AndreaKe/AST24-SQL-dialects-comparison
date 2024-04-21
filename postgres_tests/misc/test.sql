@@ -3,12 +3,12 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv abs_builddir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results''
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 CREATE FUNCTION overpaid(emp)
    RETURNS bool
@@ -68,12 +68,12 @@ DROP TABLE tmp;
 
 --UPDATE person*
 --   SET age = age + 3
---   WHERE name = 'linda' /* REPLACED */,
+--   WHERE name = ''linda'' /* REPLACED */,
 
 --
 -- copy
 --
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/onek.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/onek.data''
 COPY onek TO /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/onek.data';
 
 CREATE TEMP TABLE onek_copy (LIKE onek);
@@ -84,7 +84,7 @@ SELECT * FROM onek EXCEPT ALL SELECT * FROM onek_copy;
 
 SELECT * FROM onek_copy EXCEPT ALL SELECT * FROM onek;
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/stud_emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/stud_emp.data''
 COPY BINARY stud_emp TO /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/stud_emp.data';
 
 CREATE TEMP TABLE stud_emp_copy (LIKE stud_emp);
@@ -200,7 +200,7 @@ SELECT p.name, name(p.hobbies) FROM person* p;
 
 --
 -- the next two queries demonstrate how functions generate bogus duplicates.
--- this is a "feature" ..
+-- this is a ''feature'' ..
 --
 SELECT DISTINCT hobbies_r.name, name(hobbies_r.equipment) FROM hobbies_r
   ORDER BY 1,2;
@@ -208,14 +208,14 @@ SELECT DISTINCT hobbies_r.name, name(hobbies_r.equipment) FROM hobbies_r
 SELECT hobbies_r.name, (hobbies_r.equipment).name FROM hobbies_r;
 
 --
--- mike needs advil and peet's coffee,
+-- mike needs advil and peet''s coffee,
 -- joe and sally need hightops, and
 -- everyone else is fine.
 --
 SELECT p.name, name(p.hobbies), name(equipment(p.hobbies)) FROM ONLY person p;
 
 --
--- as above, but jeff needs advil and peet's coffee as well.
+-- as above, but jeff needs advil and peet''s coffee as well.
 --
 SELECT p.name, name(p.hobbies), name(equipment(p.hobbies)) FROM person* p;
 

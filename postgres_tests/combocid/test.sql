@@ -75,7 +75,7 @@ SELECT ctid,cmin,* FROM combocidtest;
 
 SAVEPOINT s1;
 
--- this doesn't affect cmin
+-- this doesn''t affect cmin
 SELECT ctid,cmin,* FROM combocidtest FOR UPDATE;
 SELECT ctid,cmin,* FROM combocidtest;
 

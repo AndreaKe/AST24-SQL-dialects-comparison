@@ -4,11 +4,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 --
 -- synchronous_commit=off delays when hint bits may be set. Some plans change
@@ -31,8 +31,8 @@ CREATE TABLESPACE regress_tblspace LOCATION '';
 --
 -- These tables have traditionally been referenced by many tests,
 -- so create and populate them.  Insert only non-error values here.
--- (Some subsequent tests try to insert erroneous values.  That's okay
--- because the table won't actually change.  Do not change the contents
+-- (Some subsequent tests try to insert erroneous values.  That''s okay
+-- because the table won''t actually change.  Do not change the contents
 -- of these tables in later tests, as it may affect other tests.)
 --
 
@@ -98,7 +98,7 @@ INSERT INTO POINT_TBL(f1) VALUES
   ('(Inf,1e+300)'),  -- Transposed
   (' ( Nan , NaN ) '),
   ('10.0,10.0');
--- We intentionally don't vacuum point_tbl here /* REPLACED */, geometry depends on that
+-- We intentionally don''t vacuum point_tbl here /* REPLACED */, geometry depends on that
 
 CREATE TABLE TEXT_TBL (f1 text);
 
@@ -135,7 +135,7 @@ CREATE TABLE onek (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/onek.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/onek.data''
 COPY onek FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
 VACUUM ANALYZE onek;
 
@@ -161,7 +161,7 @@ CREATE TABLE tenk1 (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/tenk.data''
 COPY tenk1 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
 VACUUM ANALYZE tenk1;
 
@@ -174,7 +174,7 @@ CREATE TABLE person (
 	location 	point
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/person.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/person.data''
 COPY person FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
 VACUUM ANALYZE person;
 
@@ -183,7 +183,7 @@ CREATE TABLE emp (
 	manager 	name
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/emp.data''
 COPY emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
 VACUUM ANALYZE emp;
 
@@ -191,7 +191,7 @@ CREATE TABLE student (
 	gpa 		float8
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/student.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/student.data''
 COPY student FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
 VACUUM ANALYZE student;
 
@@ -199,7 +199,7 @@ CREATE TABLE stud_emp (
 	percent 	int4
 ) INHERITS (emp, student);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/stud_emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/stud_emp.data''
 COPY stud_emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
 VACUUM ANALYZE stud_emp;
 
@@ -208,7 +208,7 @@ CREATE TABLE road (
 	thepath 	path
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/streets.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/streets.data''
 COPY road FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
 VACUUM ANALYZE road;
 
@@ -303,7 +303,7 @@ create function fipshash(text)
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
 
 --
 -- BTREE
@@ -369,7 +369,7 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/rect.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/rect.data''
 COPY slow_emp4000 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
@@ -567,7 +567,7 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/array.data''
 COPY array_index_op_test FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
 ANALYZE array_index_op_test;
 
@@ -649,7 +649,7 @@ SELECT COUNT(*) FROM array_gin_test WHERE a @> '{2}';
 DROP TABLE array_gin_test;
 
 --
--- Test GIN index's reloptions
+-- Test GIN index''s reloptions
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
@@ -723,10 +723,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn't:
+-- but this shouldn''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we're here, see that the metadata looks sane
+-- while we''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -743,10 +743,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn't:
+-- but this shouldn''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we're here, see that the metadata looks sane
+-- while we''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -764,7 +764,7 @@ INSERT INTO covering_index_heap VALUES(1,1,'AAA');
 INSERT INTO covering_index_heap VALUES(1,2,'AAA');
 -- this should fail because of unique index on f1,f2:
 INSERT INTO covering_index_heap VALUES(1,2,'BBB');
--- and this shouldn't:
+-- and this shouldn''t:
 INSERT INTO covering_index_heap VALUES(1,4,'AAA');
 -- Try to build index on table that already contains data
 CREATE UNIQUE INDEX covering_pkey on covering_index_heap (f1,f2) INCLUDE(f3);
@@ -797,7 +797,7 @@ CREATE INDEX CONCURRENTLY concur_index4 on concur_heap(f2) WHERE f1='a';
 CREATE INDEX CONCURRENTLY concur_index5 on concur_heap(f2) WHERE f1='x';
 -- here we also check that you can default the index name
 CREATE INDEX CONCURRENTLY on concur_heap((f2||f1));
--- You can't do a concurrent index build in a transaction
+-- You can''t do a concurrent index build in a transaction
 BEGIN;
 CREATE INDEX CONCURRENTLY concur_index7 ON concur_heap(f1);
 COMMIT;

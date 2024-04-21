@@ -14,11 +14,11 @@
 --   about-to-deleted row in pg_class to commit. That can cause
 --   deadlocks because, in contrast to user tables, locks on catalog
 --   tables are routinely released before commit - therefore the lock
---   held for reindexing doesn't guarantee that no running transaction
+--   held for reindexing doesn''t guarantee that no running transaction
 --   performed modifications in the table underlying the index.
 --
 --   This is particularly problematic as such conflicts can be
---   triggered even when run in isolation, as a previous session's
+--   triggered even when run in isolation, as a previous session''s
 --   temporary table cleanup might still be running (even when the
 --   session ended from a client perspective).
 
@@ -30,7 +30,7 @@ REINDEX TABLE pg_operator; -- non-mapped, non-shared, critical
 REINDEX TABLE pg_database; -- mapped, shared, critical
 REINDEX TABLE pg_shdescription; -- mapped, shared non-critical
 
--- Check that individual system indexes can be reindexed. That's a bit
+-- Check that individual system indexes can be reindexed. That''s a bit
 -- different from the entire-table case because reindex_relation
 -- treats e.g. pg_class special.
 REINDEX INDEX pg_class_oid_index; -- mapped, non-shared, critical

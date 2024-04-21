@@ -329,7 +329,7 @@ select a, b, grouping(a,b), sum(v), count(*), max(v)
 explain (costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)
   from gstest1 group by cube(a,b) order by 3,1,2;
 
--- shouldn't try and hash
+-- shouldn''t try and hash
 explain (costs off)
   select a, b, grouping(a,b), array_agg(v order by v)
     from gstest1 group by cube(a,b);
@@ -556,7 +556,7 @@ drop table gs_hash_1;
 
 -- GROUP BY DISTINCT
 
--- "normal" behavior...
+-- ''normal'' behavior...
 select a, b, c
 from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by all rollup(a, b), rollup(a, c)
@@ -568,13 +568,13 @@ from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by rollup(a, b), rollup(a, c)
 order by a, b, c;
 
--- "group by distinct" behavior...
+-- ''group by distinct'' behavior...
 select a, b, c
 from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by distinct rollup(a, b), rollup(a, c)
 order by a, b, c;
 
--- ...which is not the same as "select distinct"
+-- ...which is not the same as ''select distinct''
 select distinct a, b, c
 from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by rollup(a, b), rollup(a, c)

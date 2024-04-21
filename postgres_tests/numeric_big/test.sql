@@ -658,9 +658,9 @@ SELECT t1.id1, t1.result, t2.expected
 --
 -- for p in {-20..20}
 -- do
---   b="0.084738"
---   r=$(bc -ql <<< "scale=500  /* REPLACED */, $b^$p" | head -n 1)
---   echo "($b, $p, $r),"
+--   b=''0.084738''
+--   r=$(bc -ql <<< ''scale=500  /* REPLACED */, $b^$p'' | head -n 1)
+--   echo ''($b, $p, $r),''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -714,9 +714,9 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for p in {-20..20}
 -- do
---   b="37.821637"
---   r=$(bc -ql <<< "scale=500  /* REPLACED */, $b^$p" | head -n 1)
---   echo "($b, $p, $r),"
+--   b=''37.821637''
+--   r=$(bc -ql <<< ''scale=500  /* REPLACED */, $b^$p'' | head -n 1)
+--   echo ''($b, $p, $r),''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -774,10 +774,10 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for n in {-20..20}
 -- do
---   b="0.06933247"
---   p="$n.342987"
---   r=$(bc -ql <<< "scale=500  /* REPLACED */, e($p*l($b))" | head -n 1)
---   echo "($b, $p, $r),"
+--   b=''0.06933247''
+--   p=''$n.342987''
+--   r=$(bc -ql <<< ''scale=500  /* REPLACED */, e($p*l($b))'' | head -n 1)
+--   echo ''($b, $p, $r),''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -831,10 +831,10 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for n in {-20..20}
 -- do
---   b="27.234987"
---   p="$n.230957"
---   r=$(bc -ql <<< "scale=500  /* REPLACED */, e($p*l($b))" | head -n 1)
---   echo "($b, $p, $r),"
+--   b=''27.234987''
+--   p=''$n.230957''
+--   r=$(bc -ql <<< ''scale=500  /* REPLACED */, e($p*l($b))'' | head -n 1)
+--   echo ''($b, $p, $r),''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -900,9 +900,9 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for n in {-20..20}
 -- do
---   x="$n.29837"
---   r=$(bc -ql <<< "scale=500  /* REPLACED */, e($x)" | head -n 1)
---   echo "($x, $r),"
+--   x=''$n.29837''
+--   r=$(bc -ql <<< ''scale=500  /* REPLACED */, e($x)'' | head -n 1)
+--   echo ''($x, $r),''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -960,8 +960,8 @@ SELECT x, bc_result, exp(x), exp(x)-bc_result AS diff FROM t;
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< "scale=500  /* REPLACED */, l(10^-$p)" | head -n 1)
---   echo "('1.0e-$p', $l),"
+--   l=$(bc -ql <<< ''scale=500  /* REPLACED */, l(10^-$p)'' | head -n 1)
+--   echo ''(''1.0e-$p'', $l),''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1014,8 +1014,8 @@ SELECT x, bc_result, ln(x::numeric), ln(x::numeric)-bc_result AS diff FROM t;
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< "scale=500  /* REPLACED */, l(1-10^-$p)" | head -n 1)
---   echo "('1.0e-$p', $l),"
+--   l=$(bc -ql <<< ''scale=500  /* REPLACED */, l(1-10^-$p)'' | head -n 1)
+--   echo ''(''1.0e-$p'', $l),''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1068,8 +1068,8 @@ SELECT '1-'||x, bc_result, ln(1.0-x::numeric), ln(1.0-x::numeric)-bc_result AS d
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< "scale=500  /* REPLACED */, l(1+10^-$p)" | head -n 1)
---   echo "('1.0e-$p', $l),"
+--   l=$(bc -ql <<< ''scale=500  /* REPLACED */, l(1+10^-$p)'' | head -n 1)
+--   echo ''(''1.0e-$p'', $l),''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1122,8 +1122,8 @@ SELECT '1+'||x, bc_result, ln(1.0+x::numeric), ln(1.0+x::numeric)-bc_result AS d
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< "scale=500  /* REPLACED */, l(10^$p)" | head -n 1)
---   echo "('1.0e$p', $l),"
+--   l=$(bc -ql <<< ''scale=500  /* REPLACED */, l(10^$p)'' | head -n 1)
+--   echo ''(''1.0e$p'', $l),''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1176,8 +1176,8 @@ SELECT x, bc_result, ln(x::numeric), ln(x::numeric)-bc_result AS diff FROM t;
 --
 -- for p in {1..10}
 -- do
---   l=$(bc -ql <<< "scale=1000  /* REPLACED */, l(10^${p}00)" | head -n 1)
---  echo "('1.0e${p}00', $l),"
+--   l=$(bc -ql <<< ''scale=1000  /* REPLACED */, l(10^${p}00)'' | head -n 1)
+--  echo ''(''1.0e${p}00'', $l),''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1224,8 +1224,8 @@ SELECT x, log(x::numeric) FROM t;
 -- do
 --   for d in {9..1..3}
 --   do
---     l=$(bc -ql <<< "scale=500  /* REPLACED */, l($d*10^-$p) / l(10)" | head -n 1)
---     echo "('${d}.0e-$p', $l),"
+--     l=$(bc -ql <<< ''scale=500  /* REPLACED */, l($d*10^-$p) / l(10)'' | head -n 1)
+--     echo ''(''${d}.0e-$p'', $l),''
 --   done
 -- done
 
@@ -1265,8 +1265,8 @@ SELECT x, bc_result, log(x::numeric), log(x::numeric)-bc_result AS diff FROM t;
 -- do
 --   for d in {9..1..3}
 --   do
---     l=$(bc -ql <<< "scale=500  /* REPLACED */, l(1-$d*10^-$p) / l(10)" | head -n 1)
---     echo "('${d}.0e-$p', $l),"
+--     l=$(bc -ql <<< ''scale=500  /* REPLACED */, l(1-$d*10^-$p) / l(10)'' | head -n 1)
+--     echo ''(''${d}.0e-$p'', $l),''
 --   done
 -- done
 
@@ -1300,8 +1300,8 @@ SELECT '1-'||x, bc_result, log(1.0-x::numeric), log(1.0-x::numeric)-bc_result AS
 -- do
 --   for d in {9..1..3}
 --   do
---     l=$(bc -ql <<< "scale=500  /* REPLACED */, l(1+$d*10^-$p) / l(10)" | head -n 1)
---     echo "('${d}.0e-$p', $l),"
+--     l=$(bc -ql <<< ''scale=500  /* REPLACED */, l(1+$d*10^-$p) / l(10)'' | head -n 1)
+--     echo ''(''${d}.0e-$p'', $l),''
 --   done
 -- done
 
@@ -1339,8 +1339,8 @@ SELECT x, log(x::numeric) FROM t;
 --   do
 --   for d in {2..9..3}
 --   do
---     l=$(bc -ql <<< "scale=500  /* REPLACED */, l($d*10^$p) / l(10)" | head -n 1)
---     echo "('${d}.0e$p', $l),"
+--     l=$(bc -ql <<< ''scale=500  /* REPLACED */, l($d*10^$p) / l(10)'' | head -n 1)
+--     echo ''(''${d}.0e$p'', $l),''
 --   done
 -- done
 

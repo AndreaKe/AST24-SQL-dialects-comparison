@@ -3,10 +3,10 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 CREATE FUNCTION test_opclass_options_func(internal)
     RETURNS void
@@ -99,7 +99,7 @@ SELECT n.nspname, proname, prorettype::regtype, prokind, a.rolname
   ORDER BY nspname, proname;
 
 --
--- We would test collations here, but it's not possible because the error
+-- We would test collations here, but it''s not possible because the error
 -- messages tend to be nonportable.
 --
 
@@ -196,7 +196,7 @@ CREATE OPERATOR @-@ ( leftarg = int4, rightarg = int4, procedure = int4mi );
 ALTER OPERATOR @+@(int4, int4) OWNER TO regress_alter_generic_user2;  -- failed (not owner)
 ALTER OPERATOR @-@(int4, int4) OWNER TO regress_alter_generic_user3;  -- failed (no role membership)
 ALTER OPERATOR @+@(int4, int4) SET SCHEMA alt_nsp2;   -- failed (not owner)
--- can't test this: the error message includes the raw oid of namespace
+-- can''t test this: the error message includes the raw oid of namespace
 -- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 /* REPLACED */,   -- failed (name conflict)
 
 RESET SESSION AUTHORIZATION;

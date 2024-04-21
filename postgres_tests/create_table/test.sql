@@ -221,7 +221,7 @@ CREATE TABLE part2_1 PARTITION OF partitioned2 FOR VALUES FROM (-1, 'aaaaa') TO 
 
 DROP TABLE partitioned, partitioned2;
 
--- check reference to partitioned table's rowtype in partition descriptor
+-- check reference to partitioned table''s rowtype in partition descriptor
 create table partitioned (a int, b int)
   partition by list ((row(a, b)::partitioned));
 create table partitioned1
@@ -314,7 +314,7 @@ CREATE TABLE fail_part PARTITION OF list_parted FOR VALUES WITH (MODULUS 10, REM
 CREATE TABLE part_default PARTITION OF list_parted DEFAULT;
 CREATE TABLE fail_default_part PARTITION OF list_parted DEFAULT;
 
--- specified literal can't be cast to the partition column data type
+-- specified literal can''t be cast to the partition column data type
 CREATE TABLE bools (
 	a bool
 ) PARTITION BY LIST (a);
@@ -436,7 +436,7 @@ CREATE TABLE range_parted2 (
 
 -- trying to create range partition with empty range
 CREATE TABLE fail_part PARTITION OF range_parted2 FOR VALUES FROM (1) TO (0);
--- note that the range '[1, 1)' has no elements
+-- note that the range ''[1, 1)'' has no elements
 CREATE TABLE fail_part PARTITION OF range_parted2 FOR VALUES FROM (1) TO (1);
 
 CREATE TABLE part0 PARTITION OF range_parted2 FOR VALUES FROM (minvalue) TO (1);
@@ -512,7 +512,7 @@ SELECT attname, attislocal, attinhcount FROM pg_attribute
 
 -- able to specify column default, column constraint, and table constraint
 
--- first check the "column specified more than once" error
+-- first check the ''column specified more than once'' error
 CREATE TABLE part_b PARTITION OF parted (
 	b NOT NULL,
 	b DEFAULT 1,
@@ -553,7 +553,7 @@ CREATE TABLE part_c_1_10 PARTITION OF part_c FOR VALUES FROM (1) TO (10);
 create table parted_notnull_inh_test (a int default 1, b int not null default 0) partition by list (a);
 create table parted_notnull_inh_test1 partition of parted_notnull_inh_test (a not null, b default 1) for values in (1);
 insert into parted_notnull_inh_test (b) values (null);
--- note that while b's default is overridden, a's default is preserved
+-- note that while b''s default is overridden, a''s default is preserved
 -- \d parted_notnull_inh_test1
 drop table parted_notnull_inh_test;
 
@@ -586,7 +586,7 @@ create table test_part_coll partition of test_part_coll_posix for values from ('
 create table test_part_coll2 partition of test_part_coll_posix for values from ('g') to ('m');
 -- ok, collation is implicitly coerced
 create table test_part_coll_cast partition of test_part_coll_posix for values from (name 'm' collate "C") to ('s');
--- ok /* REPLACED */, partition collation silently overrides the default collation of type 'name'
+-- ok /* REPLACED */, partition collation silently overrides the default collation of type ''name''
 create table test_part_coll_cast2 partition of test_part_coll_posix for values from (name 's') to ('z');
 
 drop table test_part_coll_posix;
@@ -597,10 +597,10 @@ drop table test_part_coll_posix;
 -- Both partition bound and partition key in describe output
 -- \d+ part_c
 
--- a level-2 partition's constraint will include the parent's expressions
+-- a level-2 partition''s constraint will include the parent''s expressions
 -- \d+ part_c_1_10
 
--- Show partition count in the parent's describe output
+-- Show partition count in the parent''s describe output
 -- Tempted to include \d+ output listing partitions with bound info but
 -- output could vary depending on the order in which partition oids are
 -- returned.

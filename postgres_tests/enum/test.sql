@@ -224,7 +224,7 @@ SELECT enum_range('orange'::rainbow, NULL);
 SELECT enum_range(NULL::rainbow, NULL);
 
 --
--- User functions, can't test perl/python etc here since may not be compiled.
+-- User functions, can''t test perl/python etc here since may not be compiled.
 --
 CREATE FUNCTION echo_me(anyenum) RETURNS text AS $$
 BEGIN
@@ -242,8 +242,8 @@ END
 $$ LANGUAGE plpgsql;
 SELECT echo_me('red'::rainbow);
 --
--- If we drop the original generic one, we don't have to qualify the type
--- anymore, since there's only one match
+-- If we drop the original generic one, we don''t have to qualify the type
+-- anymore, since there''s only one match
 --
 DROP FUNCTION echo_me(anyenum);
 SELECT echo_me('red');
@@ -282,7 +282,7 @@ ALTER TYPE rainbow RENAME VALUE 'blue' TO 'green';
 CREATE TYPE bogus AS ENUM('good');
 
 -- check that we can add new values to existing enums in a transaction
--- but we can't use them
+-- but we can''t use them
 BEGIN;
 ALTER TYPE bogus ADD VALUE 'new';
 SAVEPOINT x;
@@ -323,7 +323,7 @@ ALTER TYPE bogus RENAME TO bogon;
 select enum_range(null::bogon);
 ROLLBACK;
 
--- ideally, we'd allow this usage /* REPLACED */, but it requires keeping track of whether
+-- ideally, we''d allow this usage /* REPLACED */, but it requires keeping track of whether
 -- the enum type was created in the current transaction, which is expensive
 BEGIN;
 CREATE TYPE bogus AS ENUM('good');

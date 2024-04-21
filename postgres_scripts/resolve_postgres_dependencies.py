@@ -22,7 +22,7 @@ for fname in os.listdir(test_path):
             # ';' is used later on as a delimiter of sql commands. Therefore, we need to remove them from comments
             if "--" in line:
                 ls = line.split("--", 1)
-                line = ls[0] + "--" + ls[1].replace(";", " /* REPLACED */," )
+                line = ls[0] + "--" + ls[1].replace(";", " /* REPLACED */," ).replace("'", "''").replace('"', "''").replace("$$", "$$$$")
                 
 
             if 'PG_ABS_SRCDIR' in line or 'PG_LIBDIR' in line or 'PG_DLSUFFIX' in line or 'PG_ABS_BUILDDIR' in line:

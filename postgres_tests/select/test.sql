@@ -3,28 +3,28 @@
 --
 
 -- btree index
--- awk '{if($1<10){print /* REPLACED */,}else{next /* REPLACED */,}}' onek.data | sort +0n -1
+-- awk ''{if($1<10){print /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data | sort +0n -1
 --
 SELECT * FROM onek
    WHERE onek.unique1 < 10
    ORDER BY onek.unique1;
 
 --
--- awk '{if($1<20){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data | sort +0nr -1
+-- awk ''{if($1<20){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data | sort +0nr -1
 --
 SELECT onek.unique1, onek.stringu1 FROM onek
    WHERE onek.unique1 < 20
    ORDER BY unique1 using >;
 
 --
--- awk '{if($1>980){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data | sort +1d -2
+-- awk ''{if($1>980){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data | sort +1d -2
 --
 SELECT onek.unique1, onek.stringu1 FROM onek
    WHERE onek.unique1 > 980
    ORDER BY stringu1 using <;
 
 --
--- awk '{if($1>980){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data |
+-- awk ''{if($1>980){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data |
 -- sort +1d -2 +0nr -1
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -32,7 +32,7 @@ SELECT onek.unique1, onek.string4 FROM onek
    ORDER BY string4 using <, unique1 using >;
 
 --
--- awk '{if($1>980){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data |
+-- awk ''{if($1>980){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data |
 -- sort +1dr -2 +0n -1
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -40,7 +40,7 @@ SELECT onek.unique1, onek.string4 FROM onek
    ORDER BY string4 using >, unique1 using <;
 
 --
--- awk '{if($1<20){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data |
+-- awk ''{if($1<20){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data |
 -- sort +0nr -1 +1d -2
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -48,7 +48,7 @@ SELECT onek.unique1, onek.string4 FROM onek
    ORDER BY unique1 using >, string4 using <;
 
 --
--- awk '{if($1<20){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data |
+-- awk ''{if($1<20){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data |
 -- sort +0n -1 +1dr -2
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -58,7 +58,7 @@ SELECT onek.unique1, onek.string4 FROM onek
 --
 -- test partial btree indexes
 --
--- As of 7.2, planner probably won't pick an indexscan without stats,
+-- As of 7.2, planner probably won''t pick an indexscan without stats,
 -- so ANALYZE first.  Also, we want to prevent it from picking a bitmapscan
 -- followed by sort, because that could hide index ordering problems.
 --
@@ -69,19 +69,19 @@ SET enable_bitmapscan TO off;
 SET enable_sort TO off;
 
 --
--- awk '{if($1<10){print $0 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data | sort +0n -1
+-- awk ''{if($1<10){print $0 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data | sort +0n -1
 --
 SELECT onek2.* FROM onek2 WHERE onek2.unique1 < 10;
 
 --
--- awk '{if($1<20){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data | sort +0nr -1
+-- awk ''{if($1<20){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data | sort +0nr -1
 --
 SELECT onek2.unique1, onek2.stringu1 FROM onek2
     WHERE onek2.unique1 < 20
     ORDER BY unique1 using >;
 
 --
--- awk '{if($1>980){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}' onek.data | sort +1d -2
+-- awk ''{if($1>980){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}'' onek.data | sort +1d -2
 --
 SELECT onek2.unique1, onek2.stringu1 FROM onek2
    WHERE onek2.unique1 > 980;
@@ -91,19 +91,19 @@ RESET enable_bitmapscan;
 RESET enable_sort;
 
 --
--- awk '{print $1,$2 /* REPLACED */,}' person.data |
--- awk '{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}' - emp.data |
--- awk '{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}' - student.data |
--- awk 'BEGIN{FS="      " /* REPLACED */,}{if(NF!=2){print $4,$5 /* REPLACED */,}else{print /* REPLACED */,}}' - stud_emp.data
+-- awk ''{print $1,$2 /* REPLACED */,}'' person.data |
+-- awk ''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}'' - emp.data |
+-- awk ''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}'' - student.data |
+-- awk ''BEGIN{FS=''      '' /* REPLACED */,}{if(NF!=2){print $4,$5 /* REPLACED */,}else{print /* REPLACED */,}}'' - stud_emp.data
 --
 -- SELECT name, age FROM person* /* REPLACED */, ??? check if different
 SELECT p.name, p.age FROM person* p;
 
 --
--- awk '{print $1,$2 /* REPLACED */,}' person.data |
--- awk '{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}' - emp.data |
--- awk '{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}' - student.data |
--- awk 'BEGIN{FS="      " /* REPLACED */,}{if(NF!=1){print $4,$5 /* REPLACED */,}else{print /* REPLACED */,}}' - stud_emp.data |
+-- awk ''{print $1,$2 /* REPLACED */,}'' person.data |
+-- awk ''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}'' - emp.data |
+-- awk ''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}'' - student.data |
+-- awk ''BEGIN{FS=''      '' /* REPLACED */,}{if(NF!=1){print $4,$5 /* REPLACED */,}else{print /* REPLACED */,}}'' - stud_emp.data |
 -- sort +1nr -2
 --
 SELECT p.name, p.age FROM person* p ORDER BY age using >, name;
@@ -122,7 +122,7 @@ select * from onek, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE onek.unique1 = v.i and onek.stringu1 = v.j;
 
 -- a more complex case
--- looks like we're coding lisp :-)
+-- looks like we''re coding lisp :-)
 select * from onek,
   (values ((select i from
     (values(10000), (2), (389), (1000), (2000), ((select 10029))) as foo(i)
@@ -208,7 +208,7 @@ select * from onek2 where unique2 = 11 and stringu1 < 'B';
 explain (costs off)
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B';
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B';
--- but if it's an update target, must retest anyway
+-- but if it''s an update target, must retest anyway
 explain (costs off)
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B' for update;
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B' for update;
@@ -238,7 +238,7 @@ select unique1, unique2 from onek2
 -- Test some corner cases that have been known to confuse the planner
 --
 
--- ORDER BY on a constant doesn't really need any sorting
+-- ORDER BY on a constant doesn''t really need any sorting
 SELECT 1 AS x ORDER BY x;
 
 -- But ORDER BY on a set-valued expression does
@@ -250,7 +250,7 @@ select sillysrf(-1) order by 1;
 
 drop function sillysrf(int);
 
--- X = X isn't a no-op, it's effectively X IS NOT NULL assuming = is strict
+-- X = X isn''t a no-op, it''s effectively X IS NOT NULL assuming = is strict
 -- (see bug #5084)
 select * from (values (2),(null),(1)) v(k) where k = k order by k;
 select * from (values (2),(null),(1)) v(k) where k = k;

@@ -4,7 +4,7 @@
 
 -- Clean up in case a prior regression run failed
 
--- Suppress NOTICE messages when users/groups don't exist
+-- Suppress NOTICE messages when users/groups don''t exist
 SET client_min_messages TO 'warning';
 
 DROP ROLE IF EXISTS regress_priv_group1;
@@ -68,7 +68,7 @@ GRANT regress_priv_user1 TO regress_priv_user2 WITH ADMIN OPTION;
 GRANT regress_priv_user1 TO regress_priv_user3 GRANTED BY regress_priv_user2;
 DROP ROLE regress_priv_user2; -- fail, dependency
 REASSIGN OWNED BY regress_priv_user2 TO regress_priv_user4;
-DROP ROLE regress_priv_user2; -- still fail, REASSIGN OWNED doesn't help
+DROP ROLE regress_priv_user2; -- still fail, REASSIGN OWNED doesn''t help
 DROP OWNED BY regress_priv_user2;
 DROP ROLE regress_priv_user2; -- ok now, DROP OWNED does the job
 
@@ -154,7 +154,7 @@ ALTER FUNCTION leak(integer,integer) OWNER TO regress_priv_user1;
 
 -- test owner privileges
 
-GRANT regress_priv_role TO regress_priv_user1 WITH ADMIN OPTION GRANTED BY regress_priv_role; -- error, doesn't have ADMIN OPTION
+GRANT regress_priv_role TO regress_priv_user1 WITH ADMIN OPTION GRANTED BY regress_priv_role; -- error, doesn''t have ADMIN OPTION
 GRANT regress_priv_role TO regress_priv_user1 WITH ADMIN OPTION GRANTED BY CURRENT_ROLE;
 REVOKE ADMIN OPTION FOR regress_priv_role FROM regress_priv_user1 GRANTED BY foo; -- error
 REVOKE ADMIN OPTION FOR regress_priv_role FROM regress_priv_user1 GRANTED BY regress_priv_user2; -- warning, noop
@@ -312,7 +312,7 @@ CREATE FUNCTION leak2(integer,integer) RETURNS boolean
 CREATE OPERATOR >>> (procedure = leak2, leftarg = integer, rightarg = integer,
                      restrict = scalargtsel);
 
--- This should not show any "leak" notices before failing.
+-- This should not show any ''leak'' notices before failing.
 EXPLAIN (COSTS OFF) SELECT * FROM atest12 WHERE a >>> 0;
 
 -- These plans should continue to use a nestloop, since they execute with the
@@ -337,11 +337,11 @@ SET SESSION AUTHORIZATION regress_priv_user2;
 EXPLAIN (COSTS OFF) SELECT * FROM atest12v x, atest12v y WHERE x.a = y.b;
 
 -- But not for this, due to lack of table-wide permissions needed
--- to make use of the expression index's statistics.
+-- to make use of the expression index''s statistics.
 EXPLAIN (COSTS OFF) SELECT * FROM atest12 x, atest12 y
   WHERE x.a = y.b and abs(y.a) <<< 5;
 
--- clean up (regress_priv_user1's objects are all dropped later)
+-- clean up (regress_priv_user1''s objects are all dropped later)
 DROP FUNCTION leak2(integer, integer) CASCADE;
 
 
@@ -504,7 +504,7 @@ UPDATE atest5 SET three = 5, one = 2; -- fail
 INSERT INTO atest5(two) VALUES (6) ON CONFLICT (two) DO UPDATE set three = 10;
 -- Error. No SELECT on column three.
 INSERT INTO atest5(two) VALUES (6) ON CONFLICT (two) DO UPDATE set three = 10 RETURNING atest5.three;
--- Ok.  May SELECT on column "one":
+-- Ok.  May SELECT on column ''one'':
 INSERT INTO atest5(two) VALUES (6) ON CONFLICT (two) DO UPDATE set three = 10 RETURNING atest5.one;
 -- Check that column level privileges are enforced for EXCLUDED
 -- Ok. we may select one
@@ -693,13 +693,13 @@ VALUES ('aaa', 'bbb', 'ccc', 'the body', 'is in the attic');
 SET SESSION AUTHORIZATION regress_priv_user2;
 
 -- Perform a few updates that violate the NOT NULL constraint. Make sure
--- the error messages don't leak the secret fields.
+-- the error messages don''t leak the secret fields.
 
 -- simple insert.
 INSERT INTO errtst (a, b) VALUES ('aaa', NULL);
 -- simple update.
 UPDATE errtst SET b = NULL;
--- partitioning key is updated, doesn't move the row.
+-- partitioning key is updated, doesn''t move the row.
 UPDATE errtst SET a = 'aaa', b = NULL;
 -- row is moved to another partition.
 UPDATE errtst SET a = 'aaaa', b = NULL;
@@ -768,7 +768,7 @@ SELECT fy FROM atestp2; -- ok
 SELECT atestp2 FROM atestp2; -- ok
 SELECT tableoid FROM atestp2; -- ok
 
--- child's permissions do not apply when operating on parent
+-- child''s permissions do not apply when operating on parent
 SET SESSION AUTHORIZATION regress_priv_user1;
 REVOKE ALL ON atestc FROM regress_priv_user2;
 GRANT ALL ON atestp1 TO regress_priv_user2;
@@ -994,7 +994,7 @@ from (select oid from pg_roles where rolname = current_user) as t2;
 select has_table_privilege(t2.oid,'pg_authid','delete')
 from (select oid from pg_roles where rolname = current_user) as t2;
 
--- 'rule' privilege no longer exists, but for backwards compatibility
+-- ''rule'' privilege no longer exists, but for backwards compatibility
 -- has_table_privilege still recognizes the keyword and says FALSE
 select has_table_privilege(current_user,t1.oid,'rule')
 from (select oid from pg_class where relname = 'pg_authid') as t1;
@@ -1126,12 +1126,12 @@ SELECT has_table_privilege('regress_priv_user1', 'atest4', 'SELECT WITH GRANT OP
 \c -
 CREATE ROLE regress_sro_user;
 
--- Check that index expressions and predicates are run as the table's owner
+-- Check that index expressions and predicates are run as the table''s owner
 
 -- A dummy index function checking current_user
 CREATE FUNCTION sro_ifun(int) RETURNS int AS $$
 BEGIN
-	-- Below we set the table's owner to regress_sro_user
+	-- Below we set the table''s owner to regress_sro_user
 	ASSERT current_user = 'regress_sro_user',
 		format('sro_ifun(%s) called by %s', $1, current_user);
 	RETURN $1;
@@ -1342,14 +1342,14 @@ SELECT lo_truncate(lo_open(1002, x'20000'::int), 10);
 SELECT lo_unlink(1002);
 SELECT lo_export(1001, '/dev/null');			-- to be denied
 
--- don't allow unpriv users to access pg_largeobject contents
+-- don''t allow unpriv users to access pg_largeobject contents
 \c -
 SELECT * FROM pg_largeobject LIMIT 0;
 
 SET SESSION AUTHORIZATION regress_priv_user1;
 SELECT * FROM pg_largeobject LIMIT 0;			-- to be denied
 
--- pg_signal_backend can't signal superusers
+-- pg_signal_backend can''t signal superusers
 RESET SESSION AUTHORIZATION;
 BEGIN;
 CREATE OR REPLACE FUNCTION terminate_nothrow(pid int) RETURNS bool
@@ -1682,7 +1682,7 @@ DROP VIEW atestv1;
 DROP VIEW atestv2;
 -- this should cascade to drop atestv4
 DROP VIEW atestv3 CASCADE;
--- this should complain "does not exist"
+-- this should complain ''does not exist''
 DROP VIEW atestv4;
 
 DROP TABLE atest1;
@@ -1878,10 +1878,10 @@ CREATE TABLE regress_roleoption.t3 (a int);
 SET SESSION AUTHORIZATION regress_roleoption_recipient;
 CREATE TABLE regress_roleoption.t4 (a int);
 SET SESSION AUTHORIZATION regress_roleoption_protagonist;
-ALTER TABLE regress_roleoption.t1 OWNER TO regress_roleoption_donor; -- fails, can't be come donor
+ALTER TABLE regress_roleoption.t1 OWNER TO regress_roleoption_donor; -- fails, can''t be come donor
 ALTER TABLE regress_roleoption.t2 OWNER TO regress_roleoption_recipient; -- works
 ALTER TABLE regress_roleoption.t3 OWNER TO regress_roleoption_protagonist; -- works
-ALTER TABLE regress_roleoption.t4 OWNER TO regress_roleoption_protagonist; -- fails, we don't inherit from recipient
+ALTER TABLE regress_roleoption.t4 OWNER TO regress_roleoption_protagonist; -- fails, we don''t inherit from recipient
 RESET SESSION AUTHORIZATION;
 DROP TABLE regress_roleoption.t1;
 DROP TABLE regress_roleoption.t2;

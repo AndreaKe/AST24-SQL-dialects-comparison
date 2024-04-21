@@ -128,7 +128,7 @@ SELECT min(b), max(b) FROM collate_test2;
 SELECT array_agg(b ORDER BY b) FROM collate_test1;
 SELECT array_agg(b ORDER BY b) FROM collate_test2;
 
--- In aggregates, ORDER BY expressions don't affect aggregate's collation
+-- In aggregates, ORDER BY expressions don''t affect aggregate''s collation
 SELECT string_agg(x COLLATE "C", y COLLATE "POSIX") FROM collate_test10;  -- fail
 SELECT array_agg(x COLLATE "C" ORDER BY y COLLATE "POSIX") FROM collate_test10;
 SELECT array_agg(a ORDER BY x COLLATE "C", y COLLATE "POSIX") FROM collate_test10;

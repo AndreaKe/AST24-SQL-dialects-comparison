@@ -2,8 +2,8 @@
 
 --
 -- Note: tables for which we check estimated row counts should be created
--- with autovacuum_enabled = off, so that we don't have unstable results
--- from auto-analyze happening when we didn't expect it.
+-- with autovacuum_enabled = off, so that we don''t have unstable results
+-- from auto-analyze happening when we didn''t expect it.
 --
 
 -- check the number of estimated/actual rows in the top node
@@ -64,7 +64,7 @@ DROP STATISTICS ab1_a_b_stats;
 CREATE SCHEMA regress_schema_2;
 CREATE STATISTICS regress_schema_2.ab1_a_b_stats ON a, b FROM ab1;
 
--- Let's also verify the pg_get_statisticsobjdef output looks sane.
+-- Let''s also verify the pg_get_statisticsobjdef output looks sane.
 SELECT pg_get_statisticsobjdef(oid) FROM pg_statistic_ext WHERE stxname = 'ab1_a_b_stats';
 
 DROP STATISTICS regress_schema_2.ab1_a_b_stats;
@@ -96,7 +96,7 @@ SELECT stxname, stxdndistinct, stxddependencies, stxdmcv, stxdinherit
  WHERE s.stxname = 'ab1_a_b_stats';
 ALTER STATISTICS ab1_a_b_stats SET STATISTICS -1;
 -- \d+ ab1
--- partial analyze doesn't build stats either
+-- partial analyze doesn''t build stats either
 ANALYZE ab1 (a);
 ANALYZE ab1;
 DROP TABLE ab1;
@@ -288,8 +288,8 @@ SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 
--- last two plans keep using Group Aggregate, because 'd' is not covered
--- by the statistic and while it's NULL-only we assume 200 values for it
+-- last two plans keep using Group Aggregate, because ''d'' is not covered
+-- by the statistic and while it''s NULL-only we assume 200 values for it
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c, d');
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c, d');
@@ -518,7 +518,7 @@ SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (
 
 
 -- replace statistics by somewhat overlapping ones (this expected to get worse estimate
--- because the first statistics shall be applied to 3 columns, and the second one can't
+-- because the first statistics shall be applied to 3 columns, and the second one can''t
 -- be really applied)
 
 DROP STATISTICS s11;
@@ -1182,7 +1182,7 @@ SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) <= A
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < ALL (ARRAY[4, 5]) AND mod(b::int,10) IN (1, 2, 3) AND mod(c,5) > ANY (ARRAY[1, 2, 3])');
 
--- we can't use the statistic for OR clauses that are not fully covered (missing 'd' attribute)
+-- we can''t use the statistic for OR clauses that are not fully covered (missing ''d'' attribute)
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 OR mod(b::int,10) = 1 OR mod(c,5) = 1 OR d IS NOT NULL');
 
 -- 100 distinct combinations with NULL values, all in the MCV list
@@ -1384,7 +1384,7 @@ INSERT INTO mcv_lists_partial (a, b, c)
          i
      FROM generate_series(0,99) s(i);
 
--- 4000 groups in total, most of which won't make it (just a single item)
+-- 4000 groups in total, most of which won''t make it (just a single item)
 INSERT INTO mcv_lists_partial (a, b, c)
      SELECT
          i,
@@ -1623,7 +1623,7 @@ GRANT USAGE ON SCHEMA tststats TO regress_stats_user1;
 SET SESSION AUTHORIZATION regress_stats_user1;
 SELECT * FROM tststats.priv_test_tbl; -- Permission denied
 
--- Check individual columns if we don't have table privilege
+-- Check individual columns if we don''t have table privilege
 SELECT * FROM tststats.priv_test_tbl
   WHERE a = 1 and tststats.priv_test_tbl.* > (1, 1) is not null;
 

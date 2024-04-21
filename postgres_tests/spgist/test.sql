@@ -23,7 +23,7 @@ select g+100000, point(g*10+1, g*10+1) from generate_series(1, 10000) g;
 -- To test vacuum, delete some entries from all over the index.
 delete from spgist_point_tbl where id % 2 = 1;
 
--- And also delete some concentration of values. (SP-GiST doesn't currently
+-- And also delete some concentration of values. (SP-GiST doesn''t currently
 -- attempt to delete pages even when they become empty, but if it did, this
 -- would exercise it)
 delete from spgist_point_tbl where id < 10000;
@@ -46,7 +46,7 @@ select count(*)
   from (values (point(5,5)),(point(8,8)),(point(12,12))) v(p)
  where exists(select * from spgist_box_tbl b where b.b && box(v.p,v.p));
 
--- The point opclass's choose method only uses the spgMatchNode action,
+-- The point opclass''s choose method only uses the spgMatchNode action,
 -- so the other actions are not tested by the above. Create an index using
 -- text opclass, which uses the others actions.
 

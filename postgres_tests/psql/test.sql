@@ -1,5 +1,5 @@
 --
--- Tests for psql features that aren't closely connected to any
+-- Tests for psql features that aren''t closely connected to any
 -- specific server features
 --
 
@@ -169,13 +169,13 @@ select 'drop table gexec_test', 'select ''2000-01-01''::date as party_over'
 
 -- \setenv, \getenv
 
--- ensure MYVAR isn't set
+-- ensure MYVAR isn''t set
 -- \setenv MYVAR
--- in which case, reading it doesn't change the target
+-- in which case, reading it doesn''t change the target
 -- \getenv res MYVAR
 \echo /* REPLACED */ MYVAR
 -- now set it
--- \setenv MYVAR 'environment value'
+-- \setenv MYVAR ''environment value''
 -- \getenv res MYVAR
 \echo /* REPLACED */ MYVAR
 
@@ -529,7 +529,7 @@ DROP SCHEMA tableam_display CASCADE;
 DROP ACCESS METHOD heap_psql;
 DROP ROLE regress_display_role;
 
--- test numericlocale (as best we can without control of psql's locale)
+-- test numericlocale (as best we can without control of psql''s locale)
 
 \pset format aligned
 \pset expanded off
@@ -983,7 +983,7 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 
 -- show that vars and backticks are not expanded and commands are ignored
 -- when in a false if-branch
--- \set try_to_quit '\\q'
+-- \set try_to_quit ''\\q''
 \if false
 	/* REPLACED */ '\\q'
 	\echo `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :"foo"
@@ -1247,7 +1247,7 @@ set search_path to default;
 set role to default;
 drop role regress_partitioning_role;
 
--- \d on toast table (use pg_statistic's toast table, which has a known name)
+-- \d on toast table (use pg_statistic''s toast table, which has a known name)
 -- \d pg_toast.pg_toast_2619
 
 -- check printing info about access methods
@@ -1427,8 +1427,8 @@ DROP FUNCTION warn(TEXT);
 --
 -- \g with file
 --
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
--- \set g_out_file /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/psql-output1'
+-- \getenv abs_builddir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results''
+-- \set g_out_file /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/psql-output1''
 
 CREATE TEMPORARY TABLE reload_output(
   lineno int NOT NULL GENERATED ALWAYS AS IDENTITY,
@@ -1448,14 +1448,14 @@ TRUNCATE TABLE reload_output;
 --
 -- \o with file
 --
--- \set o_out_file /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/psql-output2'
+-- \set o_out_file /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/psql-output2''
 
 \o /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
 SELECT max(unique1) FROM onek;
 SELECT 1 AS a\; SELECT 2 AS b\; SELECT 3 AS c;
 
 -- COPY TO file
--- The data goes to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1' and the status to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
+-- The data goes to /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'' and the status to /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2''
 -- \set QUIET false
 COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
 -- DML command status
@@ -1473,7 +1473,7 @@ TRUNCATE TABLE reload_output;
 
 -- Multiple COPY TO STDOUT with output file
 \o /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
--- The data goes to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2' with no status generated.
+-- The data goes to /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'' with no status generated.
 COPY (SELECT 'foo1') TO STDOUT \; COPY (SELECT 'bar1') TO STDOUT;
 -- Combination of \o and \g file with multiple COPY queries.
 COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
@@ -1669,19 +1669,19 @@ DROP FUNCTION psql_error;
 -- \dL *.plpgsql
 -- \dL nonesuch.plpgsql
 -- \dn host.regression.public
--- \dn """".public
+-- \dn ''''''''.public
 -- \dn nonesuch.public
 -- \do host.regression.public.!=-
--- \do "regression|mydb".public.!=-
+-- \do ''regression|mydb''.public.!=-
 -- \do nonesuch.public.!=-
 -- \dO host.regression.pg_catalog.POSIX
 -- \dO .pg_catalog.POSIX
 -- \dO nonesuch.pg_catalog.POSIX
 -- \dp host.regression.public.a_star
--- \dp "regres+ion".public.a_star
+-- \dp ''regres+ion''.public.a_star
 -- \dp nonesuch.public.a_star
 -- \dP host.regression.public.mlparted
--- \dP "regres(sion)".public.mlparted
+-- \dP ''regres(sion)''.public.mlparted
 -- \dP nonesuch.public.mlparted
 -- \drds nonesuch.lc_messages
 -- \drds regression.lc_messages
@@ -1690,145 +1690,145 @@ DROP FUNCTION psql_error;
 -- \dRs public.mysub
 -- \dRs regression.mysub
 -- \dT host.regression.public.widget
--- \dT "regression{1,2}".public.widget
+-- \dT ''regression{1,2}''.public.widget
 -- \dT nonesuch.public.widget
 -- \dx regression.plpgsql
 -- \dx nonesuch.plpgsql
 -- \dX host.regression.public.func_deps_stat
--- \dX "^regression$".public.func_deps_stat
+-- \dX ''^regression$''.public.func_deps_stat
 -- \dX nonesuch.public.func_deps_stat
 -- \dy regression.myevt
 -- \dy nonesuch.myevt
 
 -- check that dots within quoted name segments are not counted
--- \dA "no.such.access.method"
--- \dt "no.such.table.relation"
--- \da "no.such.aggregate.function"
--- \dAc "no.such.operator.class"
--- \dAf "no.such.operator.family"
--- \dAo "no.such.operator.of.operator.family"
--- \dAp "no.such.operator.support.function.of.operator.family"
--- \db "no.such.tablespace"
--- \dc "no.such.conversion"
--- \dC "no.such.cast"
--- \dd "no.such.object.description"
--- \dD "no.such.domain"
--- \ddp "no.such.default.access.privilege"
--- \di "no.such.index.relation"
--- \dm "no.such.materialized.view"
--- \ds "no.such.relation"
--- \dt "no.such.relation"
--- \dv "no.such.relation"
--- \des "no.such.foreign.server"
--- \dew "no.such.foreign.data.wrapper"
--- \df "no.such.function"
--- \dF "no.such.text.search.configuration"
--- \dFd "no.such.text.search.dictionary"
--- \dFp "no.such.text.search.parser"
--- \dFt "no.such.text.search.template"
--- \dg "no.such.role"
--- \dL "no.such.language"
--- \dn "no.such.schema"
--- \do "no.such.operator"
--- \dO "no.such.collation"
--- \dp "no.such.access.privilege"
--- \dP "no.such.partitioned.relation"
--- \drds "no.such.setting"
--- \dRp "no.such.publication"
--- \dRs "no.such.subscription"
--- \dT "no.such.data.type"
--- \dx "no.such.installed.extension"
--- \dX "no.such.extended.statistics"
--- \dy "no.such.event.trigger"
+-- \dA ''no.such.access.method''
+-- \dt ''no.such.table.relation''
+-- \da ''no.such.aggregate.function''
+-- \dAc ''no.such.operator.class''
+-- \dAf ''no.such.operator.family''
+-- \dAo ''no.such.operator.of.operator.family''
+-- \dAp ''no.such.operator.support.function.of.operator.family''
+-- \db ''no.such.tablespace''
+-- \dc ''no.such.conversion''
+-- \dC ''no.such.cast''
+-- \dd ''no.such.object.description''
+-- \dD ''no.such.domain''
+-- \ddp ''no.such.default.access.privilege''
+-- \di ''no.such.index.relation''
+-- \dm ''no.such.materialized.view''
+-- \ds ''no.such.relation''
+-- \dt ''no.such.relation''
+-- \dv ''no.such.relation''
+-- \des ''no.such.foreign.server''
+-- \dew ''no.such.foreign.data.wrapper''
+-- \df ''no.such.function''
+-- \dF ''no.such.text.search.configuration''
+-- \dFd ''no.such.text.search.dictionary''
+-- \dFp ''no.such.text.search.parser''
+-- \dFt ''no.such.text.search.template''
+-- \dg ''no.such.role''
+-- \dL ''no.such.language''
+-- \dn ''no.such.schema''
+-- \do ''no.such.operator''
+-- \dO ''no.such.collation''
+-- \dp ''no.such.access.privilege''
+-- \dP ''no.such.partitioned.relation''
+-- \drds ''no.such.setting''
+-- \dRp ''no.such.publication''
+-- \dRs ''no.such.subscription''
+-- \dT ''no.such.data.type''
+-- \dx ''no.such.installed.extension''
+-- \dX ''no.such.extended.statistics''
+-- \dy ''no.such.event.trigger''
 
 -- again, but with dotted schema qualifications.
--- \dA "no.such.schema"."no.such.access.method"
--- \dt "no.such.schema"."no.such.table.relation"
--- \da "no.such.schema"."no.such.aggregate.function"
--- \dAc "no.such.schema"."no.such.operator.class"
--- \dAf "no.such.schema"."no.such.operator.family"
--- \dAo "no.such.schema"."no.such.operator.of.operator.family"
--- \dAp "no.such.schema"."no.such.operator.support.function.of.operator.family"
--- \db "no.such.schema"."no.such.tablespace"
--- \dc "no.such.schema"."no.such.conversion"
--- \dC "no.such.schema"."no.such.cast"
--- \dd "no.such.schema"."no.such.object.description"
--- \dD "no.such.schema"."no.such.domain"
--- \ddp "no.such.schema"."no.such.default.access.privilege"
--- \di "no.such.schema"."no.such.index.relation"
--- \dm "no.such.schema"."no.such.materialized.view"
--- \ds "no.such.schema"."no.such.relation"
--- \dt "no.such.schema"."no.such.relation"
--- \dv "no.such.schema"."no.such.relation"
--- \des "no.such.schema"."no.such.foreign.server"
--- \dew "no.such.schema"."no.such.foreign.data.wrapper"
--- \df "no.such.schema"."no.such.function"
--- \dF "no.such.schema"."no.such.text.search.configuration"
--- \dFd "no.such.schema"."no.such.text.search.dictionary"
--- \dFp "no.such.schema"."no.such.text.search.parser"
--- \dFt "no.such.schema"."no.such.text.search.template"
--- \dg "no.such.schema"."no.such.role"
--- \dL "no.such.schema"."no.such.language"
--- \do "no.such.schema"."no.such.operator"
--- \dO "no.such.schema"."no.such.collation"
--- \dp "no.such.schema"."no.such.access.privilege"
--- \dP "no.such.schema"."no.such.partitioned.relation"
--- \drds "no.such.schema"."no.such.setting"
--- \dRp "no.such.schema"."no.such.publication"
--- \dRs "no.such.schema"."no.such.subscription"
--- \dT "no.such.schema"."no.such.data.type"
--- \dx "no.such.schema"."no.such.installed.extension"
--- \dX "no.such.schema"."no.such.extended.statistics"
--- \dy "no.such.schema"."no.such.event.trigger"
+-- \dA ''no.such.schema''.''no.such.access.method''
+-- \dt ''no.such.schema''.''no.such.table.relation''
+-- \da ''no.such.schema''.''no.such.aggregate.function''
+-- \dAc ''no.such.schema''.''no.such.operator.class''
+-- \dAf ''no.such.schema''.''no.such.operator.family''
+-- \dAo ''no.such.schema''.''no.such.operator.of.operator.family''
+-- \dAp ''no.such.schema''.''no.such.operator.support.function.of.operator.family''
+-- \db ''no.such.schema''.''no.such.tablespace''
+-- \dc ''no.such.schema''.''no.such.conversion''
+-- \dC ''no.such.schema''.''no.such.cast''
+-- \dd ''no.such.schema''.''no.such.object.description''
+-- \dD ''no.such.schema''.''no.such.domain''
+-- \ddp ''no.such.schema''.''no.such.default.access.privilege''
+-- \di ''no.such.schema''.''no.such.index.relation''
+-- \dm ''no.such.schema''.''no.such.materialized.view''
+-- \ds ''no.such.schema''.''no.such.relation''
+-- \dt ''no.such.schema''.''no.such.relation''
+-- \dv ''no.such.schema''.''no.such.relation''
+-- \des ''no.such.schema''.''no.such.foreign.server''
+-- \dew ''no.such.schema''.''no.such.foreign.data.wrapper''
+-- \df ''no.such.schema''.''no.such.function''
+-- \dF ''no.such.schema''.''no.such.text.search.configuration''
+-- \dFd ''no.such.schema''.''no.such.text.search.dictionary''
+-- \dFp ''no.such.schema''.''no.such.text.search.parser''
+-- \dFt ''no.such.schema''.''no.such.text.search.template''
+-- \dg ''no.such.schema''.''no.such.role''
+-- \dL ''no.such.schema''.''no.such.language''
+-- \do ''no.such.schema''.''no.such.operator''
+-- \dO ''no.such.schema''.''no.such.collation''
+-- \dp ''no.such.schema''.''no.such.access.privilege''
+-- \dP ''no.such.schema''.''no.such.partitioned.relation''
+-- \drds ''no.such.schema''.''no.such.setting''
+-- \dRp ''no.such.schema''.''no.such.publication''
+-- \dRs ''no.such.schema''.''no.such.subscription''
+-- \dT ''no.such.schema''.''no.such.data.type''
+-- \dx ''no.such.schema''.''no.such.installed.extension''
+-- \dX ''no.such.schema''.''no.such.extended.statistics''
+-- \dy ''no.such.schema''.''no.such.event.trigger''
 
 -- again, but with current database and dotted schema qualifications.
--- \dt regression."no.such.schema"."no.such.table.relation"
--- \da regression."no.such.schema"."no.such.aggregate.function"
--- \dc regression."no.such.schema"."no.such.conversion"
--- \dC regression."no.such.schema"."no.such.cast"
--- \dd regression."no.such.schema"."no.such.object.description"
--- \dD regression."no.such.schema"."no.such.domain"
--- \di regression."no.such.schema"."no.such.index.relation"
--- \dm regression."no.such.schema"."no.such.materialized.view"
--- \ds regression."no.such.schema"."no.such.relation"
--- \dt regression."no.such.schema"."no.such.relation"
--- \dv regression."no.such.schema"."no.such.relation"
--- \df regression."no.such.schema"."no.such.function"
--- \dF regression."no.such.schema"."no.such.text.search.configuration"
--- \dFd regression."no.such.schema"."no.such.text.search.dictionary"
--- \dFp regression."no.such.schema"."no.such.text.search.parser"
--- \dFt regression."no.such.schema"."no.such.text.search.template"
--- \do regression."no.such.schema"."no.such.operator"
--- \dO regression."no.such.schema"."no.such.collation"
--- \dp regression."no.such.schema"."no.such.access.privilege"
--- \dP regression."no.such.schema"."no.such.partitioned.relation"
--- \dT regression."no.such.schema"."no.such.data.type"
--- \dX regression."no.such.schema"."no.such.extended.statistics"
+-- \dt regression.''no.such.schema''.''no.such.table.relation''
+-- \da regression.''no.such.schema''.''no.such.aggregate.function''
+-- \dc regression.''no.such.schema''.''no.such.conversion''
+-- \dC regression.''no.such.schema''.''no.such.cast''
+-- \dd regression.''no.such.schema''.''no.such.object.description''
+-- \dD regression.''no.such.schema''.''no.such.domain''
+-- \di regression.''no.such.schema''.''no.such.index.relation''
+-- \dm regression.''no.such.schema''.''no.such.materialized.view''
+-- \ds regression.''no.such.schema''.''no.such.relation''
+-- \dt regression.''no.such.schema''.''no.such.relation''
+-- \dv regression.''no.such.schema''.''no.such.relation''
+-- \df regression.''no.such.schema''.''no.such.function''
+-- \dF regression.''no.such.schema''.''no.such.text.search.configuration''
+-- \dFd regression.''no.such.schema''.''no.such.text.search.dictionary''
+-- \dFp regression.''no.such.schema''.''no.such.text.search.parser''
+-- \dFt regression.''no.such.schema''.''no.such.text.search.template''
+-- \do regression.''no.such.schema''.''no.such.operator''
+-- \dO regression.''no.such.schema''.''no.such.collation''
+-- \dp regression.''no.such.schema''.''no.such.access.privilege''
+-- \dP regression.''no.such.schema''.''no.such.partitioned.relation''
+-- \dT regression.''no.such.schema''.''no.such.data.type''
+-- \dX regression.''no.such.schema''.''no.such.extended.statistics''
 
 -- again, but with dotted database and dotted schema qualifications.
--- \dt "no.such.database"."no.such.schema"."no.such.table.relation"
--- \da "no.such.database"."no.such.schema"."no.such.aggregate.function"
--- \dc "no.such.database"."no.such.schema"."no.such.conversion"
--- \dC "no.such.database"."no.such.schema"."no.such.cast"
--- \dd "no.such.database"."no.such.schema"."no.such.object.description"
--- \dD "no.such.database"."no.such.schema"."no.such.domain"
--- \ddp "no.such.database"."no.such.schema"."no.such.default.access.privilege"
--- \di "no.such.database"."no.such.schema"."no.such.index.relation"
--- \dm "no.such.database"."no.such.schema"."no.such.materialized.view"
--- \ds "no.such.database"."no.such.schema"."no.such.relation"
--- \dt "no.such.database"."no.such.schema"."no.such.relation"
--- \dv "no.such.database"."no.such.schema"."no.such.relation"
--- \df "no.such.database"."no.such.schema"."no.such.function"
--- \dF "no.such.database"."no.such.schema"."no.such.text.search.configuration"
--- \dFd "no.such.database"."no.such.schema"."no.such.text.search.dictionary"
--- \dFp "no.such.database"."no.such.schema"."no.such.text.search.parser"
--- \dFt "no.such.database"."no.such.schema"."no.such.text.search.template"
--- \do "no.such.database"."no.such.schema"."no.such.operator"
--- \dO "no.such.database"."no.such.schema"."no.such.collation"
--- \dp "no.such.database"."no.such.schema"."no.such.access.privilege"
--- \dP "no.such.database"."no.such.schema"."no.such.partitioned.relation"
--- \dT "no.such.database"."no.such.schema"."no.such.data.type"
--- \dX "no.such.database"."no.such.schema"."no.such.extended.statistics"
+-- \dt ''no.such.database''.''no.such.schema''.''no.such.table.relation''
+-- \da ''no.such.database''.''no.such.schema''.''no.such.aggregate.function''
+-- \dc ''no.such.database''.''no.such.schema''.''no.such.conversion''
+-- \dC ''no.such.database''.''no.such.schema''.''no.such.cast''
+-- \dd ''no.such.database''.''no.such.schema''.''no.such.object.description''
+-- \dD ''no.such.database''.''no.such.schema''.''no.such.domain''
+-- \ddp ''no.such.database''.''no.such.schema''.''no.such.default.access.privilege''
+-- \di ''no.such.database''.''no.such.schema''.''no.such.index.relation''
+-- \dm ''no.such.database''.''no.such.schema''.''no.such.materialized.view''
+-- \ds ''no.such.database''.''no.such.schema''.''no.such.relation''
+-- \dt ''no.such.database''.''no.such.schema''.''no.such.relation''
+-- \dv ''no.such.database''.''no.such.schema''.''no.such.relation''
+-- \df ''no.such.database''.''no.such.schema''.''no.such.function''
+-- \dF ''no.such.database''.''no.such.schema''.''no.such.text.search.configuration''
+-- \dFd ''no.such.database''.''no.such.schema''.''no.such.text.search.dictionary''
+-- \dFp ''no.such.database''.''no.such.schema''.''no.such.text.search.parser''
+-- \dFt ''no.such.database''.''no.such.schema''.''no.such.text.search.template''
+-- \do ''no.such.database''.''no.such.schema''.''no.such.operator''
+-- \dO ''no.such.database''.''no.such.schema''.''no.such.collation''
+-- \dp ''no.such.database''.''no.such.schema''.''no.such.access.privilege''
+-- \dP ''no.such.database''.''no.such.schema''.''no.such.partitioned.relation''
+-- \dT ''no.such.database''.''no.such.schema''.''no.such.data.type''
+-- \dX ''no.such.database''.''no.such.schema''.''no.such.extended.statistics''
 
 -- check \drg and \du
 CREATE ROLE regress_du_role0;

@@ -7,7 +7,7 @@
 CREATE ROLE regress_create_schema_role SUPERUSER;
 
 -- Cases where schema creation fails as objects are qualified with a schema
--- that does not match with what's expected.
+-- that does not match with what''s expected.
 -- This checks all the object types that include schema qualifications.
 CREATE SCHEMA AUTHORIZATION regress_create_schema_role
   CREATE SEQUENCE schema_not_existing.seq;

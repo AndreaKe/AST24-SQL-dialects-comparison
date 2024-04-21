@@ -661,7 +661,7 @@ DROP TRIGGER merge_skip ON target;
 DROP FUNCTION skip_merge_op();
 
 -- test from PL/pgSQL
--- make sure MERGE INTO isn't interpreted to mean returning variables like SELECT INTO
+-- make sure MERGE INTO isn''t interpreted to mean returning variables like SELECT INTO
 BEGIN;
 DO LANGUAGE plpgsql $$
 BEGIN

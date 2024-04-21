@@ -2,7 +2,7 @@
 -- PARTITION_AGGREGATE
 -- Test partitionwise aggregation on partitioned tables
 --
--- Note: to ensure plan stability, it's a good idea to make the partitions of
+-- Note: to ensure plan stability, it''s a good idea to make the partitions of
 -- any one partitioned table in this test all have different numbers of rows.
 --
 
@@ -82,7 +82,7 @@ SELECT c, sum(a) FROM pagg_tab GROUP BY rollup(c) ORDER BY 1, 2;
 
 -- ORDERED SET within the aggregate.
 -- Full aggregation /* REPLACED */, since all the rows that belong to the same group come
--- from the same partition, having an ORDER BY within the aggregate doesn't
+-- from the same partition, having an ORDER BY within the aggregate doesn''t
 -- make any difference.
 EXPLAIN (COSTS OFF)
 SELECT c, sum(b order by a) FROM pagg_tab GROUP BY c ORDER BY 1, 2;

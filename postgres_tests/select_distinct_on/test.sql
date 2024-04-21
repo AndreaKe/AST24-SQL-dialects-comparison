@@ -19,7 +19,7 @@ SELECT DISTINCT ON (string4, ten) string4, ten, two
 select distinct on (1) floor(random()) as r, f1 from int4_tbl order by 1,2;
 
 --
--- Test the planner's ability to use a LIMIT 1 instead of a Unique node when
+-- Test the planner''s ability to use a LIMIT 1 instead of a Unique node when
 -- all of the distinct_pathkeys have been marked as redundant
 --
 

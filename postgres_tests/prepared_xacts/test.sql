@@ -1,13 +1,13 @@
 --
 -- PREPARED TRANSACTIONS (two-phase commit)
 --
--- We can't readily test persistence of prepared xacts within the
+-- We can''t readily test persistence of prepared xacts within the
 -- regression script framework, unfortunately.  Note that a crash
--- isn't really needed ... stopping and starting the postmaster would
--- be enough, but we can't even do that here.
+-- isn''t really needed ... stopping and starting the postmaster would
+-- be enough, but we can''t even do that here.
 
 
--- create a simple table that we'll use in the tests
+-- create a simple table that we''ll use in the tests
 CREATE TABLE pxtest1 (foobar VARCHAR(10));
 
 INSERT INTO pxtest1 VALUES ('aaa');
@@ -121,7 +121,7 @@ PREPARE TRANSACTION 'regress-two';
 -- No such cursor
 FETCH 1 FROM foo;
 
--- Table doesn't exist, the creation hasn't been committed yet
+-- Table doesn''t exist, the creation hasn''t been committed yet
 SELECT * FROM pxtest2;
 
 -- There should be two prepared transactions

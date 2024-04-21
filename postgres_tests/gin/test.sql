@@ -35,7 +35,7 @@ insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
 delete from gin_test_tbl where i @> array[2];
 vacuum gin_test_tbl;
 
--- Test for "rare && frequent" searches
+-- Test for ''rare && frequent'' searches
 explain (costs off)
 select count(*) from gin_test_tbl where i @> array[1, 999];
 

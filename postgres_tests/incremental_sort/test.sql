@@ -228,9 +228,9 @@ explain (costs off) select distinct a,b from t;
 
 drop table t;
 
--- Sort pushdown can't go below where expressions are part of the rel target.
+-- Sort pushdown can''t go below where expressions are part of the rel target.
 -- In particular this is interesting for volatile expressions which have to
--- go above joins since otherwise we'll incorrectly use expression evaluations
+-- go above joins since otherwise we''ll incorrectly use expression evaluations
 -- across multiple rows.
 set enable_hashagg=off;
 set enable_seqscan=off;
@@ -253,7 +253,7 @@ explain (costs off) select sub.unique1, md5(stringu1)
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
 -- Parallel sort with an aggregate that can be safely generated in parallel,
--- but we can't sort by partial aggregate values.
+-- but we can''t sort by partial aggregate values.
 explain (costs off) select count(*)
 from tenk1 t1
 join tenk1 t2 on t1.unique1 = t2.unique2

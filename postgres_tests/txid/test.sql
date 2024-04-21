@@ -42,7 +42,7 @@ where nr = 4;
 -- test current values also
 select txid_current() >= txid_snapshot_xmin(txid_current_snapshot());
 
--- we can't assume current is always less than xmax, however
+-- we can''t assume current is always less than xmax, however
 
 select txid_visible_in_snapshot(txid_current(), txid_current_snapshot());
 

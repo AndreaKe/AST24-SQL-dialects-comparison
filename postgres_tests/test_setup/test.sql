@@ -3,11 +3,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 --
 -- synchronous_commit=off delays when hint bits may be set. Some plans change
@@ -30,8 +30,8 @@ CREATE TABLESPACE regress_tblspace LOCATION '';
 --
 -- These tables have traditionally been referenced by many tests,
 -- so create and populate them.  Insert only non-error values here.
--- (Some subsequent tests try to insert erroneous values.  That's okay
--- because the table won't actually change.  Do not change the contents
+-- (Some subsequent tests try to insert erroneous values.  That''s okay
+-- because the table won''t actually change.  Do not change the contents
 -- of these tables in later tests, as it may affect other tests.)
 --
 
@@ -97,7 +97,7 @@ INSERT INTO POINT_TBL(f1) VALUES
   ('(Inf,1e+300)'),  -- Transposed
   (' ( Nan , NaN ) '),
   ('10.0,10.0');
--- We intentionally don't vacuum point_tbl here /* REPLACED */, geometry depends on that
+-- We intentionally don''t vacuum point_tbl here /* REPLACED */, geometry depends on that
 
 CREATE TABLE TEXT_TBL (f1 text);
 
@@ -134,7 +134,7 @@ CREATE TABLE onek (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/onek.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/onek.data''
 COPY onek FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
 VACUUM ANALYZE onek;
 
@@ -160,7 +160,7 @@ CREATE TABLE tenk1 (
 	string4		name
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/tenk.data''
 COPY tenk1 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
 VACUUM ANALYZE tenk1;
 
@@ -173,7 +173,7 @@ CREATE TABLE person (
 	location 	point
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/person.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/person.data''
 COPY person FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
 VACUUM ANALYZE person;
 
@@ -182,7 +182,7 @@ CREATE TABLE emp (
 	manager 	name
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/emp.data''
 COPY emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
 VACUUM ANALYZE emp;
 
@@ -190,7 +190,7 @@ CREATE TABLE student (
 	gpa 		float8
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/student.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/student.data''
 COPY student FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
 VACUUM ANALYZE student;
 
@@ -198,7 +198,7 @@ CREATE TABLE stud_emp (
 	percent 	int4
 ) INHERITS (emp, student);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/stud_emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/stud_emp.data''
 COPY stud_emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
 VACUUM ANALYZE stud_emp;
 
@@ -207,7 +207,7 @@ CREATE TABLE road (
 	thepath 	path
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/streets.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/streets.data''
 COPY road FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
 VACUUM ANALYZE road;
 

@@ -3,10 +3,10 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 CREATE FUNCTION test_enc_conversion(bytea, name, name, bool, validlen OUT int, result OUT bytea)
     AS /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_enc_conversion'
@@ -38,7 +38,7 @@ DROP CONVERSION myconv;
 DROP CONVERSION mydef;
 --
 -- Note: the built-in conversions are exercised in opr_sanity.sql,
--- so there's no need to do that here.
+-- so there''s no need to do that here.
 --
 --
 -- return to the superuser

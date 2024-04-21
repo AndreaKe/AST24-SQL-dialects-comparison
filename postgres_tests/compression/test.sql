@@ -1,6 +1,6 @@
 -- \set HIDE_TOAST_COMPRESSION false
 
--- ensure we get stable results regardless of installation's default
+-- ensure we get stable results regardless of installation''s default
 SET default_toast_compression = 'pglz';
 
 -- test creating table with compression method

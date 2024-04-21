@@ -3,8 +3,8 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv abs_builddir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results''
 
 --- test copying in CSV mode with various styles
 --- of embedded line ending characters
@@ -19,7 +19,7 @@ insert into copytest values('Unix',E'abc\ndef',2);
 insert into copytest values('Mac',E'abc\rdef',3);
 insert into copytest values(E'esc\\ape',E'a\\r\\\r\\\n\\nb',4);
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/copytest.csv'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/copytest.csv''
 copy copytest to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv' csv;
 
 create temp table copytest2 (like copytest);
@@ -85,7 +85,7 @@ insert into parted_copytest select x,1,'One' from generate_series(1,1000) x;
 insert into parted_copytest select x,2,'Two' from generate_series(1001,1010) x;
 insert into parted_copytest select x,1,'One' from generate_series(1011,1020) x;
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/parted_copytest.csv'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/parted_copytest.csv''
 copy (select * from parted_copytest order by a) to /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/parted_copytest.csv';
 
 truncate parted_copytest;
@@ -190,7 +190,7 @@ bill	20	(11,10)	1000	sharon
 
 -- Generate COPY FROM report with FILE, with some excluded tuples.
 truncate tab_progress_reporting;
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/emp.data''
 copy tab_progress_reporting from /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data'
 	where (salary < 2000);
 
@@ -310,13 +310,13 @@ CREATE TABLE parted_si_p_odd PARTITION OF parted_si FOR VALUES IN (1);
 -- bulk relation extension). See
 -- https://postgr.es/m/18130-7a86a7356a75209d%40postgresql.org
 -- https://postgr.es/m/257696.1695670946%40sss.pgh.pa.us
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/desc.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/desc.data''
 COPY parted_si(id, data) FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/desc.data';
 
 -- An earlier bug (see commit b1ecb9b3fcf) could end up using a buffer from
 -- the wrong partition. This test is *not* guaranteed to trigger that bug, but
 -- does so when shared_buffers is small enough.  To test if we encountered the
--- bug, check that the partition condition isn't violated.
+-- bug, check that the partition condition isn''t violated.
 SELECT tableoid::regclass, id % 2 = 0 is_even, count(*) from parted_si GROUP BY 1, 2 ORDER BY 1;
 
 DROP TABLE parted_si;

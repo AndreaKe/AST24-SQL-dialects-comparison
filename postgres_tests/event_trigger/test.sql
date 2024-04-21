@@ -10,7 +10,7 @@ BEGIN
 END
 $$ language plpgsql;
 
--- should fail, can't call it as a plain function
+-- should fail, can''t call it as a plain function
 SELECT test_event_trigger();
 
 -- should fail, event triggers cannot have declared arguments
@@ -48,32 +48,32 @@ create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('create table', 'create skunkcabbage')
    execute procedure test_event_trigger();
 
--- should fail, can't have event triggers on event triggers
+-- should fail, can''t have event triggers on event triggers
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('DROP EVENT TRIGGER')
    execute procedure test_event_trigger();
 
--- should fail, can't have event triggers on global objects
+-- should fail, can''t have event triggers on global objects
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('CREATE ROLE')
    execute procedure test_event_trigger();
 
--- should fail, can't have event triggers on global objects
+-- should fail, can''t have event triggers on global objects
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('CREATE DATABASE')
    execute procedure test_event_trigger();
 
--- should fail, can't have event triggers on global objects
+-- should fail, can''t have event triggers on global objects
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('CREATE TABLESPACE')
    execute procedure test_event_trigger();
 
--- should fail, can't have same filter variable twice
+-- should fail, can''t have same filter variable twice
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('create table') and tag in ('CREATE FUNCTION')
    execute procedure test_event_trigger();
 
--- should fail, can't have arguments
+-- should fail, can''t have arguments
 create event trigger regress_event_trigger2 on ddl_command_start
    execute procedure test_event_trigger('argument not allowed');
 
@@ -156,7 +156,7 @@ alter event trigger regress_event_trigger rename to regress_event_trigger2;
 -- OK
 alter event trigger regress_event_trigger rename to regress_event_trigger3;
 
--- should fail, doesn't exist any more
+-- should fail, doesn''t exist any more
 drop event trigger regress_event_trigger;
 
 -- should fail, regress_evt_user owns some objects
@@ -384,7 +384,7 @@ CREATE MATERIALIZED VIEW heapmv USING heap AS SELECT 1 AS a;
 ALTER MATERIALIZED VIEW heapmv SET ACCESS METHOD heap2;
 DROP MATERIALIZED VIEW heapmv;
 
--- shouldn't trigger a table_rewrite event
+-- shouldn''t trigger a table_rewrite event
 alter table rewriteme alter column foo type numeric(12,4);
 begin;
 set timezone to 'UTC';
@@ -395,7 +395,7 @@ set timezone to 'Europe/London';
 alter table rewriteme alter column bar type timestamp; -- does rewrite
 rollback;
 
--- typed tables are rewritten when their type changes.  Don't emit table
+-- typed tables are rewritten when their type changes.  Don''t emit table
 -- name, because firing order is not stable.
 CREATE OR REPLACE FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger
 LANGUAGE plpgsql AS $$
@@ -410,7 +410,7 @@ create table rewritemetoo1 of rewritetype;
 create table rewritemetoo2 of rewritetype;
 alter type rewritetype alter attribute a type text cascade;
 
--- but this doesn't work
+-- but this doesn''t work
 create table rewritemetoo3 (a rewritetype);
 alter type rewritetype alter attribute a type varchar cascade;
 

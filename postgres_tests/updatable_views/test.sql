@@ -196,7 +196,7 @@ MERGE INTO rw_view1 t
   USING (SELECT * FROM generate_series(1,5)) AS s(a) ON t.a = s.a
   WHEN NOT MATCHED THEN INSERT (a) VALUES (s.a);
 
--- it's still updatable if we add a DO ALSO rule
+-- it''s still updatable if we add a DO ALSO rule
 
 CREATE TABLE base_tbl_hist(ts timestamptz default now(), a int, b text);
 
@@ -1403,11 +1403,11 @@ MERGE INTO rw_view2 t USING (VALUES (6)) AS v(a) ON t.a = v.a
   WHEN MATCHED THEN UPDATE SET a = t.a - 10; -- should fail
 SELECT * FROM base_tbl;
 
--- Check option won't cascade down to base view with INSTEAD OF triggers
+-- Check option won''t cascade down to base view with INSTEAD OF triggers
 
 ALTER VIEW rw_view2 SET (check_option=cascaded);
-INSERT INTO rw_view2 VALUES (100); -- ok, but not in view (doesn't fail rw_view1's check)
-UPDATE rw_view2 SET a = 200 WHERE a = 5; -- ok, but not in view (doesn't fail rw_view1's check)
+INSERT INTO rw_view2 VALUES (100); -- ok, but not in view (doesn''t fail rw_view1''s check)
+UPDATE rw_view2 SET a = 200 WHERE a = 5; -- ok, but not in view (doesn''t fail rw_view1''s check)
 SELECT * FROM base_tbl;
 
 -- Neither local nor cascaded check options work with INSTEAD rules
@@ -1417,12 +1417,12 @@ CREATE RULE rw_view1_ins_rule AS ON INSERT TO rw_view1
   DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a, 10);
 CREATE RULE rw_view1_upd_rule AS ON UPDATE TO rw_view1
   DO INSTEAD UPDATE base_tbl SET a=NEW.a WHERE a=OLD.a;
-INSERT INTO rw_view2 VALUES (-10); -- ok, but not in view (doesn't fail rw_view2's check)
+INSERT INTO rw_view2 VALUES (-10); -- ok, but not in view (doesn''t fail rw_view2''s check)
 INSERT INTO rw_view2 VALUES (5); -- ok
-INSERT INTO rw_view2 VALUES (20); -- ok, but not in view (doesn't fail rw_view1's check)
-UPDATE rw_view2 SET a = 30 WHERE a = 5; -- ok, but not in view (doesn't fail rw_view1's check)
+INSERT INTO rw_view2 VALUES (20); -- ok, but not in view (doesn''t fail rw_view1''s check)
+UPDATE rw_view2 SET a = 30 WHERE a = 5; -- ok, but not in view (doesn''t fail rw_view1''s check)
 INSERT INTO rw_view2 VALUES (5); -- ok
-UPDATE rw_view2 SET a = -5 WHERE a = 5; -- ok, but not in view (doesn't fail rw_view2's check)
+UPDATE rw_view2 SET a = -5 WHERE a = 5; -- ok, but not in view (doesn''t fail rw_view2''s check)
 SELECT * FROM base_tbl;
 
 DROP TABLE base_tbl CASCADE;
@@ -1434,7 +1434,7 @@ CREATE RULE rw_view1_ins_rule AS ON INSERT TO rw_view1
   DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a);
 CREATE VIEW rw_view2 AS
   SELECT * FROM rw_view1 WHERE a > b WITH LOCAL CHECK OPTION;
-INSERT INTO rw_view2 VALUES (2,3); -- ok, but not in view (doesn't fail rw_view2's check)
+INSERT INTO rw_view2 VALUES (2,3); -- ok, but not in view (doesn''t fail rw_view2''s check)
 DROP TABLE base_tbl CASCADE;
 
 -- security barrier view
@@ -1789,15 +1789,15 @@ create view wcowrtest_v2 as
       where r in (select s from sometable s where r.a = s.a)
 with check option;
 
--- WITH CHECK qual will be processed with wcowrtest2's
+-- WITH CHECK qual will be processed with wcowrtest2''s
 -- rowtype after tuple-routing
 insert into wcowrtest_v2 values (2, 'no such row in sometable');
 
 drop view wcowrtest_v, wcowrtest_v2;
 drop table wcowrtest, sometable;
 
--- Check INSERT .. ON CONFLICT DO UPDATE works correctly when the view's
--- columns are named and ordered differently than the underlying table's.
+-- Check INSERT .. ON CONFLICT DO UPDATE works correctly when the view''s
+-- columns are named and ordered differently than the underlying table''s.
 create table uv_iocu_tab (a text unique, b float);
 insert into uv_iocu_tab values ('xyxyxy', 0);
 create view uv_iocu_view as

@@ -75,7 +75,7 @@ select relname, relpartbound from pg_class
 alter table idxpart_c detach partition idxpart1_c;
 drop table idxpart;
 
--- If a partition already has an index, don't create a duplicative one
+-- If a partition already has an index, don''t create a duplicative one
 create table idxpart (a int, b int) partition by range (a, b);
 create table idxpart1 partition of idxpart for values from (0, 0) to (10, 10);
 create index on idxpart1 (a, b);
@@ -138,11 +138,11 @@ alter index idxpart_a_b_idx attach partition idxpart1_a_b_idx; -- quiet
 create index idxpart1_2_a_b on idxpart1 (a, b);
 alter index idxpart_a_b_idx attach partition idxpart1_2_a_b;
 drop table idxpart;
--- make sure everything's gone
+-- make sure everything''s gone
 select indexrelid::regclass, indrelid::regclass
   from pg_index where indexrelid::regclass::text like 'idxpart%';
 
--- Don't auto-attach incompatible indexes
+-- Don''t auto-attach incompatible indexes
 create table idxpart (a int, b int) partition by range (a);
 create table idxpart1 (a int, b int);
 create index on idxpart1 using hash (a);
@@ -154,8 +154,8 @@ alter table idxpart attach partition idxpart1 for values from (0) to (1000);
 -- \d idxpart1
 drop table idxpart;
 
--- If CREATE INDEX ONLY, don't create indexes on partitions /* REPLACED */, and existing
--- indexes on partitions don't change parent.  ALTER INDEX ATTACH can change
+-- If CREATE INDEX ONLY, don''t create indexes on partitions /* REPLACED */, and existing
+-- indexes on partitions don''t change parent.  ALTER INDEX ATTACH can change
 -- the parent after the fact.
 create table idxpart (a int) partition by range (a);
 create table idxpart1 partition of idxpart for values from (0) to (100);
@@ -191,7 +191,7 @@ drop table idxpart;
 
 -- When a table is attached a partition and it already has an index, a
 -- duplicate index should not get created, but rather the index becomes
--- attached to the parent's index.
+-- attached to the parent''s index.
 create table idxpart (a int, b int, c text, d bool) partition by range (a);
 create index idxparti on idxpart (a);
 create index idxparti2 on idxpart (b, c);
@@ -467,7 +467,7 @@ create table idxpart (a int primary key, b int) partition by range (a);
 -- multiple primary key on child should fail
 create table failpart partition of idxpart (b primary key) for values from (0) to (100);
 drop table idxpart;
--- primary key on child is okay if there's no PK in the parent, though
+-- primary key on child is okay if there''s no PK in the parent, though
 create table idxpart (a int) partition by range (a);
 create table idxpart1pk partition of idxpart (a primary key) for values from (0) to (100);
 -- \d idxpart1pk
@@ -595,8 +595,8 @@ select conname, contype, conrelid::regclass, conindid::regclass, conkey
   order by conname;
 drop table idxpart;
 
--- If a partitioned table has a unique/PK constraint, then it's not possible
--- to drop the corresponding constraint in the children /* REPLACED */, nor it's possible
+-- If a partitioned table has a unique/PK constraint, then it''s not possible
+-- to drop the corresponding constraint in the children /* REPLACED */, nor it''s possible
 -- to drop the indexes individually.  Dropping the constraint in the parent
 -- gets rid of the lot.
 create table idxpart (i int) partition by hash (i);
@@ -624,7 +624,7 @@ select indrelid::regclass, indexrelid::regclass, inhparent::regclass, indisvalid
 drop table idxpart;
 
 -- If the partition to be attached already has a primary key, fail if
--- it doesn't match the parent's PK.
+-- it doesn''t match the parent''s PK.
 CREATE TABLE idxpart (c1 INT PRIMARY KEY, c2 INT, c3 VARCHAR(10)) PARTITION BY RANGE(c1);
 CREATE TABLE idxpart1 (LIKE idxpart);
 ALTER TABLE idxpart1 ADD PRIMARY KEY (c1, c2);
@@ -661,7 +661,7 @@ select indrelid::regclass, indexrelid::regclass, inhparent::regclass, indisvalid
   order by indexrelid::regclass::text collate "C";
 drop table idxpart;
 
--- Related to the above scenario: ADD PRIMARY KEY on the parent mustn't
+-- Related to the above scenario: ADD PRIMARY KEY on the parent mustn''t
 -- automatically propagate NOT NULL to child columns.
 create table idxpart (a int) partition by range (a);
 create table idxpart0 (like idxpart);
@@ -690,7 +690,7 @@ select indrelid::regclass, indexrelid::regclass, inhparent::regclass, indisvalid
   order by indexrelid::regclass::text collate "C";
 drop table idxpart;
 
--- Can't attach an index without a corresponding constraint
+-- Can''t attach an index without a corresponding constraint
 create table idxpart (a int, b int) partition by range (a);
 create table idxpart1 (a int not null, b int);
 create unique index on idxpart1 (a);

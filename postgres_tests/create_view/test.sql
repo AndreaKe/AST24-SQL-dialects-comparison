@@ -5,11 +5,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
+-- \getenv dlsuffix ''.so''
 
--- \set regresslib /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */ '.so'
+-- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
 
 CREATE FUNCTION interpt_pp(path, path)
     RETURNS point
@@ -22,7 +22,7 @@ CREATE TABLE real_city (
 	outline 	path
 );
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/real_city.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/real_city.data''
 COPY real_city FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/real_city.data';
 ANALYZE real_city;
 
@@ -290,8 +290,8 @@ SELECT relname, relkind, reloptions FROM pg_class
                      'mysecview9'::regclass)
        ORDER BY relname;
 
--- Check that unknown literals are converted to "text" in CREATE VIEW,
--- so that we don't end up with unknown-type columns.
+-- Check that unknown literals are converted to ''text'' in CREATE VIEW,
+-- so that we don''t end up with unknown-type columns.
 
 CREATE VIEW unspecified_types AS
   SELECT 42 as i, 42.5 as num, 'foo' as u, 'foo'::unknown as u2, null as n;
@@ -549,7 +549,7 @@ alter table tt11 add column z int;
 select pg_get_viewdef('vv6', true);
 
 --
--- Check cases involving dropped/altered columns in a function's rowtype result
+-- Check cases involving dropped/altered columns in a function''s rowtype result
 --
 
 create table tt14t (f1 text, f2 text, f3 text, f4 text);
@@ -579,7 +579,7 @@ alter table tt14t drop column f3;  -- fail, view has explicit reference to f3
 
 -- We used to have a bug that would allow the above to succeed, posing
 -- hazards for later execution of the view.  Check that the internal
--- defenses for those hazards haven't bit-rotted, in case some other
+-- defenses for those hazards haven''t bit-rotted, in case some other
 -- bug with similar symptoms emerges.
 begin;
 
@@ -605,7 +605,7 @@ select * from tt14v;
 
 rollback;
 
--- likewise, altering a referenced column's type is prohibited ...
+-- likewise, altering a referenced column''s type is prohibited ...
 alter table tt14t alter column f4 type integer using f4::integer;  -- fail
 
 -- ... but some bug might let it happen, so check defenses

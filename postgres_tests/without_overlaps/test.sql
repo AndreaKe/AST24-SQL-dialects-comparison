@@ -17,7 +17,7 @@ CREATE TABLE temporal_rng (
 	CONSTRAINT temporal_rng_pk PRIMARY KEY (valid_at WITHOUT OVERLAPS)
 );
 
--- PK with a range column/PERIOD that isn't there:
+-- PK with a range column/PERIOD that isn''t there:
 
 CREATE TABLE temporal_rng (
 	id INTEGER,
@@ -35,7 +35,7 @@ CREATE TABLE temporal_rng (
 -- PK with one column plus a range:
 
 CREATE TABLE temporal_rng (
-	-- Since we can't depend on having btree_gist here,
+	-- Since we can''t depend on having btree_gist here,
 	-- use an int4range instead of an int.
 	-- (The rangetypes regression test uses the same trick.)
 	id int4range,
@@ -47,7 +47,7 @@ SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rn
 SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng_pk';
 
 -- PK with two columns plus a range:
--- We don't drop this table because tests below also need multiple scalar columns.
+-- We don''t drop this table because tests below also need multiple scalar columns.
 CREATE TABLE temporal_rng2 (
 	id1 int4range,
 	id2 int4range,
@@ -85,7 +85,7 @@ CREATE TABLE temporal_rng3 (
 	CONSTRAINT temporal_rng3_uq UNIQUE (valid_at WITHOUT OVERLAPS)
 );
 
--- UNIQUE with a range column/PERIOD that isn't there:
+-- UNIQUE with a range column/PERIOD that isn''t there:
 
 CREATE TABLE temporal_rng3 (
 	id INTEGER,
@@ -236,7 +236,7 @@ INSERT INTO temporal3 (id, valid_at, id2, name)
 DROP TABLE temporal3;
 
 --
--- test changing the PK's dependencies
+-- test changing the PK''s dependencies
 --
 
 CREATE TABLE temporal3 (

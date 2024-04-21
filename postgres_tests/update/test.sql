@@ -31,7 +31,7 @@ UPDATE update_test t SET b = t.b + 10 WHERE t.a = 10;
 
 SELECT * FROM update_test;
 
--- error, you're not supposed to qualify the target column
+-- error, you''re not supposed to qualify the target column
 UPDATE update_test t SET t.b = t.b + 10 WHERE t.a = 10;
 
 --
@@ -80,11 +80,11 @@ SELECT * FROM update_test;
 -- *-expansion should work in this context:
 UPDATE update_test SET (a,b) = ROW(v.*) FROM (VALUES(21, 100)) AS v(i, j)
   WHERE update_test.a = v.i;
--- you might expect this to work, but syntactically it's not a RowExpr:
+-- you might expect this to work, but syntactically it''s not a RowExpr:
 UPDATE update_test SET (a,b) = (v.*) FROM (VALUES(21, 101)) AS v(i, j)
   WHERE update_test.a = v.i;
 
--- if an alias for the target table is specified, don't allow references
+-- if an alias for the target table is specified, don''t allow references
 -- to the original table name
 UPDATE update_test AS t SET b = update_test.b + 10 WHERE t.a = 10;
 
@@ -124,7 +124,7 @@ INSERT INTO upsert_test VALUES (1, 'Bat'), (3, 'Zot') ON CONFLICT(a)
 INSERT INTO upsert_test VALUES (2, 'Beeble') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
   RETURNING tableoid::regclass, xmin = pg_current_xact_id()::xid AS xmin_correct, xmax = 0 AS xmax_correct;
--- currently xmax is set after a conflict - that's probably not good,
+-- currently xmax is set after a conflict - that''s probably not good,
 -- but it seems worthwhile to have to be explicit if that changes.
 INSERT INTO upsert_test VALUES (2, 'Brox') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
@@ -162,7 +162,7 @@ DROP TABLE upsert_test;
 ---------------------------
 
 -- When a partitioned table receives an UPDATE to the partitioned key and the
--- new values no longer meet the partition's bound, the row must be moved to
+-- new values no longer meet the partition''s bound, the row must be moved to
 -- the correct partition for the new partition key (if one exists). We must
 -- also ensure that updatable views on partitioned tables properly enforce any
 -- WITH CHECK OPTION that is defined. The situation with triggers in this case
@@ -192,7 +192,7 @@ CREATE TABLE part_a_1_a_10 PARTITION OF range_parted FOR VALUES FROM ('a', 1) TO
 UPDATE part_b_10_b_20 set b = b - 6;
 
 -- Create some more partitions following the above pattern of descending bound
--- order, but let's make the situation a bit more complex by having the
+-- order, but let''s make the situation a bit more complex by having the
 -- attribute numbers of the columns vary from their parent partition.
 CREATE TABLE part_c_100_200 (e varchar, c numeric, a text, b bigint, d int) PARTITION BY range (abs(d));
 ALTER TABLE part_c_100_200 DROP COLUMN e, DROP COLUMN c, DROP COLUMN a;
@@ -207,8 +207,8 @@ ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_100_200 FOR VALUES FROM (100)
 CREATE TABLE part_c_1_100 (e varchar, d int, c numeric, b bigint, a text);
 ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_1_100 FOR VALUES FROM (1) TO (100);
 
--- \set init_range_parted 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)'
--- \set show_data 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'
+-- \set init_range_parted ''truncate range_parted /* REPLACED */, insert into range_parted VALUES (''''a'''', 1, 1, 1), (''''a'''', 10, 200, 1), (''''b'''', 12, 96, 1), (''''b'''', 13, 97, 2), (''''b'''', 15, 105, 16), (''''b'''', 17, 105, 19)''
+-- \set show_data ''select tableoid::regclass::text COLLATE ''C'' partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6''
 /* REPLACED */ 'truncate || range_parted; || insert || into || range_parted || VALUES || (''a'', || 1, || 1, || 1), || (''a'', || 10, || 200, || 1), || (''b'', || 12, || 96, || 1), || (''b'', || 13, || 97, || 2), || (''b'', || 15, || 105, || 16), || (''b'', || 17, || 105, || 19)';
 /* REPLACED */ 'select || tableoid::regclass::text || COLLATE || "C" || partname, || * || from || range_parted || ORDER || BY || 1, || 2, || 3, || 4, || 5, || 6';
 
@@ -218,7 +218,7 @@ EXPLAIN (costs off) UPDATE range_parted set c = c - 50 WHERE c > 97;
 -- fail, row movement happens only within the partition subtree.
 UPDATE part_c_100_200 set c = c - 20, d = c WHERE c = 105;
 -- fail, no partition key update, so no attempt to move tuple,
--- but "a = 'a'" violates partition constraint enforced by root partition)
+-- but ''a = ''a'''' violates partition constraint enforced by root partition)
 UPDATE part_b_10_b_20 set a = 'a';
 -- ok, partition key update, no constraint violation
 UPDATE range_parted set d = d - 10 WHERE d > 10;
@@ -298,7 +298,7 @@ UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
 /* REPLACED */ 'select || tableoid::regclass::text || COLLATE || "C" || partname, || * || from || range_parted || ORDER || BY || 1, || 2, || 3, || 4, || 5, || 6';
 DROP TRIGGER trans_deletetrig ON range_parted;
 DROP TRIGGER trans_inserttrig ON range_parted;
--- Don't drop trans_updatetrig yet. It is required below.
+-- Don''t drop trans_updatetrig yet. It is required below.
 
 -- Test with transition tuple conversion happening for rows moved into the
 -- new partition. This requires a trigger that references transition table
@@ -350,7 +350,7 @@ CREATE POLICY policy_range_parted ON range_parted for UPDATE USING (true) WITH C
 /* REPLACED */ 'truncate || range_parted; || insert || into || range_parted || VALUES || (''a'', || 1, || 1, || 1), || (''a'', || 10, || 200, || 1), || (''b'', || 12, || 96, || 1), || (''b'', || 13, || 97, || 2), || (''b'', || 15, || 105, || 16), || (''b'', || 17, || 105, || 19)';
 SET SESSION AUTHORIZATION regress_range_parted_user;
 -- This should fail with RLS violation error while moving row from
--- part_a_10_a_20 to part_d_1_15, because we are setting 'c' to an odd number.
+-- part_a_10_a_20 to part_d_1_15, because we are setting ''c'' to an odd number.
 UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
 
 RESET SESSION AUTHORIZATION;
@@ -367,7 +367,7 @@ CREATE TRIGGER trig_d_1_15 BEFORE INSERT ON part_d_1_15
 SET SESSION AUTHORIZATION regress_range_parted_user;
 
 -- Here, RLS checks should succeed while moving row from part_a_10_a_20 to
--- part_d_1_15. Even though the UPDATE is setting 'c' to an odd number, the
+-- part_d_1_15. Even though the UPDATE is setting ''c'' to an odd number, the
 -- trigger at the destination partition again makes it an even number.
 UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
 
@@ -375,7 +375,7 @@ RESET SESSION AUTHORIZATION;
 /* REPLACED */ 'truncate || range_parted; || insert || into || range_parted || VALUES || (''a'', || 1, || 1, || 1), || (''a'', || 10, || 200, || 1), || (''b'', || 12, || 96, || 1), || (''b'', || 13, || 97, || 2), || (''b'', || 15, || 105, || 16), || (''b'', || 17, || 105, || 19)';
 SET SESSION AUTHORIZATION regress_range_parted_user;
 -- This should fail with RLS violation error. Even though the UPDATE is setting
--- 'c' to an even number, the trigger at the destination partition again makes
+-- ''c'' to an even number, the trigger at the destination partition again makes
 -- it an odd number.
 UPDATE range_parted set a = 'b', c = 150 WHERE a = 'a' and c = 200;
 

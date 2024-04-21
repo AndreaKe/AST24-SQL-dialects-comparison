@@ -3,8 +3,8 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv abs_builddir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results''
 
 -- ensure consistent test output regardless of the default bytea format
 SET bytea_output TO escape;
@@ -22,7 +22,7 @@ COMMENT ON LARGE OBJECT 42 IS 'the ultimate answer';
 
 RESET SESSION AUTHORIZATION;
 
--- Test psql's \lo_list et al (we assume no other LOs exist yet)
+-- Test psql''s \lo_list et al (we assume no other LOs exist yet)
 \lo_list
 \lo_list+
 \lo_unlink 42
@@ -88,8 +88,8 @@ SELECT lo_close(fd) FROM lotest_stash_values;
 END;
 
 -- Copy to another large object.
--- Note: we intentionally don't remove the object created here /* REPLACED */,
--- it's left behind to help test pg_dump.
+-- Note: we intentionally don''t remove the object created here /* REPLACED */,
+-- it''s left behind to help test pg_dump.
 
 SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
 \gset
@@ -132,12 +132,12 @@ BEGIN;
 SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
 ABORT;
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/invalid/path'
--- \set dobody 'DECLARE loid oid; BEGIN '
--- \set dobody /* REPLACED */ 'DECLARE || loid || oid; || BEGIN || ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl; '
--- \set dobody /* REPLACED */ 'DECLARE || || || loid || || || oid; || || || BEGIN || || || SELECT || tbl.loid || INTO || loid || FROM || lotest_stash_values || tbl; || ' 'PERFORM lo_export(loid, ' /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path' '); '
--- \set dobody /* REPLACED */ 'DECLARE || || || || || || || loid || || || || || || || oid; || || || || || || || BEGIN || || || || || || || SELECT || || || tbl.loid || || || INTO || || || loid || || || FROM || || || lotest_stash_values || || || tbl; || || || PERFORM || lo_export(loid, || /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path); || ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
--- \set dobody /* REPLACED */ 'DECLARE || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || oid; || || || || || || || || || || || || || || || BEGIN || || || || || || || || || || || || || || || SELECT || || || || || || || tbl.loid || || || || || || || INTO || || || || || || || loid || || || || || || || FROM || || || || || || || lotest_stash_values || || || || || || || tbl; || || || || || || || PERFORM || || || lo_export(loid, || || || /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path); || || || EXCEPTION || WHEN || UNDEFINED_FILE || THEN || ' 'RAISE NOTICE ''could not open file, as expected''; END'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/invalid/path''
+-- \set dobody ''DECLARE loid oid /* REPLACED */, BEGIN ''
+-- \set dobody /* REPLACED */ ''DECLARE || loid || oid /* REPLACED */, || BEGIN || '' ''SELECT tbl.loid INTO loid FROM lotest_stash_values tbl /* REPLACED */, ''
+-- \set dobody /* REPLACED */ ''DECLARE || || || loid || || || oid /* REPLACED */, || || || BEGIN || || || SELECT || tbl.loid || INTO || loid || FROM || lotest_stash_values || tbl /* REPLACED */, || '' ''PERFORM lo_export(loid, '' /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path'' '') /* REPLACED */, ''
+-- \set dobody /* REPLACED */ ''DECLARE || || || || || || || loid || || || || || || || oid /* REPLACED */, || || || || || || || BEGIN || || || || || || || SELECT || || || tbl.loid || || || INTO || || || loid || || || FROM || || || lotest_stash_values || || || tbl /* REPLACED */, || || || PERFORM || lo_export(loid, || /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path) /* REPLACED */, || '' ''EXCEPTION WHEN UNDEFINED_FILE THEN ''
+-- \set dobody /* REPLACED */ ''DECLARE || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || oid /* REPLACED */, || || || || || || || || || || || || || || || BEGIN || || || || || || || || || || || || || || || SELECT || || || || || || || tbl.loid || || || || || || || INTO || || || || || || || loid || || || || || || || FROM || || || || || || || lotest_stash_values || || || || || || || tbl /* REPLACED */, || || || || || || || PERFORM || || || lo_export(loid, || || || /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path) /* REPLACED */, || || || EXCEPTION || WHEN || UNDEFINED_FILE || THEN || '' ''RAISE NOTICE ''''could not open file, as expected'''' /* REPLACED */, END''
 DO /* REPLACED */ 'DECLARE || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || oid; || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || BEGIN || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || || SELECT || || || || || || || || || || || || || || || tbl.loid || || || || || || || || || || || || || || || INTO || || || || || || || || || || || || || || || loid || || || || || || || || || || || || || || || FROM || || || || || || || || || || || || || || || lotest_stash_values || || || || || || || || || || || || || || || tbl; || || || || || || || || || || || || || || || PERFORM || || || || || || || lo_export(loid, || || || || || || || /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path); || || || || || || || EXCEPTION || || || WHEN || || || UNDEFINED_FILE || || || THEN || || || RAISE || NOTICE || ''could || not || open || file, || as || expected''; || END';
 
 -- Test truncation.
@@ -188,7 +188,7 @@ SELECT lo_unlink(loid) from lotest_stash_values;
 
 TRUNCATE lotest_stash_values;
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/tenk.data''
 INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
 
 BEGIN;
@@ -218,7 +218,7 @@ SELECT loread(fd, 36) FROM lotest_stash_values;
 SELECT lo_close(fd) FROM lotest_stash_values;
 END;
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/lotest.txt''
 SELECT lo_export(loid, /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt') FROM lotest_stash_values;
 
 \lo_import /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
@@ -226,7 +226,7 @@ SELECT lo_export(loid, /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/projec
 -- \set newloid :LASTOID
 
 -- just make sure \lo_export does not barf
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest2.txt'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/lotest2.txt''
 \lo_export /* REPLACED */ :LASTOID /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest2.txt'
 
 -- This is a hack to test that export/import are reversible
@@ -242,7 +242,7 @@ TRUNCATE lotest_stash_values;
 
 \lo_unlink /* REPLACED */ :LASTOID
 
--- \set filename /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
+-- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'' ''/results/lotest.txt''
 \lo_import /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
 
 -- \set newloid_1 :LASTOID
