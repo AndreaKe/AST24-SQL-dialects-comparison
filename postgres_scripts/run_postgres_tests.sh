@@ -21,12 +21,13 @@ export PGOPTIONS="-c intervalstyle=postgres_verbose"
 export LANG="C"
 
 
-results_folder=../postgres_results/
+results_folder=results/
 
 # make sure database does not exist already
 echo "Setup clean environment..."
 psql -X -q -c "DROP DATABASE IF EXISTS regression;" postgres
 psql -X -q -c "DROP TABLESPACE IF EXISTS regress_tblspace;" postgres
+mkdir results
 
 for currentTestPath in ${PG_ABS_SRCDIR}/*/; do 
 
@@ -36,7 +37,7 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
 
     currentResults=$results_folder$currentTest
 
-    if [ "$currentTest" == "data" ] || [ "$currentTest" == "postgres_tests" ]; then   
+    if [ "$currentTest" == "data" ] || [ "$currentTest" == "postgres_tests" ]|| [ "$currentTest" == "generated" ]; then   
     continue
     fi
 
@@ -56,7 +57,6 @@ for currentTestPath in ${PG_ABS_SRCDIR}/*/; do
 
     #echo "Run setup.sql..."
     psql -X -a -q -d "regression" -v HIDE_TABLEAM=on -v HIDE_TOAST_COMPRESSION=on < "${currentTestPath}setup.sql" > "${currentResults}/postgres_setup.txt" 2>&1
-
 
     touch "${currentResults}/postgres.txt"
     #echo "Run test.sql..."

@@ -4,11 +4,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
--- \getenv libdir ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress''
--- \getenv dlsuffix ''.so''
+-- \getenv abs_srcdir /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
+-- \getenv libdir /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
+-- \getenv dlsuffix /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''.so/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 
--- \set regresslib /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'' ''/regress'' /* REPLACED */ ''.so''
+-- \set regresslib /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/regress/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''.so/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 
 --
 -- synchronous_commit=off delays when hint bits may be set. Some plans change
@@ -31,8 +31,8 @@ CREATE TABLESPACE regress_tblspace LOCATION '';
 --
 -- These tables have traditionally been referenced by many tests,
 -- so create and populate them.  Insert only non-error values here.
--- (Some subsequent tests try to insert erroneous values.  That''s okay
--- because the table won''t actually change.  Do not change the contents
+-- (Some subsequent tests try to insert erroneous values.  That/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''s okay
+-- because the table won/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t actually change.  Do not change the contents
 -- of these tables in later tests, as it may affect other tests.)
 --
 
@@ -98,7 +98,7 @@ INSERT INTO POINT_TBL(f1) VALUES
   ('(Inf,1e+300)'),  -- Transposed
   (' ( Nan , NaN ) '),
   ('10.0,10.0');
--- We intentionally don''t vacuum point_tbl here /* REPLACED */, geometry depends on that
+-- We intentionally don/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t vacuum point_tbl here /* REPLACED */, geometry depends on that
 
 CREATE TABLE TEXT_TBL (f1 text);
 
@@ -135,7 +135,7 @@ CREATE TABLE onek (
 	string4		name
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/onek.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/onek.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY onek FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
 VACUUM ANALYZE onek;
 
@@ -161,7 +161,7 @@ CREATE TABLE tenk1 (
 	string4		name
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/tenk.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/tenk.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY tenk1 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
 VACUUM ANALYZE tenk1;
 
@@ -174,7 +174,7 @@ CREATE TABLE person (
 	location 	point
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/person.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/person.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY person FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
 VACUUM ANALYZE person;
 
@@ -183,7 +183,7 @@ CREATE TABLE emp (
 	manager 	name
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/emp.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/emp.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
 VACUUM ANALYZE emp;
 
@@ -191,7 +191,7 @@ CREATE TABLE student (
 	gpa 		float8
 ) INHERITS (person);
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/student.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/student.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY student FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
 VACUUM ANALYZE student;
 
@@ -199,7 +199,7 @@ CREATE TABLE stud_emp (
 	percent 	int4
 ) INHERITS (emp, student);
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/stud_emp.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/stud_emp.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY stud_emp FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
 VACUUM ANALYZE stud_emp;
 
@@ -208,7 +208,7 @@ CREATE TABLE road (
 	thepath 	path
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/streets.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/streets.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY road FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
 VACUUM ANALYZE road;
 
@@ -296,6 +296,7 @@ create function fipshash(text)
     strict immutable parallel safe leakproof
     return substr(encode(sha256($1::bytea), 'hex'), 1, 32);
 -- END setup from test_setup 
+SELECT pg_catalog.set_config('search_path', 'public', false);
 -- START setup from create_index 
 --
 -- CREATE_INDEX
@@ -303,7 +304,7 @@ create function fipshash(text)
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv abs_srcdir /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 
 --
 -- BTREE
@@ -369,7 +370,7 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/rect.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/rect.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY slow_emp4000 FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
@@ -567,7 +568,7 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/array.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/array.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY array_index_op_test FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
 ANALYZE array_index_op_test;
 
@@ -649,7 +650,7 @@ SELECT COUNT(*) FROM array_gin_test WHERE a @> '{2}';
 DROP TABLE array_gin_test;
 
 --
--- Test GIN index''s reloptions
+-- Test GIN index/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''s reloptions
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
@@ -723,10 +724,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn''t:
+-- but this shouldn/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we''re here, see that the metadata looks sane
+-- while we/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -743,10 +744,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn''t:
+-- but this shouldn/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we''re here, see that the metadata looks sane
+-- while we/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -764,7 +765,7 @@ INSERT INTO covering_index_heap VALUES(1,1,'AAA');
 INSERT INTO covering_index_heap VALUES(1,2,'AAA');
 -- this should fail because of unique index on f1,f2:
 INSERT INTO covering_index_heap VALUES(1,2,'BBB');
--- and this shouldn''t:
+-- and this shouldn/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t:
 INSERT INTO covering_index_heap VALUES(1,4,'AAA');
 -- Try to build index on table that already contains data
 CREATE UNIQUE INDEX covering_pkey on covering_index_heap (f1,f2) INCLUDE(f3);
@@ -797,7 +798,7 @@ CREATE INDEX CONCURRENTLY concur_index4 on concur_heap(f2) WHERE f1='a';
 CREATE INDEX CONCURRENTLY concur_index5 on concur_heap(f2) WHERE f1='x';
 -- here we also check that you can default the index name
 CREATE INDEX CONCURRENTLY on concur_heap((f2||f1));
--- You can''t do a concurrent index build in a transaction
+-- You can/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t do a concurrent index build in a transaction
 BEGIN;
 CREATE INDEX CONCURRENTLY concur_index7 ON concur_heap(f1);
 COMMIT;
@@ -1561,7 +1562,757 @@ REVOKE USAGE ON SCHEMA pg_toast FROM regress_reindexuser;
 DROP ROLE regress_reindexuser;
 DROP SCHEMA schema_to_reindex CASCADE;
 -- END setup from create_index 
--- START setup from  geometry 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from point 
+--
+-- POINT
+--
+
+-- avoid bit-exact output here because operations may not be bit-exact.
+SET extra_float_digits = 0;
+
+-- point_tbl was already created and filled in test_setup.sql.
+-- Here we just try to insert bad values.
+
+INSERT INTO POINT_TBL(f1) VALUES ('asdfasdf');
+
+INSERT INTO POINT_TBL(f1) VALUES ('(10.0 10.0)');
+
+INSERT INTO POINT_TBL(f1) VALUES ('(10.0, 10.0) x');
+
+INSERT INTO POINT_TBL(f1) VALUES ('(10.0,10.0');
+
+INSERT INTO POINT_TBL(f1) VALUES ('(10.0, 1e+500)');	-- Out of range
+
+
+SELECT * FROM POINT_TBL;
+
+-- left of
+SELECT p.* FROM POINT_TBL p WHERE p.f1 << '(0.0, 0.0)';
+
+-- right of
+SELECT p.* FROM POINT_TBL p WHERE '(0.0,0.0)' >> p.f1;
+
+-- above
+SELECT p.* FROM POINT_TBL p WHERE '(0.0,0.0)' |>> p.f1;
+
+-- below
+SELECT p.* FROM POINT_TBL p WHERE p.f1 <<| '(0.0, 0.0)';
+
+-- equal
+SELECT p.* FROM POINT_TBL p WHERE p.f1 ~= '(5.1, 34.5)';
+
+-- point in box
+SELECT p.* FROM POINT_TBL p
+   WHERE p.f1 <@ box '(0,0,100,100)';
+
+SELECT p.* FROM POINT_TBL p
+   WHERE box '(0,0,100,100)' @> p.f1;
+
+SELECT p.* FROM POINT_TBL p
+   WHERE not p.f1 <@ box '(0,0,100,100)';
+
+SELECT p.* FROM POINT_TBL p
+   WHERE p.f1 <@ path '[(0,0),(-10,0),(-10,10)]';
+
+SELECT p.* FROM POINT_TBL p
+   WHERE not box '(0,0,100,100)' @> p.f1;
+
+SELECT p.f1, p.f1 <-> point '(0,0)' AS dist
+   FROM POINT_TBL p
+   ORDER BY dist;
+
+SELECT p1.f1 AS point1, p2.f1 AS point2, p1.f1 <-> p2.f1 AS dist
+   FROM POINT_TBL p1, POINT_TBL p2
+   ORDER BY dist, p1.f1[0], p2.f1[0];
+
+SELECT p1.f1 AS point1, p2.f1 AS point2
+   FROM POINT_TBL p1, POINT_TBL p2
+   WHERE (p1.f1 <-> p2.f1) > 3;
+
+-- put distance result into output to allow sorting with GEQ optimizer - tgl 97/05/10
+SELECT p1.f1 AS point1, p2.f1 AS point2, (p1.f1 <-> p2.f1) AS distance
+   FROM POINT_TBL p1, POINT_TBL p2
+   WHERE (p1.f1 <-> p2.f1) > 3 and p1.f1 << p2.f1
+   ORDER BY distance, p1.f1[0], p2.f1[0];
+
+-- put distance result into output to allow sorting with GEQ optimizer - tgl 97/05/10
+SELECT p1.f1 AS point1, p2.f1 AS point2, (p1.f1 <-> p2.f1) AS distance
+   FROM POINT_TBL p1, POINT_TBL p2
+   WHERE (p1.f1 <-> p2.f1) > 3 and p1.f1 << p2.f1 and p1.f1 |>> p2.f1
+   ORDER BY distance;
+
+-- Test that GiST indexes provide same behavior as sequential scan
+CREATE TEMP TABLE point_gist_tbl(f1 point);
+INSERT INTO point_gist_tbl SELECT '(0,0)' FROM generate_series(0,1000);
+CREATE INDEX point_gist_tbl_index ON point_gist_tbl USING gist (f1);
+INSERT INTO point_gist_tbl VALUES ('(0.0000009,0.0000009)');
+SET enable_seqscan TO true;
+SET enable_indexscan TO false;
+SET enable_bitmapscan TO false;
+SELECT COUNT(*) FROM point_gist_tbl WHERE f1 ~= '(0.0000009,0.0000009)'::point;
+SELECT COUNT(*) FROM point_gist_tbl WHERE f1 <@ '(0.0000009,0.0000009),(0.0000009,0.0000009)'::box;
+SELECT COUNT(*) FROM point_gist_tbl WHERE f1 ~= '(0.0000018,0.0000018)'::point;
+SET enable_seqscan TO false;
+SET enable_indexscan TO true;
+SET enable_bitmapscan TO true;
+SELECT COUNT(*) FROM point_gist_tbl WHERE f1 ~= '(0.0000009,0.0000009)'::point;
+SELECT COUNT(*) FROM point_gist_tbl WHERE f1 <@ '(0.0000009,0.0000009),(0.0000009,0.0000009)'::box;
+SELECT COUNT(*) FROM point_gist_tbl WHERE f1 ~= '(0.0000018,0.0000018)'::point;
+RESET enable_seqscan;
+RESET enable_indexscan;
+RESET enable_bitmapscan;
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('1,y', 'point');
+SELECT * FROM pg_input_error_info('1,y', 'point');
+-- END setup from point 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from lseg 
+--
+-- LSEG
+-- Line segments
+--
+
+--DROP TABLE LSEG_TBL /* REPLACED */,
+CREATE TABLE LSEG_TBL (s lseg);
+
+INSERT INTO LSEG_TBL VALUES ('[(1,2),(3,4)]');
+INSERT INTO LSEG_TBL VALUES ('(0,0),(6,6)');
+INSERT INTO LSEG_TBL VALUES ('10,-10 ,-3,-4');
+INSERT INTO LSEG_TBL VALUES ('[-1e6,2e2,3e5, -4e1]');
+INSERT INTO LSEG_TBL VALUES (lseg(point(11, 22), point(33,44)));
+INSERT INTO LSEG_TBL VALUES ('[(-10,2),(-10,3)]');	-- vertical
+INSERT INTO LSEG_TBL VALUES ('[(0,-20),(30,-20)]');	-- horizontal
+INSERT INTO LSEG_TBL VALUES ('[(NaN,1),(NaN,90)]');	-- NaN
+
+-- bad values for parser testing
+INSERT INTO LSEG_TBL VALUES ('(3asdf,2 ,3,4r2)');
+INSERT INTO LSEG_TBL VALUES ('[1,2,3, 4');
+INSERT INTO LSEG_TBL VALUES ('[(,2),(3,4)]');
+INSERT INTO LSEG_TBL VALUES ('[(1,2),(3,4)');
+
+select * from LSEG_TBL;
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('[(1,2),(3)]', 'lseg');
+SELECT * FROM pg_input_error_info('[(1,2),(3)]', 'lseg');
+-- END setup from lseg 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from line 
+--
+-- LINE
+-- Infinite lines
+--
+
+--DROP TABLE LINE_TBL /* REPLACED */,
+CREATE TABLE LINE_TBL (s line);
+
+INSERT INTO LINE_TBL VALUES ('{0,-1,5}');	-- A == 0
+INSERT INTO LINE_TBL VALUES ('{1,0,5}');	-- B == 0
+INSERT INTO LINE_TBL VALUES ('{0,3,0}');	-- A == C == 0
+INSERT INTO LINE_TBL VALUES (' (0,0), (6,6)');
+INSERT INTO LINE_TBL VALUES ('10,-10 ,-5,-4');
+INSERT INTO LINE_TBL VALUES ('[-1e6,2e2,3e5, -4e1]');
+
+INSERT INTO LINE_TBL VALUES ('{3,NaN,5}');
+INSERT INTO LINE_TBL VALUES ('{NaN,NaN,NaN}');
+
+-- horizontal
+INSERT INTO LINE_TBL VALUES ('[(1,3),(2,3)]');
+-- vertical
+INSERT INTO LINE_TBL VALUES (line(point '(3,1)', point '(3,2)'));
+
+-- bad values for parser testing
+INSERT INTO LINE_TBL VALUES ('{}');
+INSERT INTO LINE_TBL VALUES ('{0');
+INSERT INTO LINE_TBL VALUES ('{0,0}');
+INSERT INTO LINE_TBL VALUES ('{0,0,1');
+INSERT INTO LINE_TBL VALUES ('{0,0,1}');
+INSERT INTO LINE_TBL VALUES ('{0,0,1} x');
+INSERT INTO LINE_TBL VALUES ('(3asdf,2 ,3,4r2)');
+INSERT INTO LINE_TBL VALUES ('[1,2,3, 4');
+INSERT INTO LINE_TBL VALUES ('[(,2),(3,4)]');
+INSERT INTO LINE_TBL VALUES ('[(1,2),(3,4)');
+INSERT INTO LINE_TBL VALUES ('[(1,2),(1,2)]');
+
+INSERT INTO LINE_TBL VALUES (line(point '(1,0)', point '(1,0)'));
+
+select * from LINE_TBL;
+
+select '{nan, 1, nan}'::line = '{nan, 1, nan}'::line as true,
+	   '{nan, 1, nan}'::line = '{nan, 2, nan}'::line as false;
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('{1, 1}', 'line');
+SELECT * FROM pg_input_error_info('{1, 1}', 'line');
+SELECT pg_input_is_valid('{0, 0, 0}', 'line');
+SELECT * FROM pg_input_error_info('{0, 0, 0}', 'line');
+SELECT pg_input_is_valid('{1, 1, a}', 'line');
+SELECT * FROM pg_input_error_info('{1, 1, a}', 'line');
+SELECT pg_input_is_valid('{1, 1, 1e400}', 'line');
+SELECT * FROM pg_input_error_info('{1, 1, 1e400}', 'line');
+SELECT pg_input_is_valid('(1, 1), (1, 1e400)', 'line');
+SELECT * FROM pg_input_error_info('(1, 1), (1, 1e400)', 'line');
+-- END setup from line 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from box 
+--
+-- BOX
+--
+
+--
+-- box logic
+--	     o
+-- 3	  o--|X
+--	  |  o|
+-- 2	+-+-+ |
+--	| | | |
+-- 1	| o-+-o
+--	|   |
+-- 0	+---+
+--
+--	0 1 2 3
+--
+
+-- boxes are specified by two points, given by four floats x1,y1,x2,y2
+
+
+CREATE TABLE BOX_TBL (f1 box);
+
+INSERT INTO BOX_TBL (f1) VALUES ('(2.0,2.0,0.0,0.0)');
+
+INSERT INTO BOX_TBL (f1) VALUES ('(1.0,1.0,3.0,3.0)');
+
+INSERT INTO BOX_TBL (f1) VALUES ('((-8, 2), (-2, -10))');
+
+
+-- degenerate cases where the box is a line or a point
+-- note that lines and points boxes all have zero area
+INSERT INTO BOX_TBL (f1) VALUES ('(2.5, 2.5, 2.5,3.5)');
+
+INSERT INTO BOX_TBL (f1) VALUES ('(3.0, 3.0,3.0,3.0)');
+
+-- badly formatted box inputs
+INSERT INTO BOX_TBL (f1) VALUES ('(2.3, 4.5)');
+
+INSERT INTO BOX_TBL (f1) VALUES ('[1, 2, 3, 4)');
+
+INSERT INTO BOX_TBL (f1) VALUES ('(1, 2, 3, 4]');
+
+INSERT INTO BOX_TBL (f1) VALUES ('(1, 2, 3, 4) x');
+
+INSERT INTO BOX_TBL (f1) VALUES ('asdfasdf(ad');
+
+
+SELECT * FROM BOX_TBL;
+
+SELECT b.*, area(b.f1) as barea
+   FROM BOX_TBL b;
+
+-- overlap
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE b.f1 && box '(2.5,2.5,1.0,1.0)';
+
+-- left-or-overlap (x only)
+SELECT b1.*
+   FROM BOX_TBL b1
+   WHERE b1.f1 &< box '(2.0,2.0,2.5,2.5)';
+
+-- right-or-overlap (x only)
+SELECT b1.*
+   FROM BOX_TBL b1
+   WHERE b1.f1 &> box '(2.0,2.0,2.5,2.5)';
+
+-- left of
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE b.f1 << box '(3.0,3.0,5.0,5.0)';
+
+-- area <=
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE b.f1 <= box '(3.0,3.0,5.0,5.0)';
+
+-- area <
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE b.f1 < box '(3.0,3.0,5.0,5.0)';
+
+-- area =
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE b.f1 = box '(3.0,3.0,5.0,5.0)';
+
+-- area >
+SELECT b.f1
+   FROM BOX_TBL b				-- zero area
+   WHERE b.f1 > box '(3.5,3.0,4.5,3.0)';
+
+-- area >=
+SELECT b.f1
+   FROM BOX_TBL b				-- zero area
+   WHERE b.f1 >= box '(3.5,3.0,4.5,3.0)';
+
+-- right of
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE box '(3.0,3.0,5.0,5.0)' >> b.f1;
+
+-- contained in
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE b.f1 <@ box '(0,0,3,3)';
+
+-- contains
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE box '(0,0,3,3)' @> b.f1;
+
+-- box equality
+SELECT b.f1
+   FROM BOX_TBL b
+   WHERE box '(1,1,3,3)' ~= b.f1;
+
+-- center of box, left unary operator
+SELECT @@(b1.f1) AS p
+   FROM BOX_TBL b1;
+
+-- wholly-contained
+SELECT b1.*, b2.*
+   FROM BOX_TBL b1, BOX_TBL b2
+   WHERE b1.f1 @> b2.f1 and not b1.f1 ~= b2.f1;
+
+SELECT height(f1), width(f1) FROM BOX_TBL;
+
+--
+-- Test the SP-GiST index
+--
+
+CREATE TEMPORARY TABLE box_temp (f1 box);
+
+INSERT INTO box_temp
+	SELECT box(point(i, i), point(i * 2, i * 2))
+	FROM generate_series(1, 50) AS i;
+
+CREATE INDEX box_spgist ON box_temp USING spgist (f1);
+
+INSERT INTO box_temp
+	VALUES (NULL),
+		   ('(0,0)(0,100)'),
+		   ('(-3,4.3333333333)(40,1)'),
+		   ('(0,100)(0,infinity)'),
+		   ('(-infinity,0)(0,infinity)'),
+		   ('(-infinity,-infinity)(infinity,infinity)');
+
+SET enable_seqscan = false;
+
+SELECT * FROM box_temp WHERE f1 << '(10,20),(30,40)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 << '(10,20),(30,40)';
+
+SELECT * FROM box_temp WHERE f1 &< '(10,4.333334),(5,100)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 &< '(10,4.333334),(5,100)';
+
+SELECT * FROM box_temp WHERE f1 && '(15,20),(25,30)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 && '(15,20),(25,30)';
+
+SELECT * FROM box_temp WHERE f1 &> '(40,30),(45,50)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 &> '(40,30),(45,50)';
+
+SELECT * FROM box_temp WHERE f1 >> '(30,40),(40,30)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 >> '(30,40),(40,30)';
+
+SELECT * FROM box_temp WHERE f1 <<| '(10,4.33334),(5,100)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 <<| '(10,4.33334),(5,100)';
+
+SELECT * FROM box_temp WHERE f1 &<| '(10,4.3333334),(5,1)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 &<| '(10,4.3333334),(5,1)';
+
+SELECT * FROM box_temp WHERE f1 |&> '(49.99,49.99),(49.99,49.99)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 |&> '(49.99,49.99),(49.99,49.99)';
+
+SELECT * FROM box_temp WHERE f1 |>> '(37,38),(39,40)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 |>> '(37,38),(39,40)';
+
+SELECT * FROM box_temp WHERE f1 @> '(10,11),(15,16)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 @> '(10,11),(15,15)';
+
+SELECT * FROM box_temp WHERE f1 <@ '(10,15),(30,35)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 <@ '(10,15),(30,35)';
+
+SELECT * FROM box_temp WHERE f1 ~= '(20,20),(40,40)';
+EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 ~= '(20,20),(40,40)';
+
+RESET enable_seqscan;
+
+DROP INDEX box_spgist;
+
+--
+-- Test the SP-GiST index on the larger volume of data
+--
+CREATE TABLE quad_box_tbl (id int, b box);
+
+INSERT INTO quad_box_tbl
+  SELECT (x - 1) * 100 + y, box(point(x * 10, y * 10), point(x * 10 + 5, y * 10 + 5))
+  FROM generate_series(1, 100) x,
+       generate_series(1, 100) y;
+
+-- insert repeating data to test allTheSame
+INSERT INTO quad_box_tbl
+  SELECT i, '((200, 300),(210, 310))'
+  FROM generate_series(10001, 11000) AS i;
+
+INSERT INTO quad_box_tbl
+VALUES
+  (11001, NULL),
+  (11002, NULL),
+  (11003, '((-infinity,-infinity),(infinity,infinity))'),
+  (11004, '((-infinity,100),(-infinity,500))'),
+  (11005, '((-infinity,-infinity),(700,infinity))');
+
+CREATE INDEX quad_box_tbl_idx ON quad_box_tbl USING spgist(b);
+
+-- get reference results for ORDER BY distance from seq scan
+SET enable_seqscan = ON;
+SET enable_indexscan = OFF;
+SET enable_bitmapscan = OFF;
+
+CREATE TABLE quad_box_tbl_ord_seq1 AS
+SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
+FROM quad_box_tbl;
+
+CREATE TABLE quad_box_tbl_ord_seq2 AS
+SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
+FROM quad_box_tbl WHERE b <@ box '((200,300),(500,600))';
+
+SET enable_seqscan = OFF;
+SET enable_indexscan = ON;
+SET enable_bitmapscan = ON;
+
+SELECT count(*) FROM quad_box_tbl WHERE b <<  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b &<  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b &&  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b &>  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b >>  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b >>  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b <<| box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b &<| box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b |&> box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b |>> box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b @>  box '((201,301),(202,303))';
+SELECT count(*) FROM quad_box_tbl WHERE b <@  box '((100,200),(300,500))';
+SELECT count(*) FROM quad_box_tbl WHERE b ~=  box '((200,300),(205,305))';
+
+-- test ORDER BY distance
+SET enable_indexscan = ON;
+SET enable_bitmapscan = OFF;
+
+EXPLAIN (COSTS OFF)
+SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
+FROM quad_box_tbl;
+
+CREATE TEMP TABLE quad_box_tbl_ord_idx1 AS
+SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
+FROM quad_box_tbl;
+
+SELECT *
+FROM quad_box_tbl_ord_seq1 seq FULL JOIN quad_box_tbl_ord_idx1 idx
+	ON seq.n = idx.n AND seq.id = idx.id AND
+		(seq.dist = idx.dist OR seq.dist IS NULL AND idx.dist IS NULL)
+WHERE seq.id IS NULL OR idx.id IS NULL;
+
+
+EXPLAIN (COSTS OFF)
+SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
+FROM quad_box_tbl WHERE b <@ box '((200,300),(500,600))';
+
+CREATE TEMP TABLE quad_box_tbl_ord_idx2 AS
+SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
+FROM quad_box_tbl WHERE b <@ box '((200,300),(500,600))';
+
+SELECT *
+FROM quad_box_tbl_ord_seq2 seq FULL JOIN quad_box_tbl_ord_idx2 idx
+	ON seq.n = idx.n AND seq.id = idx.id AND
+		(seq.dist = idx.dist OR seq.dist IS NULL AND idx.dist IS NULL)
+WHERE seq.id IS NULL OR idx.id IS NULL;
+
+RESET enable_seqscan;
+RESET enable_indexscan;
+RESET enable_bitmapscan;
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('200', 'box');
+SELECT * FROM pg_input_error_info('200', 'box');
+SELECT pg_input_is_valid('((200,300),(500, xyz))', 'box');
+SELECT * FROM pg_input_error_info('((200,300),(500, xyz))', 'box');
+-- END setup from box 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from path 
+--
+-- PATH
+--
+
+--DROP TABLE PATH_TBL /* REPLACED */,
+
+CREATE TABLE PATH_TBL (f1 path);
+
+INSERT INTO PATH_TBL VALUES ('[(1,2),(3,4)]');
+
+INSERT INTO PATH_TBL VALUES (' ( ( 1 , 2 ) , ( 3 , 4 ) ) ');
+
+INSERT INTO PATH_TBL VALUES ('[ (0,0),(3,0),(4,5),(1,6) ]');
+
+INSERT INTO PATH_TBL VALUES ('((1,2) ,(3,4 ))');
+
+INSERT INTO PATH_TBL VALUES ('1,2 ,3,4 ');
+
+INSERT INTO PATH_TBL VALUES (' [1,2,3, 4] ');
+
+INSERT INTO PATH_TBL VALUES ('((10,20))');	-- Only one point
+
+INSERT INTO PATH_TBL VALUES ('[ 11,12,13,14 ]');
+
+INSERT INTO PATH_TBL VALUES ('( 11,12,13,14) ');
+
+-- bad values for parser testing
+INSERT INTO PATH_TBL VALUES ('[]');
+
+INSERT INTO PATH_TBL VALUES ('[(,2),(3,4)]');
+
+INSERT INTO PATH_TBL VALUES ('[(1,2),(3,4)');
+
+INSERT INTO PATH_TBL VALUES ('(1,2,3,4');
+
+INSERT INTO PATH_TBL VALUES ('(1,2),(3,4)]');
+
+SELECT f1 AS open_path FROM PATH_TBL WHERE isopen(f1);
+
+SELECT f1 AS closed_path FROM PATH_TBL WHERE isclosed(f1);
+
+SELECT pclose(f1) AS closed_path FROM PATH_TBL;
+
+SELECT popen(f1) AS open_path FROM PATH_TBL;
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('[(1,2),(3)]', 'path');
+SELECT * FROM pg_input_error_info('[(1,2),(3)]', 'path');
+SELECT pg_input_is_valid('[(1,2,6),(3,4,6)]', 'path');
+SELECT * FROM pg_input_error_info('[(1,2,6),(3,4,6)]', 'path');
+-- END setup from path 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from polygon 
+--
+-- POLYGON
+--
+-- polygon logic
+--
+
+CREATE TABLE POLYGON_TBL(f1 polygon);
+
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(2.0,0.0),(2.0,4.0),(0.0,0.0)');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(3.0,1.0),(3.0,3.0),(1.0,0.0)');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(1,2),(3,4),(5,6),(7,8)');
+INSERT INTO POLYGON_TBL(f1) VALUES ('(7,8),(5,6),(3,4),(1,2)'); -- Reverse
+INSERT INTO POLYGON_TBL(f1) VALUES ('(1,2),(7,8),(5,6),(3,-4)');
+
+-- degenerate polygons
+INSERT INTO POLYGON_TBL(f1) VALUES ('(0.0,0.0)');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(0.0,1.0),(0.0,1.0)');
+
+-- bad polygon input strings
+INSERT INTO POLYGON_TBL(f1) VALUES ('0.0');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(0.0 0.0');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(0,1,2)');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('(0,1,2,3');
+
+INSERT INTO POLYGON_TBL(f1) VALUES ('asdf');
+
+
+SELECT * FROM POLYGON_TBL;
+
+--
+-- Test the SP-GiST index
+--
+
+CREATE TABLE quad_poly_tbl (id int, p polygon);
+
+INSERT INTO quad_poly_tbl
+	SELECT (x - 1) * 100 + y, polygon(circle(point(x * 10, y * 10), 1 + (x + y) % 10))
+	FROM generate_series(1, 100) x,
+		 generate_series(1, 100) y;
+
+INSERT INTO quad_poly_tbl
+	SELECT i, polygon '((200, 300),(210, 310),(230, 290))'
+	FROM generate_series(10001, 11000) AS i;
+
+INSERT INTO quad_poly_tbl
+	VALUES
+		(11001, NULL),
+		(11002, NULL),
+		(11003, NULL);
+
+CREATE INDEX quad_poly_tbl_idx ON quad_poly_tbl USING spgist(p);
+
+-- get reference results for ORDER BY distance from seq scan
+SET enable_seqscan = ON;
+SET enable_indexscan = OFF;
+SET enable_bitmapscan = OFF;
+
+CREATE TEMP TABLE quad_poly_tbl_ord_seq2 AS
+SELECT rank() OVER (ORDER BY p <-> point '123,456') n, p <-> point '123,456' dist, id
+FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))';
+
+-- check results from index scan
+SET enable_seqscan = OFF;
+SET enable_indexscan = OFF;
+SET enable_bitmapscan = ON;
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p << polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p << polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p &< polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p &< polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p && polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p && polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p &> polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p &> polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p >> polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p >> polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p <<| polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p <<| polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p &<| polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p &<| polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p |&> polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p |&> polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p |>> polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p |>> polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))';
+SELECT count(*) FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p @> polygon '((340,550),(343,552),(341,553))';
+SELECT count(*) FROM quad_poly_tbl WHERE p @> polygon '((340,550),(343,552),(341,553))';
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_poly_tbl WHERE p ~= polygon '((200, 300),(210, 310),(230, 290))';
+SELECT count(*) FROM quad_poly_tbl WHERE p ~= polygon '((200, 300),(210, 310),(230, 290))';
+
+-- test ORDER BY distance
+SET enable_indexscan = ON;
+SET enable_bitmapscan = OFF;
+
+EXPLAIN (COSTS OFF)
+SELECT rank() OVER (ORDER BY p <-> point '123,456') n, p <-> point '123,456' dist, id
+FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))';
+
+CREATE TEMP TABLE quad_poly_tbl_ord_idx2 AS
+SELECT rank() OVER (ORDER BY p <-> point '123,456') n, p <-> point '123,456' dist, id
+FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))';
+
+SELECT *
+FROM quad_poly_tbl_ord_seq2 seq FULL JOIN quad_poly_tbl_ord_idx2 idx
+	ON seq.n = idx.n AND seq.id = idx.id AND
+		(seq.dist = idx.dist OR seq.dist IS NULL AND idx.dist IS NULL)
+WHERE seq.id IS NULL OR idx.id IS NULL;
+
+RESET enable_seqscan;
+RESET enable_indexscan;
+RESET enable_bitmapscan;
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('(2.0,0.8,0.1)', 'polygon');
+SELECT * FROM pg_input_error_info('(2.0,0.8,0.1)', 'polygon');
+SELECT pg_input_is_valid('(2.0,xyz)', 'polygon');
+SELECT * FROM pg_input_error_info('(2.0,xyz)', 'polygon');
+-- END setup from polygon 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from circle 
+--
+-- CIRCLE
+--
+
+-- Back off displayed precision a little bit to reduce platform-to-platform
+-- variation in results.
+SET extra_float_digits = -1;
+
+CREATE TABLE CIRCLE_TBL (f1 circle);
+
+INSERT INTO CIRCLE_TBL VALUES ('<(5,1),3>');
+
+INSERT INTO CIRCLE_TBL VALUES ('((1,2),100)');
+
+INSERT INTO CIRCLE_TBL VALUES (' 1 , 3 , 5 ');
+
+INSERT INTO CIRCLE_TBL VALUES (' ( ( 1 , 2 ) , 3 ) ');
+
+INSERT INTO CIRCLE_TBL VALUES (' ( 100 , 200 ) , 10 ');
+
+INSERT INTO CIRCLE_TBL VALUES (' < ( 100 , 1 ) , 115 > ');
+
+INSERT INTO CIRCLE_TBL VALUES ('<(3,5),0>');	-- Zero radius
+
+INSERT INTO CIRCLE_TBL VALUES ('<(3,5),NaN>');	-- NaN radius
+
+-- bad values
+
+INSERT INTO CIRCLE_TBL VALUES ('<(-100,0),-100>');
+
+INSERT INTO CIRCLE_TBL VALUES ('<(100,200),10');
+
+INSERT INTO CIRCLE_TBL VALUES ('<(100,200),10> x');
+
+INSERT INTO CIRCLE_TBL VALUES ('1abc,3,5');
+
+INSERT INTO CIRCLE_TBL VALUES ('(3,(1,2),3)');
+
+SELECT * FROM CIRCLE_TBL;
+
+SELECT center(f1) AS center
+  FROM CIRCLE_TBL;
+
+SELECT radius(f1) AS radius
+  FROM CIRCLE_TBL;
+
+SELECT diameter(f1) AS diameter
+  FROM CIRCLE_TBL;
+
+SELECT f1 FROM CIRCLE_TBL WHERE radius(f1) < 5;
+
+SELECT f1 FROM CIRCLE_TBL WHERE diameter(f1) >= 10;
+
+SELECT c1.f1 AS one, c2.f1 AS two, (c1.f1 <-> c2.f1) AS distance
+  FROM CIRCLE_TBL c1, CIRCLE_TBL c2
+  WHERE (c1.f1 < c2.f1) AND ((c1.f1 <-> c2.f1) > 0)
+  ORDER BY distance, area(c1.f1), area(c2.f1);
+-- END setup from circle 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from geometry 
 --
 -- GEOMETRY
 --
@@ -1590,22 +2341,22 @@ SELECT (@@ f1) AS center
    FROM POLYGON_TBL
    WHERE (# f1) > 2;
 
--- ''is horizontal'' function
+-- /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''is horizontal/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' function
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE ishorizontal(p1.f1, point '(0,0)');
 
--- ''is horizontal'' operator
+-- /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''is horizontal/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' operator
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE p1.f1 ?- point '(0,0)';
 
--- ''is vertical'' function
+-- /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''is vertical/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' function
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE isvertical(p1.f1, point '(5.1,34.5)');
 
--- ''is vertical'' operator
+-- /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''is vertical/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' operator
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE p1.f1 ?| point '(5.1,34.5)';
@@ -2093,7 +2844,8 @@ SELECT pg_input_is_valid('(1', 'circle');
 SELECT * FROM pg_input_error_info('1,', 'circle');
 SELECT pg_input_is_valid('(1,2),-1', 'circle');
 SELECT * FROM pg_input_error_info('(1,2),-1', 'circle');
--- END setup from  geometry 
+-- END setup from geometry 
+SELECT pg_catalog.set_config('search_path', 'public', false);
 -- START setup from create_index_spgist 
 --
 -- SP-GiST index tests
@@ -2533,13 +3285,14 @@ RESET enable_seqscan;
 RESET enable_indexscan;
 RESET enable_bitmapscan;
 -- END setup from create_index_spgist 
+SELECT pg_catalog.set_config('search_path', 'public', false);
 -- START setup from hash_index 
 --
 -- HASH_INDEX
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests''
+-- \getenv abs_srcdir /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 
 CREATE TABLE hash_i4_heap (
 	seqno 		int4,
@@ -2561,7 +3314,7 @@ CREATE TABLE hash_f8_heap (
 	random 		float8
 );
 
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/hash.data''
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/hash.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
 COPY hash_i4_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
 COPY hash_name_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
 COPY hash_txt_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
@@ -2572,8 +3325,8 @@ COPY hash_f8_heap FROM /* REPLACED */ '/home/keuscha/Documents/FS2024/AST/projec
 -- this is therefore a stress test of the bucket overflow code (unlike
 -- the data in hash.data, which has unique index keys).
 --
--- \set filename /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'' ''/data/hashovfl.data''
--- COPY hash_ovfl_heap FROM /* REPLACED */ ''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data'' /* REPLACED */,
+-- \set filename /* REPLACED */ /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/data/hashovfl.data/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''
+-- COPY hash_ovfl_heap FROM :/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''filename/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' /* REPLACED */,
 
 ANALYZE hash_i4_heap;
 ANALYZE hash_name_heap;
@@ -2655,14 +3408,14 @@ SELECT * FROM hash_f8_heap
 
 --
 -- hash index
--- grep ''^90[^0-9]'' hashovfl.data
+-- grep /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''^90[^0-9]/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' hashovfl.data
 --
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
 --    WHERE x = 90 /* REPLACED */,
 
 --
 -- hash index
--- grep ''^1000[^0-9]'' hashovfl.data
+-- grep /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''^1000[^0-9]/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' hashovfl.data
 --
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
 --    WHERE x = 1000 /* REPLACED */,
@@ -2758,7 +3511,7 @@ INSERT INTO hash_split_heap SELECT 1 FROM generate_series(1, 500) a;
 CREATE INDEX hash_split_index on hash_split_heap USING HASH (keycol);
 INSERT INTO hash_split_heap SELECT 1 FROM generate_series(1, 5000) a;
 
--- Let''s do a backward scan.
+-- Let/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''s do a backward scan.
 BEGIN;
 SET enable_seqscan = OFF;
 SET enable_bitmapscan = OFF;
@@ -2790,7 +3543,7 @@ CREATE INDEX hash_cleanup_index on hash_cleanup_heap USING HASH (keycol);
 -- Insert tuples to both the primary bucket page and overflow pages.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 500) as i;
 
--- Fill overflow pages by ''dead'' tuples.
+-- Fill overflow pages by /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''dead/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1000) as i;
 ROLLBACK;
@@ -2804,11 +3557,11 @@ VACUUM hash_cleanup_heap;
 
 TRUNCATE hash_cleanup_heap;
 
--- Insert a few tuples so that the primary bucket page doesn''t get full and
+-- Insert a few tuples so that the primary bucket page doesn/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t get full and
 -- tuples can be moved to it.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 50) as i;
 
--- Fill overflow pages by ''dead'' tuples.
+-- Fill overflow pages by /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''dead/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1500) as i;
 ROLLBACK;
@@ -2824,14 +3577,14 @@ TRUNCATE hash_cleanup_heap;
 
 -- Insert tuples to both the primary bucket page and overflow pages.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 500) as i;
--- Fill overflow pages by ''dead'' tuples.
+-- Fill overflow pages by /* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''dead/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */'' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1500) as i;
 ROLLBACK;
 -- And insert some tuples again. During squeeze operation, these will be moved
 -- to other overflow pages and also allow overflow pages filled by dead tuples
 -- to be freed. Note the main purpose of this test is to test the case where
--- we don''t need to move any tuple from the overflow page being freed.
+-- we don/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t need to move any tuple from the overflow page being freed.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 50) as i;
 
 CHECKPOINT;
@@ -2858,8 +3611,8 @@ CREATE INDEX hash_f8_index2 ON hash_f8_heap USING hash (random float8_ops)
 CREATE INDEX hash_f8_index2 ON hash_f8_heap USING hash (random float8_ops)
 	WITH (fillfactor=101);
 -- END setup from hash_index 
--- START setup from brin
- 
+SELECT pg_catalog.set_config('search_path', 'public', false);
+-- START setup from brin 
 CREATE TABLE brintest (byteacol bytea,
 	charcol "char",
 	namecol name,
@@ -2920,7 +3673,7 @@ INSERT INTO brintest SELECT
 	box(point(odd, even), point(thousand, twothousand))
 FROM tenk1 ORDER BY unique2 LIMIT 100;
 
--- throw in some NULL''s and different values
+-- throw in some NULL/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''s and different values
 INSERT INTO brintest (inetcol, cidrcol, int4rangecol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous,
@@ -3304,7 +4057,7 @@ SELECT brin_summarize_range('brin_summarize_idx', 0);
 SELECT brin_summarize_range('brin_summarize_idx', 1);
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_idx', 2);
--- nothing: page doesn''t exist in table
+-- nothing: page doesn/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED *//* REPLACED */''/* REPLACED */''/* REPLACED *//* REPLACED */''/* REPLACED */''t exist in table
 SELECT brin_summarize_range('brin_summarize_idx', 4294967295);
 -- invalid block number values
 SELECT brin_summarize_range('brin_summarize_idx', -1);
@@ -3384,5 +4137,5 @@ INSERT INTO brin_insert_optimization VALUES (1);
 CREATE INDEX ON brin_insert_optimization USING brin (a);
 UPDATE brin_insert_optimization SET a = a;
 DROP TABLE brin_insert_optimization;
--- END setup from brin
- 
+-- END setup from brin 
+SELECT pg_catalog.set_config('search_path', 'public', false);

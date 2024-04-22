@@ -20,7 +20,7 @@ export PGOPTIONS="-c intervalstyle=postgres_verbose"
 export LANG="C"
 
 
-results_folder=postgres_results/
+results_folder=results/
 
 # make sure database does not exist already
 echo "Setup clean environment..."
@@ -56,7 +56,7 @@ psql -X -q -c "DROP DATABASE IF EXISTS regression;" postgres
 psql -X -q -c "DROP TABLESPACE IF EXISTS regress_tblspace;" postgres
 
 #echo "Compare result.txt to expected output..."
-diff -q ${currentTestPath}result.txt ${currentResults}/postgres.txt
+   python3 postgres_compare_results.py ${currentResults}/postgres.txt ${currentTestPath}result.txt 
 
 echo "Test $currentTest finished"
 

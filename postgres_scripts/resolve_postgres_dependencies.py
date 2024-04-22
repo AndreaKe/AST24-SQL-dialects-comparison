@@ -1,5 +1,6 @@
 
 import os
+import re
 
 test_path = "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests"  # TODO 
 
@@ -22,7 +23,7 @@ for fname in os.listdir(test_path):
             # ';' is used later on as a delimiter of sql commands. Therefore, we need to remove them from comments
             if "--" in line:
                 ls = line.split("--", 1)
-                line = ls[0] + "--" + ls[1].replace(";", " /* REPLACED */," ).replace("'", "''").replace('"', "''").replace("$$", "$$$$")
+                line = ls[0] + "--" + ls[1].replace(";", " /* REPLACED */," ).replace("'", "/* REPLACED */''").replace('"', "/* REPLACED */''").replace("$$", "/* REPLACED */")
                 
 
             # TODO probably we should do this when executing the tests such that people can share the test cases with each other
@@ -53,6 +54,37 @@ for fname in os.listdir(test_path):
         test_file.close()
 
 
+# extract dependencies from parallel_schedule file
+parallel_schedule_src = open("{}/parallel_schedule".format(test_path), "r")
+schedule_lines = parallel_schedule_src.readlines()
+parallel_schedule_src.close()
+
+dependencies = {}
+for line in schedule_lines:
+    m = re.match(r"# (.*) depends on (.*)", line)
+    if m != None:
+        test = m.group(1)
+        print("groups: {}, {}, {}".format(m.group(0), m.group(1), m.group(2)))
+        direct_deps = (m.group(2).split(" and ",1)[0]).split(", ")
+        all_deps = []
+        if test != 'test_setup':
+                all_deps.append('test_setup')
+                if test != 'create_index':
+                    all_deps.append('create_index')
+        
+        for d in direct_deps:
+            ds_ = dependencies.get(d)
+            if ds_ != None:
+                for a in ds_:
+                    if a not in all_deps:
+                        all_deps.append(a)
+            all_deps.append(d)
+
+        dependencies[test] = all_deps
+
+print("dependencies: ", dependencies)
+
+
 # resolve dependencies between test cases by creating setup.sql
 for fname in os.listdir(test_path):
 
@@ -60,43 +92,32 @@ for fname in os.listdir(test_path):
     
     if os.path.isdir(folder_path) and fname != "data":
         print("Folder: ", fname)
-    
-        parallel_schedule_src = open("{}/parallel_schedule".format(test_path), "r")
 
+        curr_deps = dependencies.get(fname)
 
-        dependencies_file = open("{}/schedule_requirements".format(folder_path), "w")
-        dependencies_file.write("test_setup\ncreate_index\n")
-
-        setup_file = open("{}/setup.sql".format(folder_path), "w")
-
-        for t in ["test_setup", "create_index"]:
-            if(fname != t and fname != "test_setup"):
-                with open("{}/{}/test.sql".format(test_path, t.strip()), "r") as scan: # TODO: catch error
-                            setup_file.write("-- START setup from {} \n".format(t))
-                            setup_file.write(scan.read())
-                            setup_file.write("-- END setup from {} \n".format(t))
-
-
-        lines = parallel_schedule_src.readlines()
-    
-        for line in lines:
-            line_start = "# {} depends on".format(fname)
-            if line_start in line:
-                print(line)
-                for t in ((line.split(line_start, 1)[1]).split(" and ",1)[0]).split(", "):
-                    dependencies_file.write(t.strip())
-                    dependencies_file.write("\n")
-
-                    with open("{}/{}/test.sql".format(test_path, t.strip()), "r") as scan: # TODO: catch error
-                        setup_file.write("-- START setup from {} \n".format(t))
-                        setup_file.write(scan.read())
-                        setup_file.write("-- END setup from {} \n".format(t))
-
+        if curr_deps == None:
+            curr_deps = []
+            if fname != 'test_setup':
+                curr_deps.append('test_setup')
+                if fname != 'create_index':
+                    curr_deps.append('create_index')
 
         
+        dependencies_file = open("{}/schedule_requirements".format(folder_path), "w")
+        for d in curr_deps:
+            dependencies_file.write("{}\n".format(d))
         dependencies_file.close()
-        parallel_schedule_src.close()
+
+        setup_file = open("{}/setup.sql".format(folder_path), "w")
+    
+        for d in curr_deps:
+            with open("{}/{}/test.sql".format(test_path, d.strip()), "r") as scan: # TODO: catch error
+                setup_file.write("-- START setup from {} \n".format(d))
+                setup_file.write(scan.read())
+                setup_file.write("-- END setup from {} \n".format(d))
+                setup_file.write("SELECT pg_catalog.set_config('search_path', 'public', false);\n")
         setup_file.close()
+
 
         
 
