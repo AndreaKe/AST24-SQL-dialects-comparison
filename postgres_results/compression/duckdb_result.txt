@@ -1,0 +1,658 @@
+-- \set HIDE_TOAST_COMPRESSION false
+
+-- ensure we get stable results regardless of installation''s default
+SET default_toast_compression = 'pglz'
+ERROR: -- \set HIDE_TOAST_COMPRESSION false
+
+-- ensure we get stable results regardless of installation''s default
+SET default_toast_compression = 'pglz'
+
+Catalog Error: unrecognized configuration parameter "default_toast_compression"
+
+Did you mean: "force_compression"
+
+
+-- test creating table with compression method
+CREATE TABLE cmdata(f1 text COMPRESSION pglz)
+ERROR: 
+
+-- test creating table with compression method
+CREATE TABLE cmdata(f1 text COMPRESSION pglz)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+CREATE INDEX idx ON cmdata(f1)
+ERROR: 
+CREATE INDEX idx ON cmdata(f1)
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+INSERT INTO cmdata VALUES(repeat('1234567890', 1000))
+ERROR: 
+INSERT INTO cmdata VALUES(repeat('1234567890', 1000))
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+-- \d+ cmdata
+CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4)
+ERROR: 
+-- \d+ cmdata
+CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004))
+ERROR: 
+INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004))
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+-- \d+ cmdata1
+
+-- verify stored compression method in the data
+SELECT pg_column_compression(f1) FROM cmdata
+ERROR: 
+-- \d+ cmdata1
+
+-- verify stored compression method in the data
+SELECT pg_column_compression(f1) FROM cmdata
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT pg_column_compression(f1) FROM cmdata1
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmdata1
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+
+-- decompress data slice
+SELECT SUBSTR(f1, 200, 5) FROM cmdata
+ERROR: 
+
+-- decompress data slice
+SELECT SUBSTR(f1, 200, 5) FROM cmdata
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT SUBSTR(f1, 2000, 50) FROM cmdata1
+ERROR: 
+SELECT SUBSTR(f1, 2000, 50) FROM cmdata1
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+
+-- copy with table creation
+SELECT * INTO cmmove1 FROM cmdata
+ERROR: 
+
+-- copy with table creation
+SELECT * INTO cmmove1 FROM cmdata
+
+Parser Error: SELECT INTO not supported!
+
+-- \d+ cmmove1
+SELECT pg_column_compression(f1) FROM cmmove1
+ERROR: 
+-- \d+ cmmove1
+SELECT pg_column_compression(f1) FROM cmmove1
+
+Catalog Error: Table with name cmmove1 does not exist!
+Did you mean "pg_am"?
+
+
+-- copy to existing table
+CREATE TABLE cmmove3(f1 text COMPRESSION pglz)
+ERROR: 
+
+-- copy to existing table
+CREATE TABLE cmmove3(f1 text COMPRESSION pglz)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+INSERT INTO cmmove3 SELECT * FROM cmdata
+ERROR: 
+INSERT INTO cmmove3 SELECT * FROM cmdata
+
+Catalog Error: Table with name cmmove3 does not exist!
+Did you mean "pg_am"?
+
+INSERT INTO cmmove3 SELECT * FROM cmdata1
+ERROR: 
+INSERT INTO cmmove3 SELECT * FROM cmdata1
+
+Catalog Error: Table with name cmmove3 does not exist!
+Did you mean "pg_am"?
+
+SELECT pg_column_compression(f1) FROM cmmove3
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmmove3
+
+Catalog Error: Table with name cmmove3 does not exist!
+Did you mean "pg_am"?
+
+
+-- test LIKE INCLUDING COMPRESSION
+CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION)
+ERROR: 
+
+-- test LIKE INCLUDING COMPRESSION
+CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+-- \d+ cmdata2
+DROP TABLE cmdata2
+ERROR: 
+-- \d+ cmdata2
+DROP TABLE cmdata2
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+
+-- try setting compression for incompressible data type
+CREATE TABLE cmdata2 (f1 int COMPRESSION pglz)
+ERROR: 
+
+-- try setting compression for incompressible data type
+CREATE TABLE cmdata2 (f1 int COMPRESSION pglz)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+
+-- update using datum from different table
+CREATE TABLE cmmove2(f1 text COMPRESSION pglz)
+ERROR: 
+
+-- update using datum from different table
+CREATE TABLE cmmove2(f1 text COMPRESSION pglz)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+INSERT INTO cmmove2 VALUES (repeat('1234567890', 1004))
+ERROR: 
+INSERT INTO cmmove2 VALUES (repeat('1234567890', 1004))
+
+Catalog Error: Table with name cmmove2 does not exist!
+Did you mean "pg_am"?
+
+SELECT pg_column_compression(f1) FROM cmmove2
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmmove2
+
+Catalog Error: Table with name cmmove2 does not exist!
+Did you mean "pg_am"?
+
+UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1
+ERROR: 
+UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1
+
+Catalog Error: Table with name cmmove2 does not exist!
+Did you mean "pg_am"?
+LINE 2: UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdat...
+               ^
+
+SELECT pg_column_compression(f1) FROM cmmove2
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmmove2
+
+Catalog Error: Table with name cmmove2 does not exist!
+Did you mean "pg_am"?
+
+
+-- test externally stored compressed data
+CREATE OR REPLACE FUNCTION large_val() RETURNS TEXT LANGUAGE SQL AS
+'select array_agg(fipshash(g::text))::text from generate_series(1, 256) g'
+ERROR: 
+
+-- test externally stored compressed data
+CREATE OR REPLACE FUNCTION large_val() RETURNS TEXT LANGUAGE SQL AS
+'select array_agg(fipshash(g::text))::text from generate_series(1, 256) g'
+
+Parser Error: syntax error at or near "RETURNS"
+
+CREATE TABLE cmdata2 (f1 text COMPRESSION pglz)
+ERROR: 
+CREATE TABLE cmdata2 (f1 text COMPRESSION pglz)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+INSERT INTO cmdata2 SELECT large_val() || repeat('a', 4000)
+ERROR: 
+INSERT INTO cmdata2 SELECT large_val() || repeat('a', 4000)
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT pg_column_compression(f1) FROM cmdata2
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmdata2
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000)
+ERROR: 
+INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000)
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT pg_column_compression(f1) FROM cmdata1
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmdata1
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT SUBSTR(f1, 200, 5) FROM cmdata1
+ERROR: 
+SELECT SUBSTR(f1, 200, 5) FROM cmdata1
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT SUBSTR(f1, 200, 5) FROM cmdata2
+ERROR: 
+SELECT SUBSTR(f1, 200, 5) FROM cmdata2
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+DROP TABLE cmdata2
+ERROR: 
+DROP TABLE cmdata2
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+
+--test column type update varlena/non-varlena
+CREATE TABLE cmdata2 (f1 int)
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE int USING f1::integer
+
+-- \d+ cmdata2
+
+--changing column storage should not impact the compression method
+--but the data should not be compressed
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar
+
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION pglz
+ERROR: 
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION pglz
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET STORAGE plain
+ERROR: 
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET STORAGE plain
+
+Not implemented Error: No support for that ALTER TABLE option yet!
+
+-- \d+ cmdata2
+INSERT INTO cmdata2 VALUES (repeat('123456789', 800))
+
+SELECT pg_column_compression(f1) FROM cmdata2
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmdata2
+
+Catalog Error: Scalar Function with name pg_column_compression does not exist!
+Did you mean "count_if"?
+
+
+-- test compression with materialized view
+CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1
+ERROR: 
+
+-- test compression with materialized view
+CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+-- \d+ compressmv
+SELECT pg_column_compression(f1) FROM cmdata1
+ERROR: 
+-- \d+ compressmv
+SELECT pg_column_compression(f1) FROM cmdata1
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "cmdata2"?
+
+SELECT pg_column_compression(x) FROM compressmv
+ERROR: 
+SELECT pg_column_compression(x) FROM compressmv
+
+Catalog Error: Table with name compressmv does not exist!
+Did you mean "temp.information_schema.columns"?
+
+
+-- test compression with partition
+CREATE TABLE cmpart(f1 text COMPRESSION lz4) PARTITION BY HASH(f1)
+ERROR: 
+
+-- test compression with partition
+CREATE TABLE cmpart(f1 text COMPRESSION lz4) PARTITION BY HASH(f1)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+CREATE TABLE cmpart1 PARTITION OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0)
+ERROR: 
+CREATE TABLE cmpart1 PARTITION OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0)
+
+Parser Error: syntax error at or near "PARTITION"
+
+CREATE TABLE cmpart2(f1 text COMPRESSION pglz)
+ERROR: 
+CREATE TABLE cmpart2(f1 text COMPRESSION pglz)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+
+ALTER TABLE cmpart ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1)
+ERROR: 
+
+ALTER TABLE cmpart ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1)
+
+Parser Error: syntax error at or near "ATTACH"
+
+INSERT INTO cmpart VALUES (repeat('123456789', 1004))
+ERROR: 
+INSERT INTO cmpart VALUES (repeat('123456789', 1004))
+
+Catalog Error: Table with name cmpart does not exist!
+Did you mean "cmdata2"?
+
+INSERT INTO cmpart VALUES (repeat('123456789', 4004))
+ERROR: 
+INSERT INTO cmpart VALUES (repeat('123456789', 4004))
+
+Catalog Error: Table with name cmpart does not exist!
+Did you mean "cmdata2"?
+
+SELECT pg_column_compression(f1) FROM cmpart1
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmpart1
+
+Catalog Error: Table with name cmpart1 does not exist!
+Did you mean "cmdata2"?
+
+SELECT pg_column_compression(f1) FROM cmpart2
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmpart2
+
+Catalog Error: Table with name cmpart2 does not exist!
+Did you mean "cmdata2"?
+
+
+-- test compression with inheritance, error
+CREATE TABLE cminh() INHERITS(cmdata, cmdata1)
+ERROR: 
+
+-- test compression with inheritance, error
+CREATE TABLE cminh() INHERITS(cmdata, cmdata1)
+
+Parser Error: syntax error at or near "INHERITS"
+
+CREATE TABLE cminh(f1 TEXT COMPRESSION lz4) INHERITS(cmdata)
+ERROR: 
+CREATE TABLE cminh(f1 TEXT COMPRESSION lz4) INHERITS(cmdata)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+
+-- test default_toast_compression GUC
+SET default_toast_compression = ''
+ERROR: 
+
+-- test default_toast_compression GUC
+SET default_toast_compression = ''
+
+Catalog Error: unrecognized configuration parameter "default_toast_compression"
+
+Did you mean: "force_compression"
+
+SET default_toast_compression = 'I do not exist compression'
+ERROR: 
+SET default_toast_compression = 'I do not exist compression'
+
+Catalog Error: unrecognized configuration parameter "default_toast_compression"
+
+Did you mean: "force_compression"
+
+SET default_toast_compression = 'lz4'
+ERROR: 
+SET default_toast_compression = 'lz4'
+
+Catalog Error: unrecognized configuration parameter "default_toast_compression"
+
+Did you mean: "force_compression"
+
+SET default_toast_compression = 'pglz'
+ERROR: 
+SET default_toast_compression = 'pglz'
+
+Catalog Error: unrecognized configuration parameter "default_toast_compression"
+
+Did you mean: "force_compression"
+
+
+-- test alter compression method
+ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4
+ERROR: 
+
+-- test alter compression method
+ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+INSERT INTO cmdata VALUES (repeat('123456789', 4004))
+ERROR: 
+INSERT INTO cmdata VALUES (repeat('123456789', 4004))
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "cmdata2"?
+
+-- \d+ cmdata
+SELECT pg_column_compression(f1) FROM cmdata
+ERROR: 
+-- \d+ cmdata
+SELECT pg_column_compression(f1) FROM cmdata
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "cmdata2"?
+
+
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION default
+ERROR: 
+
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION default
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+-- \d+ cmdata2
+
+-- test alter compression method for materialized views
+ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4
+ERROR: 
+-- \d+ cmdata2
+
+-- test alter compression method for materialized views
+ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+-- \d+ compressmv
+
+-- test alter compression method for partitioned tables
+ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz
+ERROR: 
+-- \d+ compressmv
+
+-- test alter compression method for partitioned tables
+ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+ALTER TABLE cmpart2 ALTER COLUMN f1 SET COMPRESSION lz4
+ERROR: 
+ALTER TABLE cmpart2 ALTER COLUMN f1 SET COMPRESSION lz4
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+
+-- new data should be compressed with the current compression method
+INSERT INTO cmpart VALUES (repeat('123456789', 1004))
+ERROR: 
+
+-- new data should be compressed with the current compression method
+INSERT INTO cmpart VALUES (repeat('123456789', 1004))
+
+Catalog Error: Table with name cmpart does not exist!
+Did you mean "cmdata2"?
+
+INSERT INTO cmpart VALUES (repeat('123456789', 4004))
+ERROR: 
+INSERT INTO cmpart VALUES (repeat('123456789', 4004))
+
+Catalog Error: Table with name cmpart does not exist!
+Did you mean "cmdata2"?
+
+SELECT pg_column_compression(f1) FROM cmpart1
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmpart1
+
+Catalog Error: Table with name cmpart1 does not exist!
+Did you mean "cmdata2"?
+
+SELECT pg_column_compression(f1) FROM cmpart2
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmpart2
+
+Catalog Error: Table with name cmpart2 does not exist!
+Did you mean "cmdata2"?
+
+
+-- VACUUM FULL does not recompress
+SELECT pg_column_compression(f1) FROM cmdata
+ERROR: 
+
+-- VACUUM FULL does not recompress
+SELECT pg_column_compression(f1) FROM cmdata
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "cmdata2"?
+
+VACUUM FULL cmdata
+ERROR: 
+VACUUM FULL cmdata
+
+Not implemented Error: Full vacuum option
+
+SELECT pg_column_compression(f1) FROM cmdata
+ERROR: 
+SELECT pg_column_compression(f1) FROM cmdata
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "cmdata2"?
+
+
+-- test expression index
+DROP TABLE cmdata2
+
+CREATE TABLE cmdata2 (f1 TEXT COMPRESSION pglz, f2 TEXT COMPRESSION lz4)
+ERROR: 
+CREATE TABLE cmdata2 (f1 TEXT COMPRESSION pglz, f2 TEXT COMPRESSION lz4)
+
+Parser Error: syntax error at or near "COMPRESSION"
+
+CREATE UNIQUE INDEX idx1 ON cmdata2 ((f1 || f2))
+ERROR: 
+CREATE UNIQUE INDEX idx1 ON cmdata2 ((f1 || f2))
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+INSERT INTO cmdata2 VALUES((SELECT array_agg(fipshash(g::TEXT))::TEXT FROM
+generate_series(1, 50) g), VERSION())
+ERROR: 
+INSERT INTO cmdata2 VALUES((SELECT array_agg(fipshash(g::TEXT))::TEXT FROM
+generate_series(1, 50) g), VERSION())
+
+Catalog Error: Table with name cmdata2 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+
+-- check data is ok
+SELECT length(f1) FROM cmdata
+ERROR: 
+
+-- check data is ok
+SELECT length(f1) FROM cmdata
+
+Catalog Error: Table with name cmdata does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT length(f1) FROM cmdata1
+ERROR: 
+SELECT length(f1) FROM cmdata1
+
+Catalog Error: Table with name cmdata1 does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+SELECT length(f1) FROM cmmove1
+ERROR: 
+SELECT length(f1) FROM cmmove1
+
+Catalog Error: Table with name cmmove1 does not exist!
+Did you mean "pg_am"?
+
+SELECT length(f1) FROM cmmove2
+ERROR: 
+SELECT length(f1) FROM cmmove2
+
+Catalog Error: Table with name cmmove2 does not exist!
+Did you mean "pg_am"?
+
+SELECT length(f1) FROM cmmove3
+ERROR: 
+SELECT length(f1) FROM cmmove3
+
+Catalog Error: Table with name cmmove3 does not exist!
+Did you mean "pg_am"?
+
+
+CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression)
+ERROR: 
+
+CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression)
+
+Parser Error: syntax error at or near "COMPRESSION"
+ -- fails
+CREATE TABLE badcompresstbl (a text)
+
+ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression
+ERROR: 
+ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression
+
+Parser Error: syntax error at or near "COMPRESSION"
+ -- fails
+DROP TABLE badcompresstbl
+
+
+-- \set HIDE_TOAST_COMPRESSION true
+

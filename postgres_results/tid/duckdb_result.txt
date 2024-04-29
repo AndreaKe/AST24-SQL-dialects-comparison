@@ -1,0 +1,253 @@
+-- basic tests for the TID data type
+
+SELECT
+  '(0,0)'::tid as tid00,
+  '(0,1)'::tid as tid01,
+  '(-1,0)'::tid as tidm10,
+  '(4294967295,65535)'::tid as tidmax
+ERROR: -- basic tests for the TID data type
+
+SELECT
+  '(0,0)'::tid as tid00,
+  '(0,1)'::tid as tid01,
+  '(-1,0)'::tid as tidm10,
+  '(4294967295,65535)'::tid as tidmax
+
+Catalog Error: Type with name tid does not exist!
+Did you mean "oid"?
+
+
+SELECT '(4294967296,1)'::tid
+ERROR: 
+
+SELECT '(4294967296,1)'::tid
+
+Catalog Error: Type with name tid does not exist!
+Did you mean "oid"?
+  -- error
+SELECT '(1,65536)'::tid
+ERROR:   -- error
+SELECT '(1,65536)'::tid
+
+Catalog Error: Type with name tid does not exist!
+Did you mean "oid"?
+  -- error
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('(0)', 'tid')
+ERROR:   -- error
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('(0)', 'tid')
+
+Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+SELECT * FROM pg_input_error_info('(0)', 'tid')
+ERROR: 
+SELECT * FROM pg_input_error_info('(0)', 'tid')
+
+Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+SELECT pg_input_is_valid('(0,-1)', 'tid')
+ERROR: 
+SELECT pg_input_is_valid('(0,-1)', 'tid')
+
+Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+SELECT * FROM pg_input_error_info('(0,-1)', 'tid')
+ERROR: 
+SELECT * FROM pg_input_error_info('(0,-1)', 'tid')
+
+Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+
+
+-- tests for functions related to TID handling
+
+CREATE TABLE tid_tab (a int)
+
+
+-- min() and max() for TIDs
+INSERT INTO tid_tab VALUES (1), (2)
+
+SELECT min(ctid) FROM tid_tab
+ERROR: 
+SELECT min(ctid) FROM tid_tab
+
+Binder Error: Referenced column "ctid" not found in FROM clause!
+Candidate bindings: "tid_tab.a"
+
+SELECT max(ctid) FROM tid_tab
+ERROR: 
+SELECT max(ctid) FROM tid_tab
+
+Binder Error: Referenced column "ctid" not found in FROM clause!
+Candidate bindings: "tid_tab.a"
+
+TRUNCATE tid_tab
+
+
+-- Tests for currtid2() with various relation kinds
+
+-- Materialized view
+CREATE MATERIALIZED VIEW tid_matview AS SELECT a FROM tid_tab
+ERROR: 
+
+-- Tests for currtid2() with various relation kinds
+
+-- Materialized view
+CREATE MATERIALIZED VIEW tid_matview AS SELECT a FROM tid_tab
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+SELECT currtid2('tid_matview'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_matview'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- fails
+INSERT INTO tid_tab VALUES (1)
+
+REFRESH MATERIALIZED VIEW tid_matview
+ERROR: 
+REFRESH MATERIALIZED VIEW tid_matview
+
+Parser Error: syntax error at or near "REFRESH"
+
+SELECT currtid2('tid_matview'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_matview'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- ok
+DROP MATERIALIZED VIEW tid_matview
+ERROR:  -- ok
+DROP MATERIALIZED VIEW tid_matview
+
+Not implemented Error: Cannot drop this type yet
+
+TRUNCATE tid_tab
+
+
+-- Sequence
+CREATE SEQUENCE tid_seq
+
+SELECT currtid2('tid_seq'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_seq'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- ok
+DROP SEQUENCE tid_seq
+
+
+-- Index, fails with incorrect relation type
+CREATE INDEX tid_ind ON tid_tab(a)
+
+SELECT currtid2('tid_ind'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_ind'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- fails
+DROP INDEX tid_ind
+
+
+-- Partitioned table, no storage
+CREATE TABLE tid_part (a int) PARTITION BY RANGE (a)
+ERROR: 
+
+-- Partitioned table, no storage
+CREATE TABLE tid_part (a int) PARTITION BY RANGE (a)
+
+Parser Error: syntax error at or near "PARTITION"
+
+SELECT currtid2('tid_part'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_part'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- fails
+DROP TABLE tid_part
+ERROR:  -- fails
+DROP TABLE tid_part
+
+Catalog Error: Table with name tid_part does not exist!
+Did you mean "tid_tab"?
+
+
+-- Views
+-- ctid not defined in the view
+CREATE VIEW tid_view_no_ctid AS SELECT a FROM tid_tab
+
+SELECT currtid2('tid_view_no_ctid'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_view_no_ctid'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- fails
+DROP VIEW tid_view_no_ctid
+
+-- ctid fetched directly from the source table.
+CREATE VIEW tid_view_with_ctid AS SELECT ctid, a FROM tid_tab
+ERROR: 
+-- ctid fetched directly from the source table.
+CREATE VIEW tid_view_with_ctid AS SELECT ctid, a FROM tid_tab
+
+Binder Error: Referenced column "ctid" not found in FROM clause!
+Candidate bindings: "tid_tab.a"
+LINE 3: ...- ctid fetched directly from the source table.
+CREATE VIEW tid_view_with_ctid AS SELECT ctid, a FROM tid_tab
+                                                  ^
+
+SELECT currtid2('tid_view_with_ctid'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_view_with_ctid'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- fails
+INSERT INTO tid_tab VALUES (1)
+
+SELECT currtid2('tid_view_with_ctid'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_view_with_ctid'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- ok
+DROP VIEW tid_view_with_ctid
+ERROR:  -- ok
+DROP VIEW tid_view_with_ctid
+
+Catalog Error: View with name tid_view_with_ctid does not exist!
+Did you mean "tid_tab"?
+
+TRUNCATE tid_tab
+
+-- ctid attribute with incorrect data type
+CREATE VIEW tid_view_fake_ctid AS SELECT 1 AS ctid, 2 AS a
+
+SELECT currtid2('tid_view_fake_ctid'::text, '(0,1)'::tid)
+ERROR: 
+SELECT currtid2('tid_view_fake_ctid'::text, '(0,1)'::tid)
+
+Catalog Error: Scalar Function with name currtid2 does not exist!
+Did you mean "cbrt"?
+ -- fails
+DROP VIEW tid_view_fake_ctid
+
+
+DROP TABLE tid_tab CASCADE
+
+

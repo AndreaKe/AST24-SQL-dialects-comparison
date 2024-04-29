@@ -1,0 +1,1307 @@
+-- create a table to use as a basis for views and materialized views in various combinations
+CREATE TABLE mvtest_t (id int NOT NULL PRIMARY KEY, type text NOT NULL, amt numeric NOT NULL)
+
+INSERT INTO mvtest_t VALUES
+  (1, 'x', 2),
+  (2, 'x', 3),
+  (3, 'y', 5),
+  (4, 'y', 7),
+  (5, 'z', 11)
+
+
+-- we want a view based on the table, too, since views present additional challenges
+CREATE VIEW mvtest_tv AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type
+
+SELECT * FROM mvtest_tv ORDER BY type
+RESULT: 
+	[('x', Decimal('5.000')), ('y', Decimal('12.000')), ('z', Decimal('11.000'))]
+
+
+-- create a materialized view with no data, and confirm correct behavior
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA
+ERROR: 
+
+-- create a materialized view with no data, and confirm correct behavior
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass
+ERROR: 
+SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass
+
+Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+SELECT * FROM mvtest_tm ORDER BY type
+ERROR: 
+SELECT * FROM mvtest_tm ORDER BY type
+
+Catalog Error: Table with name mvtest_tm does not exist!
+Did you mean "mvtest_t"?
+
+REFRESH MATERIALIZED VIEW mvtest_tm
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_tm
+
+Parser Error: syntax error at or near "REFRESH"
+
+SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass
+ERROR: 
+SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass
+
+Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+CREATE UNIQUE INDEX mvtest_tm_type ON mvtest_tm (type)
+ERROR: 
+CREATE UNIQUE INDEX mvtest_tm_type ON mvtest_tm (type)
+
+Catalog Error: Table with name mvtest_tm does not exist!
+Did you mean "mvtest_t"?
+
+SELECT * FROM mvtest_tm ORDER BY type
+ERROR: 
+SELECT * FROM mvtest_tm ORDER BY type
+
+Catalog Error: Table with name mvtest_tm does not exist!
+Did you mean "mvtest_t"?
+
+
+-- create various views
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type
+ERROR: 
+
+-- create various views
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+SELECT * FROM mvtest_tvm
+ERROR: 
+SELECT * FROM mvtest_tvm
+
+Catalog Error: Table with name mvtest_tvm does not exist!
+Did you mean "mvtest_tv"?
+
+CREATE MATERIALIZED VIEW mvtest_tmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tm
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_tmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tm
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW mvtest_tvmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tvm
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_tvmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tvm
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE UNIQUE INDEX mvtest_tvmm_expr ON mvtest_tvmm ((grandtot > 0))
+ERROR: 
+CREATE UNIQUE INDEX mvtest_tvmm_expr ON mvtest_tvmm ((grandtot > 0))
+
+Catalog Error: Table with name mvtest_tvmm does not exist!
+Did you mean "mvtest_tv"?
+
+CREATE UNIQUE INDEX mvtest_tvmm_pred ON mvtest_tvmm (grandtot) WHERE grandtot < 0
+ERROR: 
+CREATE UNIQUE INDEX mvtest_tvmm_pred ON mvtest_tvmm (grandtot) WHERE grandtot < 0
+
+Not implemented Error: Creating partial indexes is not supported currently
+
+CREATE VIEW mvtest_tvv AS SELECT sum(totamt) AS grandtot FROM mvtest_tv
+
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv
+ERROR: 
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE VIEW mvtest_tvvmv AS SELECT * FROM mvtest_tvvm
+ERROR: 
+CREATE VIEW mvtest_tvvmv AS SELECT * FROM mvtest_tvvm
+
+Catalog Error: Table with name mvtest_tvvm does not exist!
+Did you mean "mvtest_tvv"?
+LINE 2: ...EATE VIEW mvtest_tvvmv AS SELECT * FROM mvtest_tvvm
+                                                  ^
+
+CREATE MATERIALIZED VIEW mvtest_bb AS SELECT * FROM mvtest_tvvmv
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_bb AS SELECT * FROM mvtest_tvvmv
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE INDEX mvtest_aa ON mvtest_bb (grandtot)
+ERROR: 
+CREATE INDEX mvtest_aa ON mvtest_bb (grandtot)
+
+Catalog Error: Table with name mvtest_bb does not exist!
+Did you mean "mvtest_t"?
+
+
+-- check that plans seem reasonable
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvvm
+-- \d+ mvtest_bb
+
+-- test schema behavior
+CREATE SCHEMA mvtest_mvschema
+
+ALTER MATERIALIZED VIEW mvtest_tvm SET SCHEMA mvtest_mvschema
+ERROR: 
+ALTER MATERIALIZED VIEW mvtest_tvm SET SCHEMA mvtest_mvschema
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvmm
+SET search_path = mvtest_mvschema, public
+ERROR: 
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvmm
+SET search_path = mvtest_mvschema, public
+
+Parser Error: SET needs a single scalar value parameter
+
+-- \d+ mvtest_tvm
+
+-- modify the underlying table data
+INSERT INTO mvtest_t VALUES (6, 'z', 13)
+
+
+-- confirm pre- and post-refresh contents of fairly simple materialized views
+SELECT * FROM mvtest_tm ORDER BY type
+ERROR: 
+
+-- confirm pre- and post-refresh contents of fairly simple materialized views
+SELECT * FROM mvtest_tm ORDER BY type
+
+Catalog Error: Table with name mvtest_tm does not exist!
+Did you mean "mvtest_t"?
+
+SELECT * FROM mvtest_tvm ORDER BY type
+ERROR: 
+SELECT * FROM mvtest_tvm ORDER BY type
+
+Catalog Error: Table with name mvtest_tvm does not exist!
+Did you mean "mvtest_tv"?
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tm
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tm
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW mvtest_tvm
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_tvm
+
+Parser Error: syntax error at or near "REFRESH"
+
+SELECT * FROM mvtest_tm ORDER BY type
+ERROR: 
+SELECT * FROM mvtest_tm ORDER BY type
+
+Catalog Error: Table with name mvtest_tm does not exist!
+Did you mean "mvtest_t"?
+
+SELECT * FROM mvtest_tvm ORDER BY type
+ERROR: 
+SELECT * FROM mvtest_tvm ORDER BY type
+
+Catalog Error: Table with name mvtest_tvm does not exist!
+Did you mean "mvtest_tv"?
+
+RESET search_path
+
+
+-- confirm pre- and post-refresh contents of nested materialized views
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tmm
+ERROR: 
+
+-- confirm pre- and post-refresh contents of nested materialized views
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tmm
+
+Not implemented Error: Unimplemented explain type: costs
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvmm
+ERROR: 
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvmm
+
+Not implemented Error: Unimplemented explain type: costs
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvvm
+ERROR: 
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvvm
+
+Not implemented Error: Unimplemented explain type: costs
+
+SELECT * FROM mvtest_tmm
+ERROR: 
+SELECT * FROM mvtest_tmm
+
+Catalog Error: Table with name mvtest_tmm does not exist!
+Did you mean "mvtest_t"?
+
+SELECT * FROM mvtest_tvmm
+ERROR: 
+SELECT * FROM mvtest_tvmm
+
+Catalog Error: Table with name mvtest_tvmm does not exist!
+Did you mean "mvtest_tv"?
+
+SELECT * FROM mvtest_tvvm
+ERROR: 
+SELECT * FROM mvtest_tvvm
+
+Catalog Error: Table with name mvtest_tvvm does not exist!
+Did you mean "mvtest_tvv"?
+
+REFRESH MATERIALIZED VIEW mvtest_tmm
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_tmm
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW mvtest_tvmm
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_tvmm
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW mvtest_tvvm
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_tvvm
+
+Parser Error: syntax error at or near "REFRESH"
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tmm
+ERROR: 
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tmm
+
+Not implemented Error: Unimplemented explain type: costs
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvmm
+ERROR: 
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvmm
+
+Not implemented Error: Unimplemented explain type: costs
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvvm
+ERROR: 
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvvm
+
+Not implemented Error: Unimplemented explain type: costs
+
+SELECT * FROM mvtest_tmm
+ERROR: 
+SELECT * FROM mvtest_tmm
+
+Catalog Error: Table with name mvtest_tmm does not exist!
+Did you mean "mvtest_t"?
+
+SELECT * FROM mvtest_tvmm
+ERROR: 
+SELECT * FROM mvtest_tvmm
+
+Catalog Error: Table with name mvtest_tvmm does not exist!
+Did you mean "mvtest_tv"?
+
+SELECT * FROM mvtest_tvvm
+ERROR: 
+SELECT * FROM mvtest_tvvm
+
+Catalog Error: Table with name mvtest_tvvm does not exist!
+Did you mean "mvtest_tvv"?
+
+
+-- test diemv when the mv does not exist
+DROP MATERIALIZED VIEW IF EXISTS no_such_mv
+ERROR: 
+
+-- test diemv when the mv does not exist
+DROP MATERIALIZED VIEW IF EXISTS no_such_mv
+
+Not implemented Error: Cannot drop this type yet
+
+
+-- make sure invalid combination of options is prohibited
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm WITH NO DATA
+ERROR: 
+
+-- make sure invalid combination of options is prohibited
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm WITH NO DATA
+
+Parser Error: syntax error at or near "REFRESH"
+
+
+-- no tuple locks on materialized views
+SELECT * FROM mvtest_tvvm FOR SHARE
+ERROR: 
+
+-- no tuple locks on materialized views
+SELECT * FROM mvtest_tvvm FOR SHARE
+
+Parser Error: SELECT locking clause is not supported!
+
+
+-- test join of mv and view
+SELECT type, m.totamt AS mtot, v.totamt AS vtot FROM mvtest_tm m LEFT JOIN mvtest_tv v USING (type) ORDER BY type
+ERROR: 
+
+-- test join of mv and view
+SELECT type, m.totamt AS mtot, v.totamt AS vtot FROM mvtest_tm m LEFT JOIN mvtest_tv v USING (type) ORDER BY type
+
+Catalog Error: Table with name mvtest_tm does not exist!
+Did you mean "mvtest_t"?
+
+
+-- make sure that dependencies are reported properly when they block the drop
+DROP TABLE mvtest_t
+
+
+-- make sure dependencies are dropped and reported
+-- and make sure that transactional behavior is correct on rollback
+-- incidentally leaving some interesting materialized views for pg_dump testing
+BEGIN
+
+DROP TABLE mvtest_t CASCADE
+ERROR: 
+DROP TABLE mvtest_t CASCADE
+
+Catalog Error: Table with name mvtest_t does not exist!
+Did you mean "mvtest_tv"?
+
+ROLLBACK
+
+
+-- some additional tests not using base tables
+CREATE VIEW mvtest_vt1 AS SELECT 1 moo
+
+CREATE VIEW mvtest_vt2 AS SELECT moo, 2*moo FROM mvtest_vt1 UNION ALL SELECT moo, 3*moo FROM mvtest_vt1
+
+-- \d+ mvtest_vt2
+CREATE MATERIALIZED VIEW mv_test2 AS SELECT moo, 2*moo FROM mvtest_vt2 UNION ALL SELECT moo, 3*moo FROM mvtest_vt2
+ERROR: 
+-- \d+ mvtest_vt2
+CREATE MATERIALIZED VIEW mv_test2 AS SELECT moo, 2*moo FROM mvtest_vt2 UNION ALL SELECT moo, 3*moo FROM mvtest_vt2
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+-- \d+ mv_test2
+CREATE MATERIALIZED VIEW mv_test3 AS SELECT * FROM mv_test2 WHERE moo = 12345
+ERROR: 
+-- \d+ mv_test2
+CREATE MATERIALIZED VIEW mv_test3 AS SELECT * FROM mv_test2 WHERE moo = 12345
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+SELECT relispopulated FROM pg_class WHERE oid = 'mv_test3'::regclass
+ERROR: 
+SELECT relispopulated FROM pg_class WHERE oid = 'mv_test3'::regclass
+
+Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+
+DROP VIEW mvtest_vt1 CASCADE
+
+
+-- test that duplicate values on unique index prevent refresh
+CREATE TABLE mvtest_foo(a, b) AS VALUES(1, 10)
+ERROR: 
+
+-- test that duplicate values on unique index prevent refresh
+CREATE TABLE mvtest_foo(a, b) AS VALUES(1, 10)
+
+Not implemented Error: Unimplemented features for CREATE TABLE as
+
+CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE UNIQUE INDEX ON mvtest_mv(a)
+ERROR: 
+CREATE UNIQUE INDEX ON mvtest_mv(a)
+
+Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+INSERT INTO mvtest_foo SELECT * FROM mvtest_foo
+ERROR: 
+INSERT INTO mvtest_foo SELECT * FROM mvtest_foo
+
+Catalog Error: Table with name mvtest_foo does not exist!
+Did you mean "mvtest_tv"?
+
+REFRESH MATERIALIZED VIEW mvtest_mv
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv
+
+Parser Error: syntax error at or near "REFRESH"
+
+DROP TABLE mvtest_foo CASCADE
+ERROR: 
+DROP TABLE mvtest_foo CASCADE
+
+Catalog Error: Table with name mvtest_foo does not exist!
+Did you mean "mvtest_tv"?
+
+
+-- make sure that all columns covered by unique indexes works
+CREATE TABLE mvtest_foo(a, b, c) AS VALUES(1, 2, 3)
+ERROR: 
+
+-- make sure that all columns covered by unique indexes works
+CREATE TABLE mvtest_foo(a, b, c) AS VALUES(1, 2, 3)
+
+Not implemented Error: Unimplemented features for CREATE TABLE as
+
+CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE UNIQUE INDEX ON mvtest_mv (a)
+ERROR: 
+CREATE UNIQUE INDEX ON mvtest_mv (a)
+
+Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+CREATE UNIQUE INDEX ON mvtest_mv (b)
+ERROR: 
+CREATE UNIQUE INDEX ON mvtest_mv (b)
+
+Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+CREATE UNIQUE INDEX on mvtest_mv (c)
+ERROR: 
+CREATE UNIQUE INDEX on mvtest_mv (c)
+
+Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+INSERT INTO mvtest_foo VALUES(2, 3, 4)
+ERROR: 
+INSERT INTO mvtest_foo VALUES(2, 3, 4)
+
+Catalog Error: Table with name mvtest_foo does not exist!
+Did you mean "mvtest_tv"?
+
+INSERT INTO mvtest_foo VALUES(3, 4, 5)
+ERROR: 
+INSERT INTO mvtest_foo VALUES(3, 4, 5)
+
+Catalog Error: Table with name mvtest_foo does not exist!
+Did you mean "mvtest_tv"?
+
+REFRESH MATERIALIZED VIEW mvtest_mv
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv
+
+Parser Error: syntax error at or near "REFRESH"
+
+DROP TABLE mvtest_foo CASCADE
+ERROR: 
+DROP TABLE mvtest_foo CASCADE
+
+Catalog Error: Table with name mvtest_foo does not exist!
+Did you mean "mvtest_tv"?
+
+
+-- allow subquery to reference unpopulated matview if WITH NO DATA is specified
+CREATE MATERIALIZED VIEW mvtest_mv1 AS SELECT 1 AS col1 WITH NO DATA
+ERROR: 
+
+-- allow subquery to reference unpopulated matview if WITH NO DATA is specified
+CREATE MATERIALIZED VIEW mvtest_mv1 AS SELECT 1 AS col1 WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW mvtest_mv2 AS SELECT * FROM mvtest_mv1
+  WHERE col1 = (SELECT LEAST(col1) FROM mvtest_mv1) WITH NO DATA
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv2 AS SELECT * FROM mvtest_mv1
+  WHERE col1 = (SELECT LEAST(col1) FROM mvtest_mv1) WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+DROP MATERIALIZED VIEW mvtest_mv1 CASCADE
+ERROR: 
+DROP MATERIALIZED VIEW mvtest_mv1 CASCADE
+
+Not implemented Error: Cannot drop this type yet
+
+
+-- make sure that types with unusual equality tests work
+CREATE TABLE mvtest_boxes (id serial primary key, b box)
+ERROR: 
+
+-- make sure that types with unusual equality tests work
+CREATE TABLE mvtest_boxes (id serial primary key, b box)
+
+Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+INSERT INTO mvtest_boxes (b) VALUES
+  ('(32,32),(31,31)'),
+  ('(2.0000004,2.0000004),(1,1)'),
+  ('(1.9999996,1.9999996),(1,1)')
+ERROR: 
+INSERT INTO mvtest_boxes (b) VALUES
+  ('(32,32),(31,31)'),
+  ('(2.0000004,2.0000004),(1,1)'),
+  ('(1.9999996,1.9999996),(1,1)')
+
+Catalog Error: Table with name mvtest_boxes does not exist!
+Did you mean "mvtest_tv"?
+
+CREATE MATERIALIZED VIEW mvtest_boxmv AS SELECT * FROM mvtest_boxes
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_boxmv AS SELECT * FROM mvtest_boxes
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE UNIQUE INDEX mvtest_boxmv_id ON mvtest_boxmv (id)
+ERROR: 
+CREATE UNIQUE INDEX mvtest_boxmv_id ON mvtest_boxmv (id)
+
+Catalog Error: Table with name mvtest_boxmv does not exist!
+Did you mean "mvtest_tv"?
+
+UPDATE mvtest_boxes SET b = '(2,2),(1,1)' WHERE id = 2
+ERROR: 
+UPDATE mvtest_boxes SET b = '(2,2),(1,1)' WHERE id = 2
+
+Catalog Error: Table with name mvtest_boxes does not exist!
+Did you mean "mvtest_tv"?
+LINE 2: UPDATE mvtest_boxes SET b = '(2,2),(1,1)' WHE...
+               ^
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_boxmv
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_boxmv
+
+Parser Error: syntax error at or near "REFRESH"
+
+SELECT * FROM mvtest_boxmv ORDER BY id
+ERROR: 
+SELECT * FROM mvtest_boxmv ORDER BY id
+
+Catalog Error: Table with name mvtest_boxmv does not exist!
+Did you mean "mvtest_tv"?
+
+DROP TABLE mvtest_boxes CASCADE
+ERROR: 
+DROP TABLE mvtest_boxes CASCADE
+
+Catalog Error: Table with name mvtest_boxes does not exist!
+Did you mean "mvtest_tv"?
+
+
+-- make sure that column names are handled correctly
+CREATE TABLE mvtest_v (i int, j int)
+
+CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj, kk) AS SELECT i, j FROM mvtest_v
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj, kk) AS SELECT i, j FROM mvtest_v
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- error
+CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj) AS SELECT i, j FROM mvtest_v
+ERROR:  -- error
+CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj) AS SELECT i, j FROM mvtest_v
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_2 (ii) AS SELECT i, j FROM mvtest_v
+ERROR:  -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_2 (ii) AS SELECT i, j FROM mvtest_v
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj, kk) AS SELECT i, j FROM mvtest_v WITH NO DATA
+ERROR:  -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj, kk) AS SELECT i, j FROM mvtest_v WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- error
+CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj) AS SELECT i, j FROM mvtest_v WITH NO DATA
+ERROR:  -- error
+CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj) AS SELECT i, j FROM mvtest_v WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_4 (ii) AS SELECT i, j FROM mvtest_v WITH NO DATA
+ERROR:  -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_4 (ii) AS SELECT i, j FROM mvtest_v WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+ALTER TABLE mvtest_v RENAME COLUMN i TO x
+
+INSERT INTO mvtest_v values (1, 2)
+
+CREATE UNIQUE INDEX mvtest_mv_v_ii ON mvtest_mv_v (ii)
+ERROR: 
+CREATE UNIQUE INDEX mvtest_mv_v_ii ON mvtest_mv_v (ii)
+
+Catalog Error: Table with name mvtest_mv_v does not exist!
+Did you mean "mvtest_tvv"?
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv_v
+
+Parser Error: syntax error at or near "REFRESH"
+
+UPDATE mvtest_v SET j = 3 WHERE x = 1
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_v
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_v
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v_2
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv_v_2
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v_3
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv_v_3
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v_4
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv_v_4
+
+Parser Error: syntax error at or near "REFRESH"
+
+SELECT * FROM mvtest_v
+RESULT: 
+	[(1, 3)]
+
+SELECT * FROM mvtest_mv_v
+ERROR: 
+SELECT * FROM mvtest_mv_v
+
+Catalog Error: Table with name mvtest_mv_v does not exist!
+Did you mean "mvtest_tvv"?
+
+SELECT * FROM mvtest_mv_v_2
+ERROR: 
+SELECT * FROM mvtest_mv_v_2
+
+Catalog Error: Table with name mvtest_mv_v_2 does not exist!
+Did you mean "mvtest_tvv"?
+
+SELECT * FROM mvtest_mv_v_3
+ERROR: 
+SELECT * FROM mvtest_mv_v_3
+
+Catalog Error: Table with name mvtest_mv_v_3 does not exist!
+Did you mean "mvtest_tvv"?
+
+SELECT * FROM mvtest_mv_v_4
+ERROR: 
+SELECT * FROM mvtest_mv_v_4
+
+Catalog Error: Table with name mvtest_mv_v_4 does not exist!
+Did you mean "mvtest_tvv"?
+
+DROP TABLE mvtest_v CASCADE
+
+
+-- Check that unknown literals are converted to ''text'' in CREATE MATVIEW,
+-- so that we don''t end up with unknown-type columns.
+CREATE MATERIALIZED VIEW mv_unspecified_types AS
+  SELECT 42 as i, 42.5 as num, 'foo' as u, 'foo'::unknown as u2, null as n
+ERROR: 
+
+-- Check that unknown literals are converted to ''text'' in CREATE MATVIEW,
+-- so that we don''t end up with unknown-type columns.
+CREATE MATERIALIZED VIEW mv_unspecified_types AS
+  SELECT 42 as i, 42.5 as num, 'foo' as u, 'foo'::unknown as u2, null as n
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+-- \d+ mv_unspecified_types
+SELECT * FROM mv_unspecified_types
+ERROR: 
+-- \d+ mv_unspecified_types
+SELECT * FROM mv_unspecified_types
+
+Catalog Error: Table with name mv_unspecified_types does not exist!
+Did you mean "duckdb_types"?
+
+DROP MATERIALIZED VIEW mv_unspecified_types
+ERROR: 
+DROP MATERIALIZED VIEW mv_unspecified_types
+
+Not implemented Error: Cannot drop this type yet
+
+
+-- make sure that create WITH NO DATA does not plan the query (bug #13907)
+create materialized view mvtest_error as select 1/0 as x
+ERROR: 
+
+-- make sure that create WITH NO DATA does not plan the query (bug #13907)
+create materialized view mvtest_error as select 1/0 as x
+
+Parser Error: syntax error at or near "materialized"
+  -- fail
+create materialized view mvtest_error as select 1/0 as x with no data
+ERROR:   -- fail
+create materialized view mvtest_error as select 1/0 as x with no data
+
+Parser Error: syntax error at or near "materialized"
+
+refresh materialized view mvtest_error
+ERROR: 
+refresh materialized view mvtest_error
+
+Parser Error: syntax error at or near "refresh"
+  -- fail here
+drop materialized view mvtest_error
+ERROR:   -- fail here
+drop materialized view mvtest_error
+
+Not implemented Error: Cannot drop this type yet
+
+
+-- make sure that matview rows can be referenced as source rows (bug #9398)
+CREATE TABLE mvtest_v AS SELECT generate_series(1,10) AS a
+
+CREATE MATERIALIZED VIEW mvtest_mv_v AS SELECT a FROM mvtest_v WHERE a <= 5
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv_v AS SELECT a FROM mvtest_v WHERE a <= 5
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+DELETE FROM mvtest_v WHERE EXISTS ( SELECT * FROM mvtest_mv_v WHERE mvtest_mv_v.a = mvtest_v.a )
+ERROR: 
+DELETE FROM mvtest_v WHERE EXISTS ( SELECT * FROM mvtest_mv_v WHERE mvtest_mv_v.a = mvtest_v.a )
+
+Catalog Error: Table with name mvtest_mv_v does not exist!
+Did you mean "mvtest_tvv"?
+LINE 2: ...M mvtest_v WHERE EXISTS ( SELECT * FROM mvtest_mv_v WHERE mvtest_mv_v.a = mvte...
+                                                  ^
+
+SELECT * FROM mvtest_v
+RESULT: 
+	[([1, 2, 3, 4, 5, 6, 7, 8, 9, 10],)]
+
+SELECT * FROM mvtest_mv_v
+ERROR: 
+SELECT * FROM mvtest_mv_v
+
+Catalog Error: Table with name mvtest_mv_v does not exist!
+Did you mean "mvtest_tvv"?
+
+DROP TABLE mvtest_v CASCADE
+
+
+-- make sure running as superuser works when MV owned by another role (bug #11208)
+CREATE ROLE regress_user_mvtest
+ERROR: 
+
+-- make sure running as superuser works when MV owned by another role (bug #11208)
+CREATE ROLE regress_user_mvtest
+
+Parser Error: syntax error at or near "ROLE"
+
+SET ROLE regress_user_mvtest
+ERROR: 
+SET ROLE regress_user_mvtest
+
+Parser Error: syntax error at or near "regress_user_mvtest"
+
+-- this test case also checks for ambiguity in the queries issued by
+-- refresh_by_match_merge(), by choosing column names that intentionally
+-- duplicate all the aliases used in those queries
+CREATE TABLE mvtest_foo_data AS SELECT i,
+  i+1 AS tid,
+  fipshash(random()::text) AS mv,
+  fipshash(random()::text) AS newdata,
+  fipshash(random()::text) AS newdata2,
+  fipshash(random()::text) AS diff
+  FROM generate_series(1, 10) i
+ERROR: 
+-- this test case also checks for ambiguity in the queries issued by
+-- refresh_by_match_merge(), by choosing column names that intentionally
+-- duplicate all the aliases used in those queries
+CREATE TABLE mvtest_foo_data AS SELECT i,
+  i+1 AS tid,
+  fipshash(random()::text) AS mv,
+  fipshash(random()::text) AS newdata,
+  fipshash(random()::text) AS newdata2,
+  fipshash(random()::text) AS diff
+  FROM generate_series(1, 10) i
+
+Binder Error: No function matches the given name and argument types '+(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	+(TINYINT) -> TINYINT
+	+(TINYINT, TINYINT) -> TINYINT
+	+(SMALLINT) -> SMALLINT
+	+(SMALLINT, SMALLINT) -> SMALLINT
+	+(INTEGER) -> INTEGER
+	+(INTEGER, INTEGER) -> INTEGER
+	+(BIGINT) -> BIGINT
+	+(BIGINT, BIGINT) -> BIGINT
+	+(HUGEINT) -> HUGEINT
+	+(HUGEINT, HUGEINT) -> HUGEINT
+	+(FLOAT) -> FLOAT
+	+(FLOAT, FLOAT) -> FLOAT
+	+(DOUBLE) -> DOUBLE
+	+(DOUBLE, DOUBLE) -> DOUBLE
+	+(DECIMAL) -> DECIMAL
+	+(DECIMAL, DECIMAL) -> DECIMAL
+	+(UTINYINT) -> UTINYINT
+	+(UTINYINT, UTINYINT) -> UTINYINT
+	+(USMALLINT) -> USMALLINT
+	+(USMALLINT, USMALLINT) -> USMALLINT
+	+(UINTEGER) -> UINTEGER
+	+(UINTEGER, UINTEGER) -> UINTEGER
+	+(UBIGINT) -> UBIGINT
+	+(UBIGINT, UBIGINT) -> UBIGINT
+	+(UHUGEINT) -> UHUGEINT
+	+(UHUGEINT, UHUGEINT) -> UHUGEINT
+	+(DATE, INTEGER) -> DATE
+	+(INTEGER, DATE) -> DATE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+	+(DATE, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(TIME, INTERVAL) -> TIME
+	+(INTERVAL, TIME) -> TIME
+	+(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(TIME, DATE) -> TIMESTAMP
+	+(DATE, TIME) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, DATE) -> TIMESTAMP WITH TIME ZONE
+	+(DATE, TIME WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(ANY[], ANY[]) -> ANY[]
+	+(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+
+LINE 6:   i+1 AS tid,
+           ^
+
+CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data
+ERROR: 
+CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS mvtest_mv_foo AS SELECT * FROM mvtest_foo_data
+ERROR: 
+CREATE MATERIALIZED VIEW IF NOT EXISTS mvtest_mv_foo AS SELECT * FROM mvtest_foo_data
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE UNIQUE INDEX ON mvtest_mv_foo (i)
+ERROR: 
+CREATE UNIQUE INDEX ON mvtest_mv_foo (i)
+
+Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+RESET ROLE
+ERROR: 
+RESET ROLE
+
+Catalog Error: unrecognized configuration parameter "ROLE"
+
+Did you mean: "threads", "Calendar", "profile_output", "errors_as_json", "home_directory"
+
+REFRESH MATERIALIZED VIEW mvtest_mv_foo
+ERROR: 
+REFRESH MATERIALIZED VIEW mvtest_mv_foo
+
+Parser Error: syntax error at or near "REFRESH"
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_foo
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_foo
+
+Parser Error: syntax error at or near "REFRESH"
+
+DROP OWNED BY regress_user_mvtest CASCADE
+ERROR: 
+DROP OWNED BY regress_user_mvtest CASCADE
+
+Parser Error: syntax error at or near "OWNED"
+
+DROP ROLE regress_user_mvtest
+ERROR: 
+DROP ROLE regress_user_mvtest
+
+Parser Error: syntax error at or near "ROLE"
+
+
+-- Concurrent refresh requires a unique index on the materialized
+-- view. Test what happens if it''s dropped during the refresh.
+SET search_path = mvtest_mvschema, public
+ERROR: 
+
+-- Concurrent refresh requires a unique index on the materialized
+-- view. Test what happens if it''s dropped during the refresh.
+SET search_path = mvtest_mvschema, public
+
+Parser Error: SET needs a single scalar value parameter
+
+CREATE OR REPLACE FUNCTION mvtest_drop_the_index()
+  RETURNS bool AS $$
+BEGIN
+  EXECUTE 'DROP INDEX IF EXISTS mvtest_mvschema.mvtest_drop_idx';
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql
+ERROR: 
+CREATE OR REPLACE FUNCTION mvtest_drop_the_index()
+  RETURNS bool AS $$
+BEGIN
+  EXECUTE 'DROP INDEX IF EXISTS mvtest_mvschema.mvtest_drop_idx';
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql
+
+Parser Error: syntax error at or near "RETURNS"
+
+
+CREATE MATERIALIZED VIEW drop_idx_matview AS
+  SELECT 1 as i WHERE mvtest_drop_the_index()
+ERROR: 
+
+CREATE MATERIALIZED VIEW drop_idx_matview AS
+  SELECT 1 as i WHERE mvtest_drop_the_index()
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+
+CREATE UNIQUE INDEX mvtest_drop_idx ON drop_idx_matview (i)
+ERROR: 
+
+CREATE UNIQUE INDEX mvtest_drop_idx ON drop_idx_matview (i)
+
+Catalog Error: Table with name drop_idx_matview does not exist!
+Did you mean "temp.pg_catalog.pg_views"?
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY drop_idx_matview
+ERROR: 
+REFRESH MATERIALIZED VIEW CONCURRENTLY drop_idx_matview
+
+Parser Error: syntax error at or near "REFRESH"
+
+DROP MATERIALIZED VIEW drop_idx_matview
+ERROR: 
+DROP MATERIALIZED VIEW drop_idx_matview
+
+Not implemented Error: Cannot drop this type yet
+ -- clean up
+RESET search_path
+
+
+-- make sure that create WITH NO DATA works via SPI
+BEGIN
+
+CREATE FUNCTION mvtest_func()
+  RETURNS void AS $$
+BEGIN
+  CREATE MATERIALIZED VIEW mvtest1 AS SELECT 1 AS x;
+  CREATE MATERIALIZED VIEW mvtest2 AS SELECT 1 AS x WITH NO DATA;
+END;
+$$ LANGUAGE plpgsql
+ERROR: 
+CREATE FUNCTION mvtest_func()
+  RETURNS void AS $$
+BEGIN
+  CREATE MATERIALIZED VIEW mvtest1 AS SELECT 1 AS x;
+  CREATE MATERIALIZED VIEW mvtest2 AS SELECT 1 AS x WITH NO DATA;
+END;
+$$ LANGUAGE plpgsql
+
+Parser Error: syntax error at or near "RETURNS"
+
+SELECT mvtest_func()
+ERROR: 
+SELECT mvtest_func()
+
+Catalog Error: Scalar Function with name mvtest_func does not exist!
+Did you mean "datetrunc"?
+
+SELECT * FROM mvtest1
+ERROR: 
+SELECT * FROM mvtest1
+
+Catalog Error: Table with name mvtest1 does not exist!
+Did you mean "mvtest_tv"?
+
+SELECT * FROM mvtest2
+ERROR: 
+SELECT * FROM mvtest2
+
+Catalog Error: Table with name mvtest2 does not exist!
+Did you mean "mvtest_vt2"?
+
+ROLLBACK
+
+
+-- INSERT privileges if relation owner is not allowed to insert.
+CREATE SCHEMA matview_schema
+
+CREATE USER regress_matview_user
+ERROR: 
+CREATE USER regress_matview_user
+
+Parser Error: syntax error at or near "USER"
+
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
+  REVOKE INSERT ON TABLES FROM regress_matview_user
+ERROR: 
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
+  REVOKE INSERT ON TABLES FROM regress_matview_user
+
+Parser Error: syntax error at or near "DEFAULT"
+
+GRANT ALL ON SCHEMA matview_schema TO public
+ERROR: 
+GRANT ALL ON SCHEMA matview_schema TO public
+
+Parser Error: syntax error at or near "GRANT"
+
+
+SET SESSION AUTHORIZATION regress_matview_user
+ERROR: 
+
+SET SESSION AUTHORIZATION regress_matview_user
+
+Parser Error: syntax error at or near "AUTHORIZATION"
+
+CREATE MATERIALIZED VIEW matview_schema.mv_withdata1 (a) AS
+  SELECT generate_series(1, 10) WITH DATA
+ERROR: 
+CREATE MATERIALIZED VIEW matview_schema.mv_withdata1 (a) AS
+  SELECT generate_series(1, 10) WITH DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_schema.mv_withdata2 (a) AS
+  SELECT generate_series(1, 10) WITH DATA
+ERROR: 
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_schema.mv_withdata2 (a) AS
+  SELECT generate_series(1, 10) WITH DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+REFRESH MATERIALIZED VIEW matview_schema.mv_withdata2
+ERROR: 
+REFRESH MATERIALIZED VIEW matview_schema.mv_withdata2
+
+Parser Error: syntax error at or near "REFRESH"
+
+CREATE MATERIALIZED VIEW matview_schema.mv_nodata1 (a) AS
+  SELECT generate_series(1, 10) WITH NO DATA
+ERROR: 
+CREATE MATERIALIZED VIEW matview_schema.mv_nodata1 (a) AS
+  SELECT generate_series(1, 10) WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_schema.mv_nodata2 (a) AS
+  SELECT generate_series(1, 10) WITH NO DATA
+ERROR: 
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_schema.mv_nodata2 (a) AS
+  SELECT generate_series(1, 10) WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+REFRESH MATERIALIZED VIEW matview_schema.mv_nodata2
+ERROR: 
+REFRESH MATERIALIZED VIEW matview_schema.mv_nodata2
+
+Parser Error: syntax error at or near "REFRESH"
+
+RESET SESSION AUTHORIZATION
+ERROR: 
+RESET SESSION AUTHORIZATION
+
+Parser Error: syntax error at or near "AUTHORIZATION"
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
+  GRANT INSERT ON TABLES TO regress_matview_user
+ERROR: 
+
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
+  GRANT INSERT ON TABLES TO regress_matview_user
+
+Parser Error: syntax error at or near "DEFAULT"
+
+
+DROP SCHEMA matview_schema CASCADE
+
+DROP USER regress_matview_user
+ERROR: 
+DROP USER regress_matview_user
+
+Parser Error: syntax error at or near "USER"
+
+
+-- CREATE MATERIALIZED VIEW ... IF NOT EXISTS
+CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1
+ERROR: 
+
+-- CREATE MATERIALIZED VIEW ... IF NOT EXISTS
+CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1
+
+Parser Error: syntax error at or near "MATERIALIZED"
+
+CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1 / 0
+ERROR: 
+CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1 / 0
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- error
+CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+  SELECT 1 / 0
+ERROR:  -- error
+CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+  SELECT 1 / 0
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+CREATE MATERIALIZED VIEW matview_ine_tab AS
+  SELECT 1 / 0 WITH NO DATA
+ERROR:  -- ok
+CREATE MATERIALIZED VIEW matview_ine_tab AS
+  SELECT 1 / 0 WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- error
+CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+  SELECT 1 / 0 WITH NO DATA
+ERROR:  -- error
+CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+  SELECT 1 / 0 WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_ine_tab AS
+    SELECT 1 / 0
+ERROR:  -- ok
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_ine_tab AS
+    SELECT 1 / 0
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- error
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+    SELECT 1 / 0
+ERROR:  -- error
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+    SELECT 1 / 0
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_ine_tab AS
+    SELECT 1 / 0 WITH NO DATA
+ERROR:  -- ok
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_ine_tab AS
+    SELECT 1 / 0 WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- error
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+    SELECT 1 / 0 WITH NO DATA
+ERROR:  -- error
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+    SELECT 1 / 0 WITH NO DATA
+
+Parser Error: syntax error at or near "MATERIALIZED"
+ -- ok
+DROP MATERIALIZED VIEW matview_ine_tab
+ERROR:  -- ok
+DROP MATERIALIZED VIEW matview_ine_tab
+
+Not implemented Error: Cannot drop this type yet
+
+
