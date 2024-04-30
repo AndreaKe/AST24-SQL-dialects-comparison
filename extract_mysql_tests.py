@@ -38,7 +38,7 @@ for root, dirs, files in os.walk(mysql_test_path):
                 f.readline()
                 f.readline()
                 firstLine = True
-                isQuery = False
+                query = None
                 l1 = f.readline()
                 while True:
                     if not firstLine:
@@ -48,23 +48,20 @@ for root, dirs, files in os.walk(mysql_test_path):
                         break
                     l2 = f.readline()
                     if (b"SET SQL_LOG_BIN = 0" in l1 and b"USE mtr" in l2):
-                        test_file.write(b";")
                         break
                     split = l1.split(b'\t')
                     if (pattern.match(split[0])):
+                        if not firstLine and query:
+                            test_file.write(query + b';')
                         if b'Query' not in split[1]:
-                            isQuery = False
+                            query = None
                             continue
-                        if not firstLine:
-                            test_file.write(b';')
-                        isQuery = True
                         query = split[2].strip()
                         if not firstLine:
-                            test_file.write(b"\n")
-                        test_file.write(query)
+                            query = b"\n" + query;
                     else:
-                        if isQuery:
-                            test_file.write(b"\n"+split[0].strip())
+                        if query:
+                            query += b"\n"+split[0].strip()
                     firstLine = False
             test_file.close()
 """                   
