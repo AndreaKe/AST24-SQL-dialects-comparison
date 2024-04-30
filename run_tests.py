@@ -3,6 +3,7 @@ import sys, logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import duckdb
+import pymysql
 from enum import Enum
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG) # change level to INFO or DEBUG to see more output
@@ -237,6 +238,79 @@ class PostgreSQL(SQLDialectWrapper):
             if printErrors:
                 logging.warning("ERROR: {}\n{}\n".format(command, e))
             return self.create_error_query_result()
+        
+
+class MySQL(SQLDialectWrapper):
+    name = "mySQL"
+    db_conn = None
+    db_cursor = None
+    result_file = None
+
+    RESULT_FILE_NAME = "mysql_result.txt"
+    
+    DATABASE_NAME = "test"
+    DATABASE_USER = "root"
+    HOST = "localhost"
+    PORT = 3306
+    CREATE_DB_STMT = f"CREATE DATABASE {DATABASE_NAME};"
+    DROP_DB_STMT = "DROP DATABASE {};"
+
+    def setup_clean_db(self):
+        logging.debug("MYSQL: Setup clean database {} with user {} at {}:{}".format(self.DATABASE_NAME, self.DATABASE_USER, self.HOST, self.PORT))
+        con = pymysql.connect(user=self.DATABASE_USER, password="", host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
+        # con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+        cur.execute("SHOW DATABASES;")
+        db_names = [db[0] for db in cur.fetchall() if db[0] not in ['sys', 'mysql', 'information_schema', 'performance_schema']];
+        for db in db_names:
+            logging.debug(self.DROP_DB_STMT.format(db))
+            cur.execute(self.DROP_DB_STMT.format(db))
+        logging.debug(self.CREATE_DB_STMT)
+        cur.execute(self.CREATE_DB_STMT)
+        cur.close()
+        con.close()
+
+    def setup_connection(self):
+        logging.info("MYSQL: Connecting to database {} at {}:{}".format(self.DATABASE_NAME, self.HOST, self.PORT))
+        con = pymysql.connect(user=self.DATABASE_USER, password="", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
+        #con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+        cur.execute(f"use {self.DATABASE_NAME};")
+        return con
+
+    def teardown_connection(self):
+        logging.info("MYSQL: Close connection to database")
+        self.db_cursor.close()
+        self.db_conn.close()
+
+    def open_result_file(self, result_folder):
+        self.result_file = open(os.path.join(result_folder, self.RESULT_FILE_NAME), 'w') 
+
+    def write_to_result_file(self, content):
+        self.result_file.write(content)
+
+    def close_result_file(self):
+        self.result_file.close()
+
+    def exec_command(self, printErrors, command):
+        try:
+            self.db_cursor.execute(command)
+            result = self.db_cursor.fetchall()
+            result_string = "RESULT: \n\t{}\n".format(result)
+            logging.info(result_string)
+            self.result_file.write(result_string)
+        except pymysql.ProgrammingError as e:
+            if str(e) != "no results to fetch": 
+                logging.warning("ProgrammingError: {}\n".format(e))
+                self.result_file.write("ProgrammingError: {}\n".format(e))
+                #if "You have an error in your SQL syntax" in str(e):
+                #    print(e)
+                #    print(command)
+                #    print(file)
+                #    exit()
+        except pymysql.Error as e:
+            logging.warning("ERROR: {}\n".format(e))
+            self.result_file.write("ERROR: {}\n".format(e))       
 
 def get_guest_dbms(file_path):
     return file_path.split("/")[-3].replace("_tests", "")
