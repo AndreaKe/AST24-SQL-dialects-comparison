@@ -6,7 +6,7 @@ import duckdb
 import pymysql
 from enum import Enum
 
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG) # change level to INFO or DEBUG to see more output
+logging.basicConfig(stream=sys.stderr, level=logging.ERROR) # change level to INFO or DEBUG to see more output
 
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
 PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
@@ -18,6 +18,21 @@ logging.debug("PG_LIBDIR={}".format(PG_LIBDIR))
 logging.debug("PG_DLSUFFIX={}".format(PG_DLSUFFIX))
 logging.debug("PG_ABS_BUILDDIR={}".format(PG_ABS_BUILDDIR))
 
+EXCLUDED_TESTS = ['generated', 'collate.windows.win1252', 'data', 'typed_table', 'with']
+
+TEST_PATH = PG_ABS_SRCDIR
+RESULT_PATH = PG_ABS_BUILDDIR  
+if(len(sys.argv) > 1):
+    TEST_PATH = str(sys.argv[1]) # 1. command line argument = TEST_PATH
+    RESULT_PATH= TEST_PATH.replace("_tests/", "_results/")
+if(len(sys.argv) > 2):
+    RESULT_PATH = str(sys.argv[2]) # 2. command line argument = RESULT_PATH
+
+TEST_PATH = TEST_PATH[:-1] if TEST_PATH[-1] == '/' else TEST_PATH
+RESULT_PATH = RESULT_PATH[:-1] if RESULT_PATH[-1] == '/' else RESULT_PATH
+
+logging.debug(f"TEST_PATH {TEST_PATH}")
+logging.debug(f"RESULT PATH {RESULT_PATH}")
 
 class QueryStatus(Enum):
     PASS = 1
@@ -29,12 +44,19 @@ class CompatibilityCase(Enum):
     ERROR = -1
 
 
-TEST_PATH = PG_ABS_SRCDIR
-RESULT_PATH = PG_ABS_BUILDDIR  
-if(len(sys.argv) > 1):
-    TEST_PATH = str(sys.argv[1]) # 1. command line argument = TEST_PATH
-if(len(sys.argv) > 2):
-    RESULT_PATH = str(sys.argv[2]) # 2. command line argument = RESULT_PATH
+class TestResult(object):
+    dbms = ""
+    compatibility = None
+    test = ""
+
+    def __init__(self, dbms, compatibility, test_name):
+        self.dbms = dbms
+        self.compatibility = compatibility
+        self.test = test_name
+
+
+    def __str__(self):
+        return f"{self.test} on {self.dbms} resulted in {self.compatibility.name}"
 
 
 class QueryResult(object):
@@ -48,9 +70,22 @@ class QueryResult(object):
         self.result = result
 
     def is_result_identical(self, other):
+        # TODO: ignore minor accuracy difference, check ordering for order by queries, handle dict comparison correctly
+        logging.debug("is_result_identical")
         if self.result == None or other.result == None:
             return self.result == None and other.result == None
-        return sorted(self.result, key=lambda x: (x is None, x)) == sorted(other.result, key=lambda x: (x is None, x))
+        if len(self.result) > 0:
+            logging.debug(self.result)
+            if isinstance(self.result[0], dict): # TODO: does not work yet
+                logging.debug("comparing dictionaries")
+                self_list = [[(key, value) for key, value in row.items()]for row in self.result]
+                other_list = [[(key, value) for key, value in row.items()]for row in other.result]
+            else:
+                self_list = self.result
+                other_list = other.result
+            return sorted(self_list, key=lambda x: [(val is None, val) for val in x]) == sorted(other_list, key=lambda x: [(val is None, val) for val in x])
+        else:
+            return len(other.result) == 0
     
     def __str__(self):
         return f"{self.dbms}: {self.status} with {self.result}"
@@ -96,7 +131,7 @@ class SQLDialectWrapper(object):
     def close_result_file(self):
         pass
 
-    def exec_command(self, printErrors, command):
+    def exec_query(self, printErrors, query):
         pass
 
     def create_query_result(self, status, result):
@@ -137,9 +172,9 @@ class DuckDB(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_command(self, printErrors, command):
+    def exec_query(self, printErrors, query):
         try:
-            result = self.db_conn.sql(command)
+            result = self.db_conn.sql(query)
             if result == None:
                 return self.create_empty_query_result()
             result = result.fetchall()
@@ -148,9 +183,9 @@ class DuckDB(SQLDialectWrapper):
             self.result_file.write(result_string)
             return self.create_query_result(QueryStatus.PASS, result)
         except Exception as e:
-            self.result_file.write("ERROR: {}\n{}\n".format(command, e))
+            self.result_file.write("ERROR: {}\n".format(e))
             if printErrors:
-                logging.warning("ERROR: {}\n{}\n".format(command, e))
+                logging.warning("ERROR: {}\n".format(e))
             return self.create_error_query_result()
 
 
@@ -211,9 +246,9 @@ class PostgreSQL(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_command(self, printErrors, command):
+    def exec_query(self, printErrors, query):
         try:
-            self.db_cursor.execute(command)
+            self.db_cursor.execute(query)
             result = self.db_cursor.fetchall()
             result_string = "RESULT: \n\t{}\n".format(result)
             logging.info(result_string)
@@ -223,20 +258,20 @@ class PostgreSQL(SQLDialectWrapper):
             if str(e) == "no results to fetch": 
                 return self.create_empty_query_result()
             else:
-                self.result_file.write("ProgrammingError: {}\n{}\n".format(command, e))
+                self.result_file.write("ProgrammingError: {}\n{}\n".format(query, e))
                 if printErrors:
-                    logging.warning("ProgrammingError: {}\n{}\n".format(command, e))
+                    logging.warning("ProgrammingError: {}\n{}\n".format(query, e))
                 return self.create_error_query_result()
                 
         except psycopg2.Error as e:
-            self.result_file.write("ERROR: {}\n{}\n".format(command, e))
+            self.result_file.write("ERROR: {}\n{}\n".format(query, e))
             if printErrors:
-                logging.warning("ERROR: {}\n{}\n".format(command, e))
+                logging.warning("ERROR: {}\n{}\n".format(query, e))
             return self.create_error_query_result()
         except Exception as e:
-            self.result_file.write("ERROR: {}\n{}\n".format(command, e))
+            self.result_file.write("ERROR: {}\n{}\n".format(query, e))
             if printErrors:
-                logging.warning("ERROR: {}\n{}\n".format(command, e))
+                logging.warning("ERROR: {}\n{}\n".format(query, e))
             return self.create_error_query_result()
         
 
@@ -320,14 +355,18 @@ def is_guest_dbms(dbms: SQLDialectWrapper, guest_dbms):
 
 
 def compare_single_result(guest_result: QueryResult, host_result: QueryResult):
-    if guest_result.status !=  host_result.status:
+    try:
+        if guest_result.status !=  host_result.status:
+            return CompatibilityCase.ERROR
+        elif guest_result.status == CompatibilityCase.ERROR:
+            return CompatibilityCase.SAME
+        elif guest_result.is_result_identical(host_result): # TODO: what if the order matters?
+            return CompatibilityCase.SAME
+        else:
+            return CompatibilityCase.DIFFERENT
+    except Exception as e:
+        logging.error(f"Could not compare results. {e}")
         return CompatibilityCase.ERROR
-    elif guest_result.status == CompatibilityCase.ERROR:
-        return CompatibilityCase.SAME
-    elif guest_result.is_result_identical(host_result): # TODO: what if the order matters?
-        return CompatibilityCase.SAME
-    else:
-        return CompatibilityCase.DIFFERENT
 
 
 def compare_results(results, guest_dbms):
@@ -348,13 +387,23 @@ def compare_results(results, guest_dbms):
     return comp_cases
 
 
-def compute_summary(all_results, dialects, summary_file):
+def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
     logging.debug("Computing summary...")
     logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
 
+    overall_compatibility = []
+
+    summary_file.write("=========================================\n")
+    summary_file.write("Summary for test case {} of {}\n".format(test_name, guest_dbms))
+    summary_file.write("=========================================\n")  
+
+    print("=========================================")
+    print("Summary for test case {} of {}".format(test_name, guest_dbms))
+    print("=========================================")  
+
     for d in dialects:
         d_results = [cc for row in all_results for cc in row if cc.dbms == d.name]
-        logging.debug("dialect {}, d_results: {}".format(d.name, d_results))
+        logging.debug("dialect {}, d_results: {}".format(d.name, [str(r_) for r_ in d_results]))
         num_results = len(d_results)
         
         if num_results == 0:
@@ -362,12 +411,17 @@ def compute_summary(all_results, dialects, summary_file):
         
         print("\n=================\nResults for {}\n".format(d.name))
         summary_file.write("\n=================\nResults for {}\n".format(d.name))
-        for cc in CompatibilityCase:
+        curr_comp_case = CompatibilityCase.SAME
+        for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
             num = len([r for r in d_results if r.result == cc])
+            if num > 0:
+                curr_comp_case = cc
             percentage = num/num_results * 100
-            print("{}: {} tests, which is {:.2f}%\n".format(cc.name, num, percentage))
-            summary_file.write("{}: {} tests, which is {:.2f}%\n".format(cc.name, num, percentage))
-        
+            print("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
+            summary_file.write("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
+    
+        overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name))
+    return overall_compatibility
         
 
 
@@ -388,23 +442,23 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
     logging.info("Guest DBMS identified: {}".format(guest_dbms))
     summary_file.write("Guest DBMS identified: {}".format(guest_dbms))
 
-    sql_commands = test_file.split(';') # here we get the individual sql commands!
-    command_iter = iter(sql_commands)
+    sql_queries = test_file.split(';') # here we get the individual sql queries!
+    query_iter = iter(sql_queries)
 
     all_results = []
     
     while True:
         try:
-            command = get_command(command_iter)
+            query = get_query_string(query_iter)
 
             for dialect in sql_dialects:
-                dialect.write_to_result_file(command)
-            if command.strip() != '':
-                logging.info("\nExecuting command:  {}".format(command))
-                summary_file.write("\nQUERY:  {}".format(command))
+                dialect.write_to_result_file(query)
+            if query.strip() != '':
+                logging.info("\nExecuting query:  {}".format(query))
+                summary_file.write("\nQUERY:  {}".format(query))
                 curr_results = []
                 for dialect in sql_dialects:
-                    result = dialect.exec_command(printErrors, command)
+                    result = dialect.exec_query(printErrors, query)
                     curr_results.append(result)
                     logging.debug("RESULT: {}".format(result))
 
@@ -419,33 +473,36 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
     for dialect in sql_dialects:
         dialect.close_result_file()
 
-    compute_summary(all_results, sql_dialects, summary_file)  
+    sql_file_parts = sql_file.split("/")
+
+    overall_compatibility = compute_summary(all_results, sql_dialects, summary_file, "/".join(sql_file_parts[-2:]), guest_dbms)  
     summary_file.close() 
+    return overall_compatibility
  
 
-def get_command(command_iter):
-    command = next(command_iter)
-    dollar_count = command.count('$$')
-    double_quotes_count = command.count('"')
-    single_quotes_count = command.count("'")
+def get_query_string(query_iter):
+    query = next(query_iter)
+    dollar_count = query.count('$$')
+    double_quotes_count = query.count('"') - query.count("\"")
+    single_quotes_count = query.count("'") - query.count("\'")
 
     while dollar_count % 2 != 0 or  double_quotes_count % 2 != 0 or single_quotes_count % 2 != 0:
         try:
-            command = command + ";" + next(command_iter)
-            dollar_count = command.count('$$')
-            double_quotes_count = command.count('"')
-            single_quotes_count = command.count("'")
+            query = query + ";" + next(query_iter)
+            dollar_count = query.count('$$')
+            double_quotes_count = query.count('"') - query.count("\"")
+            single_quotes_count = query.count("'") - query.count("\'")
         except StopIteration as e:
-            logging.error("Index out of bounds. Command: {}".format(command))
+            logging.error("Index out of bounds. Query: {}".format(query))
             raise e
         
-    if 'PG_ABS_SRCDIR' in command or 'PG_LIBDIR' in command or 'PG_DLSUFFIX' in command or 'PG_ABS_BUILDDIR' in command:
-                command = command.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
-                command = command.replace('PG_LIBDIR', PG_LIBDIR)
-                command = command.replace('PG_DLSUFFIX', PG_DLSUFFIX)
-                command = command.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
+    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
+                query = query.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
+                query = query.replace('PG_LIBDIR', PG_LIBDIR)
+                query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
+                query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
 
-    return "{}\n".format(command)
+    return "{}\n".format(query.strip())
 
 
 def execute_single_test(test_folder, result_folder):
@@ -465,31 +522,66 @@ def execute_single_test(test_folder, result_folder):
             dialect.db_cursor.execute("SELECT pg_catalog.set_config('search_path', 'public', false);")
         # TODO check if we have to do something for other dialects
 
-    execute_sql_file(dialects, test_folder + "/test.sql", result_folder)
+    test_result = execute_sql_file(dialects, test_folder + "/test.sql", result_folder)
 
     for dialect in dialects:
         dialect.teardown_connection()
 
+    return test_result
+
 
 def execute_tests_in_folder_rec(test_folder, result_folder):
     logging.info("Execute ALL tests in {} (and all subfolders) and storing results in {}".format(test_folder, result_folder))
+    all_results = []
     for fname in os.listdir(test_folder):
 
         single_test_path = os.path.join(test_folder, fname)
         logging.debug("single test path = {}".format(single_test_path))
         
-        if os.path.isdir(single_test_path) and fname != "data": # data is a special case because it does not contain tests but the tests data
+        if os.path.isdir(single_test_path) and fname != "data" and fname not in EXCLUDED_TESTS: # data is a special case because it does not contain tests but the tests data
             # when we found a folder, we recurse into it
             logging.debug("Found folder {}".format(fname))
-            execute_tests_in_folder_rec(single_test_path, os.path.join(result_folder, fname))
+            results = execute_tests_in_folder_rec(single_test_path, os.path.join(result_folder, fname))
+            all_results.append(results)
         
         if os.path.isfile(single_test_path) and fname == "test.sql": # once we found a test.sql file, we can execute the test
             logging.debug("Found file {}".format(single_test_path))
-            execute_single_test(test_folder, result_folder)
-            return # we assume there are no subfolders with tests
+            test_result = execute_single_test(test_folder, result_folder)
+            all_results.append(test_result)
+            return all_results # we assume there are no subfolders with tests
+    return all_results
 
 
 def init_dialects():
     return [PostgreSQL(), DuckDB()] # TODO other SQL dialects here
 
-execute_tests_in_folder_rec(TEST_PATH, RESULT_PATH)
+
+def compute_overall_summary(all_results, result_folder):
+    summary_file = open(os.path.join(result_folder, "summary_overall.txt"),  'w')
+    if len(all_results) == 0:
+        logging.error("No results found")
+        return
+    logging.debug("Computing overall summary...")
+    logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
+
+    dialects = [r.dbms for r in all_results[0]]
+
+    for d in dialects:
+        d_results = [cc for row in all_results for cc in row if cc.dbms == d]
+        logging.debug("dialect {}, d_results: {}".format(d, [str(res) for res in d_results]))
+        num_results = len(d_results)
+        
+        print("\n=================\nOverall results for {}\n".format(d))
+        summary_file.write("\n=================\nOverall results for {}\n".format(d))
+        for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
+            num = len([r for r in d_results if r.compatibility == cc])
+            
+            percentage = num/num_results * 100
+            print("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
+            summary_file.write("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
+    
+    summary_file.close()
+
+
+all_results = execute_tests_in_folder_rec(TEST_PATH, RESULT_PATH)
+compute_overall_summary(all_results, RESULT_PATH)
