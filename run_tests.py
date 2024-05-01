@@ -6,7 +6,7 @@ import duckdb
 # import pymysql
 from enum import Enum
 
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG) # change level to INFO or DEBUG to see more output
+logging.basicConfig(stream=sys.stderr, level=logging.ERROR) # change level to INFO or DEBUG to see more output
 
 COMPARE_TO_EXPECTED_RESULT = True
 GENERATE_EXPECTED = False
@@ -609,8 +609,8 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
         if os.path.isdir(single_test_path) and fname != "data" and fname not in EXCLUDED_TESTS: # data is a special case because it does not contain tests but the tests data
             # when we found a folder, we recurse into it
             logging.debug(f"Found folder {fname}")
-            results = execute_tests_in_folder_rec(single_test_path, os.path.join(result_folder, fname))
-            all_results.append(results)
+            rec_results = execute_tests_in_folder_rec(single_test_path, os.path.join(result_folder, fname))
+            all_results = all_results + rec_results
         
         if os.path.isfile(single_test_path) and fname == "test.sql": # once we found a test.sql file, we can execute the test
             logging.debug(f"Found file {single_test_path}")
