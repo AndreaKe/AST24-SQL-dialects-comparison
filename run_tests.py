@@ -3,10 +3,13 @@ import sys, logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import duckdb
-import pymysql
+# import pymysql
 from enum import Enum
 
-logging.basicConfig(stream=sys.stderr, level=logging.ERROR) # change level to INFO or DEBUG to see more output
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG) # change level to INFO or DEBUG to see more output
+
+COMPARE_TO_EXPECTED_RESULT = True
+GENERATE_EXPECTED = False
 
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
 PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
@@ -28,8 +31,12 @@ if(len(sys.argv) > 1):
 if(len(sys.argv) > 2):
     RESULT_PATH = str(sys.argv[2]) # 2. command line argument = RESULT_PATH
 
+
 TEST_PATH = TEST_PATH[:-1] if TEST_PATH[-1] == '/' else TEST_PATH
 RESULT_PATH = RESULT_PATH[:-1] if RESULT_PATH[-1] == '/' else RESULT_PATH
+
+if GENERATE_EXPECTED:
+    RESULT_PATH = TEST_PATH
 
 logging.debug(f"TEST_PATH {TEST_PATH}")
 logging.debug(f"RESULT PATH {RESULT_PATH}")
@@ -63,11 +70,13 @@ class QueryResult(object):
     dbms = ""
     status = ""
     result = None
+    error = ""
 
-    def __init__(self, dbms, status, result):
+    def __init__(self, dbms, status, result, error):
         self.dbms = dbms
         self.status = status
         self.result = result
+        self.error = error
 
     def is_result_identical(self, other):
         # TODO: ignore minor accuracy difference, check ordering for order by queries, handle dict comparison correctly
@@ -88,7 +97,10 @@ class QueryResult(object):
             return len(other.result) == 0
     
     def __str__(self):
-        return f"{self.dbms}: {self.status} with {self.result}"
+        if self.status == QueryStatus.PASS:
+            return f"{self.dbms}: {self.result}"
+        else:
+            return f"{self.dbms}: {self.error}"
 
 
 class CompatibilityCaseWrapper(object):
@@ -131,17 +143,17 @@ class SQLDialectWrapper(object):
     def close_result_file(self):
         pass
 
-    def exec_query(self, printErrors, query):
+    def exec_query(self, query):
         pass
 
-    def create_query_result(self, status, result):
-        return QueryResult(self.name, status, result)
+    def create_query_result(self, status, result, error):
+        return QueryResult(self.name, status, result, error)
     
     def create_empty_query_result(self):
-        return self.create_query_result(QueryStatus.PASS, None)
+        return self.create_query_result(QueryStatus.PASS, None, None)
     
-    def create_error_query_result(self):
-        return self.create_query_result(QueryStatus.ERROR, None)
+    def create_error_query_result(self, e):
+        return self.create_query_result(QueryStatus.ERROR, None, e)
 
 
 class DuckDB(SQLDialectWrapper):
@@ -172,21 +184,15 @@ class DuckDB(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_query(self, printErrors, query):
+    def exec_query(self, query):
         try:
             result = self.db_conn.sql(query)
             if result == None:
                 return self.create_empty_query_result()
             result = result.fetchall()
-            result_string = "RESULT: \n\t{}\n".format(result)
-            logging.info(result_string)
-            self.result_file.write(result_string)
-            return self.create_query_result(QueryStatus.PASS, result)
+            return self.create_query_result(QueryStatus.PASS, result, None)
         except Exception as e:
-            self.result_file.write("ERROR: {}\n".format(e))
-            if printErrors:
-                logging.warning("ERROR: {}\n".format(e))
-            return self.create_error_query_result()
+            return self.create_error_query_result(e)
 
 
 class PostgreSQL(SQLDialectWrapper):
@@ -195,40 +201,45 @@ class PostgreSQL(SQLDialectWrapper):
     db_cursor = None
     result_file = None
 
-    RESULT_FILE_NAME = "postgres_result.txt"
+    result_file_name = "postgres_result.txt"
 
-    DATABASE_NAME = "regression"
-    DATABASE_USER = "postgres"
-    HOST = "localhost"
-    PORT = 5432
+    database_name = "regression"
+    database_user = "postgres"
+    host = "localhost"
+    port = 5432
 
-    DROP_DB_STMT = "DROP DATABASE IF EXISTS {}".format(DATABASE_NAME)
+    def __init__(self, database_name, dbms, result_file_name):
+        self.database_name = database_name if database_name != None else self.database_name
+        self.name = dbms if dbms != None else self.name
+        self.result_file_name = result_file_name if result_file_name != None else self.result_file_name
+        self.setup_clean_db()
+        self.setup_connection()
 
-    CREATE_DB_STMT = """CREATE DATABASE {} WITH 
+    def setup_clean_db(self):
+        logging.debug("POSTGRESQL: Setup clean database {} with user {} at {}:{}".format(self.database_name, self.database_user, self.host, self.port))
+        tmp_db_conn = psycopg2.connect(user=self.database_user, password="*****", host=self.host, port=self.port)
+        tmp_db_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        tmp_db_cursor = tmp_db_conn.cursor()
+        drop_stmt = f"DROP DATABASE IF EXISTS {self.database_name}"
+        create_stmt = """CREATE DATABASE {} WITH 
         OWNER = {} 
         ENCODING = 'UTF8' 
         TABLESPACE = pg_default 
         LC_COLLATE = 'C' 
         LC_CTYPE = 'en_US.UTF-8' 
-        TEMPLATE = template0 """.format(DATABASE_NAME, DATABASE_USER)
-
-    def setup_clean_db(self):
-        logging.debug("POSTGRESQL: Setup clean database {} with user {} at {}:{}".format(self.DATABASE_NAME, self.DATABASE_USER, self.HOST, self.PORT))
-        tmp_db_conn = psycopg2.connect(user=self.DATABASE_USER, password="*****", host=self.HOST, port=self.PORT)
-        tmp_db_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        tmp_db_cursor = tmp_db_conn.cursor()
-        logging.debug(self.DROP_DB_STMT)
-        tmp_db_cursor.execute(self.DROP_DB_STMT)
+        TEMPLATE = template0 """.format(self.database_name, self.database_user)
+        logging.debug(drop_stmt)
+        tmp_db_cursor.execute(drop_stmt)
         tmp_db_conn.commit()
-        logging.debug(self.CREATE_DB_STMT)
-        tmp_db_cursor.execute(self.CREATE_DB_STMT)
+        logging.debug(create_stmt)
+        tmp_db_cursor.execute(create_stmt)
         tmp_db_conn.commit()
         tmp_db_cursor.close()
         tmp_db_conn.close()
 
     def setup_connection(self):
-        logging.info("POSTGRESQL: Connecting to database {} at {}:{}".format(self.DATABASE_NAME, self.HOST, self.PORT))
-        self.db_conn = psycopg2.connect(user=self.DATABASE_USER, password="*****", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
+        logging.info("POSTGRESQL: Connecting to database {} at {}:{}".format(self.database_name, self.host, self.port))
+        self.db_conn = psycopg2.connect(user=self.database_user, password="*****", host=self.host, port=self.port, database=self.database_name)
         self.db_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         self.db_cursor = self.db_conn.cursor()
 
@@ -238,7 +249,7 @@ class PostgreSQL(SQLDialectWrapper):
         self.db_conn.close()
 
     def open_result_file(self, result_folder):
-        self.result_file = open(os.path.join(result_folder, self.RESULT_FILE_NAME), 'w') 
+        self.result_file = open(os.path.join(result_folder, self.result_file_name), 'w') 
 
     def write_to_result_file(self, content):
         self.result_file.write(content)
@@ -246,33 +257,20 @@ class PostgreSQL(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_query(self, printErrors, query):
+    def exec_query(self, query):
         try:
             self.db_cursor.execute(query)
             result = self.db_cursor.fetchall()
-            result_string = "RESULT: \n\t{}\n".format(result)
-            logging.info(result_string)
-            self.result_file.write(result_string)
-            return self.create_query_result(QueryStatus.PASS, result)
+            return self.create_query_result(QueryStatus.PASS, result, None)
         except psycopg2.ProgrammingError as e:
             if str(e) == "no results to fetch": 
                 return self.create_empty_query_result()
             else:
-                self.result_file.write("ProgrammingError: {}\n{}\n".format(query, e))
-                if printErrors:
-                    logging.warning("ProgrammingError: {}\n{}\n".format(query, e))
-                return self.create_error_query_result()
-                
+                return self.create_error_query_result(e)    
         except psycopg2.Error as e:
-            self.result_file.write("ERROR: {}\n{}\n".format(query, e))
-            if printErrors:
-                logging.warning("ERROR: {}\n{}\n".format(query, e))
-            return self.create_error_query_result()
+            return self.create_error_query_result(e)
         except Exception as e:
-            self.result_file.write("ERROR: {}\n{}\n".format(query, e))
-            if printErrors:
-                logging.warning("ERROR: {}\n{}\n".format(query, e))
-            return self.create_error_query_result()
+            return self.create_error_query_result(e)
         
 
 class MySQL(SQLDialectWrapper):
@@ -327,25 +325,23 @@ class MySQL(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_command(self, printErrors, command):
+    def exec_query(self, query):
         try:
-            self.db_cursor.execute(command)
+            self.db_cursor.execute(query)
             result = self.db_cursor.fetchall()
-            result_string = "RESULT: \n\t{}\n".format(result)
-            logging.info(result_string)
-            self.result_file.write(result_string)
+            return self.create_query_result(QueryStatus.PASS, result, None)
         except pymysql.ProgrammingError as e:
             if str(e) != "no results to fetch": 
-                logging.warning("ProgrammingError: {}\n".format(e))
-                self.result_file.write("ProgrammingError: {}\n".format(e))
+                return self.create_error_query_result(e)
                 #if "You have an error in your SQL syntax" in str(e):
                 #    print(e)
                 #    print(command)
                 #    print(file)
                 #    exit()
+            else: 
+                return self.create_empty_query_result()
         except pymysql.Error as e:
-            logging.warning("ERROR: {}\n".format(e))
-            self.result_file.write("ERROR: {}\n".format(e))       
+            return self.create_error_query_result(e)      
 
 def get_guest_dbms(file_path):
     return file_path.split("/")[-3].replace("_tests", "")
@@ -393,9 +389,9 @@ def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
 
     overall_compatibility = []
 
-    summary_file.write("=========================================\n")
-    summary_file.write("Summary for test case {} of {}\n".format(test_name, guest_dbms))
-    summary_file.write("=========================================\n")  
+    write_to_summary_file(summary_file, "=========================================\n")
+    write_to_summary_file(summary_file, "Summary for test case {} of {}\n".format(test_name, guest_dbms))
+    write_to_summary_file(summary_file, "=========================================\n")  
 
     print("=========================================")
     print("Summary for test case {} of {}".format(test_name, guest_dbms))
@@ -410,7 +406,7 @@ def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
             continue
         
         print("\n=================\nResults for {}\n".format(d.name))
-        summary_file.write("\n=================\nResults for {}\n".format(d.name))
+        write_to_summary_file(summary_file, "\n=================\nResults for {}\n".format(d.name))
         curr_comp_case = CompatibilityCase.SAME
         for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
             num = len([r for r in d_results if r.result == cc])
@@ -418,20 +414,16 @@ def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
                 curr_comp_case = cc
             percentage = num/num_results * 100
             print("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
-            summary_file.write("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
+            write_to_summary_file(summary_file, "{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
     
         overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name))
     return overall_compatibility
         
-
-
-def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
-    logging.debug("Executing test case {}".format(sql_file))
+def execute_setup_sql(sql_dialects, sql_file, result_folder, printErrors=True):
+    logging.debug(f"Executing setup {sql_file}")
     # We write the results to a file such that results can be compare without needing to rerun the tests all the time
     for dialect in sql_dialects:
         dialect.open_result_file(result_folder)
-
-    summary_file = open(os.path.join(result_folder, "summary.txt"), 'w') 
 
     test_file_stream = open(sql_file, 'r')
     test_file = test_file_stream.read()
@@ -439,8 +431,50 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
 
     guest_dbms = get_guest_dbms(sql_file)
 
-    logging.info("Guest DBMS identified: {}".format(guest_dbms))
-    summary_file.write("Guest DBMS identified: {}".format(guest_dbms))
+    logging.debug(f"Guest DBMS identified: {guest_dbms}")
+
+    sql_queries = test_file.split(';') # here we get the individual sql queries!
+    query_iter = iter(sql_queries)
+    
+    while True:
+        try:
+            query = get_query_string(query_iter).strip()
+
+            for dialect in sql_dialects:
+                dialect.write_to_result_file(query)
+            if query != '':
+                logging.debug(f"\nExecuting query:  {query}")
+                curr_results = []
+                for dialect in sql_dialects:
+                    result = dialect.exec_query(query)
+                    curr_results.append(result)
+                    logging.debug(f"RESULT: {result}")
+
+                compare_results(curr_results, guest_dbms)
+
+        except StopIteration:
+            break
+
+    for dialect in sql_dialects:
+        dialect.close_result_file()
+
+
+def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
+    logging.debug(f"Executing setup {sql_file}")
+    # We write the results to a file such that results can be compare without needing to rerun the tests all the time
+    for dialect in sql_dialects:
+        dialect.open_result_file(result_folder)
+
+    summary_file = open(os.path.join(result_folder, "summary.txt"), 'w') if not GENERATE_EXPECTED else None
+
+    test_file_stream = open(sql_file, 'r')
+    test_file = test_file_stream.read()
+    test_file_stream.close()
+
+    guest_dbms = get_guest_dbms(sql_file)
+
+    logging.info(f"Guest DBMS identified: {guest_dbms}")
+    write_to_summary_file(summary_file, f"Guest DBMS identified: {guest_dbms}")
 
     sql_queries = test_file.split(';') # here we get the individual sql queries!
     query_iter = iter(sql_queries)
@@ -450,23 +484,23 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
     while True:
         try:
             query = get_query_string(query_iter)
-
-            for dialect in sql_dialects:
-                dialect.write_to_result_file(query)
             if query.strip() != '':
-                logging.info("\nExecuting query:  {}".format(query))
-                summary_file.write("\nQUERY:  {}".format(query))
+                query_string = f"\n-----------\nQUERY:\n{query}"
+                logging.info(query_string)
+                write_to_summary_file(summary_file, query_string)
                 curr_results = []
                 for dialect in sql_dialects:
-                    result = dialect.exec_query(printErrors, query)
+                    dialect.write_to_result_file(query_string)
+                    result = dialect.exec_query(query)
+                    result_string = f"RESULT:\n\t{result}\n"
+                    logging.debug(result_string)
+                    dialect.write_to_result_file(result_string)
                     curr_results.append(result)
-                    logging.debug("RESULT: {}".format(result))
 
                 comp_cases = compare_results(curr_results, guest_dbms)
                 all_results.append(comp_cases)
                 logging.info("COMPATIBILITY: {}\n".format([str(cc) for cc in comp_cases]))
-                summary_file.write("RESULT: {}\n".format([str(cc) for cc in comp_cases]))
-
+                write_to_summary_file(summary_file, "RESULT: {}\n".format([str(cc) for cc in comp_cases]))
         except StopIteration:
             break
 
@@ -475,10 +509,43 @@ def execute_sql_file(sql_dialects, sql_file, result_folder, printErrors=True):
 
     sql_file_parts = sql_file.split("/")
 
-    overall_compatibility = compute_summary(all_results, sql_dialects, summary_file, "/".join(sql_file_parts[-2:]), guest_dbms)  
-    summary_file.close() 
+    overall_compatibility = compute_summary(all_results, sql_dialects, summary_file, "/".join(sql_file_parts[-2:]), guest_dbms)
+    if COMPARE_TO_EXPECTED_RESULT:
+        guest_result_file = [d.result_file_name for d in sql_dialects if d.name == guest_dbms][0]
+        compare_to_expected_result(os.path.join(result_folder, guest_result_file), sql_file, summary_file)
+
+    if not summary_file is None:
+        summary_file.close() 
     return overall_compatibility
  
+
+def compare_to_expected_result(guest_result_file_name, expected_result_file_name, summary_file):
+    try:
+        guest_result_file = open(guest_result_file_name, 'r')
+        expected_result_file_name = expected_result_file_name.replace('test.sql', 'expected.txt')
+        expected_result_file = open(expected_result_file_name, 'r')
+        logging.debug(f"Comparing {guest_result_file_name} to {expected_result_file_name}")
+        guest_results = guest_result_file.readlines() 
+        expected_results = expected_result_file.readlines()
+        guest_result_file.close()
+        expected_result_file.close()
+
+        if len(guest_results) != len(expected_results):
+            logging.error(f"Different to expected results: {guest_result_file_name}")
+            write_to_summary_file(summary_file, "Different to expected results")
+
+        for i in range(len(guest_results)):
+            if guest_results[i] != expected_results[i]:
+                logging.error(f"Guest results are different to expected results at line {i}")
+                write_to_summary_file(summary_file, "Guest results are different to expected results")
+                return
+        logging.info("Guest results are identical to expected results")
+        write_to_summary_file(summary_file, "Guest results are identical to expected results")
+    except Exception as e:
+        logging.error(f"Failed to compare to expected file. {e}")
+        write_to_summary_file(summary_file, f"Failed to compare to expected file. {e}")
+        
+
 
 def get_query_string(query_iter):
     query = next(query_iter)
@@ -493,7 +560,7 @@ def get_query_string(query_iter):
             double_quotes_count = query.count('"') - query.count("\"")
             single_quotes_count = query.count("'") - query.count("\'")
         except StopIteration as e:
-            logging.error("Index out of bounds. Query: {}".format(query))
+            logging.error(f"Index out of bounds. Query: {query}")
             raise e
         
     if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
@@ -502,7 +569,7 @@ def get_query_string(query_iter):
                 query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
                 query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
 
-    return "{}\n".format(query.strip())
+    return f"{query.strip()}\n"
 
 
 def execute_single_test(test_folder, result_folder):
@@ -510,19 +577,20 @@ def execute_single_test(test_folder, result_folder):
         os.makedirs(result_folder)
 
     print("==============================================\n")
-    print("execute single test {} and storing results in {}\n".format(test_folder, result_folder))
+    print(f"execute single test {test_folder} and storing results in {result_folder}\n")
     # we always want to drop and recreate the database because some tests might modify the data
 
-    dialects = init_dialects()
+    dialects = init_dialects(get_guest_dbms(test_folder + "/test.sql"))
+    logging.debug(f"Dialects: {dialects}\n")
 
-    execute_sql_file(dialects, test_folder + "/setup.sql", result_folder, False) 
+    execute_setup_sql(dialects, test_folder + "/setup.sql", result_folder, False) 
 
     for dialect in dialects:
         if dialect.name == "postgres":
             dialect.db_cursor.execute("SELECT pg_catalog.set_config('search_path', 'public', false);")
         # TODO check if we have to do something for other dialects
 
-    test_result = execute_sql_file(dialects, test_folder + "/test.sql", result_folder)
+    test_result = execute_test_sql(dialects, test_folder + "/test.sql", result_folder)
 
     for dialect in dialects:
         dialect.teardown_connection()
@@ -531,29 +599,32 @@ def execute_single_test(test_folder, result_folder):
 
 
 def execute_tests_in_folder_rec(test_folder, result_folder):
-    logging.info("Execute ALL tests in {} (and all subfolders) and storing results in {}".format(test_folder, result_folder))
+    logging.info(f"Execute ALL tests in {test_folder} (and all subfolders) and storing results in {result_folder}")
     all_results = []
     for fname in os.listdir(test_folder):
 
         single_test_path = os.path.join(test_folder, fname)
-        logging.debug("single test path = {}".format(single_test_path))
+        logging.debug(f"single test path = {single_test_path}")
         
         if os.path.isdir(single_test_path) and fname != "data" and fname not in EXCLUDED_TESTS: # data is a special case because it does not contain tests but the tests data
             # when we found a folder, we recurse into it
-            logging.debug("Found folder {}".format(fname))
+            logging.debug(f"Found folder {fname}")
             results = execute_tests_in_folder_rec(single_test_path, os.path.join(result_folder, fname))
             all_results.append(results)
         
         if os.path.isfile(single_test_path) and fname == "test.sql": # once we found a test.sql file, we can execute the test
-            logging.debug("Found file {}".format(single_test_path))
+            logging.debug(f"Found file {single_test_path}")
             test_result = execute_single_test(test_folder, result_folder)
             all_results.append(test_result)
             return all_results # we assume there are no subfolders with tests
     return all_results
 
 
-def init_dialects():
-    return [PostgreSQL(), DuckDB()] # TODO other SQL dialects here
+def init_dialects(guest_dbms):
+    if GENERATE_EXPECTED:
+        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB()] # TODO other SQL dialects here
+        return [d for d in all_dbms if d.name == guest_dbms]
+    return [PostgreSQL('regression', None, None), DuckDB()] 
 
 
 def compute_overall_summary(all_results, result_folder):
@@ -563,6 +634,7 @@ def compute_overall_summary(all_results, result_folder):
         return
     logging.debug("Computing overall summary...")
     logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
+    logging.debug(f"all_results[0] {str(all_results[0])}")
 
     dialects = [r.dbms for r in all_results[0]]
 
@@ -571,8 +643,8 @@ def compute_overall_summary(all_results, result_folder):
         logging.debug("dialect {}, d_results: {}".format(d, [str(res) for res in d_results]))
         num_results = len(d_results)
         
-        print("\n=================\nOverall results for {}\n".format(d))
-        summary_file.write("\n=================\nOverall results for {}\n".format(d))
+        print(f"\n=================\nOverall results for {d}\n")
+        summary_file.write(f"\n=================\nOverall results for {d}\n")
         for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
             num = len([r for r in d_results if r.compatibility == cc])
             
@@ -581,6 +653,10 @@ def compute_overall_summary(all_results, result_folder):
             summary_file.write("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
     
     summary_file.close()
+
+def write_to_summary_file(summary_file, text):
+    if not GENERATE_EXPECTED and not summary_file is None:
+        summary_file.write(text)
 
 
 all_results = execute_tests_in_folder_rec(TEST_PATH, RESULT_PATH)
