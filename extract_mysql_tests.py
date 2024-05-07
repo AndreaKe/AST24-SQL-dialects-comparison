@@ -3,76 +3,126 @@ import shutil
 import re
 from pathlib import Path
 
-pattern = re.compile(b'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}Z')
+timestamp_pattern = re.compile(b'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}Z')
 
-mysql_test_path = '/home/stephanie/mysql-server/mysql-test/t' # TODO Only from /t, which suites to include?
+logfile_first_line_pattern = re.compile(b'^[/.*]*/mysqld, Version: 8.0.36 (Source distribution). started with:$')
+logfile_second_line_pattern = re.compile(b'^Tcp port: [0-9]+  Unix socket .*$')
+logfile_third_line_pattern = re.compile(b'^Time[\s]*Id[\s]*Command[\s]*Argument;$')
+
+general_log_file_path_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log_file")
+set_general_log_file_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*$")
+
+mysql_test_path = '/home/stephanie/mysql-server/mysql-test' # TODO Only from /t, which suites to include?
 mysql_build_path = '/home/stephanie/mysql-server/build'
 
 temp_path = Path('temp_mysql')
 temp_path.mkdir(exist_ok=True)
 
+failed_file = open('failed.txt', 'w+')
+failed_file.write('Extraction failed:\n')
+
+def isSetGeneralLogStatement(l):
+    return general_log_file_path_pattern.match(l) \
+        or set_general_log_file_pattern.match(l)
+
+def isBeginningOfLogFile(l):
+    return logfile_first_line_pattern.match(l) \
+        or logfile_second_line_pattern.match(l) \
+        or logfile_third_line_pattern.match(l)
+
+def getNextLine(f): 
+    l = f.readline()
+    while l and b"@@" in l or isSetGeneralLogStatement(l) or isBeginningOfLogFile(l):
+        l = f.readline()
+    return l
+
 for root, dirs, files in os.walk(mysql_test_path):
     for filename in files:
         filepath = Path(root) / filename
-        if filepath.suffix == '.test':
+        if filepath.suffix == '.test' and filename != 'check-testcase.test' and filename == 'rewrite_general_log.test': # TODO: remove
             print(filepath)
             with open(filepath.resolve(), "rb") as f1:
-                file_bytes = f1.read();
+                file_bytes_lines = f1.readlines();
                 log_file_path = temp_path / f"{filepath.stem}.log"
-                if not file_bytes.startswith(b'--disable_query_log\nSET GLOBAL log_output'):
+                if not file_bytes_lines[0].startswith(b'--disable_query_log\nSET GLOBAL log_output'):
                     f2 = open(filepath.resolve(), "wb")
                     f2.write(b"--disable_query_log\n")
                     f2.write(b'SET GLOBAL log_output = "FILE";\n')
                     f2.write((f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode())
                     f2.write(b"SET GLOBAL general_log = 'ON';\n")
-                    f2.write(file_bytes);
+                    for l in file_bytes_lines:
+                        if isSetGeneralLogStatement(l):
+                            continue
+                        f2.write(l);
                     f2.close();
             os.system(f"{mysql_build_path}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #   TODO: Ensure it is executed on one thread, log output?
             test_path = Path('mysql_tests') / filepath.stem
             test_path.mkdir(exist_ok=True, parents=True)
             test_path = test_path / 'test.sql'
             test_file = open(test_path.resolve(), 'wb+')
-            with open(log_file_path.resolve(), "rb") as f:
-                f.readline()
-                f.readline()
-                f.readline()
-                f.readline()
-                firstLine = True
-                query = None
-                l0 = b""
-                l1 = f.readline()
-                if l1:
-                    l2 = f.readline()
-                while True:
-                    if not firstLine:
-                        l0 = l1
-                        l1 = l2
-                        l2 = l3
-                    if not l1:
-                        test_file.write(b";")
-                        break
-                    if l2:
-                        l3 = f.readline()
-                    if b"SET SQL_LOG_BIN = 0" in l1 and b"USE mtr" in l2:
-                        break
-                    if b"DROP" in l0 and b"SHOW WARNINGS" in l1 and b"Quit" in l2 and not l3:
-                        test_file.write(b"\n"+l0+";")
-                        break
-                    split = l1.split(b'\t')
-                    if (pattern.match(split[0])):
-                        if not firstLine and (query and not b"@@" in query):
-                            test_file.write(query + b';')
-                        if b'Query' not in split[1]:
-                            query = None
-                            continue
-                        query = split[2].strip()
+            try:
+                with open(log_file_path.resolve(), "rb") as f:
+                    f.readline()
+                    f.readline()
+                    f.readline()
+                    f.readline()
+                    firstLine = True
+                    query = None
+                    l0 = b""
+                    l1 = getNextLine(f)
+                    if l1:
+                        l2 = getNextLine(f)
+                    while True:
                         if not firstLine:
-                            query = b"\n" + query;
-                    else:
-                        if query:
-                            query += b"\n"+split[0].strip()
-                    firstLine = False
+                            l0 = l1
+                            l1 = l2
+                            l2 = l3
+                        print("l0: ")
+                        print(l0)
+                        print("\n")
+                        print("l1: ")
+                        print(l1)
+                        print("\n")
+                        print("l2: ")
+                        print(l2)
+                        print("\n")
+                        if not l1:
+                            test_file.write(b";")
+                            print("1")
+                            break
+                        if l2:
+                            l3 = getNextLine(f)
+                            print("l3: ")
+                            print(l3)
+                            print("\n")
+                        if b"SET SQL_LOG_BIN = 0" in l1 and b"USE mtr" in l2:
+                            print("2")
+                            break
+                        if b"DROP" in l0 and b"SHOW WARNINGS" in l1 and b"Quit" in l2 and not l3:
+                            print("HERE")
+                            test_file.write(b"\n"+l0.split(b'\t')[2].strip()+b";")
+                            print("3")
+                            break
+                        split = l1.split(b'\t')
+                        if (timestamp_pattern.match(split[0])):
+                            if not firstLine and query:
+                                test_file.write(query + b';')
+                            if b'Query' not in split[1]:
+                                query = None
+                                continue
+                            query = split[2].strip()
+                            if not firstLine:
+                                query = b"\n" + query;
+                        else:
+                            if query:
+                                query += b"\n"+split[0].strip()
+                        firstLine = False
+            except Exception as e:
+                print(e)
+                failed_file.write(f"{filepath.resolve()}\n")
             test_file.close()
+failed_file.close()
+
 """
 # TODO: This might be faster, why does it not work?
 print("UPDATING TEST CASES")
