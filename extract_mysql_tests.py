@@ -5,12 +5,12 @@ from pathlib import Path
 
 timestamp_pattern = re.compile(b'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}Z')
 
-logfile_first_line_pattern = re.compile(b'^[/.*]*/mysqld, Version: 8.0.36 (Source distribution). started with:$')
-logfile_second_line_pattern = re.compile(b'^Tcp port: [0-9]+  Unix socket .*$')
-logfile_third_line_pattern = re.compile(b'^Time[\s]*Id[\s]*Command[\s]*Argument;$')
+logfile_first_line_pattern = re.compile(b'^/.*/mysqld, Version: 8.0.36 \(Source distribution\). started with:$')
+logfile_second_line_pattern = re.compile(b'^Tcp port: [0-9]+  Unix socket.*$')
+logfile_third_line_pattern = re.compile(b'^Time[\s]*Id[\s]*Command[\s]*Argument$')
 
-general_log_file_path_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log_file")
-set_general_log_file_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*$")
+#general_log_file_path_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log_file")
+set_general_log_file_off_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*=.*'OFF'.*$")
 
 mysql_test_path = '/home/stephanie/mysql-server/mysql-test' # TODO Only from /t, which suites to include?
 mysql_build_path = '/home/stephanie/mysql-server/build'
@@ -21,10 +21,6 @@ temp_path.mkdir(exist_ok=True)
 failed_file = open('failed.txt', 'w+')
 failed_file.write('Extraction failed:\n')
 
-def isSetGeneralLogStatement(l):
-    return general_log_file_path_pattern.match(l) \
-        or set_general_log_file_pattern.match(l)
-
 def isBeginningOfLogFile(l):
     return logfile_first_line_pattern.match(l) \
         or logfile_second_line_pattern.match(l) \
@@ -32,7 +28,7 @@ def isBeginningOfLogFile(l):
 
 def getNextLine(f): 
     l = f.readline()
-    while l and b"@@" in l or isSetGeneralLogStatement(l) or isBeginningOfLogFile(l):
+    while l and b"@@" in l or isBeginningOfLogFile(l):
         l = f.readline()
     return l
 
@@ -51,10 +47,11 @@ for root, dirs, files in os.walk(mysql_test_path):
                     f2.write((f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode())
                     f2.write(b"SET GLOBAL general_log = 'ON';\n")
                     for l in file_bytes_lines:
-                        if isSetGeneralLogStatement(l):
+                        if set_general_log_file_off_pattern.match(l):
                             continue
-                        f2.write(l);
-                    f2.close();
+                        l = re.sub(b"'[^\s]+.log'", (f"'{log_file_path.absolute()}'").encode(), l)
+                        f2.write(l)
+                    f2.close()
             os.system(f"{mysql_build_path}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #   TODO: Ensure it is executed on one thread, log output?
             test_path = Path('mysql_tests') / filepath.stem
             test_path.mkdir(exist_ok=True, parents=True)
