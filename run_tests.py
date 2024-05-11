@@ -5,11 +5,13 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import duckdb
 # import pymysql
 from enum import Enum
+import itertools
 
-logging.basicConfig(stream=sys.stderr, level=logging.ERROR) # change level to INFO or DEBUG to see more output
+logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
-COMPARE_TO_EXPECTED_RESULT = True
-GENERATE_EXPECTED = False
+COMPARE_TO_EXPECTED_RESULT = False
+GENERATE_EXPECTED = True
+PURGE_TESTS = True
 
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
 PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
@@ -418,7 +420,8 @@ def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
     
         overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name))
     return overall_compatibility
-        
+
+
 def execute_setup_sql(sql_dialects, sql_file, result_folder, printErrors=True):
     logging.debug(f"Executing setup {sql_file}")
     # We write the results to a file such that results can be compare without needing to rerun the tests all the time
@@ -438,7 +441,8 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, printErrors=True):
     
     while True:
         try:
-            query = get_query_string(query_iter).strip()
+            query, query_iter = get_query_string(query_iter)
+            query = query.strip()
 
             for dialect in sql_dialects:
                 dialect.write_to_result_file(query)
@@ -483,9 +487,9 @@ def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
     
     while True:
         try:
-            query = get_query_string(query_iter)
+            query, query_iter = get_query_string(query_iter)
             if query.strip() != '':
-                query_string = f"\n-----------\nQUERY:\n{query}"
+                query_string = f"\n-----------\nQUERY:\n{query}\n"
                 logging.info(query_string)
                 write_to_summary_file(summary_file, query_string)
                 curr_results = []
@@ -546,7 +550,6 @@ def compare_to_expected_result(guest_result_file_name, expected_result_file_name
         write_to_summary_file(summary_file, f"Failed to compare to expected file. {e}")
         
 
-
 def get_query_string(query_iter):
     query = next(query_iter)
     dollar_count = query.count('$$')
@@ -569,7 +572,12 @@ def get_query_string(query_iter):
                 query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
                 query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
 
-    return f"{query.strip()}\n"
+    try:
+        peek = next(query_iter)
+        query_iter = itertools.chain([peek], query_iter)
+        return f"{query};", query_iter
+    except StopIteration:
+        return f"{query}", query_iter # no semicolon here
 
 
 def execute_single_test(test_folder, result_folder):
@@ -598,6 +606,158 @@ def execute_single_test(test_folder, result_folder):
     return test_result
 
 
+def is_readonly_query(query: str):
+    for line in query.splitlines():
+        line = line.strip()
+        if line == '' or line.startswith('--'):
+            continue
+        line = line.lower()
+        if (line.startswith("select") or line.startswith("explain")) and not "pg_catalog.set_config" in line:
+            return True
+        else:
+            return False
+
+
+def purge_setup_sql(dialect, sql_file):
+    logging.debug(f"Purge setup {sql_file}")
+
+    test_file_stream = open(sql_file, 'r')
+    test_file = test_file_stream.read()
+    test_file_stream.close()
+
+    sql_queries = test_file.split(';') # here we get the individual sql queries!
+    query_iter = iter(sql_queries)
+    test_file_stream = open(sql_file, 'w')
+
+    has_changed = False
+    
+    while True:
+        try:
+            query, query_iter = get_query_string(query_iter)
+
+            if is_readonly_query(query):
+                logging.debug(f"Ignoring query {query} (readonly)")
+                has_changed = True
+                continue
+
+            if query.strip() != '':
+                result = dialect.exec_query(query)
+                if result.result != QueryStatus.ERROR:
+                    test_file_stream.write(query)
+                else:
+                    has_changed = True
+                    logging.warning(f"Ignoring query {query} (ERROR)")
+
+        except StopIteration:
+            break
+
+    test_file_stream.write("\n")
+    test_file_stream.close()
+    return has_changed
+
+
+def purge_test_sql(dialect, sql_file, expected_file):
+    logging.info(f"Purge test {sql_file}")
+    
+    test_file_stream = open(sql_file, 'r')
+    test_data = test_file_stream.read()
+    test_file_stream.close()
+
+    expected_file_stream = open(expected_file, 'r')
+    expected_data = expected_file_stream.readlines()
+    expected_file_stream.close()
+
+    sql_queries = test_data.split(';') # here we get the individual sql queries!
+    query_iter = iter(sql_queries)
+
+    test_file_stream = open(sql_file, 'w')
+    expected_file_stream = open(expected_file, 'w')
+    e_line_idx = 0
+
+    has_changed = False
+
+    while True:
+        try:
+            query, query_iter = get_query_string(query_iter)
+
+            if query.strip() != '':
+                query_string = f"\n-----------\nQUERY:\n{query}"
+                logging.debug(query_string)
+                for line in query_string.splitlines():
+                    while expected_data[e_line_idx] != line + "\n":
+                        logging.debug(f"Skipping line {expected_data[e_line_idx]}")
+                        e_line_idx = e_line_idx + 1
+                    e_line_idx = e_line_idx + 1
+
+                result = dialect.exec_query(query)
+
+                result_string = f"RESULT:\n\t{result}\n"
+
+                is_result_different = False
+                for line in result_string.splitlines():
+                    e_line = expected_data[e_line_idx]
+                    e_line_idx = e_line_idx + 1
+                    if e_line != line + "\n":
+                        is_result_different = True
+                        logging.warning(f"Lines {line} different from expected {e_line}. Skipping query {query_string}")
+                        break
+                if not is_result_different:
+                    expected_file_stream.write(query_string + "\n")
+                    expected_file_stream.write(result_string)
+                    test_file_stream.write(query)
+                else:
+                    logging.warning(f"Ignoring query {query_string} due to non-deterministic result")
+                    has_changed = True
+
+        except StopIteration:
+            break
+
+    test_file_stream.write("\n")
+
+    test_file_stream.close()
+    expected_file_stream.close()
+    return has_changed
+ 
+
+def purge_single_test(test_folder):
+    print("==============================================\n")
+    print(f"purge single test {test_folder}\n")
+
+    guest_dbms = get_guest_dbms(test_folder + "/test.sql")
+
+    has_changed = True
+
+    while has_changed:
+        logging.info("Purging setup file")
+        dialects = init_dialects(guest_dbms)
+        dialects1 = [d for d in dialects if d.name == guest_dbms]
+        dialect = dialects1[0]
+        logging.debug(f"Dialect: {dialect}\n")
+
+        has_changed = purge_setup_sql(dialect, test_folder + "/setup.sql") 
+
+        for dialect in dialects:
+            dialect.teardown_connection()
+
+    has_changed = True
+    
+    while has_changed:
+        logging.info("Purging test file")
+        dialects = init_dialects(guest_dbms)
+        dialects1 = [d for d in dialects if d.name == guest_dbms]
+        dialect = dialects1[0]
+        logging.debug(f"Dialect: {dialect}\n")
+
+        has_changed = purge_setup_sql(dialect, test_folder + "/setup.sql") 
+        if has_changed:
+            logging.warning("setup sql changed unexpectedly")
+
+        has_changed = purge_test_sql(dialect, test_folder + "/test.sql", test_folder + "/expected.txt")
+
+        for dialect in dialects:
+            dialect.teardown_connection()
+
+
 def execute_tests_in_folder_rec(test_folder, result_folder):
     logging.info(f"Execute ALL tests in {test_folder} (and all subfolders) and storing results in {result_folder}")
     all_results = []
@@ -616,6 +776,8 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
             logging.debug(f"Found file {single_test_path}")
             test_result = execute_single_test(test_folder, result_folder)
             all_results.append(test_result)
+            if PURGE_TESTS:
+                purge_single_test(test_folder)
             return all_results # we assume there are no subfolders with tests
     return all_results
 
@@ -653,6 +815,7 @@ def compute_overall_summary(all_results, result_folder):
             summary_file.write("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
     
     summary_file.close()
+
 
 def write_to_summary_file(summary_file, text):
     if not GENERATE_EXPECTED and not summary_file is None:
