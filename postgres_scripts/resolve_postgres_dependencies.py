@@ -69,8 +69,8 @@ for fname in os.listdir(TEST_PATH):
                     variables[components[1]] = components[2].replace("/* REPLACED */", "").replace("' '", "")
                 line = "-- " + line
                 #print("variables: ", variables)
-            elif line.startswith('\d'):
-                line = "-- " + line
+            elif line.startswith('\\'):
+                line = "-- " + line.replace(";", " /* REPLACED */," ).replace("'", "/* REPLACED */''").replace('"', "/* REPLACED */''").replace("$$", "/* REPLACED */")
             
             test_file.write(line)
         
