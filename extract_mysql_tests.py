@@ -37,7 +37,8 @@ def getNextLine(f, currLine):
 for root, dirs, files in os.walk(mysql_test_path):
     for filename in files:
         filepath = Path(root) / filename
-        if filepath.suffix == '.test' and filename != 'check-testcase.test' and filename != 'windows_myisam.test': # and filename == 'invalid_collation.test':   TODO: remove
+        if filepath.suffix == '.test' and filename != 'check-testcase.test' \
+            and filename != 'windows_myisam.test' and filename != 'shm.test': # and filename == 'invalid_collation.test':   TODO: remove
             print(filepath)
             with open(filepath.resolve(), "rb") as f1:
                 file_bytes_lines = f1.readlines()
