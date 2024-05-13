@@ -6,12 +6,11 @@ import duckdb
 # import pymysql
 from enum import Enum
 import itertools
+import re
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
-COMPARE_TO_EXPECTED_RESULT = False
-GENERATE_EXPECTED = True
-PURGE_TESTS = True
+
 
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
 PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
@@ -26,22 +25,44 @@ logging.debug("PG_ABS_BUILDDIR={}".format(PG_ABS_BUILDDIR))
 EXCLUDED_TESTS = ['generated', 'collate.windows.win1252', 'data', 'typed_table', 'with']
 
 TEST_PATH = PG_ABS_SRCDIR
-RESULT_PATH = PG_ABS_BUILDDIR  
-if(len(sys.argv) > 1):
-    TEST_PATH = str(sys.argv[1]) # 1. command line argument = TEST_PATH
-    RESULT_PATH= TEST_PATH.replace("_tests/", "_results/")
-if(len(sys.argv) > 2):
-    RESULT_PATH = str(sys.argv[2]) # 2. command line argument = RESULT_PATH
+RESULT_PATH = PG_ABS_BUILDDIR 
+COMPARE_TO_EXPECTED_RESULT = False
+GENERATE_EXPECTED = False
+PURGE_TESTS = False
 
+arguments = sys.argv[1:]
+arg_idx = 0
+result_path_set = False
 
+while arg_idx < len(arguments):
+    if arguments[arg_idx] in ("--test", "-t") and arg_idx < len(arguments)-1:
+        TEST_PATH = str(arguments[arg_idx+1])
+        RESULT_PATH= RESULT_PATH if result_path_set else TEST_PATH.replace("_tests/", "_results/")
+        arg_idx = arg_idx+1
+    elif arguments[arg_idx] in ("--result", "-r") and arg_idx < len(arguments)-1:
+        RESULT_PATH = str(arguments[arg_idx+1])
+        result_path_set = True
+        arg_idx = arg_idx+1
+    elif arguments[arg_idx] in ("--purge", "-p"):
+        PURGE_TESTS = True
+        GENERATE_EXPECTED = True
+    elif arguments[arg_idx] in ("--gen_expected", "-g"):
+        GENERATE_EXPECTED = True
+    elif arguments[arg_idx] in ("--compare_expected", "-e"):
+        COMPARE_TO_EXPECTED_RESULT = True
+    arg_idx = arg_idx+1
+    
 TEST_PATH = TEST_PATH[:-1] if TEST_PATH[-1] == '/' else TEST_PATH
 RESULT_PATH = RESULT_PATH[:-1] if RESULT_PATH[-1] == '/' else RESULT_PATH
 
 if GENERATE_EXPECTED:
     RESULT_PATH = TEST_PATH
 
-logging.debug(f"TEST_PATH {TEST_PATH}")
-logging.debug(f"RESULT PATH {RESULT_PATH}")
+logging.debug(f"Test path {TEST_PATH}")
+logging.debug(f"Result path {RESULT_PATH}")
+logging.debug(f"Purge {PURGE_TESTS}")
+logging.debug(f"Generate expected {GENERATE_EXPECTED}")
+logging.debug(f"Comparte to expected result {COMPARE_TO_EXPECTED_RESULT}")
 
 class QueryStatus(Enum):
     PASS = 1
@@ -102,7 +123,7 @@ class QueryResult(object):
         if self.status == QueryStatus.PASS:
             return f"{self.dbms}: {self.result}"
         else:
-            return f"{self.dbms}: {self.error}"
+            return f"{self.dbms}: ERROR - {self.error}"
 
 
 class CompatibilityCaseWrapper(object):
@@ -422,11 +443,12 @@ def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
     return overall_compatibility
 
 
-def execute_setup_sql(sql_dialects, sql_file, result_folder, printErrors=True):
+def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
     logging.debug(f"Executing setup {sql_file}")
-    # We write the results to a file such that results can be compare without needing to rerun the tests all the time
-    for dialect in sql_dialects:
-        dialect.open_result_file(result_folder)
+    if writeToFile:
+        # We write the results to a file such that results can be compare without needing to rerun the tests all the time
+        for dialect in sql_dialects:
+            dialect.open_result_file(result_folder)
 
     test_file_stream = open(sql_file, 'r')
     test_file = test_file_stream.read()
@@ -444,8 +466,9 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, printErrors=True):
             query, query_iter = get_query_string(query_iter)
             query = query.strip()
 
-            for dialect in sql_dialects:
-                dialect.write_to_result_file(query)
+            if writeToFile:
+                for dialect in sql_dialects:
+                    dialect.write_to_result_file(query)
             if query != '':
                 logging.debug(f"\nExecuting query:  {query}")
                 curr_results = []
@@ -459,8 +482,9 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, printErrors=True):
         except StopIteration:
             break
 
-    for dialect in sql_dialects:
-        dialect.close_result_file()
+    if writeToFile:
+        for dialect in sql_dialects:
+            dialect.close_result_file()
 
 
 def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
@@ -537,17 +561,20 @@ def compare_to_expected_result(guest_result_file_name, expected_result_file_name
         if len(guest_results) != len(expected_results):
             logging.error(f"Different to expected results: {guest_result_file_name}")
             write_to_summary_file(summary_file, "Different to expected results")
+            return False
 
         for i in range(len(guest_results)):
             if guest_results[i] != expected_results[i]:
                 logging.error(f"Guest results are different to expected results at line {i}")
                 write_to_summary_file(summary_file, "Guest results are different to expected results")
-                return
+                return False
         logging.info("Guest results are identical to expected results")
         write_to_summary_file(summary_file, "Guest results are identical to expected results")
+        return True
     except Exception as e:
         logging.error(f"Failed to compare to expected file. {e}")
         write_to_summary_file(summary_file, f"Failed to compare to expected file. {e}")
+        return False
         
 
 def get_query_string(query_iter):
@@ -618,19 +645,50 @@ def is_readonly_query(query: str):
             return False
 
 
-def purge_setup_sql(dialect, sql_file):
-    logging.debug(f"Purge setup {sql_file}")
+def extract_unused_names(setup_file, test_file):
+    setup_file_stream = open(setup_file, 'r')
+    setup_string = setup_file_stream.read()
+    setup_file_stream.close()
 
-    test_file_stream = open(sql_file, 'r')
+    # extract all tables, functions, ... that are created by the setup file
+    create_names = re.findall(re.compile(r'CREATE\s+(?:TABLE|ROLE|FUNCTION|TYPE)\s+([^\s;\(]+)', re.IGNORECASE), setup_string)
+
+    test_file_stream = open(test_file, 'r')
+    test_string = test_file_stream.read()
+    test_file_stream.close()
+
+    unused_names = []
+
+    for name in create_names:
+        # check whether table, function, ... appears in test file
+        pattern = re.compile(r'[\s\(;\[\)\]]{}[\s\(;\[\)\]]'.format(re.escape(name), re.IGNORECASE))
+        if not re.search(pattern, test_string):
+            unused_names.append(name)
+    return unused_names
+
+
+def is_create_unused_name(query, unused_names):
+    for name in unused_names:
+        pattern = re.compile(r'CREATE\s+(?:TABLE|ROLE|FUNCTION|TYPE)\s+{}[\s\(;\[]'.format(re.escape(name)), re.IGNORECASE)
+        test = re.search(pattern, query)
+        if test:
+            return True
+    return False
+
+
+def purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove):
+    logging.debug(f"Purge setup {setup_file}")
+
+    test_file_stream = open(setup_file, 'r')
     test_file = test_file_stream.read()
     test_file_stream.close()
 
     sql_queries = test_file.split(';') # here we get the individual sql queries!
     query_iter = iter(sql_queries)
-    test_file_stream = open(sql_file, 'w')
+    test_file_stream = open(setup_tmp_file, 'w')
 
     has_changed = False
-    
+
     while True:
         try:
             query, query_iter = get_query_string(query_iter)
@@ -639,14 +697,20 @@ def purge_setup_sql(dialect, sql_file):
                 logging.debug(f"Ignoring query {query} (readonly)")
                 has_changed = True
                 continue
+            
+            if is_create_unused_name(query, names_to_remove):
+                logging.debug(f"Ignoring query {query} (create unused table)")
+                has_changed = True
+                continue
 
             if query.strip() != '':
                 result = dialect.exec_query(query)
-                if result.result != QueryStatus.ERROR:
+                logging.debug(f"Query: {query}\n Result: {result}")
+                if result.status != QueryStatus.ERROR:
                     test_file_stream.write(query)
                 else:
                     has_changed = True
-                    logging.warning(f"Ignoring query {query} (ERROR)")
+                    logging.info(f"Ignoring query {query} (ERROR)")
 
         except StopIteration:
             break
@@ -722,25 +786,15 @@ def purge_test_sql(dialect, sql_file, expected_file):
 def purge_single_test(test_folder):
     print("==============================================\n")
     print(f"purge single test {test_folder}\n")
+    setup_file = test_folder + "/setup.sql"
+    test_file = test_folder + "/test.sql"
+    setup_tmp_file = test_folder + "/setup_tmp.sql"
 
     guest_dbms = get_guest_dbms(test_folder + "/test.sql")
 
     has_changed = True
 
-    while has_changed:
-        logging.info("Purging setup file")
-        dialects = init_dialects(guest_dbms)
-        dialects1 = [d for d in dialects if d.name == guest_dbms]
-        dialect = dialects1[0]
-        logging.debug(f"Dialect: {dialect}\n")
-
-        has_changed = purge_setup_sql(dialect, test_folder + "/setup.sql") 
-
-        for dialect in dialects:
-            dialect.teardown_connection()
-
-    has_changed = True
-    
+    # remove non-deterministic queries from test file
     while has_changed:
         logging.info("Purging test file")
         dialects = init_dialects(guest_dbms)
@@ -748,14 +802,69 @@ def purge_single_test(test_folder):
         dialect = dialects1[0]
         logging.debug(f"Dialect: {dialect}\n")
 
-        has_changed = purge_setup_sql(dialect, test_folder + "/setup.sql") 
-        if has_changed:
-            logging.warning("setup sql changed unexpectedly")
+        execute_setup_sql(dialects1, setup_file, test_file, False) 
 
-        has_changed = purge_test_sql(dialect, test_folder + "/test.sql", test_folder + "/expected.txt")
+        has_changed = purge_test_sql(dialect, test_file, test_folder + "/expected.txt")
 
         for dialect in dialects:
             dialect.teardown_connection()
+
+    has_changed = False
+    unused_names = extract_unused_names(setup_file, test_file)
+    unused_names_idx = 0
+    names_to_remove = []
+
+    # in the first pass we remove readonly and errenous queries
+    # in the subsequent passes we try to remove created tables but only apply the changes if the results are as expected
+    while True:
+        logging.info("Purging setup file")
+        logging.info(f"Removing tables: {names_to_remove}")
+        dialects = init_dialects(guest_dbms)
+        dialects1 = [d for d in dialects if d.name == guest_dbms]
+        dialect = dialects1[0]
+        dialect.result_file_name = "tmp_result.txt"
+        logging.debug(f"Dialect: {dialect}\n")
+
+        has_changed = purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove) 
+
+        execute_test_sql(dialects1, test_file, test_folder)
+
+        check_expected = compare_to_expected_result(os.path.join(test_folder, dialect.result_file_name), test_folder + "/expected.txt", None)
+
+        if has_changed and check_expected: # identical to expected result file
+            logging.info("Result was identical to expected. Apply changes.")
+            if os.path.exists(setup_file):
+                os.remove(setup_file)
+            os.rename(setup_tmp_file, setup_file) # save new setup file
+            has_changed = True
+        elif not check_expected:
+            logging.warning(f"Result was different from expected after removing tables {names_to_remove}. Revert changes.")
+            has_changed = False
+            # revert changes
+            if os.path.exists(setup_tmp_file):
+                os.remove(setup_tmp_file)
+            if len(names_to_remove) == 0:
+                break # reducing setup failed
+            names_to_remove.pop(-1)
+        else:
+            logging.info("Nothing changed")
+            # revert changes
+            if os.path.exists(setup_tmp_file):
+                os.remove(setup_tmp_file)
+            has_changed = False
+
+        for dialect in dialects:
+            if os.path.exists(os.path.join(test_folder, dialect.result_file_name)):
+                os.remove(os.path.join(test_folder, dialect.result_file_name))
+            dialect.teardown_connection()
+
+        if unused_names_idx < len(unused_names):
+            names_to_remove.append(unused_names[unused_names_idx])
+            unused_names_idx = unused_names_idx + 1
+        elif unused_names_idx >= len(unused_names) and not has_changed:
+            break
+
+    print("Removed names (not required by test): ", names_to_remove)
 
 
 def execute_tests_in_folder_rec(test_folder, result_folder):
