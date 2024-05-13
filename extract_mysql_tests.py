@@ -1,5 +1,4 @@
 import os
-import shutil
 import re
 from pathlib import Path
 
@@ -9,12 +8,11 @@ logfile_first_line_pattern = re.compile(b'^/.*/mysqld, Version: 8.0.36 \(Source 
 logfile_second_line_pattern = re.compile(b'^Tcp port: [0-9]+  Unix socket.*$')
 logfile_third_line_pattern = re.compile(b'^Time[\s]*Id[\s]*Command[\s]*Argument$')
 
-#general_log_file_path_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log_file")
-set_general_log_file_off_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*=.*'OFF'.*$")
+set_general_log_file_off_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*=.*'OFF'.*$", re.IGNORECASE)
 
-wait_until_connected_pattern = re.compile(b"^--source include/wait_until_connected_again.inc$")
+wait_until_connected_pattern = re.compile(b"^--source include/(wait_until_connected_again|.*start.*).inc$")
 
-mysql_test_path = '/home/stephanie/mysql-server/mysql-test' # TODO Only from /t, which suites to include?
+mysql_test_path = '/home/stephanie/mysql-server/mysql-test/t' # TODO Only from /t, which suites to include?
 mysql_build_path = '/home/stephanie/mysql-server/build'
 
 temp_path = Path('temp_mysql')
@@ -29,24 +27,24 @@ def isBeginningOfLogFile(l):
         or logfile_third_line_pattern.match(l)
 
 def getNextLine(f, currLine):
-    if b'shutdown;' in currLine:
-        l = f.readline()
     l = f.readline()
-    while l and b"@@" in l or isBeginningOfLogFile(l):
+    while l and b"@@" in l or isBeginningOfLogFile(l) or re.match(b'.*Query\t\n$', l, re.DOTALL):
         l = f.readline()
+    if b'shutdown' in currLine:
+        return getNextLine(f, l) # two shutdowns after each other does not make sense
     return l
 
 for root, dirs, files in os.walk(mysql_test_path):
     for filename in files:
         filepath = Path(root) / filename
-        if filepath.suffix == '.test' and filename != 'check-testcase.test' and filename == 'rewrite_general_log.test': # TODO: remove
+        if filepath.suffix == '.test' and filename != 'check-testcase.test' and filename == 'invalid_collation.test':  # TODO: remove
             print(filepath)
             with open(filepath.resolve(), "rb") as f1:
-                file_bytes_lines = f1.readlines();
+                file_bytes_lines = f1.readlines()
                 log_file_path = temp_path / f"{filepath.stem}.log"
                 if not file_bytes_lines[0].startswith(b'--disable_query_log\nSET GLOBAL log_output'):
                     f2 = open(filepath.resolve(), "wb")
-                    f2.write(b"--disable_query_log\n")
+                    f2.write(b'--disable_query_log\n')
                     f2.write(b'SET GLOBAL log_output = "FILE";\n')
                     f2.write((f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode())
                     f2.write(b"SET GLOBAL general_log = 'ON';\n")
@@ -102,10 +100,11 @@ for root, dirs, files in os.walk(mysql_test_path):
                             print("l3: ")
                             print(l3)
                             print("\n")
-                        if b"SET SQL_LOG_BIN = 0" in l1 and b"USE mtr" in l2:
+                        if b"SET SQL_LOG_BIN = 0" in l1.upper() \
+                            and (b"USE mtr" in l2 or b"use mtr" in l2):
                             print("2")
                             break
-                        if b"DROP" in l0 and b"SHOW WARNINGS" in l1 and b"Quit" in l2 and not l3:
+                        if b"SHOW WARNINGS" in l1.upper() and b"Quit" in l2 and not l3: # b"DROP" in l0 and 
                             print("HERE")
                             test_file.write(b"\n"+l0.split(b'\t')[2].strip()+b";")
                             print("3")
@@ -113,12 +112,13 @@ for root, dirs, files in os.walk(mysql_test_path):
                         split = l1.split(b'\t')
                         if (timestamp_pattern.match(split[0])):
                             if not firstLine and query:
+                                print("HERE2222222")
                                 test_file.write(query + b';')
                             if b'Query' not in split[1]:
                                 query = None
                                 continue
                             query = split[2].strip()
-                            if not query:
+                            if re.match(b"^[\s]*$", query):
                                 query = None
                                 continue
                             if not firstLine:
