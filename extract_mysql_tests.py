@@ -2,6 +2,8 @@ import os
 import re
 from pathlib import Path
 
+SKIP_EXISTING = True
+
 timestamp_pattern = re.compile(b'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}Z')
 
 logfile_first_line_pattern = re.compile(b'^/.*/mysqld, Version: 8.0.36 \(Source distribution\). started with:$')
@@ -37,6 +39,9 @@ def getNextLine(f, currLine):
 for root, dirs, files in os.walk(mysql_test_path):
     for filename in files:
         filepath = Path(root) / filename
+        test_path = Path('mysql_tests') / filepath.stem
+        if SKIP_EXISTING and test_path.is_dir():
+            continue
         if filepath.suffix == '.test' and filename != 'check-testcase.test' \
             and filename != 'windows_myisam.test' and filename != 'shm.test': # and filename == 'invalid_collation.test':   TODO: remove
             print(filepath)
@@ -62,7 +67,6 @@ for root, dirs, files in os.walk(mysql_test_path):
                             f2.write(b"SET GLOBAL general_log = 'ON';\n")
                     f2.close()
             os.system(f"{mysql_build_path}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #   TODO: Ensure it is executed on one thread, log output?
-            test_path = Path('mysql_tests') / filepath.stem
             test_path.mkdir(exist_ok=True, parents=True)
             test_path = test_path / 'test.sql'
             test_file = open(test_path.resolve(), 'wb+')
