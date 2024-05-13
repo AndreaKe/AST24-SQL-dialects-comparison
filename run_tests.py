@@ -813,7 +813,7 @@ def purge_single_test(test_folder):
     unused_names = extract_unused_names(setup_file, test_file)
     unused_names_idx = 0
     names_to_remove = []
-    remove_all = False
+    remove_all = True
 
     # in the first pass we remove readonly and errenous queries
     # in the second pass we try to remove all unused names + all errenous queries
@@ -849,8 +849,10 @@ def purge_single_test(test_folder):
             if len(names_to_remove) == 0:
                 break # base case failed, stop
             elif remove_all: # removing all unused names failed. So, we proceed one by one
-                names_to_remove = [unused_names[unused_names_idx]]
-                unused_names_idx = 1
+                logging.warning("Removing all names failed. Proceed one by one.")
+                names_to_remove = []
+                unused_names_idx = 0
+                remove_all = False
             else:
                 names_to_remove.pop(-1) # removing last name failed, so we do not remove it from now on and continue
         else:
@@ -865,8 +867,8 @@ def purge_single_test(test_folder):
                 os.remove(os.path.join(test_folder, dialect.result_file_name))
             dialect.teardown_connection()
 
-        if len(names_to_remove) == 0: # first try to remove all unused names, if it fails then remove one by one
-            remove_all = True
+        if len(names_to_remove) == 0 and remove_all: # first try to remove all unused names, if it fails then remove one by one
+            print("Try to remove all unused names")
             names_to_remove = [n for n in unused_names]
             unused_names_idx = len(unused_names)
         elif unused_names_idx < len(unused_names):
