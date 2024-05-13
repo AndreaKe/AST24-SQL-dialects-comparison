@@ -813,9 +813,11 @@ def purge_single_test(test_folder):
     unused_names = extract_unused_names(setup_file, test_file)
     unused_names_idx = 0
     names_to_remove = []
+    remove_all = False
 
     # in the first pass we remove readonly and errenous queries
-    # in the subsequent passes we try to remove created tables but only apply the changes if the results are as expected
+    # in the second pass we try to remove all unused names + all errenous queries
+    # if this fails, in the subsequent passes we try to remove unused names one by one and only apply changes if test succeeds
     while True:
         logging.info("Purging setup file")
         logging.info(f"Removing tables: {names_to_remove}")
@@ -843,9 +845,14 @@ def purge_single_test(test_folder):
             # revert changes
             if os.path.exists(setup_tmp_file):
                 os.remove(setup_tmp_file)
+
             if len(names_to_remove) == 0:
-                break # reducing setup failed
-            names_to_remove.pop(-1)
+                break # base case failed, stop
+            elif remove_all: # removing all unused names failed. So, we proceed one by one
+                names_to_remove = [unused_names[unused_names_idx]]
+                unused_names_idx = 1
+            else:
+                names_to_remove.pop(-1) # removing last name failed, so we do not remove it from now on and continue
         else:
             logging.info("Nothing changed")
             # revert changes
@@ -858,11 +865,16 @@ def purge_single_test(test_folder):
                 os.remove(os.path.join(test_folder, dialect.result_file_name))
             dialect.teardown_connection()
 
-        if unused_names_idx < len(unused_names):
-            names_to_remove.append(unused_names[unused_names_idx])
+        if len(names_to_remove) == 0: # first try to remove all unused names, if it fails then remove one by one
+            remove_all = True
+            names_to_remove = [n for n in unused_names]
+            unused_names_idx = len(unused_names)
+        elif unused_names_idx < len(unused_names):
+            names_to_remove.append(unused_names[unused_names_idx]) # add next name to removed names
             unused_names_idx = unused_names_idx + 1
-        elif unused_names_idx >= len(unused_names) and not has_changed:
+        elif unused_names_idx >= len(unused_names) and not has_changed: # all names have been removed and nothing changes anymore. Done
             break
+
 
     print("Removed names (not required by test): ", names_to_remove)
 
