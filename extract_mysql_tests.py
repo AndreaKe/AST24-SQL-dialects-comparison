@@ -12,6 +12,8 @@ logfile_third_line_pattern = re.compile(b'^Time[\s]*Id[\s]*Command[\s]*Argument$
 #general_log_file_path_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log_file")
 set_general_log_file_off_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*=.*'OFF'.*$")
 
+wait_until_connected_pattern = re.compile(b"^--source include/wait_until_connected_again.inc$")
+
 mysql_test_path = '/home/stephanie/mysql-server/mysql-test' # TODO Only from /t, which suites to include?
 mysql_build_path = '/home/stephanie/mysql-server/build'
 
@@ -26,7 +28,9 @@ def isBeginningOfLogFile(l):
         or logfile_second_line_pattern.match(l) \
         or logfile_third_line_pattern.match(l)
 
-def getNextLine(f): 
+def getNextLine(f, currLine):
+    if b'shutdown;' in currLine:
+        l = f.readline()
     l = f.readline()
     while l and b"@@" in l or isBeginningOfLogFile(l):
         l = f.readline()
@@ -47,10 +51,16 @@ for root, dirs, files in os.walk(mysql_test_path):
                     f2.write((f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode())
                     f2.write(b"SET GLOBAL general_log = 'ON';\n")
                     for l in file_bytes_lines:
-                        if set_general_log_file_off_pattern.match(l):
+                        if set_general_log_file_off_pattern.match(l) \
+                            or l.startswith(b"--remove_file"):
                             continue
                         l = re.sub(b"'[^\s]+.log'", (f"'{log_file_path.absolute()}'").encode(), l)
                         f2.write(l)
+                        if wait_until_connected_pattern.match(l):
+                            f2.write(b"--disable_query_log\n")
+                            f2.write(b'SET GLOBAL log_output = "FILE";\n')
+                            f2.write((f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode())
+                            f2.write(b"SET GLOBAL general_log = 'ON';\n")
                     f2.close()
             os.system(f"{mysql_build_path}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #   TODO: Ensure it is executed on one thread, log output?
             test_path = Path('mysql_tests') / filepath.stem
@@ -66,9 +76,9 @@ for root, dirs, files in os.walk(mysql_test_path):
                     firstLine = True
                     query = None
                     l0 = b""
-                    l1 = getNextLine(f)
+                    l1 = getNextLine(f, l0)
                     if l1:
-                        l2 = getNextLine(f)
+                        l2 = getNextLine(f, l1)
                     while True:
                         if not firstLine:
                             l0 = l1
@@ -88,7 +98,7 @@ for root, dirs, files in os.walk(mysql_test_path):
                             print("1")
                             break
                         if l2:
-                            l3 = getNextLine(f)
+                            l3 = getNextLine(f, l2)
                             print("l3: ")
                             print(l3)
                             print("\n")
@@ -108,6 +118,9 @@ for root, dirs, files in os.walk(mysql_test_path):
                                 query = None
                                 continue
                             query = split[2].strip()
+                            if not query:
+                                query = None
+                                continue
                             if not firstLine:
                                 query = b"\n" + query;
                         else:
