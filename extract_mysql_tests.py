@@ -79,9 +79,9 @@ for root, dirs, files in os.walk(mysql_test_path):
             continue
         if filepath.suffix == '.test' and filename != 'check-testcase.test' \
             and filename != 'windows_myisam.test' and filename != 'shm.test' and filename == 'invalid_collation.test': # TODO
-            print((filepath)
+            print(filepath)
             test_num += 1
-            print((f"Extracting test ({test_num}\{total_num_of_tests})")
+            print(f"Extracting test ({test_num}\{total_num_of_tests})")
             with open(filepath.resolve(), "rb") as f1:
                 file_bytes_lines = f1.readlines()
                 log_file_path = temp_path / f"{filepath.stem}.log"
