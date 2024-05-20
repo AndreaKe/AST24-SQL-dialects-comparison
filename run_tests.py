@@ -298,7 +298,7 @@ class PostgreSQL(SQLDialectWrapper):
         
 
 class MySQL(SQLDialectWrapper):
-    name = "mySQL"
+    name = "mysql"
     db_conn = None
     db_cursor = None
     result_file = None
