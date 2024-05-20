@@ -51,10 +51,62 @@ def getNextLine(f, currLine):
     if b'SELECT "2024_AST_GENERAL_LOG_OFF' in l:
         l = l.replace(b'SELECT "2024_AST_GENERAL_LOG_OFF"', b'SET GLOBAL general_log="OFF"')
         return l
+    if b'SELECT "2024_AST_[' in l:
+        l = re.sub(b'SELECT "2024_AST_\[', b"", l)
+        l = re.sub(b'\]_AST_2024"', b"", l)
+        l = re.sub(b"&apos&", b"'", l)
+        l = re.sub(b'&quot&', b'"', l)
     if b'shutdown' in currLine:
         return getNextLine(f, l) # two shutdowns after each other does not make sense
     l = re.sub(b"BY <secret>", '""', l)
     return l
+
+def rewrite_test_case(f, log_file_path, file_bytes_lines):
+    prev_line = b""
+    oldCheckIsError = False
+    for l in file_bytes_lines:
+        if re.match(b"--source .*$", l):
+            source_file_path = (re.sub(b"--source\s", b"", l)).decode()
+            source_file_path = (Path(MYSQL_TEST_SUITE_PATH).parent / source_file_path.strip()).absolute() if "/" in source_file_path \
+                    else f"{MYSQL_TEST_SUITE_PATH}/{source_file_path.strip()}"
+            #print("Source file path ##############")
+            #print(source_file_path)
+            with open(source_file_path, "rb") as f3:
+                source_file_bytes_lines = f3.readlines()
+                #print(source_file_bytes_lines)
+                rewrite_test_case(f, log_file_path, source_file_bytes_lines)
+        if set_general_log_file_off_pattern.match(l):
+            f.write(b'SELECT "2024_AST_GENERAL_LOG_OFF";\n')
+            oldCheckIsError = False
+            prev_line = l
+            continue
+        if l.startswith(b"--remove_file"):
+            prev_line=l
+            oldCheckIsError = False
+            continue
+        if l.startswith(b"--error"):
+            prev_line=l
+            oldCheckIsError = True
+            continue
+        l = re.sub(b"\$MYSQLTEST_VARDIR/[^\s]+.log", (f"{log_file_path.absolute()}").encode(), l)
+        if set_general_log_output_table_pattern.match(l):
+            f.write(b'SELECT "2024_AST_LOG_OUTPUT_TABLE";\n')
+            l = b"SET GLOBAL log_output= \"TABLE,FILE\";"
+        if l.startswith(b"SHOW") or l.startswith(b"show"):
+            f.write(b'SELECT "2024_AST_SHOW";\n')
+        if l.startswith(b"LET") or l.startswith(b"let"):
+            f.write(b'SELECT "2024_AST_LET";\n')
+        if oldCheckIsError:
+            l_escaped = re.sub(b'"', b'&quot&', l)
+            l_escaped = re.sub(b"'", b"&apos&", l)
+            l_escaped = l_escaped[:-2]
+            f.write((f'SELECT "2024_AST_[{l_escaped.decode()}]_AST_2024";\n').encode())
+            f.write(prev_line)
+        f.write(l)
+        if wait_until_connected_pattern.match(l):
+            f.writelines(prepend_lines[:-1])
+        oldCheckIsError = False
+        prev_line=l
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-MYSQL_TEST_SUITE_PATH", 
@@ -96,8 +148,8 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
         if SKIP_EXISTING and test_path.exists():
             test_num += 1
             continue
-        if filepath.suffix == '.test' and isIncludedTestCase(filename):
-            #and filename == 'group_by.test': # TODO
+        if filepath.suffix == '.test' and isIncludedTestCase(filename) \
+            and filename == 'year-merge.test': # TODO
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
@@ -110,41 +162,12 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                             b'SELECT "2024_automated_software_testing";\n']
                 if len(file_bytes_lines) < 4 \
                     or not file_bytes_lines[3].startswith(b'SELECT "2024_automated_software_testing"'):
-                    f2 = open(filepath.resolve(), "wb")
-                    f2.writelines(prepend_lines)
-                    prev_line = b""
-                    oldCheckIsError = False
-                    for l in file_bytes_lines:
-                        if set_general_log_file_off_pattern.match(l):
-                            f2.write(b'SELECT "2024_AST_GENERAL_LOG_OFF";\n')
-                            oldCheckIsError = False
-                            prev_line = l
-                            continue
-                        if l.startswith(b"--remove_file"):
-                            prev_line=l
-                            oldCheckIsError = False
-                            continue
-                        if l.startswith(b"--error"):
-                            prev_line=l
-                            oldCheckIsError = True
-                            continue
-                        l = re.sub(b"\$MYSQLTEST_VARDIR/[^\s]+.log", (f"{log_file_path.absolute()}").encode(), l)
-                        if set_general_log_output_table_pattern.match(l):
-                            f2.write(b'SELECT "2024_AST_LOG_OUTPUT_TABLE";\n')
-                            l = b"SET GLOBAL log_output= \"TABLE,FILE\";"
-                        if l.startswith(b"SHOW") or l.startswith(b"show"):
-                            f2.write(b'SELECT "2024_AST_SHOW";\n')
-                        if l.startswith(b"LET") or l.startswith(b"let"):
-                            f2.write(b'SELECT "2024_AST_LET";\n')
-                        if oldCheckIsError:
-                            f2.write(prev_line)
-                        f2.write(l)
-                        if wait_until_connected_pattern.match(l):
-                            f2.writelines(prepend_lines[:-1])
-                        oldCheckIsError = False
-                        prev_line=l
-                    f2.close()
+                    f = open(filepath.resolve(), "wb")
+                    f.writelines(prepend_lines)
+                    rewrite_test_case(f, log_file_path, file_bytes_lines)
+                    f.close()
             os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} > /dev/null") #  --fast  TODO: Ensure it is executed on one thread, log output?
+            # os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
             test_path.mkdir(exist_ok=True, parents=True)
             setup_path = test_path / 'setup.sql'
             with open(setup_path.resolve(), 'wb+') as setup_f:
