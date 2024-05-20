@@ -80,7 +80,7 @@ X0123	XFFFF
 X2468	X2468
 XFA50	X05AF
 X1234	XFFF5
-\.
+-- \.
 
 SELECT a, b, ~a AS "~ a", a & b AS "a & b",
        a | b AS "a | b", a # b AS "a # b" FROM varbit_table;
@@ -104,7 +104,7 @@ X0123	XFFFF
 X2468	X2468
 XFA50	X05AF
 X1234	XFFF5
-\.
+-- \.
 
 SELECT a,b,~a AS "~ a",a & b AS "a & b",
 	a|b AS "a | b", a # b AS "a # b" FROM bit_table;

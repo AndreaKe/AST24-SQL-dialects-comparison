@@ -65,15 +65,15 @@ copy (select t from test1 where id = 1) to stdout csv header force quote t;
 --
 -- Test psql builtins, plain table
 --
-\copy test1 to stdout
+-- \copy test1 to stdout
 --
 -- This should fail
 --
-\copy v_test1 to stdout
+-- \copy v_test1 to stdout
 --
 -- Test \copy (select ...)
 --
-\copy (select "id",'id','id""'||t,(id + 1)*id,t,"test1"."t" from test1 where id=3) to stdout
+-- \copy (select /* REPLACED */''id/* REPLACED */'',/* REPLACED */''id/* REPLACED */'',/* REPLACED */''id/* REPLACED */''/* REPLACED */''/* REPLACED */''||t,(id + 1)*id,t,/* REPLACED */''test1/* REPLACED */''./* REPLACED */''t/* REPLACED */'' from test1 where id=3) to stdout
 --
 -- Drop everything
 --
@@ -89,8 +89,8 @@ copy (select 1) to stdout\; copy (select 2) to stdout\; select 3\; select 4; -- 
 create table test3 (c int);
 select 0\; copy test3 from stdin\; copy test3 from stdin\; select 1; -- 0 1
 1
-\.
+-- \.
 2
-\.
+-- \.
 select * from test3;
 drop table test3;

@@ -3,14 +3,14 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 CREATE FUNCTION test_opclass_options_func(internal)
     RETURNS void
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_opclass_options_func'
+    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_opclass_options_func'
     LANGUAGE C;
 
 -- Clean up in case a prior regression run failed

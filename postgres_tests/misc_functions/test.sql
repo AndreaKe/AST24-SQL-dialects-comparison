@@ -1,8 +1,8 @@
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 --
 -- num_nulls()
@@ -42,7 +42,7 @@ SELECT num_nulls();
 
 CREATE FUNCTION test_canonicalize_path(text)
    RETURNS text
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 
 SELECT test_canonicalize_path('/');
@@ -110,7 +110,7 @@ DROP ROLE regress_log_memory;
 --
 select setting as segsize
 from pg_settings where name = 'wal_segment_size'
-\gset
+-- \gset
 
 select count(*) > 0 as ok from pg_ls_waldir();
 -- Test ProjectSet as well as FunctionScan
@@ -203,7 +203,7 @@ WHERE my_int_eq(a.unique2, 42);
 -- With support function that knows it/* REPLACED */''s int4eq, we get a different plan
 CREATE FUNCTION test_support_func(internal)
     RETURNS internal
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_support_func'
+    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_support_func'
     LANGUAGE C STRICT;
 
 ALTER FUNCTION my_int_eq(int, int) SUPPORT test_support_func;
@@ -240,7 +240,7 @@ SELECT segment_number > 0 AS ok_segment_number, timeline_id
 SELECT setting::int8 AS segment_size
 FROM pg_settings
 WHERE name = 'wal_segment_size'
-\gset
+-- \gset
 SELECT segment_number, file_offset
 FROM pg_walfile_name_offset('0/0'::pg_lsn + :segment_size),
      pg_split_walfile_name(file_name);
@@ -272,7 +272,7 @@ INSERT INTO test_chunk_id VALUES ('x', repeat('x', 8192));
 SELECT t.relname AS toastrel FROM pg_class c
   LEFT JOIN pg_class t ON c.reltoastrelid = t.oid
   WHERE c.relname = 'test_chunk_id'
-\gset
+-- \gset
 SELECT pg_column_toast_chunk_id(a) IS NULL,
   pg_column_toast_chunk_id(b) IN (SELECT chunk_id FROM pg_toast.:toastrel)
   FROM test_chunk_id;

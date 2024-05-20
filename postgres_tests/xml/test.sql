@@ -422,7 +422,7 @@ CREATE VIEW xmltableview1 AS SELECT  xmltable.*
 
 SELECT * FROM xmltableview1;
 
-\sv xmltableview1
+-- \sv xmltableview1
 
 EXPLAIN (COSTS OFF) SELECT * FROM xmltableview1;
 EXPLAIN (COSTS OFF, VERBOSE) SELECT * FROM xmltableview1;
@@ -658,9 +658,9 @@ SELECT xmltable.* FROM xmltest2, LATERAL xmltable(('/d/r/' || lower(_path) || 'c
 
 -- XPath result can be boolean or number too
 SELECT * FROM XMLTABLE('*' PASSING '<a>a</a>' COLUMNS a xml PATH '.', b text PATH '.', c text PATH '"hi"', d boolean PATH '. = "a"', e integer PATH 'string-length(.)');
-\x
+-- \x
 SELECT * FROM XMLTABLE('*' PASSING '<e>pre<!--c1--><?pi arg?><![CDATA[&ent1]]><n2>&amp;deep</n2>post</e>' COLUMNS x xml PATH '/e/n2', y xml PATH '/');
-\x
+-- \x
 
 SELECT * FROM XMLTABLE('.' PASSING XMLELEMENT(NAME a) columns a varchar(20) PATH '"<foo/>"', b xml PATH '"<foo/>"');
 

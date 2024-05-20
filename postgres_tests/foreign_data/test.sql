@@ -3,14 +3,14 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 CREATE FUNCTION test_fdw_handler()
     RETURNS fdw_handler
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_fdw_handler'
+    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_fdw_handler'
     LANGUAGE C;
 
 -- Clean up in case a prior regression run failed
@@ -857,7 +857,7 @@ DROP ROLE regress_unprivileged_role;
 DROP ROLE regress_test_role2;
 DROP FOREIGN DATA WRAPPER postgresql CASCADE;
 DROP FOREIGN DATA WRAPPER dummy CASCADE;
-\c
+-- \c
 DROP ROLE regress_foreign_data_user;
 
 -- At this point we should have no wrappers, no servers, and no mappings.

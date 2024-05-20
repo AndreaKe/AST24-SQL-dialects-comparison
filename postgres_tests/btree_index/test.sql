@@ -3,7 +3,7 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 CREATE TABLE bt_i4_heap (
 	seqno 		int4,
@@ -25,17 +25,17 @@ CREATE TABLE bt_f8_heap (
 	random 		int4
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/desc.data'
-COPY bt_i4_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/desc.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/desc.data'
+COPY bt_i4_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/desc.data';
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
-COPY bt_name_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/hash.data'
+COPY bt_name_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/desc.data'
-COPY bt_txt_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/desc.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/desc.data'
+COPY bt_txt_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/desc.data';
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
-COPY bt_f8_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/hash.data'
+COPY bt_f8_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
 
 ANALYZE bt_i4_heap;
 ANALYZE bt_name_heap;

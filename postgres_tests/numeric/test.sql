@@ -871,7 +871,7 @@ COPY width_bucket_test (operand_num) FROM stdin;
 9.99999999999999
 10
 10.0000000000001
-\.
+-- \.
 
 UPDATE width_bucket_test SET operand_f8 = operand_num::float8;
 

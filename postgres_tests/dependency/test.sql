@@ -64,11 +64,11 @@ SET SESSION AUTHORIZATION regress_dep_user1;
 CREATE TABLE deptest (a serial primary key, b text);
 GRANT ALL ON deptest1 TO regress_dep_user2;
 RESET SESSION AUTHORIZATION;
-\z deptest1
+-- \z deptest1
 
 DROP OWNED BY regress_dep_user1;
 -- all grants revoked
-\z deptest1
+-- \z deptest1
 -- table was dropped
 -- \d deptest
 

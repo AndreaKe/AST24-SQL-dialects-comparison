@@ -4,7 +4,7 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 --
 -- BTREE
@@ -70,8 +70,8 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/rect.data'
-COPY slow_emp4000 FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/rect.data'
+COPY slow_emp4000 FROM /* REPLACED */PG_ABS_SRCDIR '/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
 
@@ -268,8 +268,8 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
-COPY array_index_op_test FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/array.data'
+COPY array_index_op_test FROM /* REPLACED */PG_ABS_SRCDIR '/data/array.data';
 ANALYZE array_index_op_test;
 
 SELECT * FROM array_index_op_test WHERE i = '{NULL}' ORDER BY seqno;

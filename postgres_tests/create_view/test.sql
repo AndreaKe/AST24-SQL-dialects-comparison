@@ -5,15 +5,15 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 CREATE FUNCTION interpt_pp(path, path)
     RETURNS point
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
     LANGUAGE C STRICT;
 
 CREATE TABLE real_city (
@@ -22,8 +22,8 @@ CREATE TABLE real_city (
 	outline 	path
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/real_city.data'
-COPY real_city FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/real_city.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/real_city.data'
+COPY real_city FROM /* REPLACED */PG_ABS_SRCDIR '/data/real_city.data';
 ANALYZE real_city;
 
 SELECT *
@@ -74,7 +74,7 @@ COPY viewtest_tbl FROM stdin;
 10	15	2.2	xyz
 15	20	3.3	xyzz
 20	25	4.4	xyzzy
-\.
+-- \.
 
 CREATE OR REPLACE VIEW viewtest AS
 	SELECT * FROM viewtest_tbl;

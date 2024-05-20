@@ -3,7 +3,7 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 CREATE TABLE hash_i4_heap (
 	seqno 		int4,
@@ -25,18 +25,18 @@ CREATE TABLE hash_f8_heap (
 	random 		float8
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/hash.data'
-COPY hash_i4_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
-COPY hash_name_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
-COPY hash_txt_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
-COPY hash_f8_heap FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/hash.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/hash.data'
+COPY hash_i4_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
+COPY hash_name_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
+COPY hash_txt_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
+COPY hash_f8_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
 
 -- the data in this file has a lot of duplicates in the index key
 -- fields, leading to long bucket chains and lots of table expansion.
 -- this is therefore a stress test of the bucket overflow code (unlike
 -- the data in hash.data, which has unique index keys).
 --
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' /* REPLACED */''/data/hashovfl.data/* REPLACED */''
+-- \set filename /* REPLACED */PG_ABS_SRCDIR /* REPLACED */''/data/hashovfl.data/* REPLACED */''
 -- COPY hash_ovfl_heap FROM :/* REPLACED */''filename/* REPLACED */'' /* REPLACED */,
 
 ANALYZE hash_i4_heap;

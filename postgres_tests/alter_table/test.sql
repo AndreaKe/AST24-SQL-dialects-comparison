@@ -1133,17 +1133,17 @@ copy attest(a) to stdout;
 copy attest("........pg.dropped.1........") to stdout;
 copy attest from stdin;
 10	11	12
-\.
+-- \.
 select * from attest;
 copy attest from stdin;
 21	22
-\.
+-- \.
 select * from attest;
 copy attest(a) from stdin;
 copy attest("........pg.dropped.1........") from stdin;
 copy attest(b,c) from stdin;
 31	32
-\.
+-- \.
 select * from attest;
 drop table attest;
 

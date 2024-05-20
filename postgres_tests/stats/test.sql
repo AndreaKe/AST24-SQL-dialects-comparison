@@ -401,11 +401,11 @@ SELECT (n_tup_ins + n_tup_upd) > 0 AS has_data FROM pg_stat_all_tables
   WHERE relid = 'pg_shdescription'::regclass;
 
 -- set back comment
-\if :{?description_before}
+-- \if :{?description_before}
   COMMENT ON DATABASE :"datname" IS :'description_before';
-\else
+-- \else
   COMMENT ON DATABASE :"datname" IS NULL;
-\endif
+-- \endif
 
 -----
 -- Test that various stats views are being properly populated
@@ -413,7 +413,7 @@ SELECT (n_tup_ins + n_tup_upd) > 0 AS has_data FROM pg_stat_all_tables
 
 -- Test that sessions is incremented when a new session is started in pg_stat_database
 SELECT sessions AS db_stat_sessions FROM pg_stat_database WHERE datname = (SELECT current_database()) \gset
-\c
+-- \c
 SELECT pg_stat_force_next_flush();
 SELECT sessions > :db_stat_sessions FROM pg_stat_database WHERE datname = (SELECT current_database());
 
@@ -677,7 +677,7 @@ DROP TABLE test_io_shared;
 -- Set temp_buffers to its minimum so that we can trigger writes with fewer
 -- inserted tuples. Do so in a new session in case temporary tables have been
 -- accessed by previous tests in this session.
-\c
+-- \c
 SET temp_buffers TO 100;
 CREATE TEMPORARY TABLE test_io_local(a int, b TEXT);
 SELECT sum(extends) AS extends, sum(evictions) AS evictions, sum(writes) AS writes
@@ -806,7 +806,7 @@ UPDATE brin_hot SET val = -3 WHERE id = 42;
 -- in pgstat_report_stat().  But instead of waiting for the rate limiter/* REPLACED */''s
 -- timeout to elapse, let/* REPLACED */''s just start a new session.  The old one will
 -- then send its stats before dying.
-\c -
+-- \c -
 
 SELECT wait_for_hot_stats();
 SELECT pg_stat_get_tuples_hot_updated('brin_hot'::regclass::oid);

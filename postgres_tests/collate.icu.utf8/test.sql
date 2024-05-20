@@ -6,9 +6,9 @@
 SELECT getdatabaseencoding() <> 'UTF8' OR
        (SELECT count(*) FROM pg_collation WHERE collprovider = 'i' AND collname <> 'unicode') = 0
        AS skip_test \gset
-\if :skip_test
-\quit
-\endif
+-- \if :skip_test
+-- \quit
+-- \endif
 
 SET client_encoding TO UTF8;
 

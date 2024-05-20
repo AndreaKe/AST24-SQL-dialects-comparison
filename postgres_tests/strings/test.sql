@@ -294,7 +294,7 @@ SELECT regexp_substr('abcabcabc', 'a.c', 1, 1, 'g');
 SELECT regexp_substr('abcabcabc', 'a.c', 1, 1, '', -1);
 
 -- set so we can tell NULL from empty string
-\pset null '\\N'
+-- \pset null /* REPLACED */''\\N/* REPLACED */''
 
 -- return all matches from regexp
 SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$);
@@ -356,7 +356,7 @@ SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ov
 SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'g');
 
 -- change NULL-display back
-\pset null ''
+-- \pset null /* REPLACED */''/* REPLACED */''
 
 -- E021-11 position expression
 SELECT POSITION('4' IN '1234567890') = '4' AS "4";

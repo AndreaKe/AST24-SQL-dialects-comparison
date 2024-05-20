@@ -146,11 +146,11 @@ SELECT pg_get_object_address('subscription', '{one}', '{}');
 SELECT pg_get_object_address('subscription', '{one,two}', '{}');
 
 -- Make sure that NULL handling is correct.
-\pset null 'NULL'
+-- \pset null /* REPLACED */''NULL/* REPLACED */''
 
 -- Temporarily disable fancy output, so as future additions never create
 -- a large amount of diffs.
-\a\t
+-- \a\t
 
 -- test successful cases
 WITH objects (type, name, args) AS (VALUES
@@ -294,4 +294,4 @@ FROM objects
 ORDER BY objects.classid, objects.objid, objects.objsubid;
 
 -- restore normal output mode
-\a\t
+-- \a\t

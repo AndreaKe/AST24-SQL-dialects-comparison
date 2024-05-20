@@ -185,8 +185,8 @@ select * from rtest_v1;
 ** Remember the delete rule on rtest_v1: It says
 ** DO INSTEAD DELETE FROM rtest_t1 WHERE a = old.a
 ** So this time both rows with a = 2 must get deleted
-\p
-\r
+-- \p
+-- \r
 delete from rtest_v1 where b = 12;
 select * from rtest_v1;
 delete from rtest_v1;
@@ -773,7 +773,7 @@ drop table cchild;
 --
 
 -- temporarily disable fancy output, so view changes create less diff noise
-\a\t
+-- \a\t
 
 SELECT viewname, definition FROM pg_views
 WHERE schemaname = 'pg_catalog'
@@ -784,7 +784,7 @@ WHERE schemaname = 'pg_catalog'
 ORDER BY tablename, rulename;
 
 -- restore normal output mode
-\a\t
+-- \a\t
 
 --
 -- CREATE OR REPLACE RULE
@@ -1336,7 +1336,7 @@ RETURNING
    merge_action() AS action, *;
 END;
 
-\sf merge_sf_test
+-- \sf merge_sf_test
 
 DROP FUNCTION merge_sf_test;
 DROP TABLE sf_target;

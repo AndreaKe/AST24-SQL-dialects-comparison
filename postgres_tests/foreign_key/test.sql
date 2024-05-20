@@ -1360,7 +1360,7 @@ ALTER TABLE fk_partitioned_fk DETACH PARTITION fk_partitioned_fk_2;
 BEGIN;
 DROP TABLE fk_partitioned_fk;
 -- constraint should still be there
--- \d fk_partitioned_fk_2;
+-- \d fk_partitioned_fk_2 /* REPLACED */,
 ROLLBACK;
 ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_2 FOR VALUES IN (1500,1502);
 DROP TABLE fk_partitioned_fk_2;

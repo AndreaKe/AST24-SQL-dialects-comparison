@@ -9,7 +9,7 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 --
 -- DEFAULT syntax
@@ -258,13 +258,13 @@ CREATE TABLE COPY_TBL (x INT, y TEXT, z INT,
 	CONSTRAINT COPY_CON
 	CHECK (x > 3 AND y <> 'check failed' AND x < 7 ));
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constro.data'
-COPY COPY_TBL FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constro.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/constro.data'
+COPY COPY_TBL FROM /* REPLACED */PG_ABS_SRCDIR '/data/constro.data';
 
 SELECT * FROM COPY_TBL;
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/constrf.data'
-COPY COPY_TBL FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/constrf.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/constrf.data'
+COPY COPY_TBL FROM /* REPLACED */PG_ABS_SRCDIR '/data/constrf.data';
 
 SELECT * FROM COPY_TBL;
 

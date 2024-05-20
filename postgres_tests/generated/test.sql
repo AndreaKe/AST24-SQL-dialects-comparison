@@ -195,7 +195,7 @@ COPY gtest1 (a, b) TO stdout;
 COPY gtest1 FROM stdin;
 3
 4
-\.
+-- \.
 
 COPY gtest1 (a, b) FROM stdin;
 
@@ -211,7 +211,7 @@ COPY gtest3 (a, b) TO stdout;
 COPY gtest3 FROM stdin;
 3
 4
-\.
+-- \.
 
 COPY gtest3 (a, b) FROM stdin;
 

@@ -3,10 +3,10 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 -- Setup
 CREATE SCHEMA lock_schema1;
@@ -194,7 +194,7 @@ RESET search_path;
 
 CREATE FUNCTION test_atomic_ops()
     RETURNS bool
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
     LANGUAGE C;
 
 SELECT test_atomic_ops();

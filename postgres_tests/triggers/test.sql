@@ -3,36 +3,36 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set autoinclib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/autoinc' /* REPLACED */'.so'
--- \set refintlib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/refint' /* REPLACED */'.so'
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set autoinclib /* REPLACED */PG_LIBDIR '/autoinc' /* REPLACED */PG_DLSUFFIX
+-- \set refintlib /* REPLACED */PG_LIBDIR '/refint' /* REPLACED */PG_DLSUFFIX
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 CREATE FUNCTION autoinc ()
 	RETURNS trigger
-	AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/autoinc.so'
+	AS /* REPLACED */PG_LIBDIR '/autoinc' PG_DLSUFFIX
 	LANGUAGE C;
 
 CREATE FUNCTION check_primary_key ()
 	RETURNS trigger
-	AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
+	AS /* REPLACED */PG_LIBDIR '/refint' PG_DLSUFFIX
 	LANGUAGE C;
 
 CREATE FUNCTION check_foreign_key ()
 	RETURNS trigger
-	AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
+	AS /* REPLACED */PG_LIBDIR '/refint' PG_DLSUFFIX
 	LANGUAGE C;
 
 CREATE FUNCTION trigger_return_old ()
         RETURNS trigger
-        AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
         LANGUAGE C;
 
 CREATE FUNCTION set_ttdummy (int4)
         RETURNS int4
-        AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
         LANGUAGE C STRICT;
 
 create table pkeys (pkey1 int4 not null, pkey2 text not null);
@@ -299,7 +299,7 @@ COPY main_table (a,b) FROM stdin;
 30	10
 50	35
 80	15
-\.
+-- \.
 
 CREATE FUNCTION trigger_func() RETURNS trigger LANGUAGE plpgsql AS '
 BEGIN
@@ -342,7 +342,7 @@ ALTER TABLE main_table DROP CONSTRAINT main_table_a_key;
 COPY main_table (a, b) FROM stdin;
 30	40
 50	60
-\.
+-- \.
 
 SELECT * FROM main_table ORDER BY a, b;
 
@@ -372,7 +372,7 @@ INSERT INTO main_table (a) VALUES (123), (456);
 COPY main_table FROM stdin;
 123	999
 456	999
-\.
+-- \.
 DELETE FROM main_table WHERE a IN (123, 456);
 UPDATE main_table SET a = 50, b = 60;
 SELECT * FROM main_table ORDER BY a, b;
@@ -1558,12 +1558,12 @@ delete from parted_stmt_trig;
 copy parted_stmt_trig(a) from stdin;
 1
 2
-\.
+-- \.
 
 -- insert via copy on the first partition
 copy parted_stmt_trig1(a) from stdin;
 1
-\.
+-- \.
 
 -- Disabling a trigger in the parent table should disable children triggers too
 alter table parted_stmt_trig disable trigger trig_ins_after_parent;
@@ -2108,7 +2108,7 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	42
-\.
+-- \.
 
 -- DML affecting parent sees tuples collected from children even if
 -- there is no transition table trigger on the children
@@ -2129,7 +2129,7 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	42
-\.
+-- \.
 
 -- insert into parent with a before trigger on a child tuple before
 -- insertion, and we capture the newly modified row in parent format
@@ -2154,7 +2154,7 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	234
-\.
+-- \.
 
 drop table child1, child2, child3, parent;
 drop function intercept_insert();
@@ -2274,14 +2274,14 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	42
-\.
+-- \.
 
 -- same behavior for copy if there is an index (interesting because rows are
 -- captured by a different code path in copyfrom.c if there are indexes)
 create index on parent(b);
 copy parent (a, b) from stdin;
 DDD	42
-\.
+-- \.
 
 -- DML affecting parent sees tuples collected from children even if
 -- there is no transition table trigger on the children

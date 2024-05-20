@@ -1,5 +1,5 @@
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 --
 -- Sanity checks for text search catalogs
@@ -48,8 +48,8 @@ CREATE TABLE test_tsvector(
 	a tsvector
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tsearch.data'
-COPY test_tsvector FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tsearch.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/tsearch.data'
+COPY test_tsvector FROM /* REPLACED */PG_ABS_SRCDIR '/data/tsearch.data';
 
 ANALYZE test_tsvector;
 
@@ -650,14 +650,14 @@ SELECT ts_headline('english',
 
 CREATE TABLE test_tsquery (txtkeyword TEXT, txtsample TEXT);
 -- \set ECHO none
-\copy test_tsquery from stdin
+-- \copy test_tsquery from stdin
 'New York'	new <-> york | big <-> apple | nyc
 Moscow	moskva | moscow
 'Sanct Peter'	Peterburg | peter | 'Sanct Peterburg'
 foo & bar & qq	foo & (bar | qq) & city
 1 & (2 <-> 3)	2 <-> 4
 5 <-> 6	5 <-> 7
-\.
+-- \.
 -- \set ECHO all
 
 ALTER TABLE test_tsquery ADD COLUMN keyword tsquery;

@@ -3,21 +3,21 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_builddir PG_ABS_BUILDDIR
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 CREATE FUNCTION overpaid(emp)
    RETURNS bool
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT;
 
 CREATE FUNCTION reverse_name(name)
    RETURNS name
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT;
 
 --
@@ -73,23 +73,23 @@ DROP TABLE tmp;
 --
 -- copy
 --
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/onek.data'
-COPY onek TO /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/onek.data';
+-- \set filename /* REPLACED */PG_ABS_BUILDDIR '/results/onek.data'
+COPY onek TO /* REPLACED */PG_ABS_BUILDDIR '/results/onek.data';
 
 CREATE TEMP TABLE onek_copy (LIKE onek);
 
-COPY onek_copy FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/onek.data';
+COPY onek_copy FROM /* REPLACED */PG_ABS_BUILDDIR '/results/onek.data';
 
 SELECT * FROM onek EXCEPT ALL SELECT * FROM onek_copy;
 
 SELECT * FROM onek_copy EXCEPT ALL SELECT * FROM onek;
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/stud_emp.data'
-COPY BINARY stud_emp TO /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/stud_emp.data';
+-- \set filename /* REPLACED */PG_ABS_BUILDDIR '/results/stud_emp.data'
+COPY BINARY stud_emp TO /* REPLACED */PG_ABS_BUILDDIR '/results/stud_emp.data';
 
 CREATE TEMP TABLE stud_emp_copy (LIKE stud_emp);
 
-COPY BINARY stud_emp_copy FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/stud_emp.data';
+COPY BINARY stud_emp_copy FROM /* REPLACED */PG_ABS_BUILDDIR '/results/stud_emp.data';
 
 SELECT * FROM stud_emp_copy;
 

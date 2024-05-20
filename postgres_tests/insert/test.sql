@@ -628,7 +628,7 @@ insert into donothingbrtrig_test values (1, 'foo'), (2, 'bar');
 copy donothingbrtrig_test from stdout;
 1	baz
 2	qux
-\.
+-- \.
 select tableoid::regclass, * from donothingbrtrig_test;
 
 -- cleanup

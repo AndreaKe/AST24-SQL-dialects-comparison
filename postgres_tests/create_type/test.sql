@@ -3,10 +3,10 @@
 --
 
 -- directory path and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
 
 --
 -- Test the /* REPLACED */''old style/* REPLACED */'' approach of making the I/O functions first,
@@ -14,22 +14,22 @@
 --
 CREATE FUNCTION widget_in(cstring)
    RETURNS widget
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE FUNCTION widget_out(widget)
    RETURNS cstring
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE FUNCTION int44in(cstring)
    RETURNS city_budget
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE FUNCTION int44out(city_budget)
    RETURNS cstring
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 
 CREATE TYPE widget (
@@ -204,7 +204,7 @@ SELECT pg_input_is_valid('("(1,2)")', 'mytab');  -- hard error expected
 
 CREATE FUNCTION pt_in_widget(point, widget)
    RETURNS bool
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT;
 
 CREATE OPERATOR <% (

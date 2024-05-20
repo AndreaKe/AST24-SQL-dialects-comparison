@@ -1,12 +1,12 @@
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 CREATE TABLE testjsonb (
        j jsonb
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/jsonb.data'
-COPY testjsonb FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/jsonb.data';
+-- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/jsonb.data'
+COPY testjsonb FROM /* REPLACED */PG_ABS_SRCDIR '/data/jsonb.data';
 
 -- Strings.
 SELECT '""'::jsonb;				-- OK.
@@ -1233,7 +1233,7 @@ select jsonb_set('{"a": {"b": [1, 2, 3]}}', '{a, b, NULL}', '"new_value"');
 
 -- jsonb_set_lax
 
-\pset null NULL
+-- \pset null NULL
 
 -- pass though non nulls to jsonb_set
 select jsonb_set_lax('{"a":1,"b":2}','{b}','5') ;
@@ -1250,7 +1250,7 @@ select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'retu
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'delete_key') as delete_key;
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'use_json_null') as use_json_null;
 
-\pset null ''
+-- \pset null /* REPLACED */''/* REPLACED */''
 
 -- jsonb_insert
 select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '"new_value"');
@@ -1475,9 +1475,9 @@ insert into test_jsonb_subscript
 select length(id), test_json[id] from test_jsonb_subscript;
 update test_jsonb_subscript set test_json[id] = '"baz"';
 select length(id), test_json[id] from test_jsonb_subscript;
-\x
+-- \x
 table test_jsonb_subscript;
-\x
+-- \x
 
 -- jsonb to tsvector
 select to_tsvector('{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::jsonb);

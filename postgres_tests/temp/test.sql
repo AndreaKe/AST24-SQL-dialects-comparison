@@ -47,7 +47,7 @@ DROP TABLE temptest;
 
 CREATE TEMP TABLE temptest(col int);
 
-\c
+-- \c
 
 SELECT * FROM temptest;
 
@@ -306,7 +306,7 @@ prepare transaction 'twophase_tab';
 -- Corner case: current_schema may create a temporary schema if namespace
 -- creation is pending, so check after that.  First reset the connection
 -- to remove the temporary namespace.
-\c -
+-- \c -
 SET search_path TO 'pg_temp';
 BEGIN;
 SELECT current_schema() ~ 'pg_temp' AS is_temp_schema;

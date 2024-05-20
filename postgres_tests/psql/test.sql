@@ -11,39 +11,39 @@
 -- \set AUTOCOMMIT foo
 -- \set FETCH_COUNT foo
 -- check handling of built-in boolean variable
-\echo :ON_ERROR_ROLLBACK
+-- \echo :ON_ERROR_ROLLBACK
 -- \set ON_ERROR_ROLLBACK
-\echo :ON_ERROR_ROLLBACK
+-- \echo :ON_ERROR_ROLLBACK
 -- \set ON_ERROR_ROLLBACK foo
-\echo /* REPLACED */foo
+-- \echo /* REPLACED */foo
 -- \set ON_ERROR_ROLLBACK on
-\echo /* REPLACED */on
-\unset ON_ERROR_ROLLBACK
-\echo /* REPLACED */on
+-- \echo /* REPLACED */on
+-- \unset ON_ERROR_ROLLBACK
+-- \echo /* REPLACED */on
 
 -- \g and \gx
 
 SELECT 1 as one, 2 as two \g
-\gx
+-- \gx
 SELECT 3 as three, 4 as four \gx
-\g
+-- \g
 
 -- \gx should work in FETCH_COUNT mode too
 -- \set FETCH_COUNT 1
 
 SELECT 1 as one, 2 as two \g
-\gx
+-- \gx
 SELECT 3 as three, 4 as four \gx
-\g
+-- \g
 
-\unset FETCH_COUNT
+-- \unset FETCH_COUNT
 
 -- \g/\gx with pset options
 
 SELECT 1 as one, 2 as two \g (format=csv csv_fieldsep='\t')
-\g
+-- \g
 SELECT 1 as one, 2 as two \gx (title='foo bar')
-\g
+-- \g
 
 -- \bind (extended query protocol)
 
@@ -63,14 +63,14 @@ SELECT $1, $2 \bind 'foo' \g
 
 select 10 as test01, 20 as test02, 'Hello' as test03 \gset pref01_
 
-\echo :pref01_test01 :pref01_test02 :pref01_test03
+-- \echo :pref01_test01 :pref01_test02 :pref01_test03
 
 -- should fail: bad variable name
 select 10 as "bad name"
-\gset
+-- \gset
 
 select 97 as "EOF", 'ok' as _foo \gset IGNORE
-\echo :IGNORE_foo :IGNOREEOF
+-- \echo :IGNORE_foo :IGNOREEOF
 
 -- multiple backslash commands in one line
 select 1 as x, 2 as y \gset pref01_ \\ \echo :pref01_x
@@ -81,7 +81,7 @@ select 7 as x, 8 as y \g \gset pref01_ \echo :pref01_x :pref01_y
 -- NULL should unset the variable
 -- \set var2 xyz
 select 1 as var1, NULL as var2, 3 as var3 \gset
-\echo :var1 /* REPLACED */xyz :var3
+-- \echo :var1 /* REPLACED */xyz :var3
 
 -- \gset requires just one tuple
 select 10 as test01, 20 as test02 from generate_series(1,3) \gset
@@ -89,7 +89,7 @@ select 10 as test01, 20 as test02 from generate_series(1,0) \gset
 
 -- \gset returns no tuples
 select a from generate_series(1, 10) as a where a = 11 \gset
-\echo :ROW_COUNT
+-- \echo :ROW_COUNT
 
 -- \gset should work in FETCH_COUNT mode too
 -- \set FETCH_COUNT 1
@@ -99,7 +99,7 @@ select 3 as x, 4 as y \gset pref01_ \echo :pref01_x \echo :pref01_y
 select 10 as test01, 20 as test02 from generate_series(1,3) \gset
 select 10 as test01, 20 as test02 from generate_series(1,0) \gset
 
-\unset FETCH_COUNT
+-- \unset FETCH_COUNT
 
 -- \gdesc
 
@@ -112,7 +112,7 @@ SELECT
     sin($2) as five,
     'foo'::varchar(4) as six,
     CURRENT_DATE AS now
-\gdesc
+-- \gdesc
 
 -- should work with tuple-returning utilities, such as EXECUTE
 PREPARE test AS SELECT 1 AS first, 2 AS second;
@@ -131,8 +131,8 @@ TABLE bububu;  -- fail
 
 -- query buffer should remain unchanged
 SELECT 1 AS x, 'Hello', 2 AS y, true AS "dirty\name"
-\gdesc
-\g
+-- \gdesc
+-- \g
 
 -- all on one line
 SELECT 3 AS x, 'Hello', 4 AS y, true AS "dirty\name" \gdesc \g
@@ -142,7 +142,7 @@ set search_path = default;
 begin;
 bogus;
 ;
-\gdesc
+-- \gdesc
 rollback;
 
 -- \gexec
@@ -152,7 +152,7 @@ select format('create index on gexec_test(%I)', attname)
 from pg_attribute
 where attrelid = 'gexec_test'::regclass and attnum > 0
 order by attnum
-\gexec
+-- \gexec
 
 -- \gexec should work in FETCH_COUNT mode too
 -- (though the fetch limit applies to the executed queries not the meta query)
@@ -163,9 +163,9 @@ union all
 select 'drop table gexec_test', NULL
 union all
 select 'drop table gexec_test', 'select ''2000-01-01''::date as party_over'
-\gexec
+-- \gexec
 
-\unset FETCH_COUNT
+-- \unset FETCH_COUNT
 
 -- \setenv, \getenv
 
@@ -173,14 +173,14 @@ select 'drop table gexec_test', 'select ''2000-01-01''::date as party_over'
 -- \setenv MYVAR
 -- in which case, reading it doesn/* REPLACED */''t change the target
 -- \getenv res MYVAR
-\echo /* REPLACED */MYVAR
+-- \echo /* REPLACED */MYVAR
 -- now set it
 -- \setenv MYVAR 'environment value'
 -- \getenv res MYVAR
-\echo /* REPLACED */MYVAR
+-- \echo /* REPLACED */MYVAR
 
 -- show all pset options
-\pset
+-- \pset
 
 -- test multi-line headers, wrapping, and newline indicators
 -- in aligned, unaligned, and wrapped formats
@@ -189,116 +189,116 @@ prepare q as select array_to_string(array_agg(repeat('x',2*n)),E'\n') as "ab
 c", array_to_string(array_agg(repeat('y',20-2*n)),E'\n') as "a
 bc" from generate_series(1,10) as n(n) group by n>1 order by n>1;
 
-\pset linestyle ascii
+-- \pset linestyle ascii
 
-\pset expanded off
-\pset columns 40
+-- \pset expanded off
+-- \pset columns 40
 
-\pset border 0
-\pset format unaligned
+-- \pset border 0
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 1
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 2
-\pset format unaligned
+-- \pset border 1
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset expanded on
-\pset columns 20
-
-\pset border 0
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 1
-\pset format unaligned
+-- \pset border 2
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 2
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset linestyle old-ascii
+-- \pset expanded on
+-- \pset columns 20
 
-\pset expanded off
-\pset columns 40
-
-\pset border 0
-\pset format unaligned
+-- \pset border 0
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 1
-\pset format unaligned
+-- \pset border 1
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 2
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset expanded on
-\pset columns 20
-
-\pset border 0
-\pset format unaligned
+-- \pset border 2
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 1
-\pset format unaligned
+-- \pset linestyle old-ascii
+
+-- \pset expanded off
+-- \pset columns 40
+
+-- \pset border 0
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 2
-\pset format unaligned
+-- \pset border 1
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
+-- \pset format wrapped
+execute q;
+
+-- \pset border 2
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset expanded on
+-- \pset columns 20
+
+-- \pset border 0
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset border 1
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset border 2
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
 execute q;
 
 deallocate q;
@@ -306,148 +306,148 @@ deallocate q;
 -- test single-line header and data
 prepare q as select repeat('x',2*n) as "0123456789abcdef", repeat('y',20-2*n) as "0123456789" from generate_series(1,10) as n;
 
-\pset linestyle ascii
+-- \pset linestyle ascii
 
-\pset expanded off
-\pset columns 40
+-- \pset expanded off
+-- \pset columns 40
 
-\pset border 0
-\pset format unaligned
+-- \pset border 0
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 1
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 2
-\pset format unaligned
+-- \pset border 1
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset expanded on
-\pset columns 30
-
-\pset border 0
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 1
-\pset format unaligned
+-- \pset border 2
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 2
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset expanded on
-\pset columns 20
+-- \pset expanded on
+-- \pset columns 30
 
-\pset border 0
-\pset format unaligned
+-- \pset border 0
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 1
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 2
-\pset format unaligned
+-- \pset border 1
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset linestyle old-ascii
-
-\pset expanded off
-\pset columns 40
-
-\pset border 0
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 1
-\pset format unaligned
+-- \pset border 2
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 2
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset expanded on
+-- \pset expanded on
+-- \pset columns 20
 
-\pset border 0
-\pset format unaligned
+-- \pset border 0
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
-execute q;
-
-\pset border 1
-\pset format unaligned
-execute q;
-\pset format aligned
-execute q;
-\pset format wrapped
+-- \pset format wrapped
 execute q;
 
-\pset border 2
-\pset format unaligned
+-- \pset border 1
+-- \pset format unaligned
 execute q;
-\pset format aligned
+-- \pset format aligned
 execute q;
-\pset format wrapped
+-- \pset format wrapped
+execute q;
+
+-- \pset border 2
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset linestyle old-ascii
+
+-- \pset expanded off
+-- \pset columns 40
+
+-- \pset border 0
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset border 1
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset border 2
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset expanded on
+
+-- \pset border 0
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset border 1
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
+execute q;
+
+-- \pset border 2
+-- \pset format unaligned
+execute q;
+-- \pset format aligned
+execute q;
+-- \pset format wrapped
 execute q;
 
 deallocate q;
 
-\pset linestyle ascii
-\pset border 1
+-- \pset linestyle ascii
+-- \pset border 1
 
 -- support table for output-format tests (useful to create a footer)
 
@@ -455,49 +455,49 @@ create table psql_serial_tab (id serial);
 
 -- test header/footer/tuples_only behavior in aligned/unaligned/wrapped cases
 
-\pset format aligned
+-- \pset format aligned
 
-\pset expanded off
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 -- empty table is a special case for this format
 select 1 where false;
 
-\pset format unaligned
+-- \pset format unaligned
 
-\pset expanded off
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
-\pset format wrapped
+-- \pset format wrapped
 
-\pset expanded off
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 -- check conditional am display
-\pset expanded off
+-- \pset expanded off
 
 CREATE SCHEMA tableam_display;
 CREATE ROLE regress_display_role;
@@ -531,340 +531,340 @@ DROP ROLE regress_display_role;
 
 -- test numericlocale (as best we can without control of psql/* REPLACED */''s locale)
 
-\pset format aligned
-\pset expanded off
-\pset numericlocale true
+-- \pset format aligned
+-- \pset expanded off
+-- \pset numericlocale true
 
 select n, -n as m, n * 111 as x, '1e90'::float8 as f
 from generate_series(0,3) n;
 
-\pset numericlocale false
+-- \pset numericlocale false
 
 -- test asciidoc output format
 
-\pset format asciidoc
+-- \pset format asciidoc
 
-\pset border 1
-\pset expanded off
+-- \pset border 1
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 prepare q as
   select 'some|text' as "a|title", '        ' as "empty ", n as int
   from generate_series(1,2) as n;
 
-\pset expanded off
-\pset border 0
+-- \pset expanded off
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
-\pset expanded on
-\pset border 0
+-- \pset expanded on
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
 deallocate q;
 
 -- test csv output format
 
-\pset format csv
+-- \pset format csv
 
-\pset border 1
-\pset expanded off
+-- \pset border 1
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 prepare q as
   select 'some"text' as "a""title", E'  <foo>\n<bar>' as "junk",
          '   ' as "empty", n as int
   from generate_series(1,2) as n;
 
-\pset expanded off
+-- \pset expanded off
 execute q;
 
-\pset expanded on
+-- \pset expanded on
 execute q;
 
 deallocate q;
 
 -- special cases
-\pset expanded off
+-- \pset expanded off
 select 'comma,comma' as comma, 'semi;semi' as semi;
-\pset csv_fieldsep ';'
+-- \pset csv_fieldsep /* REPLACED */'' /* REPLACED */,/* REPLACED */''
 select 'comma,comma' as comma, 'semi;semi' as semi;
 select '\.' as data;
-\pset csv_fieldsep '.'
+-- \pset csv_fieldsep /* REPLACED */''./* REPLACED */''
 select '\' as d1, '' as d2;
 
 -- illegal csv separators
-\pset csv_fieldsep ''
-\pset csv_fieldsep '\0'
-\pset csv_fieldsep '\n'
-\pset csv_fieldsep '\r'
-\pset csv_fieldsep '"'
-\pset csv_fieldsep ',,'
+-- \pset csv_fieldsep /* REPLACED */''/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */''\0/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */''\n/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */''\r/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */''/* REPLACED */''/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */'',,/* REPLACED */''
 
-\pset csv_fieldsep ','
+-- \pset csv_fieldsep /* REPLACED */'',/* REPLACED */''
 
 -- test html output format
 
-\pset format html
+-- \pset format html
 
-\pset border 1
-\pset expanded off
+-- \pset border 1
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 prepare q as
   select 'some"text' as "a&title", E'  <foo>\n<bar>' as "junk",
          '   ' as "empty", n as int
   from generate_series(1,2) as n;
 
-\pset expanded off
-\pset border 0
+-- \pset expanded off
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset tableattr foobar
+-- \pset tableattr foobar
 execute q;
-\pset tableattr
+-- \pset tableattr
 
-\pset expanded on
-\pset border 0
-execute q;
-
-\pset border 1
+-- \pset expanded on
+-- \pset border 0
 execute q;
 
-\pset tableattr foobar
+-- \pset border 1
 execute q;
-\pset tableattr
+
+-- \pset tableattr foobar
+execute q;
+-- \pset tableattr
 
 deallocate q;
 
 -- test latex output format
 
-\pset format latex
+-- \pset format latex
 
-\pset border 1
-\pset expanded off
+-- \pset border 1
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 prepare q as
   select 'some\more_text' as "a$title", E'  #<foo>%&^~|\n{bar}' as "junk",
          '   ' as "empty", n as int
   from generate_series(1,2) as n;
 
-\pset expanded off
-\pset border 0
+-- \pset expanded off
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
-\pset border 3
+-- \pset border 3
 execute q;
 
-\pset expanded on
-\pset border 0
+-- \pset expanded on
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
-\pset border 3
+-- \pset border 3
 execute q;
 
 deallocate q;
 
 -- test latex-longtable output format
 
-\pset format latex-longtable
+-- \pset format latex-longtable
 
-\pset border 1
-\pset expanded off
+-- \pset border 1
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 prepare q as
   select 'some\more_text' as "a$title", E'  #<foo>%&^~|\n{bar}' as "junk",
          '   ' as "empty", n as int
   from generate_series(1,2) as n;
 
-\pset expanded off
-\pset border 0
+-- \pset expanded off
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
-\pset border 3
+-- \pset border 3
 execute q;
 
-\pset tableattr lr
+-- \pset tableattr lr
 execute q;
-\pset tableattr
+-- \pset tableattr
 
-\pset expanded on
-\pset border 0
-execute q;
-
-\pset border 1
+-- \pset expanded on
+-- \pset border 0
 execute q;
 
-\pset border 2
+-- \pset border 1
 execute q;
 
-\pset border 3
+-- \pset border 2
 execute q;
 
-\pset tableattr lr
+-- \pset border 3
 execute q;
-\pset tableattr
+
+-- \pset tableattr lr
+execute q;
+-- \pset tableattr
 
 deallocate q;
 
 -- test troff-ms output format
 
-\pset format troff-ms
+-- \pset format troff-ms
 
-\pset border 1
-\pset expanded off
+-- \pset border 1
+-- \pset expanded off
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
-\pset expanded on
+-- \pset tuples_only false
+-- \pset expanded on
 -- \d psql_serial_tab_id_seq
-\pset tuples_only true
+-- \pset tuples_only true
 -- \df exp
-\pset tuples_only false
+-- \pset tuples_only false
 
 prepare q as
   select 'some\text' as "a\title", E'  <foo>\n<bar>' as "junk",
          '   ' as "empty", n as int
   from generate_series(1,2) as n;
 
-\pset expanded off
-\pset border 0
+-- \pset expanded off
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
-\pset expanded on
-\pset border 0
+-- \pset expanded on
+-- \pset border 0
 execute q;
 
-\pset border 1
+-- \pset border 1
 execute q;
 
-\pset border 2
+-- \pset border 2
 execute q;
 
 deallocate q;
 
 -- check ambiguous format requests
 
-\pset format a
-\pset format l
+-- \pset format a
+-- \pset format l
 
 -- clean up after output format tests
 
 drop table psql_serial_tab;
 
-\pset format aligned
-\pset expanded off
-\pset border 1
+-- \pset format aligned
+-- \pset expanded off
+-- \pset border 1
 
 -- \echo and allied features
 
-\echo this is a test
-\echo -n without newline
-\echo with -n newline
-\echo '-n' with newline
+-- \echo this is a test
+-- \echo -n without newline
+-- \echo with -n newline
+-- \echo /* REPLACED */''-n/* REPLACED */'' with newline
 
 -- \set foo bar
-\echo foo = /* REPLACED */bar
+-- \echo foo = /* REPLACED */bar
 
-\qecho this is a test
-\qecho foo = /* REPLACED */bar
+-- \qecho this is a test
+-- \qecho foo = /* REPLACED */bar
 
-\warn this is a test
-\warn foo = /* REPLACED */bar
+-- \warn this is a test
+-- \warn foo = /* REPLACED */bar
 
 -- tests for \if ... \endif
 
-\if true
+-- \if true
   select 'okay';
   select 'still okay';
-\else
+-- \else
   not okay;
   still not okay
-\endif
+-- \endif
 
 -- at this point query buffer should still have last valid line
-\g
+-- \g
 
 -- \if should work okay on part of a query
 select
@@ -878,7 +878,7 @@ select
 select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 
 -- test a large nested if using a variety of true-equivalents
-\if true
+-- \if true
 	\if 1
 		\if yes
 			\if on
@@ -892,99 +892,99 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 	\else
 		\echo 'should not print #1-3'
 	\endif
-\else
+-- \else
 	\echo 'should not print #1-4'
-\endif
+-- \endif
 
 -- test a variety of false-equivalents in an if/elif/else structure
-\if false
+-- \if false
 	\echo 'should not print #2-1'
-\elif 0
+-- \elif 0
 	\echo 'should not print #2-2'
-\elif no
+-- \elif no
 	\echo 'should not print #2-3'
-\elif off
+-- \elif off
 	\echo 'should not print #2-4'
-\else
+-- \else
 	\echo 'all false'
-\endif
+-- \endif
 
 -- test true-false elif after initial true branch
-\if true
+-- \if true
 	\echo 'should print #2-5'
-\elif true
+-- \elif true
 	\echo 'should not print #2-6'
-\elif false
+-- \elif false
 	\echo 'should not print #2-7'
-\else
+-- \else
 	\echo 'should not print #2-8'
-\endif
+-- \endif
 
 -- test simple true-then-else
-\if true
+-- \if true
 	\echo 'first thing true'
-\else
+-- \else
 	\echo 'should not print #3-1'
-\endif
+-- \endif
 
 -- test simple false-true-else
-\if false
+-- \if false
 	\echo 'should not print #4-1'
-\elif true
+-- \elif true
 	\echo 'second thing true'
-\else
+-- \else
 	\echo 'should not print #5-1'
-\endif
+-- \endif
 
 -- invalid boolean expressions are false
-\if invalid boolean expression
+-- \if invalid boolean expression
 	\echo 'will not print #6-1'
-\else
+-- \else
 	\echo 'will print anyway #6-2'
-\endif
+-- \endif
 
 -- test un-matched endif
-\endif
+-- \endif
 
 -- test un-matched else
-\else
+-- \else
 
 -- test un-matched elif
-\elif
+-- \elif
 
 -- test double-else error
-\if true
-\else
-\else
-\endif
+-- \if true
+-- \else
+-- \else
+-- \endif
 
 -- test elif out-of-order
-\if false
-\else
-\elif
-\endif
+-- \if false
+-- \else
+-- \elif
+-- \endif
 
 -- test if-endif matching in a false branch
-\if false
+-- \if false
     \if false
         \echo 'should not print #7-1'
     \else
         \echo 'should not print #7-2'
     \endif
     \echo 'should not print #7-3'
-\else
+-- \else
     \echo 'should print #7-4'
-\endif
+-- \endif
 
 -- show that vars and backticks are not expanded when ignoring extra args
 -- \set foo bar
-\echo /* REPLACED */bar /* REPLACED */bar :"foo"
-\pset fieldsep | `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :"foo"
+-- \echo /* REPLACED */bar /* REPLACED */bar :/* REPLACED */''foo/* REPLACED */''
+-- \pset fieldsep | `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :/* REPLACED */''foo/* REPLACED */''
 
 -- show that vars and backticks are not expanded and commands are ignored
 -- when in a false if-branch
 -- \set try_to_quit '\\q'
-\if false
+-- \if false
 	/* REPLACED */'\\q'
 	\echo `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :"foo"
 	\pset fieldsep | `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :"foo"
@@ -1042,23 +1042,23 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 	-- \endif here is eaten as part of whole-line argument
 	\! whole_line \endif
 	\z
-\else
+-- \else
 	\echo 'should print #8-1'
-\endif
+-- \endif
 
 -- :{?...} defined variable test
 -- \set i 1
-\if :{?i}
+-- \if :{?i}
   \echo '#9-1 ok, variable i is defined'
-\else
+-- \else
   \echo 'should not print #9-2'
-\endif
+-- \endif
 
-\if :{?no_such_variable}
+-- \if :{?no_such_variable}
   \echo 'should not print #10-1'
-\else
+-- \else
   \echo '#10-2 ok, variable no_such_variable is not defined'
-\endif
+-- \endif
 
 SELECT :{?i} AS i_is_defined;
 
@@ -1089,94 +1089,94 @@ end $$;
 
 -- test printing and clearing the query buffer
 SELECT 1;
-\p
+-- \p
 SELECT 2 \r
-\p
+-- \p
 SELECT 3 \p
 UNION SELECT 4 \p
 UNION SELECT 5
 ORDER BY 1;
-\r
-\p
+-- \r
+-- \p
 
 -- tests for special result variables
 
 -- working query, 2 rows selected
 SELECT 1 AS stuff UNION SELECT 2;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
 
 -- syntax error
 SELECT 1 UNION;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
-\echo 'last error message:' :LAST_ERROR_MESSAGE
-\echo 'last error code:' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
 
 -- empty query
 ;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
 -- must have kept previous values
-\echo 'last error message:' :LAST_ERROR_MESSAGE
-\echo 'last error code:' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
 
 -- other query error
 DROP TABLE this_table_does_not_exist;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
-\echo 'last error message:' :LAST_ERROR_MESSAGE
-\echo 'last error code:' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
 
 -- nondefault verbosity error settings (except verbose, which is too unstable)
 -- \set VERBOSITY terse
 SELECT 1 UNION;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'last error message:' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
 
 -- \set VERBOSITY sqlstate
 SELECT 1/0;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'last error message:' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
 
 -- \set VERBOSITY default
 
 -- working \gdesc
 SELECT 3 AS three, 4 AS four \gdesc
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
 
 -- \gdesc with an error
 SELECT 4 AS \gdesc
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
-\echo 'last error message:' :LAST_ERROR_MESSAGE
-\echo 'last error code:' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
 
 -- check row count for a cursor-fetched query
 -- \set FETCH_COUNT 10
 select unique2 from tenk1 order by unique2 limit 19;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
 
 -- cursor-fetched query with an error after the first group
 select 1/(15-unique2) from tenk1 order by unique2 limit 19;
-\echo 'error:' :ERROR
-\echo 'error code:' :SQLSTATE
-\echo 'number of rows:' :ROW_COUNT
-\echo 'last error message:' :LAST_ERROR_MESSAGE
-\echo 'last error code:' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
+-- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
+-- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
 
-\unset FETCH_COUNT
+-- \unset FETCH_COUNT
 
 create schema testpart;
 create role regress_partitioning_role;
@@ -1313,11 +1313,11 @@ rollback;
 drop role regress_psql_user;
 
 -- check \sf
-\sf information_schema._pg_index_position
-\sf+ information_schema._pg_index_position
-\sf+ interval_pl_time
-\sf ts_debug(text);
-\sf+ ts_debug(text)
+-- \sf information_schema._pg_index_position
+-- \sf+ information_schema._pg_index_position
+-- \sf+ interval_pl_time
+-- \sf ts_debug(text) /* REPLACED */,
+-- \sf+ ts_debug(text)
 
 -- AUTOCOMMIT
 
@@ -1394,7 +1394,7 @@ $$;
 SELECT 1 AS one \; SELECT warn('1.5') \; SELECT 2 AS two ;
 -- \gset applies to last query only
 SELECT 3 AS three \; SELECT warn('3.5') \; SELECT 4 AS four \gset
-\echo :three :four
+-- \echo :three :four
 -- syntax error stops all processing
 SELECT 5 \; SELECT 6 + \; SELECT warn('6.5') \; SELECT 7 ;
 -- with aborted transaction, stop on first error
@@ -1416,7 +1416,7 @@ DROP TABLE psql_comics \;
 SELECT 'ok' AS "done" ;
 Moe
 Susie
-\.
+-- \.
 
 -- \set SHOW_ALL_RESULTS off
 SELECT 1 AS one \; SELECT warn('1.5') \; SELECT 2 AS two ;
@@ -1427,20 +1427,20 @@ DROP FUNCTION warn(TEXT);
 --
 -- \g with file
 --
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
--- \set g_out_file /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/psql-output1'
+-- \getenv abs_builddir PG_ABS_BUILDDIR
+-- \set g_out_file /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
 
 CREATE TEMPORARY TABLE reload_output(
   lineno int NOT NULL GENERATED ALWAYS AS IDENTITY,
   line text
 );
 
-SELECT 1 AS a \g /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
-SELECT 2 AS b\; SELECT 3 AS c\; SELECT 4 AS d \g /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
-COPY (SELECT 'foo') TO STDOUT \; COPY (SELECT 'bar') TO STDOUT \g /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
+SELECT 1 AS a \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
+SELECT 2 AS b\; SELECT 3 AS c\; SELECT 4 AS d \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
+COPY (SELECT 'foo') TO STDOUT \; COPY (SELECT 'bar') TO STDOUT \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
 
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
@@ -1448,42 +1448,42 @@ TRUNCATE TABLE reload_output;
 --
 -- \o with file
 --
--- \set o_out_file /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/psql-output2'
+-- \set o_out_file /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2'
 
-\o /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
+-- \o /* REPLACED */PG_ABS_BUILDDIR /* REPLACED */''/results/psql-output2/* REPLACED */''
 SELECT max(unique1) FROM onek;
 SELECT 1 AS a\; SELECT 2 AS b\; SELECT 3 AS c;
 
 -- COPY TO file
--- The data goes to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1' and the status to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
+-- The data goes to /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1' and the status to /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2'
 -- \set QUIET false
-COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
+COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
 -- DML command status
 UPDATE onek SET unique1 = unique1 WHERE false;
 -- \set QUIET true
-\o
+-- \o
 
 -- Check the contents of the files generated.
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2';
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
 
 -- Multiple COPY TO STDOUT with output file
-\o /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2'
--- The data goes to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2' with no status generated.
+-- \o /* REPLACED */PG_ABS_BUILDDIR /* REPLACED */''/results/psql-output2/* REPLACED */''
+-- The data goes to /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2' with no status generated.
 COPY (SELECT 'foo1') TO STDOUT \; COPY (SELECT 'bar1') TO STDOUT;
 -- Combination of \o and \g file with multiple COPY queries.
-COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1'
-\o
+COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
+-- \o
 
 -- Check the contents of the files generated.
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output1';
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
-COPY reload_output(line) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/psql-output2';
+COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2';
 SELECT line FROM reload_output ORDER BY lineno;
 
 DROP TABLE reload_output;
@@ -1492,7 +1492,7 @@ DROP TABLE reload_output;
 -- AUTOCOMMIT and combined queries
 --
 -- \set AUTOCOMMIT off
-\echo '# AUTOCOMMIT:' /* REPLACED */off
+-- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */off
 -- BEGIN is now implicit
 
 CREATE TABLE foo(s TEXT) \;
@@ -1511,7 +1511,7 @@ DROP TABLE foo \;
 COMMIT;
 
 -- \set AUTOCOMMIT on
-\echo '# AUTOCOMMIT:' /* REPLACED */on
+-- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */on
 -- BEGIN now explicit for multi-statement transactions
 
 BEGIN \;
@@ -1537,8 +1537,8 @@ CREATE FUNCTION psql_error(msg TEXT) RETURNS BOOLEAN AS $$
 $$ LANGUAGE plpgsql;
 
 -- \set ON_ERROR_ROLLBACK on
-\echo '# ON_ERROR_ROLLBACK:' /* REPLACED */on
-\echo '# AUTOCOMMIT:' /* REPLACED */on
+-- \echo /* REPLACED */''# ON_ERROR_ROLLBACK:/* REPLACED */'' /* REPLACED */on
+-- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */on
 
 BEGIN;
 CREATE TABLE bla(s NO_SUCH_TYPE);               -- fails
@@ -1564,7 +1564,7 @@ SELECT * FROM bla ORDER BY 1;
 
 -- some with autocommit off
 -- \set AUTOCOMMIT off
-\echo '# AUTOCOMMIT:' /* REPLACED */off
+-- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */off
 
 -- implicit BEGIN
 INSERT INTO bla VALUES ('Dad');           -- succeeds
@@ -1584,7 +1584,7 @@ COMMIT;
 -- reset all
 -- \set AUTOCOMMIT on
 -- \set ON_ERROR_ROLLBACK off
-\echo '# final ON_ERROR_ROLLBACK:' /* REPLACED */off
+-- \echo /* REPLACED */''# final ON_ERROR_ROLLBACK:/* REPLACED */'' /* REPLACED */off
 DROP TABLE bla;
 DROP FUNCTION psql_error;
 
@@ -1669,19 +1669,19 @@ DROP FUNCTION psql_error;
 -- \dL *.plpgsql
 -- \dL nonesuch.plpgsql
 -- \dn host.regression.public
--- \dn """".public
+-- \dn /* REPLACED */''/* REPLACED */''/* REPLACED */''/* REPLACED */''.public
 -- \dn nonesuch.public
 -- \do host.regression.public.!=-
--- \do "regression|mydb".public.!=-
+-- \do /* REPLACED */''regression|mydb/* REPLACED */''.public.!=-
 -- \do nonesuch.public.!=-
 -- \dO host.regression.pg_catalog.POSIX
 -- \dO .pg_catalog.POSIX
 -- \dO nonesuch.pg_catalog.POSIX
 -- \dp host.regression.public.a_star
--- \dp "regres+ion".public.a_star
+-- \dp /* REPLACED */''regres+ion/* REPLACED */''.public.a_star
 -- \dp nonesuch.public.a_star
 -- \dP host.regression.public.mlparted
--- \dP "regres(sion)".public.mlparted
+-- \dP /* REPLACED */''regres(sion)/* REPLACED */''.public.mlparted
 -- \dP nonesuch.public.mlparted
 -- \drds nonesuch.lc_messages
 -- \drds regression.lc_messages
@@ -1690,145 +1690,145 @@ DROP FUNCTION psql_error;
 -- \dRs public.mysub
 -- \dRs regression.mysub
 -- \dT host.regression.public.widget
--- \dT "regression{1,2}".public.widget
+-- \dT /* REPLACED */''regression{1,2}/* REPLACED */''.public.widget
 -- \dT nonesuch.public.widget
 -- \dx regression.plpgsql
 -- \dx nonesuch.plpgsql
 -- \dX host.regression.public.func_deps_stat
--- \dX "^regression$".public.func_deps_stat
+-- \dX /* REPLACED */''^regression$/* REPLACED */''.public.func_deps_stat
 -- \dX nonesuch.public.func_deps_stat
 -- \dy regression.myevt
 -- \dy nonesuch.myevt
 
 -- check that dots within quoted name segments are not counted
--- \dA "no.such.access.method"
--- \dt "no.such.table.relation"
--- \da "no.such.aggregate.function"
--- \dAc "no.such.operator.class"
--- \dAf "no.such.operator.family"
--- \dAo "no.such.operator.of.operator.family"
--- \dAp "no.such.operator.support.function.of.operator.family"
--- \db "no.such.tablespace"
--- \dc "no.such.conversion"
--- \dC "no.such.cast"
--- \dd "no.such.object.description"
--- \dD "no.such.domain"
--- \ddp "no.such.default.access.privilege"
--- \di "no.such.index.relation"
--- \dm "no.such.materialized.view"
--- \ds "no.such.relation"
--- \dt "no.such.relation"
--- \dv "no.such.relation"
--- \des "no.such.foreign.server"
--- \dew "no.such.foreign.data.wrapper"
--- \df "no.such.function"
--- \dF "no.such.text.search.configuration"
--- \dFd "no.such.text.search.dictionary"
--- \dFp "no.such.text.search.parser"
--- \dFt "no.such.text.search.template"
--- \dg "no.such.role"
--- \dL "no.such.language"
--- \dn "no.such.schema"
--- \do "no.such.operator"
--- \dO "no.such.collation"
--- \dp "no.such.access.privilege"
--- \dP "no.such.partitioned.relation"
--- \drds "no.such.setting"
--- \dRp "no.such.publication"
--- \dRs "no.such.subscription"
--- \dT "no.such.data.type"
--- \dx "no.such.installed.extension"
--- \dX "no.such.extended.statistics"
--- \dy "no.such.event.trigger"
+-- \dA /* REPLACED */''no.such.access.method/* REPLACED */''
+-- \dt /* REPLACED */''no.such.table.relation/* REPLACED */''
+-- \da /* REPLACED */''no.such.aggregate.function/* REPLACED */''
+-- \dAc /* REPLACED */''no.such.operator.class/* REPLACED */''
+-- \dAf /* REPLACED */''no.such.operator.family/* REPLACED */''
+-- \dAo /* REPLACED */''no.such.operator.of.operator.family/* REPLACED */''
+-- \dAp /* REPLACED */''no.such.operator.support.function.of.operator.family/* REPLACED */''
+-- \db /* REPLACED */''no.such.tablespace/* REPLACED */''
+-- \dc /* REPLACED */''no.such.conversion/* REPLACED */''
+-- \dC /* REPLACED */''no.such.cast/* REPLACED */''
+-- \dd /* REPLACED */''no.such.object.description/* REPLACED */''
+-- \dD /* REPLACED */''no.such.domain/* REPLACED */''
+-- \ddp /* REPLACED */''no.such.default.access.privilege/* REPLACED */''
+-- \di /* REPLACED */''no.such.index.relation/* REPLACED */''
+-- \dm /* REPLACED */''no.such.materialized.view/* REPLACED */''
+-- \ds /* REPLACED */''no.such.relation/* REPLACED */''
+-- \dt /* REPLACED */''no.such.relation/* REPLACED */''
+-- \dv /* REPLACED */''no.such.relation/* REPLACED */''
+-- \des /* REPLACED */''no.such.foreign.server/* REPLACED */''
+-- \dew /* REPLACED */''no.such.foreign.data.wrapper/* REPLACED */''
+-- \df /* REPLACED */''no.such.function/* REPLACED */''
+-- \dF /* REPLACED */''no.such.text.search.configuration/* REPLACED */''
+-- \dFd /* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
+-- \dFp /* REPLACED */''no.such.text.search.parser/* REPLACED */''
+-- \dFt /* REPLACED */''no.such.text.search.template/* REPLACED */''
+-- \dg /* REPLACED */''no.such.role/* REPLACED */''
+-- \dL /* REPLACED */''no.such.language/* REPLACED */''
+-- \dn /* REPLACED */''no.such.schema/* REPLACED */''
+-- \do /* REPLACED */''no.such.operator/* REPLACED */''
+-- \dO /* REPLACED */''no.such.collation/* REPLACED */''
+-- \dp /* REPLACED */''no.such.access.privilege/* REPLACED */''
+-- \dP /* REPLACED */''no.such.partitioned.relation/* REPLACED */''
+-- \drds /* REPLACED */''no.such.setting/* REPLACED */''
+-- \dRp /* REPLACED */''no.such.publication/* REPLACED */''
+-- \dRs /* REPLACED */''no.such.subscription/* REPLACED */''
+-- \dT /* REPLACED */''no.such.data.type/* REPLACED */''
+-- \dx /* REPLACED */''no.such.installed.extension/* REPLACED */''
+-- \dX /* REPLACED */''no.such.extended.statistics/* REPLACED */''
+-- \dy /* REPLACED */''no.such.event.trigger/* REPLACED */''
 
 -- again, but with dotted schema qualifications.
--- \dA "no.such.schema"."no.such.access.method"
--- \dt "no.such.schema"."no.such.table.relation"
--- \da "no.such.schema"."no.such.aggregate.function"
--- \dAc "no.such.schema"."no.such.operator.class"
--- \dAf "no.such.schema"."no.such.operator.family"
--- \dAo "no.such.schema"."no.such.operator.of.operator.family"
--- \dAp "no.such.schema"."no.such.operator.support.function.of.operator.family"
--- \db "no.such.schema"."no.such.tablespace"
--- \dc "no.such.schema"."no.such.conversion"
--- \dC "no.such.schema"."no.such.cast"
--- \dd "no.such.schema"."no.such.object.description"
--- \dD "no.such.schema"."no.such.domain"
--- \ddp "no.such.schema"."no.such.default.access.privilege"
--- \di "no.such.schema"."no.such.index.relation"
--- \dm "no.such.schema"."no.such.materialized.view"
--- \ds "no.such.schema"."no.such.relation"
--- \dt "no.such.schema"."no.such.relation"
--- \dv "no.such.schema"."no.such.relation"
--- \des "no.such.schema"."no.such.foreign.server"
--- \dew "no.such.schema"."no.such.foreign.data.wrapper"
--- \df "no.such.schema"."no.such.function"
--- \dF "no.such.schema"."no.such.text.search.configuration"
--- \dFd "no.such.schema"."no.such.text.search.dictionary"
--- \dFp "no.such.schema"."no.such.text.search.parser"
--- \dFt "no.such.schema"."no.such.text.search.template"
--- \dg "no.such.schema"."no.such.role"
--- \dL "no.such.schema"."no.such.language"
--- \do "no.such.schema"."no.such.operator"
--- \dO "no.such.schema"."no.such.collation"
--- \dp "no.such.schema"."no.such.access.privilege"
--- \dP "no.such.schema"."no.such.partitioned.relation"
--- \drds "no.such.schema"."no.such.setting"
--- \dRp "no.such.schema"."no.such.publication"
--- \dRs "no.such.schema"."no.such.subscription"
--- \dT "no.such.schema"."no.such.data.type"
--- \dx "no.such.schema"."no.such.installed.extension"
--- \dX "no.such.schema"."no.such.extended.statistics"
--- \dy "no.such.schema"."no.such.event.trigger"
+-- \dA /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.method/* REPLACED */''
+-- \dt /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.table.relation/* REPLACED */''
+-- \da /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.aggregate.function/* REPLACED */''
+-- \dAc /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.class/* REPLACED */''
+-- \dAf /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.family/* REPLACED */''
+-- \dAo /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.of.operator.family/* REPLACED */''
+-- \dAp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.support.function.of.operator.family/* REPLACED */''
+-- \db /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.tablespace/* REPLACED */''
+-- \dc /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.conversion/* REPLACED */''
+-- \dC /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.cast/* REPLACED */''
+-- \dd /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.object.description/* REPLACED */''
+-- \dD /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.domain/* REPLACED */''
+-- \ddp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.default.access.privilege/* REPLACED */''
+-- \di /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.index.relation/* REPLACED */''
+-- \dm /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.materialized.view/* REPLACED */''
+-- \ds /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \dt /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \dv /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \des /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.foreign.server/* REPLACED */''
+-- \dew /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.foreign.data.wrapper/* REPLACED */''
+-- \df /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.function/* REPLACED */''
+-- \dF /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.configuration/* REPLACED */''
+-- \dFd /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
+-- \dFp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.parser/* REPLACED */''
+-- \dFt /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.template/* REPLACED */''
+-- \dg /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.role/* REPLACED */''
+-- \dL /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.language/* REPLACED */''
+-- \do /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator/* REPLACED */''
+-- \dO /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.collation/* REPLACED */''
+-- \dp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.privilege/* REPLACED */''
+-- \dP /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.partitioned.relation/* REPLACED */''
+-- \drds /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.setting/* REPLACED */''
+-- \dRp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.publication/* REPLACED */''
+-- \dRs /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.subscription/* REPLACED */''
+-- \dT /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.data.type/* REPLACED */''
+-- \dx /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.installed.extension/* REPLACED */''
+-- \dX /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.extended.statistics/* REPLACED */''
+-- \dy /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.event.trigger/* REPLACED */''
 
 -- again, but with current database and dotted schema qualifications.
--- \dt regression."no.such.schema"."no.such.table.relation"
--- \da regression."no.such.schema"."no.such.aggregate.function"
--- \dc regression."no.such.schema"."no.such.conversion"
--- \dC regression."no.such.schema"."no.such.cast"
--- \dd regression."no.such.schema"."no.such.object.description"
--- \dD regression."no.such.schema"."no.such.domain"
--- \di regression."no.such.schema"."no.such.index.relation"
--- \dm regression."no.such.schema"."no.such.materialized.view"
--- \ds regression."no.such.schema"."no.such.relation"
--- \dt regression."no.such.schema"."no.such.relation"
--- \dv regression."no.such.schema"."no.such.relation"
--- \df regression."no.such.schema"."no.such.function"
--- \dF regression."no.such.schema"."no.such.text.search.configuration"
--- \dFd regression."no.such.schema"."no.such.text.search.dictionary"
--- \dFp regression."no.such.schema"."no.such.text.search.parser"
--- \dFt regression."no.such.schema"."no.such.text.search.template"
--- \do regression."no.such.schema"."no.such.operator"
--- \dO regression."no.such.schema"."no.such.collation"
--- \dp regression."no.such.schema"."no.such.access.privilege"
--- \dP regression."no.such.schema"."no.such.partitioned.relation"
--- \dT regression."no.such.schema"."no.such.data.type"
--- \dX regression."no.such.schema"."no.such.extended.statistics"
+-- \dt regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.table.relation/* REPLACED */''
+-- \da regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.aggregate.function/* REPLACED */''
+-- \dc regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.conversion/* REPLACED */''
+-- \dC regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.cast/* REPLACED */''
+-- \dd regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.object.description/* REPLACED */''
+-- \dD regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.domain/* REPLACED */''
+-- \di regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.index.relation/* REPLACED */''
+-- \dm regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.materialized.view/* REPLACED */''
+-- \ds regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \dt regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \dv regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \df regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.function/* REPLACED */''
+-- \dF regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.configuration/* REPLACED */''
+-- \dFd regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
+-- \dFp regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.parser/* REPLACED */''
+-- \dFt regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.template/* REPLACED */''
+-- \do regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator/* REPLACED */''
+-- \dO regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.collation/* REPLACED */''
+-- \dp regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.privilege/* REPLACED */''
+-- \dP regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.partitioned.relation/* REPLACED */''
+-- \dT regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.data.type/* REPLACED */''
+-- \dX regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.extended.statistics/* REPLACED */''
 
 -- again, but with dotted database and dotted schema qualifications.
--- \dt "no.such.database"."no.such.schema"."no.such.table.relation"
--- \da "no.such.database"."no.such.schema"."no.such.aggregate.function"
--- \dc "no.such.database"."no.such.schema"."no.such.conversion"
--- \dC "no.such.database"."no.such.schema"."no.such.cast"
--- \dd "no.such.database"."no.such.schema"."no.such.object.description"
--- \dD "no.such.database"."no.such.schema"."no.such.domain"
--- \ddp "no.such.database"."no.such.schema"."no.such.default.access.privilege"
--- \di "no.such.database"."no.such.schema"."no.such.index.relation"
--- \dm "no.such.database"."no.such.schema"."no.such.materialized.view"
--- \ds "no.such.database"."no.such.schema"."no.such.relation"
--- \dt "no.such.database"."no.such.schema"."no.such.relation"
--- \dv "no.such.database"."no.such.schema"."no.such.relation"
--- \df "no.such.database"."no.such.schema"."no.such.function"
--- \dF "no.such.database"."no.such.schema"."no.such.text.search.configuration"
--- \dFd "no.such.database"."no.such.schema"."no.such.text.search.dictionary"
--- \dFp "no.such.database"."no.such.schema"."no.such.text.search.parser"
--- \dFt "no.such.database"."no.such.schema"."no.such.text.search.template"
--- \do "no.such.database"."no.such.schema"."no.such.operator"
--- \dO "no.such.database"."no.such.schema"."no.such.collation"
--- \dp "no.such.database"."no.such.schema"."no.such.access.privilege"
--- \dP "no.such.database"."no.such.schema"."no.such.partitioned.relation"
--- \dT "no.such.database"."no.such.schema"."no.such.data.type"
--- \dX "no.such.database"."no.such.schema"."no.such.extended.statistics"
+-- \dt /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.table.relation/* REPLACED */''
+-- \da /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.aggregate.function/* REPLACED */''
+-- \dc /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.conversion/* REPLACED */''
+-- \dC /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.cast/* REPLACED */''
+-- \dd /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.object.description/* REPLACED */''
+-- \dD /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.domain/* REPLACED */''
+-- \ddp /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.default.access.privilege/* REPLACED */''
+-- \di /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.index.relation/* REPLACED */''
+-- \dm /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.materialized.view/* REPLACED */''
+-- \ds /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \dt /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \dv /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
+-- \df /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.function/* REPLACED */''
+-- \dF /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.configuration/* REPLACED */''
+-- \dFd /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
+-- \dFp /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.parser/* REPLACED */''
+-- \dFt /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.template/* REPLACED */''
+-- \do /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator/* REPLACED */''
+-- \dO /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.collation/* REPLACED */''
+-- \dp /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.privilege/* REPLACED */''
+-- \dP /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.partitioned.relation/* REPLACED */''
+-- \dT /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.data.type/* REPLACED */''
+-- \dX /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.extended.statistics/* REPLACED */''
 
 -- check \drg and \du
 CREATE ROLE regress_du_role0;
@@ -1882,7 +1882,7 @@ ROLLBACK;
 
 -- Test display of default privileges with \pset null.
 CREATE TABLE defprivs (a int);
-\pset null '(default)'
-\z defprivs
-\pset null ''
+-- \pset null /* REPLACED */''(default)/* REPLACED */''
+-- \z defprivs
+-- \pset null /* REPLACED */''/* REPLACED */''
 DROP TABLE defprivs;
