@@ -95,8 +95,8 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
         if SKIP_EXISTING and test_path.is_dir():
             test_num += 1
             continue
-        if filepath.suffix == '.test' and isIncludedTestCase(filename) \
-            and filename == 'group_by.test': # TODO
+        if filepath.suffix == '.test' and isIncludedTestCase(filename):
+            # and filename == 'group_by.test': # TODO
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
