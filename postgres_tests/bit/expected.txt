@@ -1,0 +1,1043 @@
+
+-----------
+QUERY:
+--
+-- BIT types
+--
+
+--
+-- Build tables for testing
+--
+
+CREATE TABLE BIT_TABLE(b BIT(11));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO BIT_TABLE VALUES (B'10');
+RESULT:
+	postgres: bit string length 2 does not match type bit(11)
+
+
+-----------
+QUERY:
+ -- too short
+INSERT INTO BIT_TABLE VALUES (B'00000000000');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_TABLE VALUES (B'11011000000');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_TABLE VALUES (B'01010101010');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_TABLE VALUES (B'101011111010');
+RESULT:
+	postgres: bit string length 12 does not match type bit(11)
+
+
+-----------
+QUERY:
+ -- too long
+--INSERT INTO BIT_TABLE VALUES (/* REPLACED */''X554/* REPLACED */'') /* REPLACED */,
+--INSERT INTO BIT_TABLE VALUES (/* REPLACED */''X555/* REPLACED */'') /* REPLACED */,
+
+SELECT * FROM BIT_TABLE;
+RESULT:
+	postgres: [('00000000000',), ('11011000000',), ('01010101010',)]
+
+-----------
+QUERY:
+
+
+CREATE TABLE VARBIT_TABLE(v BIT VARYING(11));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO VARBIT_TABLE VALUES (B'');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'0');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'010101');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'01010101010');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'101011111010');
+RESULT:
+	postgres: bit string too long for type bit varying(11)
+
+
+-----------
+QUERY:
+ -- too long
+--INSERT INTO VARBIT_TABLE VALUES (/* REPLACED */''X554/* REPLACED */'') /* REPLACED */,
+--INSERT INTO VARBIT_TABLE VALUES (/* REPLACED */''X555/* REPLACED */'') /* REPLACED */,
+SELECT * FROM VARBIT_TABLE;
+RESULT:
+	postgres: [('',), ('0',), ('010101',), ('01010101010',)]
+
+-----------
+QUERY:
+
+
+-- Literals with syntax errors
+SELECT b' 0';
+RESULT:
+	postgres: " " is not a valid binary digit
+LINE 4: SELECT b' 0';
+               ^
+
+
+-----------
+QUERY:
+
+SELECT b'0 ';
+RESULT:
+	postgres: " " is not a valid binary digit
+LINE 2: SELECT b'0 ';
+               ^
+
+
+-----------
+QUERY:
+
+SELECT x' 0';
+RESULT:
+	postgres: " " is not a valid hexadecimal digit
+LINE 2: SELECT x' 0';
+               ^
+
+
+-----------
+QUERY:
+
+SELECT x'0 ';
+RESULT:
+	postgres: " " is not a valid hexadecimal digit
+LINE 2: SELECT x'0 ';
+               ^
+
+
+-----------
+QUERY:
+
+
+-- Concatenation
+SELECT v, b, (v || b) AS concat
+       FROM BIT_TABLE, VARBIT_TABLE
+       ORDER BY 3;
+RESULT:
+	postgres: [('', '00000000000', '00000000000'), ('0', '00000000000', '000000000000'), ('0', '01010101010', '001010101010'), ('010101', '00000000000', '01010100000000000'), ('', '01010101010', '01010101010'), ('01010101010', '00000000000', '0101010101000000000000'), ('01010101010', '01010101010', '0101010101001010101010'), ('010101', '01010101010', '01010101010101010'), ('01010101010', '11011000000', '0101010101011011000000'), ('010101', '11011000000', '01010111011000000'), ('0', '11011000000', '011011000000'), ('', '11011000000', '11011000000')]
+
+-----------
+QUERY:
+
+
+-- Length
+SELECT b, length(b) AS lb
+       FROM BIT_TABLE;
+RESULT:
+	postgres: [('00000000000', 11), ('11011000000', 11), ('01010101010', 11)]
+
+-----------
+QUERY:
+
+SELECT v, length(v) AS lv
+       FROM VARBIT_TABLE;
+RESULT:
+	postgres: [('', 0), ('0', 1), ('010101', 6), ('01010101010', 11)]
+
+-----------
+QUERY:
+
+
+-- Substring
+SELECT b,
+       SUBSTRING(b FROM 2 FOR 4) AS sub_2_4,
+       SUBSTRING(b FROM 7 FOR 13) AS sub_7_13,
+       SUBSTRING(b FROM 6) AS sub_6
+       FROM BIT_TABLE;
+RESULT:
+	postgres: [('00000000000', '0000', '00000', '000000'), ('11011000000', '1011', '00000', '000000'), ('01010101010', '1010', '01010', '101010')]
+
+-----------
+QUERY:
+
+SELECT v,
+       SUBSTRING(v FROM 2 FOR 4) AS sub_2_4,
+       SUBSTRING(v FROM 7 FOR 13) AS sub_7_13,
+       SUBSTRING(v FROM 6) AS sub_6
+       FROM VARBIT_TABLE;
+RESULT:
+	postgres: [('', '', '', ''), ('0', '', '', ''), ('010101', '1010', '', '1'), ('01010101010', '1010', '01010', '101010')]
+
+-----------
+QUERY:
+
+
+-- test overflow cases
+SELECT SUBSTRING('01010101'::bit(8) FROM 2 FOR 2147483646) AS "1010101";
+RESULT:
+	postgres: [('1010101',)]
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::bit(8) FROM -10 FOR 2147483646) AS "01010101";
+RESULT:
+	postgres: [('01010101',)]
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::bit(8) FROM -10 FOR -2147483646) AS "error";
+RESULT:
+	postgres: negative substring length not allowed
+
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::varbit FROM 2 FOR 2147483646) AS "1010101";
+RESULT:
+	postgres: [('1010101',)]
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::varbit FROM -10 FOR 2147483646) AS "01010101";
+RESULT:
+	postgres: [('01010101',)]
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::varbit FROM -10 FOR -2147483646) AS "error";
+RESULT:
+	postgres: negative substring length not allowed
+
+
+-----------
+QUERY:
+
+
+--- Bit operations
+DROP TABLE varbit_table;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE varbit_table (a BIT VARYING(16), b BIT VARYING(16));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COPY varbit_table FROM stdin;
+RESULT:
+	postgres: can't execute COPY FROM: use the copy_from() method instead
+
+-----------
+QUERY:
+
+X0F	X10
+X1F	X11
+X2F	X12
+X3F	X13
+X8F	X04
+X000F	X0010
+X0123	XFFFF
+X2468	X2468
+XFA50	X05AF
+X1234	XFFF5
+\.
+
+SELECT a, b, ~a AS "~ a", a & b AS "a & b",
+       a | b AS "a | b", a # b AS "a # b" FROM varbit_table;
+RESULT:
+	postgres: syntax error at or near "X0F"
+LINE 2: X0F X10
+        ^
+
+
+-----------
+QUERY:
+
+SELECT a,b,a<b AS "a<b",a<=b AS "a<=b",a=b AS "a=b",
+        a>=b AS "a>=b",a>b AS "a>b",a<>b AS "a<>b" FROM varbit_table;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT a,a<<4 AS "a<<4",b,b>>2 AS "b>>2" FROM varbit_table;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+DROP TABLE varbit_table;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--- Bit operations
+DROP TABLE bit_table;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE bit_table (a BIT(16), b BIT(16));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COPY bit_table FROM stdin;
+RESULT:
+	postgres: can't execute COPY FROM: use the copy_from() method instead
+
+-----------
+QUERY:
+
+X0F00	X1000
+X1F00	X1100
+X2F00	X1200
+X3F00	X1300
+X8F00	X0400
+X000F	X0010
+X0123	XFFFF
+X2468	X2468
+XFA50	X05AF
+X1234	XFFF5
+\.
+
+SELECT a,b,~a AS "~ a",a & b AS "a & b",
+	a|b AS "a | b", a # b AS "a # b" FROM bit_table;
+RESULT:
+	postgres: syntax error at or near "X0F00"
+LINE 2: X0F00 X1000
+        ^
+
+
+-----------
+QUERY:
+
+SELECT a,b,a<b AS "a<b",a<=b AS "a<=b",a=b AS "a=b",
+        a>=b AS "a>=b",a>b AS "a>b",a<>b AS "a<>b" FROM bit_table;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT a,a<<4 AS "a<<4",b,b>>2 AS "b>>2" FROM bit_table;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+DROP TABLE bit_table;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- The following should fail
+select B'001' & B'10';
+RESULT:
+	postgres: cannot AND bit strings of different sizes
+
+
+-----------
+QUERY:
+
+select B'0111' | B'011';
+RESULT:
+	postgres: cannot OR bit strings of different sizes
+
+
+-----------
+QUERY:
+
+select B'0010' # B'011101';
+RESULT:
+	postgres: cannot XOR bit strings of different sizes
+
+
+-----------
+QUERY:
+
+
+-- More position tests, checking all the boundary cases
+SELECT POSITION(B'1010' IN B'0000101');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+   -- 0
+SELECT POSITION(B'1010' IN B'00001010');
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+  -- 5
+SELECT POSITION(B'1010' IN B'00000101');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+  -- 0
+SELECT POSITION(B'1010' IN B'000001010');
+RESULT:
+	postgres: [(6,)]
+
+-----------
+QUERY:
+  -- 6
+
+SELECT POSITION(B'' IN B'00001010');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+  -- 1
+SELECT POSITION(B'0' IN B'');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+  -- 0
+SELECT POSITION(B'' IN B'');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+  -- 0
+SELECT POSITION(B'101101' IN B'001011011011011000');
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+  -- 3
+SELECT POSITION(B'10110110' IN B'001011011011010');
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+  -- 3
+SELECT POSITION(B'1011011011011' IN B'001011011011011');
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+  -- 3
+SELECT POSITION(B'1011011011011' IN B'00001011011011011');
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+  -- 5
+
+SELECT POSITION(B'11101011' IN B'11101011');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'11101011' IN B'011101011');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'11101011' IN B'00011101011');
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+ -- 4
+SELECT POSITION(B'11101011' IN B'0000011101011');
+RESULT:
+	postgres: [(6,)]
+
+-----------
+QUERY:
+ -- 6
+
+SELECT POSITION(B'111010110' IN B'111010110');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'111010110' IN B'0111010110');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'111010110' IN B'000111010110');
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+ -- 4
+SELECT POSITION(B'111010110' IN B'00000111010110');
+RESULT:
+	postgres: [(6,)]
+
+-----------
+QUERY:
+ -- 6
+
+SELECT POSITION(B'111010110' IN B'11101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'011101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'00011101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'0000011101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+
+SELECT POSITION(B'111010110' IN B'111010110');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'111010110' IN B'0111010110');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'111010110' IN B'000111010110');
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+ -- 4
+SELECT POSITION(B'111010110' IN B'00000111010110');
+RESULT:
+	postgres: [(6,)]
+
+-----------
+QUERY:
+ -- 6
+
+SELECT POSITION(B'111010110' IN B'000001110101111101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'0000001110101111101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'000000001110101111101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'00000000001110101111101011');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+
+SELECT POSITION(B'111010110' IN B'0000011101011111010110');
+RESULT:
+	postgres: [(14,)]
+
+-----------
+QUERY:
+ -- 14
+SELECT POSITION(B'111010110' IN B'00000011101011111010110');
+RESULT:
+	postgres: [(15,)]
+
+-----------
+QUERY:
+ -- 15
+SELECT POSITION(B'111010110' IN B'0000000011101011111010110');
+RESULT:
+	postgres: [(17,)]
+
+-----------
+QUERY:
+ -- 17
+SELECT POSITION(B'111010110' IN B'000000000011101011111010110');
+RESULT:
+	postgres: [(19,)]
+
+-----------
+QUERY:
+ -- 19
+
+SELECT POSITION(B'000000000011101011111010110' IN B'000000000011101011111010110');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'00000000011101011111010110' IN B'000000000011101011111010110');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'0000000000011101011111010110' IN B'000000000011101011111010110');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- 0
+
+
+-- Shifting
+
+CREATE TABLE BIT_SHIFT_TABLE(b BIT(16));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE VALUES (B'1101100000000000');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>1 FROM BIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>2 FROM BIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>4 FROM BIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>8 FROM BIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT POSITION(B'1101' IN b),
+       POSITION(B'11011' IN b),
+       b
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [(1, 1, '1101100000000000'), (2, 2, '0110110000000000'), (3, 3, '0011011000000000'), (4, 4, '0001101100000000'), (5, 5, '0000110110000000'), (6, 6, '0000011011000000'), (7, 7, '0000001101100000'), (8, 8, '0000000110110000'), (9, 9, '0000000011011000'), (10, 10, '0000000001101100'), (11, 11, '0000000000110110'), (12, 12, '0000000000011011'), (13, 0, '0000000000001101'), (0, 0, '0000000000000110'), (0, 0, '0000000000000011'), (0, 0, '0000000000000001')]
+
+-----------
+QUERY:
+
+SELECT b, b >> 1 AS bsr, b << 1 AS bsl
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [('1101100000000000', '0110110000000000', '1011000000000000'), ('0110110000000000', '0011011000000000', '1101100000000000'), ('0011011000000000', '0001101100000000', '0110110000000000'), ('0001101100000000', '0000110110000000', '0011011000000000'), ('0000110110000000', '0000011011000000', '0001101100000000'), ('0000011011000000', '0000001101100000', '0000110110000000'), ('0000001101100000', '0000000110110000', '0000011011000000'), ('0000000110110000', '0000000011011000', '0000001101100000'), ('0000000011011000', '0000000001101100', '0000000110110000'), ('0000000001101100', '0000000000110110', '0000000011011000'), ('0000000000110110', '0000000000011011', '0000000001101100'), ('0000000000011011', '0000000000001101', '0000000000110110'), ('0000000000001101', '0000000000000110', '0000000000011010'), ('0000000000000110', '0000000000000011', '0000000000001100'), ('0000000000000011', '0000000000000001', '0000000000000110'), ('0000000000000001', '0000000000000000', '0000000000000010')]
+
+-----------
+QUERY:
+
+SELECT b, b >> 8 AS bsr8, b << 8 AS bsl8
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [('1101100000000000', '0000000011011000', '0000000000000000'), ('0110110000000000', '0000000001101100', '0000000000000000'), ('0011011000000000', '0000000000110110', '0000000000000000'), ('0001101100000000', '0000000000011011', '0000000000000000'), ('0000110110000000', '0000000000001101', '1000000000000000'), ('0000011011000000', '0000000000000110', '1100000000000000'), ('0000001101100000', '0000000000000011', '0110000000000000'), ('0000000110110000', '0000000000000001', '1011000000000000'), ('0000000011011000', '0000000000000000', '1101100000000000'), ('0000000001101100', '0000000000000000', '0110110000000000'), ('0000000000110110', '0000000000000000', '0011011000000000'), ('0000000000011011', '0000000000000000', '0001101100000000'), ('0000000000001101', '0000000000000000', '0000110100000000'), ('0000000000000110', '0000000000000000', '0000011000000000'), ('0000000000000011', '0000000000000000', '0000001100000000'), ('0000000000000001', '0000000000000000', '0000000100000000')]
+
+-----------
+QUERY:
+
+SELECT b::bit(15), b::bit(15) >> 1 AS bsr, b::bit(15) << 1 AS bsl
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [('110110000000000', '011011000000000', '101100000000000'), ('011011000000000', '001101100000000', '110110000000000'), ('001101100000000', '000110110000000', '011011000000000'), ('000110110000000', '000011011000000', '001101100000000'), ('000011011000000', '000001101100000', '000110110000000'), ('000001101100000', '000000110110000', '000011011000000'), ('000000110110000', '000000011011000', '000001101100000'), ('000000011011000', '000000001101100', '000000110110000'), ('000000001101100', '000000000110110', '000000011011000'), ('000000000110110', '000000000011011', '000000001101100'), ('000000000011011', '000000000001101', '000000000110110'), ('000000000001101', '000000000000110', '000000000011010'), ('000000000000110', '000000000000011', '000000000001100'), ('000000000000011', '000000000000001', '000000000000110'), ('000000000000001', '000000000000000', '000000000000010'), ('000000000000000', '000000000000000', '000000000000000')]
+
+-----------
+QUERY:
+
+SELECT b::bit(15), b::bit(15) >> 8 AS bsr8, b::bit(15) << 8 AS bsl8
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [('110110000000000', '000000001101100', '000000000000000'), ('011011000000000', '000000000110110', '000000000000000'), ('001101100000000', '000000000011011', '000000000000000'), ('000110110000000', '000000000001101', '000000000000000'), ('000011011000000', '000000000000110', '100000000000000'), ('000001101100000', '000000000000011', '110000000000000'), ('000000110110000', '000000000000001', '011000000000000'), ('000000011011000', '000000000000000', '101100000000000'), ('000000001101100', '000000000000000', '110110000000000'), ('000000000110110', '000000000000000', '011011000000000'), ('000000000011011', '000000000000000', '001101100000000'), ('000000000001101', '000000000000000', '000110100000000'), ('000000000000110', '000000000000000', '000011000000000'), ('000000000000011', '000000000000000', '000001100000000'), ('000000000000001', '000000000000000', '000000100000000'), ('000000000000000', '000000000000000', '000000000000000')]
+
+-----------
+QUERY:
+
+
+
+CREATE TABLE VARBIT_SHIFT_TABLE(v BIT VARYING(20));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE VALUES (B'11011');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'0' AS BIT VARYING(6)) >>1 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'00' AS BIT VARYING(8)) >>2 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'0000' AS BIT VARYING(12)) >>4 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'00000000' AS BIT VARYING(20)) >>8 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT POSITION(B'1101' IN v),
+       POSITION(B'11011' IN v),
+       v
+       FROM VARBIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [(1, 1, '11011'), (2, 2, '011011'), (3, 3, '0011011'), (4, 4, '00011011'), (5, 5, '000011011'), (6, 6, '0000011011'), (7, 7, '00000011011'), (8, 8, '000000011011'), (9, 9, '0000000011011'), (10, 10, '00000000011011'), (11, 11, '000000000011011'), (12, 12, '0000000000011011'), (13, 13, '00000000000011011'), (14, 14, '000000000000011011'), (15, 15, '0000000000000011011'), (16, 16, '00000000000000011011')]
+
+-----------
+QUERY:
+
+SELECT v, v >> 1 AS vsr, v << 1 AS vsl
+       FROM VARBIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [('11011', '01101', '10110'), ('011011', '001101', '110110'), ('0011011', '0001101', '0110110'), ('00011011', '00001101', '00110110'), ('000011011', '000001101', '000110110'), ('0000011011', '0000001101', '0000110110'), ('00000011011', '00000001101', '00000110110'), ('000000011011', '000000001101', '000000110110'), ('0000000011011', '0000000001101', '0000000110110'), ('00000000011011', '00000000001101', '00000000110110'), ('000000000011011', '000000000001101', '000000000110110'), ('0000000000011011', '0000000000001101', '0000000000110110'), ('00000000000011011', '00000000000001101', '00000000000110110'), ('000000000000011011', '000000000000001101', '000000000000110110'), ('0000000000000011011', '0000000000000001101', '0000000000000110110'), ('00000000000000011011', '00000000000000001101', '00000000000000110110')]
+
+-----------
+QUERY:
+
+SELECT v, v >> 8 AS vsr8, v << 8 AS vsl8
+       FROM VARBIT_SHIFT_TABLE ;
+RESULT:
+	postgres: [('11011', '00000', '00000'), ('011011', '000000', '000000'), ('0011011', '0000000', '0000000'), ('00011011', '00000000', '00000000'), ('000011011', '000000000', '100000000'), ('0000011011', '0000000000', '1100000000'), ('00000011011', '00000000000', '01100000000'), ('000000011011', '000000000000', '101100000000'), ('0000000011011', '0000000000000', '1101100000000'), ('00000000011011', '00000000000000', '01101100000000'), ('000000000011011', '000000000000000', '001101100000000'), ('0000000000011011', '0000000000000000', '0001101100000000'), ('00000000000011011', '00000000000000000', '00001101100000000'), ('000000000000011011', '000000000000000000', '000001101100000000'), ('0000000000000011011', '0000000000000000000', '0000001101100000000'), ('00000000000000011011', '00000000000000000000', '00000001101100000000')]
+
+-----------
+QUERY:
+
+
+DROP TABLE BIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE VARBIT_SHIFT_TABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Get/Set bit
+SELECT get_bit(B'0101011000100', 10);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT set_bit(B'0101011000100100', 15, 1);
+RESULT:
+	postgres: [('0101011000100101',)]
+
+-----------
+QUERY:
+
+SELECT set_bit(B'0101011000100100', 16, 1);
+RESULT:
+	postgres: bit index 16 out of valid range (0..15)
+
+
+-----------
+QUERY:
+	-- fail
+
+-- Overlay
+SELECT overlay(B'0101011100' placing '001' from 2 for 3);
+RESULT:
+	postgres: [('0001011100',)]
+
+-----------
+QUERY:
+
+SELECT overlay(B'0101011100' placing '101' from 6);
+RESULT:
+	postgres: [('0101010100',)]
+
+-----------
+QUERY:
+
+SELECT overlay(B'0101011100' placing '001' from 11);
+RESULT:
+	postgres: [('0101011100001',)]
+
+-----------
+QUERY:
+
+SELECT overlay(B'0101011100' placing '001' from 20);
+RESULT:
+	postgres: [('0101011100001',)]
+
+-----------
+QUERY:
+
+
+-- bit_count
+SELECT bit_count(B'0101011100'::bit(10));
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+SELECT bit_count(B'1111111111'::bit(10));
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+
+-- This table is intentionally left around to exercise pg_dump/pg_upgrade
+CREATE TABLE bit_defaults(
+  b1 bit(4) DEFAULT '1001',
+  b2 bit(4) DEFAULT B'0101',
+  b3 bit varying(5) DEFAULT '1001',
+  b4 bit varying(5) DEFAULT B'0101'
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- \d bit_defaults
+INSERT INTO bit_defaults DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+TABLE bit_defaults;
+RESULT:
+	postgres: [('1001', '0101', '1001', '0101')]
+
+-----------
+QUERY:
+
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('01010001', 'bit(10)');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('01010001', 'bit(10)');
+RESULT:
+	postgres: [('bit string length 8 does not match type bit(10)', None, None, '22026')]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('01010Z01', 'bit(8)');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('01010Z01', 'bit(8)');
+RESULT:
+	postgres: [('"Z" is not a valid binary digit', None, None, '22P02')]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('x01010Z01', 'bit(32)');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('x01010Z01', 'bit(32)');
+RESULT:
+	postgres: [('"Z" is not a valid hexadecimal digit', None, None, '22P02')]
+
+-----------
+QUERY:
+
+
+SELECT pg_input_is_valid('01010Z01', 'varbit');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('01010Z01', 'varbit');
+RESULT:
+	postgres: [('"Z" is not a valid binary digit', None, None, '22P02')]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('x01010Z01', 'varbit');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('x01010Z01', 'varbit');
+RESULT:
+	postgres: [('"Z" is not a valid hexadecimal digit', None, None, '22P02')]

@@ -1,0 +1,534 @@
+
+-----------
+QUERY:
+--
+-- Test INSERT/UPDATE/DELETE RETURNING
+--
+
+-- Simple cases
+
+CREATE TEMP TABLE foo (f1 serial, f2 text, f3 int default 42)
+RESULT:
+	duckdb: Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+INSERT INTO foo (f2,f3)
+  VALUES ('test', DEFAULT), ('More', 11), (upper('more'), 7+9)
+  RETURNING *, f1+f3 AS sum
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+UPDATE foo SET f2 = lower(f2), f3 = DEFAULT RETURNING foo.*, f1+f3 AS sum13
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: UPDATE foo SET f2 = lower(f2), f3 = DEFAULT RE...
+               ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+DELETE FROM foo WHERE f1 > 2 RETURNING f3, f2, f1, least(f1,f3)
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: DELETE FROM foo WHERE f1 > 2 RETURNING f3, f2, f1, ...
+                    ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+-- Subplans and initplans in the RETURNING list
+
+INSERT INTO foo SELECT f1+10, f2, f3+99 FROM foo
+  RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,
+    EXISTS(SELECT * FROM int4_tbl) AS initplan
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+UPDATE foo SET f3 = f3 * 2
+  WHERE f1 > 10
+  RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,
+    EXISTS(SELECT * FROM int4_tbl) AS initplan
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: UPDATE foo SET f3 = f3 * 2
+               ^
+
+-----------
+QUERY:
+DELETE FROM foo
+  WHERE f1 > 10
+  RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,
+    EXISTS(SELECT * FROM int4_tbl) AS initplan
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: DELETE FROM foo
+                    ^
+
+-----------
+QUERY:
+-- Joins
+
+UPDATE foo SET f3 = f3*2
+  FROM int4_tbl i
+  WHERE foo.f1 + 123455 = i.f1
+  RETURNING foo.*, i.f1 as "i.f1"
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 3: UPDATE foo SET f3 = f3*2
+               ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+DELETE FROM foo
+  USING int4_tbl i
+  WHERE foo.f1 + 123455 = i.f1
+  RETURNING foo.*, i.f1 as "i.f1"
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: DELETE FROM foo
+                    ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+-- Check inheritance cases
+
+CREATE TEMP TABLE foochild (fc int) INHERITS (foo)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+INSERT INTO foochild VALUES(123,'child',999,-123)
+RESULT:
+	duckdb: Catalog Error: Table with name foochild does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+ALTER TABLE foo ADD COLUMN f4 int8 DEFAULT 99
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foochild
+RESULT:
+	duckdb: Catalog Error: Table with name foochild does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+UPDATE foo SET f4 = f4 + f3 WHERE f4 = 99 RETURNING *
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: UPDATE foo SET f4 = f4 + f3 WHERE f4 = 99 RETU...
+               ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foochild
+RESULT:
+	duckdb: Catalog Error: Table with name foochild does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+UPDATE foo SET f3 = f3*2
+  FROM int8_tbl i
+  WHERE foo.f1 = i.q2
+  RETURNING *
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: UPDATE foo SET f3 = f3*2
+               ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foochild
+RESULT:
+	duckdb: Catalog Error: Table with name foochild does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+DELETE FROM foo
+  USING int8_tbl i
+  WHERE foo.f1 = i.q2
+  RETURNING *
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: DELETE FROM foo
+                    ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foochild
+RESULT:
+	duckdb: Catalog Error: Table with name foochild does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+DROP TABLE foochild
+RESULT:
+	duckdb: Catalog Error: Table with name foochild does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+-- Rules and views
+
+CREATE TEMP VIEW voo AS SELECT f1, f2 FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 3: ...ules and views
+
+CREATE TEMP VIEW voo AS SELECT f1, f2 FROM foo
+                                                  ^
+
+-----------
+QUERY:
+CREATE RULE voo_i AS ON INSERT TO voo DO INSTEAD
+  INSERT INTO foo VALUES(new.*, 57)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RULE"
+
+-----------
+QUERY:
+INSERT INTO voo VALUES(11,'zit')
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+-- fails:
+INSERT INTO voo VALUES(12,'zoo') RETURNING *, f1*2
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+-- fails, incompatible list:
+CREATE OR REPLACE RULE voo_i AS ON INSERT TO voo DO INSTEAD
+  INSERT INTO foo VALUES(new.*, 57) RETURNING *
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RULE"
+
+-----------
+QUERY:
+CREATE OR REPLACE RULE voo_i AS ON INSERT TO voo DO INSTEAD
+  INSERT INTO foo VALUES(new.*, 57) RETURNING f1, f2
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RULE"
+
+-----------
+QUERY:
+-- should still work
+INSERT INTO voo VALUES(13,'zit2')
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+-- works now
+INSERT INTO voo VALUES(14,'zoo2') RETURNING *
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM voo
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+CREATE OR REPLACE RULE voo_u AS ON UPDATE TO voo DO INSTEAD
+  UPDATE foo SET f1 = new.f1, f2 = new.f2 WHERE f1 = old.f1
+  RETURNING f1, f2
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RULE"
+
+-----------
+QUERY:
+update voo set f1 = f1 + 1 where f2 = 'zoo2'
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+LINE 1: update voo set f1 = f1 + 1 where f2 = 'zoo2'
+               ^
+
+-----------
+QUERY:
+update voo set f1 = f1 + 1 where f2 = 'zoo2' RETURNING *, f1*2
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+LINE 1: update voo set f1 = f1 + 1 where f2 = 'zoo2' R...
+               ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM voo
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+CREATE OR REPLACE RULE voo_d AS ON DELETE TO voo DO INSTEAD
+  DELETE FROM foo WHERE f1 = old.f1
+  RETURNING f1, f2
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RULE"
+
+-----------
+QUERY:
+DELETE FROM foo WHERE f1 = 13
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: DELETE FROM foo WHERE f1 = 13
+                    ^
+
+-----------
+QUERY:
+DELETE FROM foo WHERE f2 = 'zit' RETURNING *
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+LINE 1: DELETE FROM foo WHERE f2 = 'zit' RETURNING *
+                    ^
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM voo
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+-- Try a join case
+
+CREATE TEMP TABLE joinme (f2j text, other int)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO joinme VALUES('more', 12345)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO joinme VALUES('zoo2', 54321)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO joinme VALUES('other', 0)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+CREATE TEMP VIEW joinview AS
+  SELECT foo.*, other FROM foo JOIN joinme ON (f2 = f2j)
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "joinme"?
+LINE 2:   SELECT foo.*, other FROM foo JOIN joinme ON (f2 = f2j)
+                                   ^
+
+-----------
+QUERY:
+SELECT * FROM joinview
+RESULT:
+	duckdb: Catalog Error: Table with name joinview does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+CREATE RULE joinview_u AS ON UPDATE TO joinview DO INSTEAD
+  UPDATE foo SET f1 = new.f1, f3 = new.f3
+    FROM joinme WHERE f2 = f2j AND f2 = old.f2
+    RETURNING foo.*, other
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RULE"
+
+-----------
+QUERY:
+UPDATE joinview SET f1 = f1 + 1 WHERE f3 = 57 RETURNING *, other + 1
+RESULT:
+	duckdb: Catalog Error: Table with name joinview does not exist!
+Did you mean "joinme"?
+LINE 1: UPDATE joinview SET f1 = f1 + 1 WHERE f3 = 57 ...
+               ^
+
+-----------
+QUERY:
+SELECT * FROM joinview
+RESULT:
+	duckdb: Catalog Error: Table with name joinview does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+SELECT * FROM foo
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+SELECT * FROM voo
+RESULT:
+	duckdb: Catalog Error: Table with name voo does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+-- Check aliased target relation
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING *
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+-- ok
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING foo.*
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+-- fails, wrong name
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING bar.*
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+-- ok
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING bar.f3
+RESULT:
+	duckdb: Catalog Error: Table with name foo does not exist!
+Did you mean "joinme"?
+
+-----------
+QUERY:
+-- ok
+RESULT:
+	duckdb: None

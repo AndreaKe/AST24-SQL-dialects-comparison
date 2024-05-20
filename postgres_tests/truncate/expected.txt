@@ -1,0 +1,1529 @@
+
+-----------
+QUERY:
+-- Test basic TRUNCATE functionality.
+CREATE TABLE truncate_a (col1 integer primary key);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(1,), (2,)]
+
+-----------
+QUERY:
+
+-- Roll truncate back
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(1,), (2,)]
+
+-----------
+QUERY:
+
+-- Commit the truncate this time
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+-- Test foreign-key checks
+CREATE TABLE trunc_b (a int REFERENCES truncate_a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_c (a serial PRIMARY KEY);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_d (a int REFERENCES trunc_c);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_e (a int REFERENCES truncate_a, b int REFERENCES trunc_c);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE truncate_a;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_b" references "truncate_a".
+HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE truncate_a,trunc_b;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_e" references "truncate_a".
+HINT:  Truncate table "trunc_e" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE truncate_a,trunc_b,trunc_e;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+	-- ok
+TRUNCATE TABLE truncate_a,trunc_e;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_b" references "truncate_a".
+HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_d" references "trunc_c".
+HINT:  Truncate table "trunc_d" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c,trunc_d;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_e" references "trunc_c".
+HINT:  Truncate table "trunc_e" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+	-- ok
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_b" references "truncate_a".
+HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+	-- fail
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a,trunc_b;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+	-- ok
+
+TRUNCATE TABLE truncate_a RESTRICT;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_b" references "truncate_a".
+HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+ -- fail
+TRUNCATE TABLE truncate_a CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- ok
+
+-- circular references
+ALTER TABLE truncate_a ADD FOREIGN KEY (col1) REFERENCES trunc_c;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Add some data to verify that truncating actually works ...
+INSERT INTO trunc_c VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_b VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_d VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_e VALUES (1,1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "truncate_a" references "trunc_c".
+HINT:  Truncate table "truncate_a" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_d" references "trunc_c".
+HINT:  Truncate table "trunc_d" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_e" references "trunc_c".
+HINT:  Truncate table "trunc_e" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "trunc_b" references "truncate_a".
+HINT:  Truncate table "trunc_b" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e,trunc_b;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Verify that truncating did actually work
+SELECT * FROM truncate_a
+   UNION ALL
+ SELECT * FROM trunc_c
+   UNION ALL
+ SELECT * FROM trunc_b
+   UNION ALL
+ SELECT * FROM trunc_d;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_e;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+-- Add data again to test TRUNCATE ... CASCADE
+INSERT INTO trunc_c VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_b VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_d VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_e VALUES (1,1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_c CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- ok
+
+SELECT * FROM truncate_a
+   UNION ALL
+ SELECT * FROM trunc_c
+   UNION ALL
+ SELECT * FROM trunc_b
+   UNION ALL
+ SELECT * FROM trunc_d;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_e;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+DROP TABLE truncate_a,trunc_c,trunc_b,trunc_d,trunc_e CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Test TRUNCATE with inheritance
+
+CREATE TABLE trunc_f (col1 integer primary key);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_f VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_f VALUES (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_fa (col2a text) INHERITS (trunc_f);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_fa VALUES (3, 'three');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_fb (col2b int) INHERITS (trunc_f);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_fb VALUES (4, 444);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_faa (col3 text) INHERITS (trunc_fa);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_faa VALUES (5, 'five', 'FIVE');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(1,), (2,), (3,), (4,), (5,)]
+
+-----------
+QUERY:
+
+TRUNCATE trunc_f;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(1,), (2,), (3,), (4,), (5,)]
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_f;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(3,), (4,), (5,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(1,), (2,), (3,), (4,), (5,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	postgres: [(3, 'three'), (5, 'five')]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	postgres: [(5, 'five', 'FIVE')]
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_fb, ONLY trunc_fa;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(1,), (2,), (5,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	postgres: [(5, 'five')]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	postgres: [(5, 'five', 'FIVE')]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(1,), (2,), (3,), (4,), (5,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	postgres: [(3, 'three'), (5, 'five')]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	postgres: [(5, 'five', 'FIVE')]
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_fb, trunc_fa;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	postgres: [(1,), (2,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_f CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Test ON TRUNCATE triggers
+
+CREATE TABLE trunc_trigger_test (f1 int, f2 text, f3 text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_trigger_log (tgop text, tglevel text, tgwhen text,
+        tgargv text, tgtable name, rowcount bigint);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION trunctrigger() RETURNS trigger as $$
+declare c bigint;
+begin
+    execute 'select count(*) from ' || quote_ident(tg_table_name) into c;
+    insert into trunc_trigger_log values
+      (TG_OP, TG_LEVEL, TG_WHEN, TG_ARGV[0], tg_table_name, c);
+    return null;
+end;
+$$ LANGUAGE plpgsql;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- basic before trigger
+INSERT INTO trunc_trigger_test VALUES(1, 'foo', 'bar'), (2, 'baz', 'quux');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER t
+BEFORE TRUNCATE ON trunc_trigger_test
+FOR EACH STATEMENT
+EXECUTE PROCEDURE trunctrigger('before trigger truncate');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+TRUNCATE trunc_trigger_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	postgres: [('TRUNCATE', 'STATEMENT', 'BEFORE', 'before trigger truncate', 'trunc_trigger_test', 2)]
+
+-----------
+QUERY:
+
+
+DROP TRIGGER t ON trunc_trigger_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+truncate trunc_trigger_log;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- same test with an after trigger
+INSERT INTO trunc_trigger_test VALUES(1, 'foo', 'bar'), (2, 'baz', 'quux');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER tt
+AFTER TRUNCATE ON trunc_trigger_test
+FOR EACH STATEMENT
+EXECUTE PROCEDURE trunctrigger('after trigger truncate');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+TRUNCATE trunc_trigger_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	postgres: [('TRUNCATE', 'STATEMENT', 'AFTER', 'after trigger truncate', 'trunc_trigger_test', 0)]
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_trigger_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE trunc_trigger_log;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP FUNCTION trunctrigger();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test TRUNCATE ... RESTART IDENTITY
+CREATE SEQUENCE truncate_a_id1 START WITH 33;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncate_a (id serial,
+                         id1 integer default nextval('truncate_a_id1'));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER SEQUENCE truncate_a_id1 OWNED BY truncate_a.id1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(1, 33), (2, 34)]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(3, 35), (4, 36)]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_a RESTART IDENTITY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(1, 33), (2, 34)]
+
+-----------
+QUERY:
+
+
+CREATE TABLE truncate_b (id int GENERATED ALWAYS AS IDENTITY (START WITH 44));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT:
+	postgres: [(44,), (45,)]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_b;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT:
+	postgres: [(46,), (47,)]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_b RESTART IDENTITY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT:
+	postgres: [(44,), (45,)]
+
+-----------
+QUERY:
+
+
+-- check rollback of a RESTART IDENTITY operation
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a RESTART IDENTITY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(1, 33)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	postgres: [(1, 33), (2, 34), (3, 35), (4, 36)]
+
+-----------
+QUERY:
+
+
+DROP TABLE truncate_a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT nextval('truncate_a_id1');
+RESULT:
+	postgres: relation "truncate_a_id1" does not exist
+LINE 3: SELECT nextval('truncate_a_id1');
+                       ^
+
+
+-----------
+QUERY:
+ -- fail, seq should have been dropped
+
+-- partitioned table
+CREATE TABLE truncparted (a int, b char) PARTITION BY LIST (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- error, can/* REPLACED */''t truncate a partitioned table
+TRUNCATE ONLY truncparted;
+RESULT:
+	postgres: cannot truncate only a partitioned table
+HINT:  Do not specify the ONLY keyword, or use TRUNCATE ONLY on the partitions directly.
+
+
+-----------
+QUERY:
+
+CREATE TABLE truncparted1 PARTITION OF truncparted FOR VALUES IN (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO truncparted VALUES (1, 'a');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- error, must truncate partitions
+TRUNCATE ONLY truncparted;
+RESULT:
+	postgres: cannot truncate only a partitioned table
+HINT:  Do not specify the ONLY keyword, or use TRUNCATE ONLY on the partitions directly.
+
+
+-----------
+QUERY:
+
+TRUNCATE truncparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE truncparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- foreign key on partitioned table: partition key is referencing column.
+-- Make sure truncate did execute on all tables
+CREATE FUNCTION tp_ins_data() RETURNS void LANGUAGE plpgsql AS $$
+  BEGIN
+	INSERT INTO truncprim VALUES (1), (100), (150);
+	INSERT INTO truncpart VALUES (1), (100), (150);
+  END
+$$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE FUNCTION tp_chk_data(OUT pktb regclass, OUT pkval int, OUT fktb regclass, OUT fkval int)
+  RETURNS SETOF record LANGUAGE plpgsql AS $$
+  BEGIN
+    RETURN QUERY SELECT
+      pk.tableoid::regclass, pk.a, fk.tableoid::regclass, fk.a
+    FROM truncprim pk FULL JOIN truncpart fk USING (a)
+    ORDER BY 2, 4;
+  END
+$$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncprim (a int PRIMARY KEY);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart (a int REFERENCES truncprim)
+  PARTITION BY RANGE (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_1 PARTITION OF truncpart FOR VALUES FROM (0) TO (100);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2 PARTITION OF truncpart FOR VALUES FROM (100) TO (200)
+  PARTITION BY RANGE (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2_1 PARTITION OF truncpart_2 FOR VALUES FROM (100) TO (150);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2_d PARTITION OF truncpart_2 DEFAULT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE truncprim;
+RESULT:
+	postgres: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "truncpart" references "truncprim".
+HINT:  Truncate table "truncpart" at the same time, or use TRUNCATE ... CASCADE.
+
+
+-----------
+QUERY:
+	-- should fail
+
+select tp_ins_data();
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+-- should truncate everything
+TRUNCATE TABLE truncprim, truncpart;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from tp_chk_data();
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select tp_ins_data();
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+-- should truncate everything
+TRUNCATE TABLE truncprim CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM tp_chk_data();
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+SELECT tp_ins_data();
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+-- should truncate all partitions
+TRUNCATE TABLE truncpart;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM tp_chk_data();
+RESULT:
+	postgres: [('truncprim', 1, None, None), ('truncprim', 100, None, None), ('truncprim', 150, None, None)]
+
+-----------
+QUERY:
+
+DROP TABLE truncprim, truncpart;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP FUNCTION tp_ins_data(), tp_chk_data();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test cascade when referencing a partitioned table
+CREATE TABLE trunc_a (a INT PRIMARY KEY) PARTITION BY RANGE (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a1 PARTITION OF trunc_a FOR VALUES FROM (0) TO (10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a2 PARTITION OF trunc_a FOR VALUES FROM (10) TO (20)
+  PARTITION BY RANGE (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a21 PARTITION OF trunc_a2 FOR VALUES FROM (10) TO (12);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a22 PARTITION OF trunc_a2 FOR VALUES FROM (12) TO (16);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a2d PARTITION OF trunc_a2 DEFAULT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a3 PARTITION OF trunc_a FOR VALUES FROM (20) TO (30);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trunc_a VALUES (0), (5), (10), (15), (20), (25);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- truncate a partition cascading to a table
+CREATE TABLE ref_b (
+    b INT PRIMARY KEY,
+    a INT REFERENCES trunc_a(a) ON DELETE CASCADE
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO ref_b VALUES (10, 0), (50, 5), (100, 10), (150, 15);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_a1 CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a FROM ref_b;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+DROP TABLE ref_b;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- truncate a partition cascading to a partitioned table
+CREATE TABLE ref_c (
+    c INT PRIMARY KEY,
+    a INT REFERENCES trunc_a(a) ON DELETE CASCADE
+) PARTITION BY RANGE (c);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE ref_c1 PARTITION OF ref_c FOR VALUES FROM (100) TO (200);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE ref_c2 PARTITION OF ref_c FOR VALUES FROM (200) TO (300);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO ref_c VALUES (100, 10), (150, 15), (200, 20), (250, 25);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_a21 CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a as "from table ref_c" FROM ref_c;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT a as "from table trunc_a" FROM trunc_a ORDER BY a;
+RESULT:
+	postgres: [(15,), (20,), (25,)]
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_a, ref_c;
+RESULT:
+	postgres: None

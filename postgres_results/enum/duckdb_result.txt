@@ -1,0 +1,1415 @@
+
+-----------
+QUERY:
+--
+-- Enum tests
+--
+
+CREATE TYPE rainbow AS ENUM ('red', 'orange', 'yellow', 'green', 'blue', 'purple');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Did it create the right number of rows?
+--
+SELECT COUNT(*) FROM pg_enum WHERE enumtypid = 'rainbow'::regtype;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+--
+-- I/O functions
+--
+SELECT 'red'::rainbow;
+RESULT:
+	[('red',)]
+
+-----------
+QUERY:
+
+SELECT 'mauve'::rainbow;
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'mauve' to UINT8
+
+-----------
+QUERY:
+
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('red', 'rainbow');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('mauve', 'rainbow');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('mauve', 'rainbow');
+RESULT:
+	ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
+
+\x
+SELECT * FROM pg_input_error_info(repeat('too_long', 32), 'rainbow');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+\x
+
+--
+-- adding new values
+--
+
+CREATE TYPE planets AS ENUM ( 'venus', 'earth', 'mars' );
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+
+SELECT enumlabel, enumsortorder
+FROM pg_enum
+WHERE enumtypid = 'planets'::regtype
+ORDER BY 2;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+ALTER TYPE planets ADD VALUE 'uranus';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+SELECT enumlabel, enumsortorder
+FROM pg_enum
+WHERE enumtypid = 'planets'::regtype
+ORDER BY 2;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+ALTER TYPE planets ADD VALUE 'mercury' BEFORE 'venus';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+ALTER TYPE planets ADD VALUE 'saturn' BEFORE 'uranus';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+ALTER TYPE planets ADD VALUE 'jupiter' AFTER 'mars';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+ALTER TYPE planets ADD VALUE 'neptune' AFTER 'uranus';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+SELECT enumlabel, enumsortorder
+FROM pg_enum
+WHERE enumtypid = 'planets'::regtype
+ORDER BY 2;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+SELECT enumlabel, enumsortorder
+FROM pg_enum
+WHERE enumtypid = 'planets'::regtype
+ORDER BY enumlabel::planets;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+-- errors for adding labels
+ALTER TYPE planets ADD VALUE
+  'plutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutopluto';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+ALTER TYPE planets ADD VALUE 'pluto' AFTER 'zeus';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+-- if not exists tests
+
+--  existing value gives error
+ALTER TYPE planets ADD VALUE 'mercury';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+-- unless IF NOT EXISTS is specified
+ALTER TYPE planets ADD VALUE IF NOT EXISTS 'mercury';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+-- should be neptune, not mercury
+SELECT enum_last(NULL::planets);
+RESULT:
+	ERROR - Catalog Error: Type with name planets does not exist!
+Did you mean "float"?
+
+-----------
+QUERY:
+
+
+ALTER TYPE planets ADD VALUE IF NOT EXISTS 'pluto';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+-- should be pluto, i.e. the new value
+SELECT enum_last(NULL::planets);
+RESULT:
+	ERROR - Catalog Error: Type with name planets does not exist!
+Did you mean "float"?
+
+-----------
+QUERY:
+
+
+--
+-- Test inserting so many values that we have to renumber
+--
+
+create type insenum as enum ('L1', 'L2');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+alter type insenum add value 'i1' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i2' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i3' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i4' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i5' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i6' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i7' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i8' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i9' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i10' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i11' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i12' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i13' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i14' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i15' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i16' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i17' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i18' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i19' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i20' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i21' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i22' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i23' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i24' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i25' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i26' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i27' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i28' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i29' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+alter type insenum add value 'i30' before 'L2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "type"
+
+-----------
+QUERY:
+
+
+-- The exact values of enumsortorder will now depend on the local properties
+-- of float4, but in any reasonable implementation we should get at least
+-- 20 splits before having to renumber /* REPLACED */, so only hide values > 20.
+
+SELECT enumlabel,
+       case when enumsortorder > 20 then null else enumsortorder end as so
+FROM pg_enum
+WHERE enumtypid = 'insenum'::regtype
+ORDER BY enumsortorder;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+--
+-- Basic table creation, row selection
+--
+CREATE TABLE enumtest (col rainbow);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO enumtest values ('red'), ('orange'), ('yellow'), ('green');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY enumtest FROM stdin;
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+blue
+purple
+\.
+SELECT * FROM enumtest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "blue"
+
+-----------
+QUERY:
+
+
+--
+-- Operators, no index
+--
+SELECT * FROM enumtest WHERE col = 'orange';
+RESULT:
+	[('orange',)]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
+RESULT:
+	[('red',), ('yellow',), ('green',)]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col >= 'yellow' ORDER BY col;
+RESULT:
+	[('yellow',)]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col < 'green' ORDER BY col;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col <= 'green' ORDER BY col;
+RESULT:
+	[('green',)]
+
+-----------
+QUERY:
+
+
+--
+-- Cast to/from text
+--
+SELECT 'red'::rainbow::text || 'hithere';
+RESULT:
+	[('redhithere',)]
+
+-----------
+QUERY:
+
+SELECT 'red'::text::rainbow = 'red'::rainbow;
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+--
+-- Aggregates
+--
+SELECT min(col) FROM enumtest;
+RESULT:
+	[('red',)]
+
+-----------
+QUERY:
+
+SELECT max(col) FROM enumtest;
+RESULT:
+	[('green',)]
+
+-----------
+QUERY:
+
+SELECT max(col) FROM enumtest WHERE col < 'green';
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+--
+-- Index tests, force use of index
+--
+SET enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+SET enable_bitmapscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+
+--
+-- Btree index / opclass with the various operators
+--
+CREATE UNIQUE INDEX enumtest_btree ON enumtest USING btree (col);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BTREE
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col = 'orange';
+RESULT:
+	[('orange',)]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
+RESULT:
+	[('red',), ('yellow',), ('green',)]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col >= 'yellow' ORDER BY col;
+RESULT:
+	[('yellow',)]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col < 'green' ORDER BY col;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col <= 'green' ORDER BY col;
+RESULT:
+	[('green',)]
+
+-----------
+QUERY:
+
+SELECT min(col) FROM enumtest;
+RESULT:
+	[('red',)]
+
+-----------
+QUERY:
+
+SELECT max(col) FROM enumtest;
+RESULT:
+	[('green',)]
+
+-----------
+QUERY:
+
+SELECT max(col) FROM enumtest WHERE col < 'green';
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+DROP INDEX enumtest_btree;
+RESULT:
+	ERROR - Catalog Error: Index with name enumtest_btree does not exist!
+Did you mean "concur_reindex_ind1"?
+
+-----------
+QUERY:
+
+
+--
+-- Hash index / opclass with the = operator
+--
+CREATE INDEX enumtest_hash ON enumtest USING hash (col);
+RESULT:
+	ERROR - Binder Error: Unknown index type: HASH
+
+-----------
+QUERY:
+
+SELECT * FROM enumtest WHERE col = 'orange';
+RESULT:
+	[('orange',)]
+
+-----------
+QUERY:
+
+DROP INDEX enumtest_hash;
+RESULT:
+	ERROR - Catalog Error: Index with name enumtest_hash does not exist!
+Did you mean "concur_temp_ind_1"?
+
+-----------
+QUERY:
+
+
+--
+-- End index tests
+--
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+
+--
+-- Domains over enums
+--
+CREATE DOMAIN rgb AS rainbow CHECK (VALUE IN ('red', 'green', 'blue'));
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
+
+-----------
+QUERY:
+
+SELECT 'red'::rgb;
+RESULT:
+	ERROR - Catalog Error: Type with name rgb does not exist!
+Did you mean "bit"?
+
+-----------
+QUERY:
+
+SELECT 'purple'::rgb;
+RESULT:
+	ERROR - Catalog Error: Type with name rgb does not exist!
+Did you mean "bit"?
+
+-----------
+QUERY:
+
+SELECT 'purple'::rainbow::rgb;
+RESULT:
+	ERROR - Catalog Error: Type with name rgb does not exist!
+Did you mean "bit"?
+
+-----------
+QUERY:
+
+DROP DOMAIN rgb;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
+
+-----------
+QUERY:
+
+
+--
+-- Arrays
+--
+SELECT '{red,green,blue}'::rainbow[];
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{red,green,blue}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
+
+SELECT ('{red,green,blue}'::rainbow[])[2];
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{red,green,blue}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
+
+SELECT 'red' = ANY ('{red,green,blue}'::rainbow[]);
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{red,green,blue}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
+
+SELECT 'yellow' = ANY ('{red,green,blue}'::rainbow[]);
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{red,green,blue}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
+
+SELECT 'red' = ALL ('{red,green,blue}'::rainbow[]);
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{red,green,blue}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
+
+SELECT 'red' = ALL ('{red,red}'::rainbow[]);
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{red,red}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
+
+
+--
+-- Support functions
+--
+SELECT enum_first(NULL::rainbow);
+RESULT:
+	[('red',)]
+
+-----------
+QUERY:
+
+SELECT enum_last('green'::rainbow);
+RESULT:
+	[('purple',)]
+
+-----------
+QUERY:
+
+SELECT enum_range(NULL::rainbow);
+RESULT:
+	[(['red', 'orange', 'yellow', 'green', 'blue', 'purple'],)]
+
+-----------
+QUERY:
+
+SELECT enum_range('orange'::rainbow, 'green'::rainbow);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'enum_range(ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple'), ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple'))'. You might need to add explicit type casts.
+	Candidate functions:
+	enum_range(ANY) -> VARCHAR[]
+
+
+-----------
+QUERY:
+
+SELECT enum_range(NULL, 'green'::rainbow);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'enum_range(NULL, ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple'))'. You might need to add explicit type casts.
+	Candidate functions:
+	enum_range(ANY) -> VARCHAR[]
+
+
+-----------
+QUERY:
+
+SELECT enum_range('orange'::rainbow, NULL);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'enum_range(ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple'), NULL)'. You might need to add explicit type casts.
+	Candidate functions:
+	enum_range(ANY) -> VARCHAR[]
+
+
+-----------
+QUERY:
+
+SELECT enum_range(NULL::rainbow, NULL);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'enum_range(ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple'), NULL)'. You might need to add explicit type casts.
+	Candidate functions:
+	enum_range(ANY) -> VARCHAR[]
+
+
+-----------
+QUERY:
+
+
+--
+-- User functions, can/* REPLACED */''t test perl/python etc here since may not be compiled.
+--
+CREATE FUNCTION echo_me(anyenum) RETURNS text AS $$
+BEGIN
+RETURN $1::text || 'omg';
+END
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+SELECT echo_me('red'::rainbow);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name echo_me does not exist!
+Did you mean "decode"?
+
+-----------
+QUERY:
+
+--
+-- Concrete function should override generic one
+--
+CREATE FUNCTION echo_me(rainbow) RETURNS text AS $$
+BEGIN
+RETURN $1::text || 'wtf';
+END
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+SELECT echo_me('red'::rainbow);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name echo_me does not exist!
+Did you mean "decode"?
+
+-----------
+QUERY:
+
+--
+-- If we drop the original generic one, we don/* REPLACED */''t have to qualify the type
+-- anymore, since there/* REPLACED */''s only one match
+--
+DROP FUNCTION echo_me(anyenum);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT echo_me('red');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name echo_me does not exist!
+Did you mean "decode"?
+
+-----------
+QUERY:
+
+DROP FUNCTION echo_me(rainbow);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+--
+-- RI triggers on enum types
+--
+CREATE TABLE enumtest_parent (id rainbow PRIMARY KEY);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE enumtest_child (parent rainbow REFERENCES enumtest_parent);
+RESULT:
+	ERROR - Binder Error: Failed to create foreign key: incompatible types between column "id" ("ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple')") and column "parent" ("rainbow")
+
+-----------
+QUERY:
+
+INSERT INTO enumtest_parent VALUES ('red');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO enumtest_child VALUES ('red');
+RESULT:
+	ERROR - Catalog Error: Table with name enumtest_child does not exist!
+Did you mean "enumtest"?
+
+-----------
+QUERY:
+
+INSERT INTO enumtest_child VALUES ('blue');
+RESULT:
+	ERROR - Catalog Error: Table with name enumtest_child does not exist!
+Did you mean "enumtest"?
+
+-----------
+QUERY:
+  -- fail
+DELETE FROM enumtest_parent;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- fail
+--
+-- cross-type RI should fail
+--
+CREATE TYPE bogus AS ENUM('good', 'bad', 'ugly');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE enumtest_bogus_child(parent bogus REFERENCES enumtest_parent);
+RESULT:
+	ERROR - Binder Error: Failed to create foreign key: incompatible types between column "id" ("ENUM('red', 'orange', 'yellow', 'green', 'blue', 'purple')") and column "parent" ("bogus")
+
+-----------
+QUERY:
+
+DROP TYPE bogus;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check renaming a value
+ALTER TYPE rainbow RENAME VALUE 'red' TO 'crimson';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+SELECT enumlabel, enumsortorder
+FROM pg_enum
+WHERE enumtypid = 'rainbow'::regtype
+ORDER BY 2;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+-- check that renaming a non-existent value fails
+ALTER TYPE rainbow RENAME VALUE 'red' TO 'crimson';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+-- check that renaming to an existent value fails
+ALTER TYPE rainbow RENAME VALUE 'blue' TO 'green';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+
+--
+-- check transactional behaviour of ALTER TYPE ... ADD VALUE
+--
+CREATE TYPE bogus AS ENUM('good');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check that we can add new values to existing enums in a transaction
+-- but we can/* REPLACED */''t use them
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TYPE bogus ADD VALUE 'new';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+SAVEPOINT x;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+SELECT 'new'::bogus;
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'new' to UINT8
+
+-----------
+QUERY:
+  -- unsafe
+ROLLBACK TO x;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
+
+SELECT enum_first(null::bogus);
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+  -- safe
+SELECT enum_last(null::bogus);
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+  -- unsafe
+ROLLBACK TO x;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
+
+SELECT enum_range(null::bogus);
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+  -- unsafe
+ROLLBACK TO x;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT 'new'::bogus;
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'new' to UINT8
+
+-----------
+QUERY:
+  -- now safe
+SELECT enumlabel, enumsortorder
+FROM pg_enum
+WHERE enumtypid = 'bogus'::regtype
+ORDER BY 2;
+RESULT:
+	ERROR - Catalog Error: Type with name regtype does not exist!
+Did you mean "date"?
+
+-----------
+QUERY:
+
+
+-- check that we recognize the case where the enum already existed but was
+-- modified in the current txn /* REPLACED */, this should not be considered safe
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TYPE bogus RENAME TO bogon;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+ALTER TYPE bogon ADD VALUE 'bad';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+SELECT 'bad'::bogon;
+RESULT:
+	ERROR - Catalog Error: Type with name bogon does not exist!
+Did you mean "bool"?
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- but a renamed value is safe to use later in same transaction
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TYPE bogus RENAME VALUE 'good' to 'bad';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+SELECT 'bad'::bogus;
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'bad' to UINT8
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TYPE bogus;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check that values created during CREATE TYPE can be used in any case
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TYPE bogus AS ENUM('good','bad','ugly');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TYPE bogus RENAME TO bogon;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+select enum_range(null::bogon);
+RESULT:
+	ERROR - Catalog Error: Type with name bogon does not exist!
+Did you mean "bool"?
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- ideally, we/* REPLACED */''d allow this usage /* REPLACED */, but it requires keeping track of whether
+-- the enum type was created in the current transaction, which is expensive
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TYPE bogus AS ENUM('good');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TYPE bogus RENAME TO bogon;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+ALTER TYPE bogon ADD VALUE 'bad';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+ALTER TYPE bogon ADD VALUE 'ugly';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TYPE"
+
+-----------
+QUERY:
+
+select enum_range(null::bogon);
+RESULT:
+	ERROR - Catalog Error: Type with name bogon does not exist!
+Did you mean "bool"?
+
+-----------
+QUERY:
+  -- fails
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Cleanup
+--
+DROP TABLE enumtest_child;
+RESULT:
+	ERROR - Catalog Error: Table with name enumtest_child does not exist!
+Did you mean "enumtest"?
+
+-----------
+QUERY:
+
+DROP TABLE enumtest_parent;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE enumtest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TYPE rainbow;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Verify properly cleaned up
+--
+SELECT COUNT(*) FROM pg_type WHERE typname = 'rainbow';
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_enum WHERE NOT EXISTS
+  (SELECT 1 FROM pg_type WHERE pg_type.oid = enumtypid);
+RESULT:
+	[]

@@ -1,0 +1,1648 @@
+
+-----------
+QUERY:
+--
+-- SP-GiST index tests
+--
+
+CREATE TABLE quad_point_tbl AS
+    SELECT point(unique1,unique2) AS p FROM tenk1;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+INSERT INTO quad_point_tbl
+    SELECT '(333.0,400.0)'::point FROM generate_series(1,1000);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::point FROM generate_series(1,1000)' at line 2")
+
+-----------
+QUERY:
+
+
+INSERT INTO quad_point_tbl VALUES (NULL), (NULL), (NULL);
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE INDEX sp_quad_ind ON quad_point_tbl USING spgist (p);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING spgist (p)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE kd_point_tbl AS SELECT * FROM quad_point_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE INDEX sp_kd_ind ON kd_point_tbl USING spgist (p kd_point_ops);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING spgist (p kd_point_ops)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE radix_text_tbl AS
+    SELECT name AS t FROM road WHERE name !~ '^[0-9]';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!~ '^[0-9]'' at line 2")
+
+-----------
+QUERY:
+
+
+INSERT INTO radix_text_tbl
+    SELECT 'P0123456789abcdef' FROM generate_series(1,1000);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,1000)' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO radix_text_tbl VALUES ('P0123456789abcde');
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO radix_text_tbl VALUES ('P0123456789abcdefF');
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE INDEX sp_radix_ind ON radix_text_tbl USING spgist (t);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING spgist (t)' at line 1")
+
+-----------
+QUERY:
+
+
+-- get non-indexed results for comparison purposes
+
+SET enable_seqscan = ON;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+SET enable_indexscan = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+SET enable_bitmapscan = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_bitmapscan'")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'box '(200,200,1000,1000)'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''(200,200,1000,1000)' @> p' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE quad_point_tbl_ord_seq1 AS
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM quad_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE quad_point_tbl_ord_seq1 AS\nSELECT row_number() OVER (ORDER BY p <-> '' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE quad_point_tbl_ord_seq2 AS
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE quad_point_tbl_ord_seq2 AS\nSELECT row_number() OVER (ORDER BY p <-> '' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE quad_point_tbl_ord_seq3 AS
+SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
+FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE quad_point_tbl_ord_seq3 AS\nSELECT row_number() OVER (ORDER BY p <-> '' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~<~  'Aztec                         Ct  '' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~<=~ 'Aztec                         Ct  '' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~>=~ 'Worth                         St  '' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~>~  'Worth                         St  '' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM radix_text_tbl WHERE t ^@  'Worth';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''Worth'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Now check the results from plain indexscan
+SET enable_seqscan = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+SET enable_indexscan = ON;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+SET enable_bitmapscan = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_bitmapscan'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p IS NULL' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,100' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'box '(200,200,1000,1000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''(200,200,1000,1000)' @> p' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM quad_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, ' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE quad_point_tbl_ord_idx1 AS
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM quad_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE quad_point_tbl_ord_idx1 AS\nSELECT row_number() OVER (ORDER BY p <-> '' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM quad_point_tbl_ord_seq1 seq FULL JOIN quad_point_tbl_ord_idx1 idx
+ON seq.n = idx.n
+WHERE seq.dist IS DISTINCT FROM idx.dist;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN quad_point_tbl_ord_idx1 idx\nON seq.n = idx.n\nWHERE seq.dist IS DISTINC' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, ' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE quad_point_tbl_ord_idx2 AS
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE quad_point_tbl_ord_idx2 AS\nSELECT row_number() OVER (ORDER BY p <-> '' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM quad_point_tbl_ord_seq2 seq FULL JOIN quad_point_tbl_ord_idx2 idx
+ON seq.n = idx.n
+WHERE seq.dist IS DISTINCT FROM idx.dist;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN quad_point_tbl_ord_idx2 idx\nON seq.n = idx.n\nWHERE seq.dist IS DISTINC' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
+FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE quad_point_tbl_ord_idx3 AS
+SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
+FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE quad_point_tbl_ord_idx3 AS\nSELECT row_number() OVER (ORDER BY p <-> '' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM quad_point_tbl_ord_seq3 seq FULL JOIN quad_point_tbl_ord_idx3 idx
+ON seq.n = idx.n
+WHERE seq.dist IS DISTINCT FROM idx.dist;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN quad_point_tbl_ord_idx3 idx\nON seq.n = idx.n\nWHERE seq.dist IS DISTINC' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'box '(200,200,1000,1000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''(200,200,1000,1000)' @> p' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.kd_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.kd_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM kd_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, ' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE kd_point_tbl_ord_idx1 AS
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM kd_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE kd_point_tbl_ord_idx1 AS\nSELECT row_number() OVER (ORDER BY p <-> '0,' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM quad_point_tbl_ord_seq1 seq FULL JOIN kd_point_tbl_ord_idx1 idx
+ON seq.n = idx.n
+WHERE seq.dist IS DISTINCT FROM idx.dist;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN kd_point_tbl_ord_idx1 idx\nON seq.n = idx.n\nWHERE seq.dist IS DISTINCT ' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, ' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE kd_point_tbl_ord_idx2 AS
+SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
+FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE kd_point_tbl_ord_idx2 AS\nSELECT row_number() OVER (ORDER BY p <-> '0,' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM quad_point_tbl_ord_seq2 seq FULL JOIN kd_point_tbl_ord_idx2 idx
+ON seq.n = idx.n
+WHERE seq.dist IS DISTINCT FROM idx.dist;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN kd_point_tbl_ord_idx2 idx\nON seq.n = idx.n\nWHERE seq.dist IS DISTINCT ' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
+FROM kd_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE kd_point_tbl_ord_idx3 AS
+SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
+FROM kd_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE kd_point_tbl_ord_idx3 AS\nSELECT row_number() OVER (ORDER BY p <-> '33' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM quad_point_tbl_ord_seq3 seq FULL JOIN kd_point_tbl_ord_idx3 idx
+ON seq.n = idx.n
+WHERE seq.dist IS DISTINCT FROM idx.dist;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN kd_point_tbl_ord_idx3 idx\nON seq.n = idx.n\nWHERE seq.dist IS DISTINCT ' at line 1")
+
+-----------
+QUERY:
+
+
+-- test KNN scan with included columns
+-- the distance numbers are not exactly the same across platforms
+SET extra_float_digits = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'extra_float_digits'")
+
+-----------
+QUERY:
+
+CREATE INDEX ON quad_point_tbl_ord_seq1 USING spgist(p) INCLUDE(dist);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON quad_point_tbl_ord_seq1 USING spgist(p) INCLUDE(dist)' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF)
+SELECT p, dist FROM quad_point_tbl_ord_seq1 ORDER BY p <-> '0,0' LIMIT 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT p, dist FROM quad_point_tbl_ord_seq1 ORDER BY p <-> '0,0' LIMI' at line 1")
+
+-----------
+QUERY:
+
+SELECT p, dist FROM quad_point_tbl_ord_seq1 ORDER BY p <-> '0,0' LIMIT 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> '0,0' LIMIT 10' at line 1")
+
+-----------
+QUERY:
+
+RESET extra_float_digits;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'extra_float_digits' at line 1")
+
+-----------
+QUERY:
+
+
+-- check ORDER BY distance to NULL
+SELECT (SELECT p FROM kd_point_tbl ORDER BY p <-> pt, p <-> '0,0' LIMIT 1)
+FROM (VALUES (point '1,2'), (NULL), ('1234,5678')) pts(pt);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> pt, p <-> '0,0' LIMIT 1)\nFROM (VALUES (point '1,2'), (NULL), ('1234,5678')) p' at line 2")
+
+-----------
+QUERY:
+
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~<~  'Aztec                         Ct  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~<=~ 'Aztec                         Ct  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t =    'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~>=~ 'Worth                         St  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t >    'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~>~  'Worth                         St  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ^@\t 'Worth'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''Worth'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE starts_with(t, 'Worth');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE starts_with(t, 'Worth')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE starts_with(t, 'Worth');
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Now check the results from bitmap indexscan
+SET enable_seqscan = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+SET enable_indexscan = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+SET enable_bitmapscan = ON;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_bitmapscan'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p IS NULL' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,100' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'box '(200,200,1000,1000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''(200,200,1000,1000)' @> p' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.quad_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'box '(200,200,1000,1000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''(200,200,1000,1000)' @> p' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.kd_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
+RESULT:
+	ERROR - (1146, "Table 'test.kd_point_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '| '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '>> '(5000, 4000)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~= '(4585, 365)'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~<~  'Aztec                         Ct  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~<=~ 'Aztec                         Ct  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t =    'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~>=~ 'Worth                         St  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t >    'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth              ' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~>~  'Worth                         St  '' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE t ^@\t 'Worth'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''Worth'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM radix_text_tbl WHERE starts_with(t, 'Worth');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM radix_text_tbl WHERE starts_with(t, 'Worth')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM radix_text_tbl WHERE starts_with(t, 'Worth');
+RESULT:
+	ERROR - (1146, "Table 'test.radix_text_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+RESET enable_indexscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_indexscan' at line 1")
+
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_bitmapscan' at line 1")

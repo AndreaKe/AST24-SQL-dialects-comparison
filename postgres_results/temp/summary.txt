@@ -1,0 +1,910 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- TEMP
+-- Test temp relations and indexes
+--
+
+-- test temp table/index masking
+
+CREATE TABLE temptest(col int)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX i_temptest ON temptest(col)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(tcol int)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX i_temptest ON temptest(tcol)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP INDEX i_temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP INDEX i_temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- test temp table selects
+
+CREATE TABLE temptest(col int)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(tcol float)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (2.1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: DIFFERENT']
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- test temp table deletion
+
+CREATE TEMP TABLE temptest(col int)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+\c
+
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Test ON COMMIT DELETE ROWS
+
+CREATE TEMP TABLE temptest(col int) ON COMMIT DELETE ROWS
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- while we/* REPLACED */''re here, verify successful truncation of index with SQL function
+CREATE INDEX ON temptest(bit_length(''))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (2)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(col) ON COMMIT DELETE ROWS AS SELECT 1
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test ON COMMIT DROP
+
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(col int) ON COMMIT DROP
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(col) ON COMMIT DROP AS SELECT 1
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Test it with a CHECK condition that produces a toasted pg_constraint entry
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+do $$
+begin
+  execute format($cmd$
+    CREATE TEMP TABLE temptest (col text CHECK (col < %L)) ON COMMIT DROP
+  $cmd$,
+    (SELECT string_agg(g.i::text || ':' || random()::text, '|')
+     FROM generate_series(1, 100) g(i)));
+end$$
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- ON COMMIT is only allowed for TEMP
+
+CREATE TABLE temptest(col int) ON COMMIT DELETE ROWS
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE TABLE temptest(col) ON COMMIT DELETE ROWS AS SELECT 1
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Test foreign keys
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest1(col int PRIMARY KEY)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest2(col int REFERENCES temptest1)
+  ON COMMIT DELETE ROWS
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+INSERT INTO temptest1 VALUES (1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+INSERT INTO temptest2 VALUES (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest1
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT * FROM temptest2
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest3(col int PRIMARY KEY) ON COMMIT DELETE ROWS
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest4(col int REFERENCES temptest3)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+COMMIT
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test manipulation of temp schema/* REPLACED */''s placement in search path
+
+create table public.whereami (f1 text)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into public.whereami values ('public')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table whereami (f1 text)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+insert into whereami values ('temp')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create function public.whoami() returns text
+  as $$select 'public'::text$$ language sql
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create function pg_temp.whoami() returns text
+  as $$select 'temp'::text$$ language sql
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- default should have pg_temp implicitly first, but only for tables
+select * from whereami
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+select whoami()
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- can list temp first explicitly, but it still doesn/* REPLACED */''t affect functions
+set search_path = pg_temp, public
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from whereami
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+select whoami()
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- or put it last for security
+set search_path = public, pg_temp
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from whereami
+RESULT: ['duckdb: DIFFERENT']
+
+-----------
+QUERY:
+select whoami()
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- you can invoke a temp function explicitly, though
+select pg_temp.whoami()
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table public.whereami
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- types in temp schema
+set search_path = pg_temp, public
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create domain pg_temp.nonempty as text check (value <> '')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- function-syntax invocation of types matches rules for functions
+select nonempty('')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+select pg_temp.nonempty('')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- other syntax matches rules for tables
+select ''::nonempty
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+reset search_path
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- For partitioned temp tables, ON COMMIT actions ignore storage-less
+-- partitioned tables.
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit (a int)
+  partition by list (a) on commit delete rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_1
+  partition of temp_parted_oncommit
+  for values in (1) on commit delete rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into temp_parted_oncommit values (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+commit
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- partitions are emptied by the previous commit
+select * from temp_parted_oncommit
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table temp_parted_oncommit
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Check dependencies between ON COMMIT actions with a partitioned
+-- table and its partitions.  Using ON COMMIT DROP on a parent removes
+-- the whole set.
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test (a int)
+  partition by list (a) on commit drop
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test1
+  partition of temp_parted_oncommit_test
+  for values in (1) on commit delete rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test2
+  partition of temp_parted_oncommit_test
+  for values in (2) on commit drop
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into temp_parted_oncommit_test values (1), (2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+commit
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- no relations remain in this case.
+select relname from pg_class where relname ~ '^temp_parted_oncommit_test'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Using ON COMMIT DELETE on a partitioned table does not remove
+-- all rows if partitions preserve their data.
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test (a int)
+  partition by list (a) on commit delete rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test1
+  partition of temp_parted_oncommit_test
+  for values in (1) on commit preserve rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test2
+  partition of temp_parted_oncommit_test
+  for values in (2) on commit drop
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into temp_parted_oncommit_test values (1), (2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+commit
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Data from the remaining partition is still here as its rows are
+-- preserved.
+select * from temp_parted_oncommit_test
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- two relations remain in this case.
+select relname from pg_class where relname ~ '^temp_parted_oncommit_test'
+  order by relname
+RESULT: ['duckdb: DIFFERENT']
+
+-----------
+QUERY:
+drop table temp_parted_oncommit_test
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Check dependencies between ON COMMIT actions with inheritance trees.
+-- Using ON COMMIT DROP on a parent removes the whole set.
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test (a int) on commit drop
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test1 ()
+  inherits(temp_inh_oncommit_test) on commit delete rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into temp_inh_oncommit_test1 values (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+commit
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- no relations remain in this case
+select relname from pg_class where relname ~ '^temp_inh_oncommit_test'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Data on the parent is removed, and the child goes away.
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test (a int) on commit delete rows
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test1 ()
+  inherits(temp_inh_oncommit_test) on commit drop
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into temp_inh_oncommit_test1 values (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into temp_inh_oncommit_test values (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+commit
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+select * from temp_inh_oncommit_test
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- one relation remains
+select relname from pg_class where relname ~ '^temp_inh_oncommit_test'
+RESULT: ['duckdb: DIFFERENT']
+
+-----------
+QUERY:
+drop table temp_inh_oncommit_test
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Tests with two-phase commit
+-- Transactions creating objects in a temporary namespace cannot be used
+-- with two-phase commit.
+
+-- These cases generate errors about temporary namespace.
+-- Function creation
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+create function pg_temp.twophase_func() returns void as
+  $$ select '2pc_func'::text $$ language sql
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_func'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Function drop
+create function pg_temp.twophase_func() returns void as
+  $$ select '2pc_func'::text $$ language sql
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop function pg_temp.twophase_func()
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_func'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Operator creation
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create operator pg_temp.@@ (leftarg = int4, rightarg = int4, procedure = int4mi)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_operator'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- These generate errors about temporary tables.
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create type pg_temp.twophase_type as (a int)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_type'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create view pg_temp.twophase_view as select 1
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_view'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create sequence pg_temp.twophase_seq
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_sequence'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Temporary tables cannot be used with two-phase commit.
+create temp table twophase_tab (a int)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select a from twophase_tab
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into twophase_tab values (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+lock twophase_tab in access exclusive mode
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+begin
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table twophase_tab
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Corner case: current_schema may create a temporary schema if namespace
+-- creation is pending, so check after that.  First reset the connection
+-- to remove the temporary namespace.
+\c -
+SET search_path TO 'pg_temp'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+BEGIN
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT current_schema() ~ 'pg_temp' AS is_temp_schema
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+PREPARE TRANSACTION 'twophase_search'
+RESULT: ['duckdb: SAME']
+=========================================
+Summary for test case temp/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 78 queries, which is 48.15%
+DIFFERENT: 4 queries, which is 2.47%
+ERROR: 80 queries, which is 49.38%
+Guest results are identical to expected results

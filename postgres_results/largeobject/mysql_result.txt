@@ -1,0 +1,1190 @@
+
+-----------
+QUERY:
+--
+-- Test large object support
+--
+
+-- directory paths are passed to us in environment variables
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+
+-- ensure consistent test output regardless of the default bytea format
+SET bytea_output TO escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO escape' at line 10")
+
+-----------
+QUERY:
+
+
+-- Test ALTER LARGE OBJECT OWNER
+CREATE ROLE regress_lo_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_create(42);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_create does not exist')
+
+-----------
+QUERY:
+
+ALTER LARGE OBJECT 42 OWNER TO regress_lo_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LARGE OBJECT 42 OWNER TO regress_lo_user' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test GRANT, COMMENT as non-superuser
+SET SESSION AUTHORIZATION regress_lo_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_lo_user' at line 2")
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON LARGE OBJECT 42 TO public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OBJECT 42 TO public' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON LARGE OBJECT 42 IS 'the ultimate answer';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON LARGE OBJECT 42 IS 'the ultimate answer'' at line 1")
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test psql/* REPLACED */''s \lo_list et al (we assume no other LOs exist yet)
+\lo_list
+\lo_list+
+\lo_unlink 42
+-- \dl
+
+-- Load a file
+CREATE TABLE lotest_stash_values (loid oid, fd integer);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\lo_list\n\\lo_list+\n\\lo_unlink 42\n-- \\dl\n\n-- Load a file\nCREATE TABLE lotest_stas' at line 2")
+
+-----------
+QUERY:
+
+-- lo_creat(mode integer) returns oid
+-- The mode arg to lo_creat is unused, some vestigal holdover from ancient times
+-- returns the large object id
+INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- NOTE: large objects require transactions
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- lo_open(lobjId oid, mode integer) returns integer
+-- The mode parameter to lo_open uses two constants:
+--   INV_WRITE = 0x20000
+--   INV_READ  = 0x40000
+-- The return value is a file descriptor-like value which remains valid for the
+-- transaction.
+UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'20000' | x'40000' AS integer))' at line 7")
+
+-----------
+QUERY:
+
+
+-- loread/lowrite names are wonky, different from other functions which are lo_*
+-- lowrite(fd integer, data bytea) returns integer
+-- the integer is the number of bytes written
+SELECT lowrite(fd, '
+I wandered lonely as a cloud
+That floats on high o''er vales and hills,
+When all at once I saw a crowd,
+A host, of golden daffodils;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nI wandered lonely as a cloud\nThat floats on high o''er vales and hills,\nWhen a' at line 4")
+
+-----------
+QUERY:
+
+Beside the lake, beneath the trees,
+Fluttering and dancing in the breeze.
+
+Continuous as the stars that shine
+And twinkle on the milky way,
+They stretched in never-ending line
+Along the margin of a bay:
+Ten thousand saw I at a glance,
+Tossing their heads in sprightly dance.
+
+The waves beside them danced;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Beside the lake, beneath the trees,\nFluttering and dancing in the breeze.\n\nConti' at line 1")
+
+-----------
+QUERY:
+ but they
+Out-did the sparkling waves in glee:
+A poet could not but be gay,
+In such a jocund company:
+I gazed--and gazed--but little thought
+What wealth the show to me had brought:
+
+For oft, when on my couch I lie
+In vacant or in pensive mood,
+They flash upon that inward eye
+Which is the bliss of solitude;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'but they\nOut-did the sparkling waves in glee:\nA poet could not but be gay,\nIn su' at line 1")
+
+-----------
+QUERY:
+
+And then my heart with pleasure fills,
+And dances with the daffodils.
+
+         -- William Wordsworth
+') FROM lotest_stash_values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'And then my heart with pleasure fills,\nAnd dances with the daffodils.\n\n         ' at line 1")
+
+-----------
+QUERY:
+
+
+-- lo_close(fd integer) returns integer
+-- return value is 0 for success, or <0 for error (actually only -1, but...)
+SELECT lo_close(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- Copy to another large object.
+-- Note: we intentionally don/* REPLACED */''t remove the object created here /* REPLACED */,
+-- it/* REPLACED */''s left behind to help test pg_dump.
+
+SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
+\gset
+
+-- Add a comment to it, as well, for pg_dump/pg_upgrade testing.
+COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a Cloud';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\gset\n\n-- Add a comment to it, as well, for pg_dump/pg_upgrade testing.\nCOMMENT ' at line 6")
+
+-----------
+QUERY:
+
+
+-- Read out a portion
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'20000' | x'40000' AS integer))' at line 1")
+
+-----------
+QUERY:
+
+
+-- lo_lseek(fd integer, offset integer, whence integer) returns integer
+-- offset is in bytes, whence is one of three values:
+--  SEEK_SET (= 0) meaning relative to beginning
+--  SEEK_CUR (= 1) meaning relative to current position
+--  SEEK_END (= 2) meaning relative to end (offset better be negative)
+-- returns current position in file
+SELECT lo_lseek(fd, 104, 0) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- loread/lowrite names are wonky, different from other functions which are lo_*
+-- loread(fd integer, len integer) returns bytea
+SELECT loread(fd, 28) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek(fd, -19, 1) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lowrite(fd, 'n') FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_tell(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek(fd, -744, 2) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT loread(fd, 28) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_close(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test resource management
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'40000'::int) from lotest_stash_values' at line 1")
+
+-----------
+QUERY:
+
+ABORT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ABORT' at line 1")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/invalid/path'
+-- \set dobody 'DECLARE loid oid;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ BEGIN '
+-- \set dobody /* REPLACED */'DECLARE loid oid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\n-- \\set dobody /* REPLACED */'DECLARE loid oid' at line 1")
+
+-----------
+QUERY:
+ BEGIN ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl' at line 1")
+
+-----------
+QUERY:
+ '
+-- \set dobody /* REPLACED */'DECLARE loid oid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\n-- \\set dobody /* REPLACED */'DECLARE loid oid' at line 1")
+
+-----------
+QUERY:
+ BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl' at line 1")
+
+-----------
+QUERY:
+ ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path' ');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/Documents/FS2024/AST/p' at line 1")
+
+-----------
+QUERY:
+ '
+-- \set dobody /* REPLACED */'DECLARE loid oid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\n-- \\set dobody /* REPLACED */'DECLARE loid oid' at line 1")
+
+-----------
+QUERY:
+ BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl' at line 1")
+
+-----------
+QUERY:
+ PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dia' at line 1")
+
+-----------
+QUERY:
+ ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
+-- \set dobody /* REPLACED */'DECLARE loid oid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' 'EXCEPTION WHEN UNDEFINED_FILE THEN '\n-- \\set dobody /* REPLACED */'DECLARE lo' at line 1")
+
+-----------
+QUERY:
+ BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl' at line 1")
+
+-----------
+QUERY:
+ PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dia' at line 1")
+
+-----------
+QUERY:
+ EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could not open file, as expected'';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could not open file, as exp' at line 1")
+
+-----------
+QUERY:
+ END'
+DO /* REPLACED */'DECLARE loid oid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END'\nDO /* REPLACED */'DECLARE loid oid' at line 1")
+
+-----------
+QUERY:
+ BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl' at line 1")
+
+-----------
+QUERY:
+ PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dia' at line 1")
+
+-----------
+QUERY:
+ EXCEPTION WHEN UNDEFINED_FILE THEN RAISE NOTICE ''could not open file, as expected'';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXCEPTION WHEN UNDEFINED_FILE THEN RAISE NOTICE ''could not open file, as expect' at line 1")
+
+-----------
+QUERY:
+ END';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test truncation.
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'20000' | x'40000' AS integer))' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT lo_truncate(fd, 11) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT loread(fd, 15) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_truncate(fd, 10000) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT loread(fd, 10) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_tell(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_truncate(fd, 5000) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_tell(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_close(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test 64-bit large object functions.
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'20000' | x'40000' AS integer))' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek64(fd, 4294967296, 0) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lowrite(fd, 'offset:4GB') FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_tell64(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek64(fd, -10, 1) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_tell64(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT loread(fd, 10) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_truncate64(fd, 5000000000) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_tell64(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_truncate64(fd, 3000000000) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT lo_tell64(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_close(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- lo_unlink(lobjId oid) returns integer
+-- return value appears to always be 1
+SELECT lo_unlink(loid) from lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'20000' | x'40000' AS integer))' at line 1")
+
+-----------
+QUERY:
+
+
+-- verify length of large object
+SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- with the default BLCKSZ, LOBLKSIZE = 2048, so this positions us for a block
+-- edge case
+SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- this should get half of the value from page 0 and half from page 1 of the
+-- large object
+SELECT loread(fd, 36) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_tell(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek(fd, -26, 1) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lowrite(fd, 'abcdefghijklmnop') FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT loread(fd, 36) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT lo_close(fd) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
+SELECT lo_export(loid, /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt') FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+
+-- \set newloid :LASTOID
+
+-- just make sure \lo_export does not barf
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest2.txt'
+\lo_export /* REPLACED */:LASTOID /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest2.txt'
+
+-- This is a hack to test that export/import are reversible
+-- This uses knowledge about the inner workings of large object mechanism
+-- which should not be used outside it.  This makes it a HACK
+SELECT pageno, data FROM pg_largeobject WHERE loid = (SELECT loid from lotest_stash_values)
+EXCEPT
+SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */:LASTOID;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-d' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT lo_unlink(loid) FROM lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE lotest_stash_values;
+RESULT:
+	ERROR - (1146, "Table 'test.lotest_stash_values' doesn't exist")
+
+-----------
+QUERY:
+
+
+\lo_unlink /* REPLACED */:LASTOID
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
+\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+
+-- \set newloid_1 :LASTOID
+
+SELECT lo_from_bytea(0, lo_get(/* REPLACED */:LASTOID_1)) AS newloid_2
+\gset
+
+SELECT fipshash(lo_get(/* REPLACED */:LASTOID_1)) = fipshash(lo_get(/* REPLACED */:LASTOID_2));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\lo_unlink /* REPLACED */:LASTOID\n\n-- \\set filename /* REPLACED */'/home/keuscha' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1, 0, 20)' at line 1")
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1, 10, 20)' at line 1")
+
+-----------
+QUERY:
+
+SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf', 'hex'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1, 5, decode('afafafaf', 'hex'))' at line 1")
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1, 0, 20)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1, 4294967310, 'foo')' at line 1")
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */:LASTOID_1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID_1, 4294967294, 100)' at line 1")
+
+-----------
+QUERY:
+
+
+\lo_unlink /* REPLACED */:LASTOID_1
+\lo_unlink /* REPLACED */:LASTOID_2
+
+-- This object is left in the database for pg_dump test purposes
+SELECT lo_from_bytea(0, E'\\xdeadbeef') AS newloid
+\gset
+
+SET bytea_output TO hex;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\lo_unlink /* REPLACED */:LASTOID_1\n\\lo_unlink /* REPLACED */:LASTOID_2\n\n-- This' at line 1")
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */:LASTOID);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':LASTOID)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */,
+-- this one intentionally has an OID in the system range
+SELECT lo_create(2121);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_create does not exist')
+
+-----------
+QUERY:
+
+
+COMMENT ON LARGE OBJECT 2121 IS 'testing comments';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON LARGE OBJECT 2121 IS 'testing comments'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test writes on large objects in read-only transactions
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- INV_READ ... ok
+SELECT lo_open(2121, x'40000'::int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'40000'::int)' at line 2")
+
+-----------
+QUERY:
+
+-- INV_WRITE ... error
+SELECT lo_open(2121, x'20000'::int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'20000'::int)' at line 2")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_create(42);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_create does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_creat(42);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_creat does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_unlink(42);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_unlink does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lowrite(42, 'x');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lowrite does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_import does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_truncate(42, 0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_truncate does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_truncate64(42, 0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_truncate64 does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_from_bytea(0, 'x');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_from_bytea does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lo_put(42, 0, 'x');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.lo_put does not exist')
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Clean up
+DROP TABLE lotest_stash_values;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.lotest_stash_values'")
+
+-----------
+QUERY:
+
+
+DROP ROLE regress_lo_user;
+RESULT:
+	[]

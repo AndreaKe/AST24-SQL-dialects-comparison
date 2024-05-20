@@ -1,0 +1,1900 @@
+
+-----------
+QUERY:
+-- should fail, return type mismatch
+create event trigger regress_event_trigger
+   on ddl_command_start
+   execute procedure pg_backend_pid();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger\n   on ddl_command_start\n   execute procedure pg_ba' at line 2")
+
+-----------
+QUERY:
+
+
+-- OK
+create function test_event_trigger() returns event_trigger as $$
+BEGIN
+    RAISE NOTICE 'test_event_trigger: % %', tg_event, tg_tag;
+END
+$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'event_trigger as $$\nBEGIN\n    RAISE NOTICE 'test_event_trigger: % %', tg_event, ' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t call it as a plain function
+SELECT test_event_trigger();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.test_event_trigger does not exist')
+
+-----------
+QUERY:
+
+
+-- should fail, event triggers cannot have declared arguments
+create function test_event_trigger_arg(name text)
+returns event_trigger as $$ BEGIN RETURN 1; END $$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'event_trigger as $$ BEGIN RETURN 1; END $$ language plpgsql' at line 3")
+
+-----------
+QUERY:
+
+
+-- should fail, SQL functions cannot be event triggers
+create function test_event_trigger_sql() returns event_trigger as $$
+SELECT 1 $$ language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'event_trigger as $$\nSELECT 1 $$ language sql' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, no elephant_bootstrap entry point
+create event trigger regress_event_trigger on elephant_bootstrap
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger on elephant_bootstrap\n   execute procedure test_ev' at line 2")
+
+-----------
+QUERY:
+
+
+-- OK
+create event trigger regress_event_trigger on ddl_command_start
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger on ddl_command_start\n   execute procedure test_eve' at line 2")
+
+-----------
+QUERY:
+
+
+-- OK
+create event trigger regress_event_trigger_end on ddl_command_end
+   execute function test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger_end on ddl_command_end\n   execute function test_ev' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, food is not a valid filter variable
+create event trigger regress_event_trigger2 on ddl_command_start
+   when food in ('sandwich')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when food in ('sandwich')' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, sandwich is not a valid command tag
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('sandwich')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('sandwich')\n' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, create skunkcabbage is not a valid command tag
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('create table', 'create skunkcabbage')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('create tabl' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t have event triggers on event triggers
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('DROP EVENT TRIGGER')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('DROP EVENT ' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t have event triggers on global objects
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('CREATE ROLE')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('CREATE ROLE' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t have event triggers on global objects
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('CREATE DATABASE')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('CREATE DATA' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t have event triggers on global objects
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('CREATE TABLESPACE')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('CREATE TABL' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t have same filter variable twice
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('create table') and tag in ('CREATE FUNCTION')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('create tabl' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, can/* REPLACED */''t have arguments
+create event trigger regress_event_trigger2 on ddl_command_start
+   execute procedure test_event_trigger('argument not allowed');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   execute procedure test_ev' at line 2")
+
+-----------
+QUERY:
+
+
+-- OK
+create event trigger regress_event_trigger2 on ddl_command_start
+   when tag in ('create table', 'CREATE FUNCTION')
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger2 on ddl_command_start\n   when tag in ('create tabl' at line 2")
+
+-----------
+QUERY:
+
+
+-- OK
+comment on event trigger regress_event_trigger is 'test comment';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'comment on event trigger regress_event_trigger is 'test comment'' at line 2")
+
+-----------
+QUERY:
+
+
+-- drop as non-superuser should fail
+create role regress_evt_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set role regress_evt_user;
+RESULT:
+	ERROR - (3530, '`regress_evt_user`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+create event trigger regress_event_trigger_noperms on ddl_command_start
+   execute procedure test_event_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger_noperms on ddl_command_start\n   execute procedure ' at line 1")
+
+-----------
+QUERY:
+
+reset role;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role' at line 1")
+
+-----------
+QUERY:
+
+
+-- test enabling and disabling
+alter event trigger regress_event_trigger disable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger disable' at line 2")
+
+-----------
+QUERY:
+
+-- fires _trigger2 and _trigger_end should fire, but not _trigger
+create table event_trigger_fire1 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter event trigger regress_event_trigger enable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger enable' at line 1")
+
+-----------
+QUERY:
+
+set session_replication_role = replica;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'session_replication_role'")
+
+-----------
+QUERY:
+
+-- fires nothing
+create table event_trigger_fire2 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter event trigger regress_event_trigger enable replica;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger enable replica' at line 1")
+
+-----------
+QUERY:
+
+-- fires only _trigger
+create table event_trigger_fire3 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter event trigger regress_event_trigger enable always;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger enable always' at line 1")
+
+-----------
+QUERY:
+
+-- fires only _trigger
+create table event_trigger_fire4 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+reset session_replication_role;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'session_replication_role' at line 1")
+
+-----------
+QUERY:
+
+-- fires all three
+create table event_trigger_fire5 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- non-top-level command
+create function f1() returns int
+language plpgsql
+as $$
+begin
+  create table event_trigger_fire6 (a int);
+  return 0;
+end $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'plpgsql\nas $$\nbegin\n  create table event_trigger_fire6 (a int);\n  return 0;\nend ' at line 3")
+
+-----------
+QUERY:
+
+select f1();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.f1 does not exist')
+
+-----------
+QUERY:
+
+-- non-top-level command
+create procedure p1()
+language plpgsql
+as $$
+begin
+  create table event_trigger_fire7 (a int);
+end $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'plpgsql\nas $$\nbegin\n  create table event_trigger_fire7 (a int);\nend $$' at line 3")
+
+-----------
+QUERY:
+
+call p1();
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.p1 does not exist')
+
+-----------
+QUERY:
+
+
+-- clean up
+alter event trigger regress_event_trigger disable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger disable' at line 2")
+
+-----------
+QUERY:
+
+drop table event_trigger_fire2, event_trigger_fire3, event_trigger_fire4, event_trigger_fire5, event_trigger_fire6, event_trigger_fire7;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.event_trigger_fire6,test.event_trigger_fire7'")
+
+-----------
+QUERY:
+
+drop routine f1(), p1();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'routine f1(), p1()' at line 1")
+
+-----------
+QUERY:
+
+
+-- regress_event_trigger_end should fire on these commands
+grant all on table event_trigger_fire1 to public;
+RESULT:
+	ERROR - (1410, 'You are not allowed to create a user with GRANT')
+
+-----------
+QUERY:
+
+comment on table event_trigger_fire1 is 'here is a comment';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'comment on table event_trigger_fire1 is 'here is a comment'' at line 1")
+
+-----------
+QUERY:
+
+revoke all on table event_trigger_fire1 from public;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'public' on host '%' on table 'event_trigger_fire1'")
+
+-----------
+QUERY:
+
+drop table event_trigger_fire1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create foreign data wrapper useless;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'foreign data wrapper useless' at line 1")
+
+-----------
+QUERY:
+
+create server useless_server foreign data wrapper useless;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+create user mapping for regress_evt_user server useless_server;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'for regress_evt_user server useless_server' at line 1")
+
+-----------
+QUERY:
+
+alter default privileges for role regress_evt_user
+ revoke delete on tables from regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default privileges for role regress_evt_user\n revoke delete on tables from regre' at line 1")
+
+-----------
+QUERY:
+
+
+-- alter owner to non-superuser should fail
+alter event trigger regress_event_trigger owner to regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger owner to regress_evt_user' at line 2")
+
+-----------
+QUERY:
+
+
+-- alter owner to superuser should work
+alter role regress_evt_user superuser;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role regress_evt_user superuser' at line 2")
+
+-----------
+QUERY:
+
+alter event trigger regress_event_trigger owner to regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger owner to regress_evt_user' at line 1")
+
+-----------
+QUERY:
+
+
+-- should fail, name collision
+alter event trigger regress_event_trigger rename to regress_event_trigger2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger rename to regress_event_trigger2' at line 2")
+
+-----------
+QUERY:
+
+
+-- OK
+alter event trigger regress_event_trigger rename to regress_event_trigger3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger rename to regress_event_trigger3' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, doesn/* REPLACED */''t exist any more
+drop event trigger regress_event_trigger;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger' at line 2")
+
+-----------
+QUERY:
+
+
+-- should fail, regress_evt_user owns some objects
+drop role regress_evt_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- cleanup before next test
+-- these are all OK /* REPLACED */, the second one should emit a NOTICE
+drop event trigger if exists regress_event_trigger2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger if exists regress_event_trigger2' at line 3")
+
+-----------
+QUERY:
+
+drop event trigger if exists regress_event_trigger2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger if exists regress_event_trigger2' at line 1")
+
+-----------
+QUERY:
+
+drop event trigger regress_event_trigger3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger3' at line 1")
+
+-----------
+QUERY:
+
+drop event trigger regress_event_trigger_end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger regress_event_trigger_end' at line 1")
+
+-----------
+QUERY:
+
+
+-- test support for dropped objects
+CREATE SCHEMA schema_one authorization regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'authorization regress_evt_user' at line 2")
+
+-----------
+QUERY:
+
+CREATE SCHEMA schema_two authorization regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'authorization regress_evt_user' at line 1")
+
+-----------
+QUERY:
+
+CREATE SCHEMA audit_tbls authorization regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'authorization regress_evt_user' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE a_temp_tbl ();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE a_temp_tbl ()' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_evt_user' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE schema_one.table_one(a int);
+RESULT:
+	ERROR - (1049, "Unknown database 'schema_one'")
+
+-----------
+QUERY:
+
+CREATE TABLE schema_one."table two"(a int);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'"table two"(a int)\' at line 1')
+
+-----------
+QUERY:
+
+CREATE TABLE schema_one.table_three(a int);
+RESULT:
+	ERROR - (1049, "Unknown database 'schema_one'")
+
+-----------
+QUERY:
+
+CREATE TABLE audit_tbls.schema_one_table_two(the_value text);
+RESULT:
+	ERROR - (1049, "Unknown database 'audit_tbls'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE schema_two.table_two(a int);
+RESULT:
+	ERROR - (1049, "Unknown database 'schema_two'")
+
+-----------
+QUERY:
+
+CREATE TABLE schema_two.table_three(a int, b text);
+RESULT:
+	ERROR - (1049, "Unknown database 'schema_two'")
+
+-----------
+QUERY:
+
+CREATE TABLE audit_tbls.schema_two_table_three(the_value text);
+RESULT:
+	ERROR - (1049, "Unknown database 'audit_tbls'")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION schema_two.add(int, int) RETURNS int LANGUAGE plpgsql
+  CALLED ON NULL INPUT
+  AS $$ BEGIN RETURN coalesce($1,0) + coalesce($2,0); END; $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION schema_two.add(int, int) RETURNS int LANGUAGE plpgsql\n  CALLED ON NULL ' at line 1")
+
+-----------
+QUERY:
+
+CREATE AGGREGATE schema_two.newton
+  (BASETYPE = int, SFUNC = schema_two.add, STYPE = int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'schema_two.newton\n  (BASETYPE = int, SFUNC = schema_two.add, STYPE = int)' at line 1")
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE undroppable_objs (
+	object_type text,
+	object_identity text
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO undroppable_objs VALUES
+('table', 'schema_one.table_three'),
+('table', 'audit_tbls.schema_two_table_three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE dropped_objects (
+	type text,
+	schema text,
+	object text
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'schema text,\n\tobject text\n)' at line 3")
+
+-----------
+QUERY:
+
+
+-- This tests errors raised within event triggers /* REPLACED */, the one in audit_tbls
+-- uses 2nd-level recursive invocation via test_evtrig_dropped_objects().
+CREATE OR REPLACE FUNCTION undroppable() RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+	obj record;
+BEGIN
+	PERFORM 1 FROM pg_tables WHERE tablename = 'undroppable_objs';
+	IF NOT FOUND THEN
+		RAISE NOTICE 'table undroppable_objs not found, skipping';
+		RETURN;
+	END IF;
+	FOR obj IN
+		SELECT * FROM pg_event_trigger_dropped_objects() JOIN
+			undroppable_objs USING (object_type, object_identity)
+	LOOP
+		RAISE EXCEPTION 'object % of type % cannot be dropped',
+			obj.object_identity, obj.object_type;
+	END LOOP;
+END;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION undroppable() RETURNS event_trigger\nLANGUAGE plpgsql AS $$\nDECLARE\n\tobj' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE EVENT TRIGGER undroppable ON sql_drop
+	EXECUTE PROCEDURE undroppable();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER undroppable ON sql_drop\n\tEXECUTE PROCEDURE undroppable()' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION test_evtrig_dropped_objects() RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    obj record;
+BEGIN
+    FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+    LOOP
+        IF obj.object_type = 'table' THEN
+                EXECUTE format('DROP TABLE IF EXISTS audit_tbls.%I',
+					format('%s_%s', obj.schema_name, obj.object_name));
+        END IF;
+
+	INSERT INTO dropped_objects
+		(type, schema, object) VALUES
+		(obj.object_type, obj.schema_name, obj.object_identity);
+    END LOOP;
+END
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION test_evtrig_dropped_objects() RETURNS event_trigger\nLANGUAGE plpgsql AS' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE EVENT TRIGGER regress_event_trigger_drop_objects ON sql_drop
+	WHEN TAG IN ('drop table', 'drop function', 'drop view',
+		'drop owned', 'drop schema', 'alter table')
+	EXECUTE PROCEDURE test_evtrig_dropped_objects();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_event_trigger_drop_objects ON sql_drop\n\tWHEN TAG IN ('drop table' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE schema_one.table_one DROP COLUMN a;
+RESULT:
+	ERROR - (1049, "Unknown database 'schema_one'")
+
+-----------
+QUERY:
+
+DROP SCHEMA schema_one, schema_two CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', schema_two CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DELETE FROM undroppable_objs WHERE object_identity = 'audit_tbls.schema_two_table_three';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP SCHEMA schema_one, schema_two CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', schema_two CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DELETE FROM undroppable_objs WHERE object_identity = 'schema_one.table_three';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP SCHEMA schema_one, schema_two CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', schema_two CASCADE' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM dropped_objects WHERE schema IS NULL OR schema <> 'pg_toast';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IS NULL OR schema <> 'pg_toast'' at line 1")
+
+-----------
+QUERY:
+
+
+DROP OWNED BY regress_evt_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OWNED BY regress_evt_user' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM dropped_objects WHERE type = 'schema';
+RESULT:
+	ERROR - (1146, "Table 'test.dropped_objects' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP ROLE regress_evt_user;
+RESULT:
+	ERROR - (1396, "Operation DROP ROLE failed for 'regress_evt_user'@'%'")
+
+-----------
+QUERY:
+
+
+DROP EVENT TRIGGER regress_event_trigger_drop_objects;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_event_trigger_drop_objects' at line 1")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER undroppable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER undroppable' at line 1")
+
+-----------
+QUERY:
+
+
+-- Event triggers on relations.
+CREATE OR REPLACE FUNCTION event_trigger_report_dropped()
+ RETURNS event_trigger
+ LANGUAGE plpgsql
+AS $$
+DECLARE r record;
+BEGIN
+    FOR r IN SELECT * from pg_event_trigger_dropped_objects()
+    LOOP
+    IF NOT r.normal AND NOT r.original THEN
+        CONTINUE;
+    END IF;
+    RAISE NOTICE 'NORMAL: orig=% normal=% istemp=% type=% identity=% name=% args=%',
+        r.original, r.normal, r.is_temporary, r.object_type,
+        r.object_identity, r.address_names, r.address_args;
+    END LOOP;
+END; $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION event_trigger_report_dropped()\n RETURNS event_trigger\n LANGUAGE plpgsql' at line 2")
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER regress_event_trigger_report_dropped ON sql_drop
+    EXECUTE PROCEDURE event_trigger_report_dropped();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_event_trigger_report_dropped ON sql_drop\n    EXECUTE PROCEDURE e' at line 1")
+
+-----------
+QUERY:
+
+CREATE OR REPLACE FUNCTION event_trigger_report_end()
+ RETURNS event_trigger
+ LANGUAGE plpgsql
+AS $$
+DECLARE r RECORD;
+BEGIN
+    FOR r IN SELECT * FROM pg_event_trigger_ddl_commands()
+    LOOP
+        RAISE NOTICE 'END: command_tag=% type=% identity=%',
+            r.command_tag, r.object_type, r.object_identity;
+    END LOOP;
+END; $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION event_trigger_report_end()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS ' at line 1")
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER regress_event_trigger_report_end ON ddl_command_end
+  EXECUTE PROCEDURE event_trigger_report_end();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_event_trigger_report_end ON ddl_command_end\n  EXECUTE PROCEDURE ' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE SCHEMA evttrig
+	CREATE TABLE one (col_a SERIAL PRIMARY KEY, col_b text DEFAULT 'forty two', col_c SERIAL)
+	CREATE INDEX one_idx ON one (col_b)
+	CREATE TABLE two (col_c INTEGER CHECK (col_c > 0) REFERENCES one DEFAULT 42)
+	CREATE TABLE id (col_d int NOT NULL GENERATED ALWAYS AS IDENTITY);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CREATE TABLE one (col_a SERIAL PRIMARY KEY, col_b text DEFAULT 'forty two', col_' at line 2")
+
+-----------
+QUERY:
+
+
+-- Partitioned tables with a partitioned index
+CREATE TABLE evttrig.parted (
+    id int PRIMARY KEY)
+    PARTITION BY RANGE (id);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE evttrig.part_1_10 PARTITION OF evttrig.parted (id)
+  FOR VALUES FROM (1) TO (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF evttrig.parted (id)\n  FOR VALUES FROM (1) TO (10)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE evttrig.part_10_20 PARTITION OF evttrig.parted (id)
+  FOR VALUES FROM (10) TO (20) PARTITION BY RANGE (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF evttrig.parted (id)\n  FOR VALUES FROM (10) TO (20) PARTITION BY RANGE (id)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE evttrig.part_10_15 PARTITION OF evttrig.part_10_20 (id)
+  FOR VALUES FROM (10) TO (15);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF evttrig.part_10_20 (id)\n  FOR VALUES FROM (10) TO (15)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE evttrig.part_15_20 PARTITION OF evttrig.part_10_20 (id)
+  FOR VALUES FROM (15) TO (20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF evttrig.part_10_20 (id)\n  FOR VALUES FROM (15) TO (20)' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE evttrig.two DROP COLUMN col_c;
+RESULT:
+	ERROR - (1049, "Unknown database 'evttrig'")
+
+-----------
+QUERY:
+
+ALTER TABLE evttrig.one ALTER COLUMN col_b DROP DEFAULT;
+RESULT:
+	ERROR - (1049, "Unknown database 'evttrig'")
+
+-----------
+QUERY:
+
+ALTER TABLE evttrig.one DROP CONSTRAINT one_pkey;
+RESULT:
+	ERROR - (1049, "Unknown database 'evttrig'")
+
+-----------
+QUERY:
+
+ALTER TABLE evttrig.one DROP COLUMN col_c;
+RESULT:
+	ERROR - (1049, "Unknown database 'evttrig'")
+
+-----------
+QUERY:
+
+ALTER TABLE evttrig.id ALTER COLUMN col_d SET DATA TYPE bigint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DATA TYPE bigint' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE evttrig.id ALTER COLUMN col_d DROP IDENTITY,
+  ALTER COLUMN col_d SET DATA TYPE int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IDENTITY,\n  ALTER COLUMN col_d SET DATA TYPE int' at line 1")
+
+-----------
+QUERY:
+
+DROP INDEX evttrig.one_idx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.one_idx' at line 1")
+
+-----------
+QUERY:
+
+DROP SCHEMA evttrig CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE a_temp_tbl;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.a_temp_tbl'")
+
+-----------
+QUERY:
+
+
+-- CREATE OPERATOR CLASS without FAMILY clause should report
+-- both CREATE OPERATOR FAMILY and CREATE OPERATOR CLASS
+CREATE OPERATOR CLASS evttrigopclass FOR TYPE int USING btree AS STORAGE int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR CLASS evttrigopclass FOR TYPE int USING btree AS STORAGE int' at line 3")
+
+-----------
+QUERY:
+
+
+DROP EVENT TRIGGER regress_event_trigger_report_dropped;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_event_trigger_report_dropped' at line 1")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER regress_event_trigger_report_end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_event_trigger_report_end' at line 1")
+
+-----------
+QUERY:
+
+
+-- only allowed from within an event trigger function, should fail
+select pg_event_trigger_table_rewrite_oid();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_event_trigger_table_rewrite_oid does not exist')
+
+-----------
+QUERY:
+
+
+-- test Table Rewrite Event Trigger
+CREATE OR REPLACE FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'rewrites not allowed';
+END;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger\nLANGUAGE plpgsql AS $$\nB' at line 2")
+
+-----------
+QUERY:
+
+
+create event trigger no_rewrite_allowed on table_rewrite
+  execute procedure test_evtrig_no_rewrite();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger no_rewrite_allowed on table_rewrite\n  execute procedure test_evtrig_no_r' at line 1")
+
+-----------
+QUERY:
+
+
+create table rewriteme (id serial primary key, foo float, bar timestamptz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'timestamptz)' at line 1")
+
+-----------
+QUERY:
+
+insert into rewriteme
+     select x * 1.001 from generate_series(1, 500) as t(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 500) as t(x)' at line 2")
+
+-----------
+QUERY:
+
+alter table rewriteme alter column foo type numeric;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type numeric' at line 1")
+
+-----------
+QUERY:
+
+alter table rewriteme add column baz int default 0;
+RESULT:
+	ERROR - (1146, "Table 'test.rewriteme' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test with more than one reason to rewrite a single table
+CREATE OR REPLACE FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE NOTICE 'Table ''%'' is being rewritten (reason = %)',
+               pg_event_trigger_table_rewrite_oid()::regclass,
+               pg_event_trigger_table_rewrite_reason();
+END;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger\nLANGUAGE plpgsql AS $$\nB' at line 2")
+
+-----------
+QUERY:
+
+
+alter table rewriteme
+ add column onemore int default 0,
+ add column another int default -1,
+ alter column foo type numeric(10,4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type numeric(10,4)' at line 4")
+
+-----------
+QUERY:
+
+
+-- matview rewrite when changing access method
+CREATE MATERIALIZED VIEW heapmv USING heap AS SELECT 1 AS a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW heapmv USING heap AS SELECT 1 AS a' at line 2")
+
+-----------
+QUERY:
+
+ALTER MATERIALIZED VIEW heapmv SET ACCESS METHOD heap2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW heapmv SET ACCESS METHOD heap2' at line 1")
+
+-----------
+QUERY:
+
+DROP MATERIALIZED VIEW heapmv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW heapmv' at line 1")
+
+-----------
+QUERY:
+
+
+-- shouldn/* REPLACED */''t trigger a table_rewrite event
+alter table rewriteme alter column foo type numeric(12,4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type numeric(12,4)' at line 2")
+
+-----------
+QUERY:
+
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set timezone to 'UTC';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to 'UTC'' at line 1")
+
+-----------
+QUERY:
+
+alter table rewriteme alter column bar type timestamp;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type timestamp' at line 1")
+
+-----------
+QUERY:
+
+set timezone to '0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to '0'' at line 1")
+
+-----------
+QUERY:
+
+alter table rewriteme alter column bar type timestamptz;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type timestamptz' at line 1")
+
+-----------
+QUERY:
+
+set timezone to 'Europe/London';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to 'Europe/London'' at line 1")
+
+-----------
+QUERY:
+
+alter table rewriteme alter column bar type timestamp;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type timestamp' at line 1")
+
+-----------
+QUERY:
+ -- does rewrite
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- typed tables are rewritten when their type changes.  Don/* REPLACED */''t emit table
+-- name, because firing order is not stable.
+CREATE OR REPLACE FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE NOTICE 'Table is being rewritten (reason = %)',
+               pg_event_trigger_table_rewrite_reason();
+END;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger\nLANGUAGE plpgsql AS $$\nB' at line 3")
+
+-----------
+QUERY:
+
+
+create type rewritetype as (a int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rewritetype as (a int)' at line 1")
+
+-----------
+QUERY:
+
+create table rewritemetoo1 of rewritetype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of rewritetype' at line 1")
+
+-----------
+QUERY:
+
+create table rewritemetoo2 of rewritetype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of rewritetype' at line 1")
+
+-----------
+QUERY:
+
+alter type rewritetype alter attribute a type text cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rewritetype alter attribute a type text cascade' at line 1")
+
+-----------
+QUERY:
+
+
+-- but this doesn/* REPLACED */''t work
+create table rewritemetoo3 (a rewritetype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rewritetype)' at line 2")
+
+-----------
+QUERY:
+
+alter type rewritetype alter attribute a type varchar cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rewritetype alter attribute a type varchar cascade' at line 1")
+
+-----------
+QUERY:
+
+
+drop table rewriteme;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.rewriteme'")
+
+-----------
+QUERY:
+
+drop event trigger no_rewrite_allowed;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger no_rewrite_allowed' at line 1")
+
+-----------
+QUERY:
+
+drop function test_evtrig_no_rewrite();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- Tests for REINDEX
+CREATE OR REPLACE FUNCTION reindex_start_command()
+RETURNS event_trigger AS $$
+BEGIN
+    RAISE NOTICE 'REINDEX START: % %', tg_event, tg_tag;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION reindex_start_command()\nRETURNS event_trigger AS $$\nBEGIN\n    RAISE NOT' at line 2")
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER regress_reindex_start ON ddl_command_start
+    WHEN TAG IN ('REINDEX')
+    EXECUTE PROCEDURE reindex_start_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_start ON ddl_command_start\n    WHEN TAG IN ('REINDEX')\n ' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION reindex_end_command()
+RETURNS event_trigger AS $$
+DECLARE
+    obj record;
+BEGIN
+    FOR obj IN SELECT * FROM pg_event_trigger_ddl_commands()
+    LOOP
+        RAISE NOTICE 'REINDEX END: command_tag=% type=% identity=%',
+	    obj.command_tag, obj.object_type, obj.object_identity;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'event_trigger AS $$\nDECLARE\n    obj record;\nBEGIN\n    FOR obj IN SELECT * FROM p' at line 2")
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER regress_reindex_end ON ddl_command_end
+    WHEN TAG IN ('REINDEX')
+    EXECUTE PROCEDURE reindex_end_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_end ON ddl_command_end\n    WHEN TAG IN ('REINDEX')\n    E' at line 1")
+
+-----------
+QUERY:
+
+-- Extra event to force the use of a snapshot.
+CREATE FUNCTION reindex_end_command_snap() RETURNS EVENT_TRIGGER
+    AS $$ BEGIN PERFORM 1; END $$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EVENT_TRIGGER\n    AS $$ BEGIN PERFORM 1; END $$ LANGUAGE plpgsql' at line 2")
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER regress_reindex_end_snap ON ddl_command_end
+    EXECUTE FUNCTION reindex_end_command_snap();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_end_snap ON ddl_command_end\n    EXECUTE FUNCTION reindex' at line 1")
+
+-----------
+QUERY:
+
+
+-- With simple relation
+CREATE TABLE concur_reindex_tab (c1 int);
+RESULT:
+	ERROR - (1050, "Table 'concur_reindex_tab' already exists")
+
+-----------
+QUERY:
+
+CREATE INDEX concur_reindex_ind ON concur_reindex_tab (c1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Both start and end triggers enabled.
+REINDEX INDEX concur_reindex_ind;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX INDEX concur_reindex_ind' at line 2")
+
+-----------
+QUERY:
+
+REINDEX TABLE concur_reindex_tab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE concur_reindex_tab' at line 1")
+
+-----------
+QUERY:
+
+REINDEX INDEX CONCURRENTLY concur_reindex_ind;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX INDEX CONCURRENTLY concur_reindex_ind' at line 1")
+
+-----------
+QUERY:
+
+REINDEX TABLE CONCURRENTLY concur_reindex_tab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE CONCURRENTLY concur_reindex_tab' at line 1")
+
+-----------
+QUERY:
+
+-- with start trigger disabled.
+ALTER EVENT TRIGGER regress_reindex_start DISABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_start DISABLE' at line 2")
+
+-----------
+QUERY:
+
+REINDEX INDEX concur_reindex_ind;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX INDEX concur_reindex_ind' at line 1")
+
+-----------
+QUERY:
+
+REINDEX INDEX CONCURRENTLY concur_reindex_ind;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX INDEX CONCURRENTLY concur_reindex_ind' at line 1")
+
+-----------
+QUERY:
+
+-- without an index
+DROP INDEX concur_reindex_ind;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 2")
+
+-----------
+QUERY:
+
+REINDEX TABLE concur_reindex_tab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE concur_reindex_tab' at line 1")
+
+-----------
+QUERY:
+
+REINDEX TABLE CONCURRENTLY concur_reindex_tab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE CONCURRENTLY concur_reindex_tab' at line 1")
+
+-----------
+QUERY:
+
+
+-- With a Schema
+CREATE SCHEMA concur_reindex_schema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- No indexes
+REINDEX SCHEMA concur_reindex_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX SCHEMA concur_reindex_schema' at line 2")
+
+-----------
+QUERY:
+
+REINDEX SCHEMA CONCURRENTLY concur_reindex_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX SCHEMA CONCURRENTLY concur_reindex_schema' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE concur_reindex_schema.tab (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX ind ON concur_reindex_schema.tab (a);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- One index reported
+REINDEX SCHEMA concur_reindex_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX SCHEMA concur_reindex_schema' at line 2")
+
+-----------
+QUERY:
+
+REINDEX SCHEMA CONCURRENTLY concur_reindex_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX SCHEMA CONCURRENTLY concur_reindex_schema' at line 1")
+
+-----------
+QUERY:
+
+-- One table on schema but no indexes
+DROP INDEX concur_reindex_schema.ind;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.ind' at line 2")
+
+-----------
+QUERY:
+
+REINDEX SCHEMA concur_reindex_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX SCHEMA concur_reindex_schema' at line 1")
+
+-----------
+QUERY:
+
+REINDEX SCHEMA CONCURRENTLY concur_reindex_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX SCHEMA CONCURRENTLY concur_reindex_schema' at line 1")
+
+-----------
+QUERY:
+
+DROP SCHEMA concur_reindex_schema CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+
+-- With a partitioned table, and nothing else.
+CREATE TABLE concur_reindex_part (id int) PARTITION BY RANGE (id);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+REINDEX TABLE concur_reindex_part;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE concur_reindex_part' at line 1")
+
+-----------
+QUERY:
+
+REINDEX TABLE CONCURRENTLY concur_reindex_part;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE CONCURRENTLY concur_reindex_part' at line 1")
+
+-----------
+QUERY:
+
+-- Partition that would be reindexed, still nothing.
+CREATE TABLE concur_reindex_child PARTITION OF concur_reindex_part
+  FOR VALUES FROM (0) TO (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF concur_reindex_part\n  FOR VALUES FROM (0) TO (10)' at line 2")
+
+-----------
+QUERY:
+
+REINDEX TABLE concur_reindex_part;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE concur_reindex_part' at line 1")
+
+-----------
+QUERY:
+
+REINDEX TABLE CONCURRENTLY concur_reindex_part;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE CONCURRENTLY concur_reindex_part' at line 1")
+
+-----------
+QUERY:
+
+-- Now add some indexes.
+CREATE INDEX concur_reindex_partidx ON concur_reindex_part (id);
+RESULT:
+	ERROR - (1146, "Table 'test.concur_reindex_part' doesn't exist")
+
+-----------
+QUERY:
+
+REINDEX INDEX concur_reindex_partidx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX INDEX concur_reindex_partidx' at line 1")
+
+-----------
+QUERY:
+
+REINDEX INDEX CONCURRENTLY concur_reindex_partidx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX INDEX CONCURRENTLY concur_reindex_partidx' at line 1")
+
+-----------
+QUERY:
+
+REINDEX TABLE concur_reindex_part;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE concur_reindex_part' at line 1")
+
+-----------
+QUERY:
+
+REINDEX TABLE CONCURRENTLY concur_reindex_part;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE CONCURRENTLY concur_reindex_part' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE concur_reindex_part;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.concur_reindex_part'")
+
+-----------
+QUERY:
+
+
+-- Clean up
+DROP EVENT TRIGGER regress_reindex_start;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_start' at line 2")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER regress_reindex_end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_end' at line 1")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER regress_reindex_end_snap;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER regress_reindex_end_snap' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION reindex_end_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION reindex_end_command_snap();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION reindex_start_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE concur_reindex_tab;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test Row Security Event Trigger
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE event_trigger_test (a integer, b text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION start_command()
+RETURNS event_trigger AS $$
+BEGIN
+RAISE NOTICE '% - ddl_command_start', tg_tag;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION start_command()\nRETURNS event_trigger AS $$\nBEGIN\nRAISE NOTICE '% - ddl' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION end_command()
+RETURNS event_trigger AS $$
+BEGIN
+RAISE NOTICE '% - ddl_command_end', tg_tag;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION end_command()\nRETURNS event_trigger AS $$\nBEGIN\nRAISE NOTICE '% - ddl_c' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION drop_sql_command()
+RETURNS event_trigger AS $$
+BEGIN
+RAISE NOTICE '% - sql_drop', tg_tag;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION drop_sql_command()\nRETURNS event_trigger AS $$\nBEGIN\nRAISE NOTICE '% - ' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE EVENT TRIGGER start_rls_command ON ddl_command_start
+    WHEN TAG IN ('CREATE POLICY', 'ALTER POLICY', 'DROP POLICY') EXECUTE PROCEDURE start_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER start_rls_command ON ddl_command_start\n    WHEN TAG IN ('CREATE POLICY',' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE EVENT TRIGGER end_rls_command ON ddl_command_end
+    WHEN TAG IN ('CREATE POLICY', 'ALTER POLICY', 'DROP POLICY') EXECUTE PROCEDURE end_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER end_rls_command ON ddl_command_end\n    WHEN TAG IN ('CREATE POLICY', 'AL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE EVENT TRIGGER sql_drop_command ON sql_drop
+    WHEN TAG IN ('DROP POLICY') EXECUTE PROCEDURE drop_sql_command();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER sql_drop_command ON sql_drop\n    WHEN TAG IN ('DROP POLICY') EXECUTE PRO' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE POLICY p1 ON event_trigger_test USING (FALSE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY p1 ON event_trigger_test USING (FALSE)' at line 1")
+
+-----------
+QUERY:
+
+ALTER POLICY p1 ON event_trigger_test USING (TRUE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY p1 ON event_trigger_test USING (TRUE)' at line 1")
+
+-----------
+QUERY:
+
+ALTER POLICY p1 ON event_trigger_test RENAME TO p2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY p1 ON event_trigger_test RENAME TO p2' at line 1")
+
+-----------
+QUERY:
+
+DROP POLICY p2 ON event_trigger_test;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY p2 ON event_trigger_test' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check the object addresses of all the event triggers.
+SELECT
+    e.evtname,
+    pg_describe_object('pg_event_trigger'::regclass, e.oid, 0) as descr,
+    b.type, b.object_names, b.object_args,
+    pg_identify_object(a.classid, a.objid, a.objsubid) as ident
+  FROM pg_event_trigger as e,
+    LATERAL pg_identify_object_as_address('pg_event_trigger'::regclass, e.oid, 0) as b,
+    LATERAL pg_get_object_address(b.type, b.object_names, b.object_args) as a
+  ORDER BY e.evtname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, e.oid, 0) as descr,\n    b.type, b.object_names, b.object_args,\n    p' at line 4")
+
+-----------
+QUERY:
+
+
+DROP EVENT TRIGGER start_rls_command;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER start_rls_command' at line 1")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER end_rls_command;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER end_rls_command' at line 1")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER sql_drop_command;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER sql_drop_command' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check the GUC for disabling event triggers
+CREATE FUNCTION test_event_trigger_guc() RETURNS event_trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+	obj record;
+BEGIN
+	FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+	LOOP
+		RAISE NOTICE '% dropped %', tg_tag, obj.object_type;
+	END LOOP;
+END;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'event_trigger\nLANGUAGE plpgsql AS $$\nDECLARE\n\tobj record;\nBEGIN\n\tFOR obj IN SELE' at line 2")
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER test_event_trigger_guc
+	ON sql_drop
+	WHEN TAG IN ('DROP POLICY') EXECUTE FUNCTION test_event_trigger_guc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER test_event_trigger_guc\n\tON sql_drop\n\tWHEN TAG IN ('DROP POLICY') EXECUTE' at line 1")
+
+-----------
+QUERY:
+
+
+SET event_triggers = 'on';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'event_triggers'")
+
+-----------
+QUERY:
+
+CREATE POLICY pguc ON event_trigger_test USING (FALSE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY pguc ON event_trigger_test USING (FALSE)' at line 1")
+
+-----------
+QUERY:
+
+DROP POLICY pguc ON event_trigger_test;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY pguc ON event_trigger_test' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE POLICY pguc ON event_trigger_test USING (FALSE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY pguc ON event_trigger_test USING (FALSE)' at line 1")
+
+-----------
+QUERY:
+
+SET event_triggers = 'off';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'event_triggers'")
+
+-----------
+QUERY:
+
+DROP POLICY pguc ON event_trigger_test;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY pguc ON event_trigger_test' at line 1")

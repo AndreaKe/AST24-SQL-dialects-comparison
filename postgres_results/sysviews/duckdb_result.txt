@@ -1,0 +1,228 @@
+
+-----------
+QUERY:
+--
+-- Test assorted system views
+--
+-- This test is mainly meant to provide some code coverage for the
+-- set-returning functions that underlie certain system views.
+-- The output of most of these functions is very environment-dependent,
+-- so our ability to test with fixed expected output is pretty limited /* REPLACED */,
+-- but even a trivial check of count(*) will exercise the normal code path
+-- through the SRF.
+
+select count(*) >= 0 as ok from pg_available_extension_versions;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_available_extension_versions does not exist!
+Did you mean "pg_tables"?
+
+-----------
+QUERY:
+
+
+select count(*) >= 0 as ok from pg_available_extensions;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_available_extensions does not exist!
+Did you mean "pg_tables"?
+
+-----------
+QUERY:
+
+
+-- The entire output of pg_backend_memory_contexts is not stable,
+-- we test only the existence and basic condition of TopMemoryContext.
+select name, ident, parent, level, total_bytes >= free_bytes
+  from pg_backend_memory_contexts where level = 0;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_backend_memory_contexts does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+
+
+-- At introduction, pg_config had 23 entries /* REPLACED */, it may grow
+select count(*) > 20 as ok from pg_config;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_config does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- We expect no cursors in this test /* REPLACED */, see also portals.sql
+select count(*) = 0 as ok from pg_cursors;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_cursors does not exist!
+Did you mean "pg_class"?
+
+-----------
+QUERY:
+
+
+select count(*) >= 0 as ok from pg_file_settings;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_file_settings does not exist!
+Did you mean "pg_settings"?
+
+-----------
+QUERY:
+
+
+-- There will surely be at least one rule, with no errors.
+select count(*) > 0 as ok, count(*) FILTER (WHERE error IS NOT NULL) = 0 AS no_err
+  from pg_hba_file_rules;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_hba_file_rules does not exist!
+Did you mean "pg_tables"?
+
+-----------
+QUERY:
+
+
+-- There may be no rules, and there should be no errors.
+select count(*) >= 0 as ok, count(*) FILTER (WHERE error IS NOT NULL) = 0 AS no_err
+  from pg_ident_file_mappings;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_ident_file_mappings does not exist!
+Did you mean "pg_settings"?
+
+-----------
+QUERY:
+
+
+-- There will surely be at least one active lock
+select count(*) > 0 as ok from pg_locks;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_locks does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+
+-- We expect no prepared statements in this test /* REPLACED */, see also prepare.sql
+select count(*) = 0 as ok from pg_prepared_statements;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_prepared_statements does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- See also prepared_xacts.sql
+select count(*) >= 0 as ok from pg_prepared_xacts;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- There will surely be at least one SLRU cache
+select count(*) > 0 as ok from pg_stat_slru;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_stat_slru does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- There must be only one record
+select count(*) = 1 as ok from pg_stat_wal;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_stat_wal does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- We expect no walreceiver running in this test
+select count(*) = 0 as ok from pg_stat_wal_receiver;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_stat_wal_receiver does not exist!
+Did you mean "pg_tables"?
+
+-----------
+QUERY:
+
+
+-- This is to record the prevailing planner enable_foo settings during
+-- a regression test run.
+select name, setting from pg_settings where name like 'enable%';
+RESULT:
+	duckdb: [('enable_external_access', 'true'), ('enable_fsst_vectors', 'false'), ('enable_object_cache', 'false'), ('enable_http_metadata_cache', 'false'), ('enable_profiling', 'NULL'), ('enable_progress_bar', 'false'), ('enable_progress_bar_print', 'true')]
+
+-----------
+QUERY:
+
+
+-- There are always wait event descriptions for various types.
+select type, count(*) > 0 as ok FROM pg_wait_events
+  group by type order by type COLLATE "C";
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_wait_events does not exist!
+Did you mean "pg_indexes"?
+
+-----------
+QUERY:
+
+
+-- Test that the pg_timezone_names and pg_timezone_abbrevs views are
+-- more-or-less working.  We can/* REPLACED */''t test their contents in any great detail
+-- without the outputs changing anytime IANA updates the underlying data,
+-- but it seems reasonable to expect at least one entry per major meridian.
+-- (At the time of writing, the actual counts are around 38 because of
+-- zones using fractional GMT offsets, so this is a pretty loose test.)
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_names;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_timezone_names does not exist!
+Did you mean "pg_indexes"?
+
+-----------
+QUERY:
+
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_abbrevs;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_timezone_abbrevs does not exist!
+Did you mean "pg_tables"?
+
+-----------
+QUERY:
+
+-- Let/* REPLACED */''s check the non-default timezone abbreviation sets, too
+set timezone_abbreviations = 'Australia';
+RESULT:
+	duckdb: ERROR - Catalog Error: unrecognized configuration parameter "timezone_abbreviations"
+
+Did you mean: "TimeZone"
+
+-----------
+QUERY:
+
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_abbrevs;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_timezone_abbrevs does not exist!
+Did you mean "pg_tables"?
+
+-----------
+QUERY:
+
+set timezone_abbreviations = 'India';
+RESULT:
+	duckdb: ERROR - Catalog Error: unrecognized configuration parameter "timezone_abbreviations"
+
+Did you mean: "TimeZone"
+
+-----------
+QUERY:
+
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_abbrevs;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name pg_timezone_abbrevs does not exist!
+Did you mean "pg_tables"?

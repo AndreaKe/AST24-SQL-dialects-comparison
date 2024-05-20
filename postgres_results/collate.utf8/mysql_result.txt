@@ -1,0 +1,211 @@
+
+-----------
+QUERY:
+/*
+ * This test is for collations and character operations when using the
+ * builtin provider with the C.UTF-8 locale.
+ */
+
+/* skip test if not UTF8 server encoding */
+SELECT getdatabaseencoding() <> 'UTF8' AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+SET client_encoding TO UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\gset\n\\if :skip_test\n\\quit\n\\endif\n\nSET client_encoding TO UTF8' at line 7")
+
+-----------
+QUERY:
+
+
+--
+-- Test PG_C_UTF8
+--
+
+CREATE COLLATION regress_pg_c_utf8 (
+  provider = builtin, locale = 'C_UTF8');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION regress_pg_c_utf8 (\n  provider = builtin, locale = 'C_UTF8')' at line 5")
+
+-----------
+QUERY:
+ -- fails
+CREATE COLLATION regress_pg_c_utf8 (
+  provider = builtin, locale = 'C.UTF8');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION regress_pg_c_utf8 (\n  provider = builtin, locale = 'C.UTF8')' at line 2")
+
+-----------
+QUERY:
+
+DROP COLLATION regress_pg_c_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION regress_pg_c_utf8' at line 1")
+
+-----------
+QUERY:
+
+CREATE COLLATION regress_pg_c_utf8 (
+  provider = builtin, locale = 'C.UTF-8');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION regress_pg_c_utf8 (\n  provider = builtin, locale = 'C.UTF-8')' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_pg_c_utf8 (
+  t TEXT COLLATE PG_C_UTF8
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'PG_C_UTF8'")
+
+-----------
+QUERY:
+
+INSERT INTO test_pg_c_utf8 VALUES
+  ('abc DEF 123abc'),
+  ('ábc sßs ßss DÉF'),
+  ('ǄxxǄ ǆxxǅ ǅxxǆ'),
+  ('ȺȺȺ'),
+  ('ⱥⱥⱥ'),
+  ('ⱥȺ');
+RESULT:
+	ERROR - (1146, "Table 'test.test_pg_c_utf8' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT
+    t, lower(t), initcap(t), upper(t),
+    length(convert_to(t, 'UTF8')) AS t_bytes,
+    length(convert_to(lower(t), 'UTF8')) AS lower_t_bytes,
+    length(convert_to(initcap(t), 'UTF8')) AS initcap_t_bytes,
+    length(convert_to(upper(t), 'UTF8')) AS upper_t_bytes
+  FROM test_pg_c_utf8;
+RESULT:
+	ERROR - (1146, "Table 'test.test_pg_c_utf8' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE test_pg_c_utf8;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_pg_c_utf8'")
+
+-----------
+QUERY:
+
+
+-- negative test: Final_Sigma not used for builtin locale C.UTF-8
+SELECT lower('ΑΣ' COLLATE PG_C_UTF8);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'PG_C_UTF8'")
+
+-----------
+QUERY:
+
+SELECT lower('ΑͺΣͺ' COLLATE PG_C_UTF8);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'PG_C_UTF8'")
+
+-----------
+QUERY:
+
+SELECT lower('Α΄Σ΄' COLLATE PG_C_UTF8);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'PG_C_UTF8'")
+
+-----------
+QUERY:
+
+
+-- properties
+
+SELECT 'xyz' ~ '[[:alnum:]]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '[[:alnum:]]' COLLATE PG_C_UTF8' at line 3")
+
+-----------
+QUERY:
+
+SELECT 'xyz' !~ '[[:upper:]]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!~ '[[:upper:]]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+
+SELECT '@' !~ '[[:alnum:]]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!~ '[[:alnum:]]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+
+SELECT '=' ~ '[[:punct:]]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '[[:punct:]]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+ -- symbols are punctuation in posix
+SELECT 'a8a' ~ '[[:digit:]]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '[[:digit:]]' COLLATE PG_C_UTF8' at line 2")
+
+-----------
+QUERY:
+
+SELECT '൧' !~ '\d' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!~ '\\d' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+ -- only 0-9 considered digits in posix
+
+-- case mapping
+
+SELECT 'xYz' ~* 'XyZ' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* 'XyZ' COLLATE PG_C_UTF8' at line 5")
+
+-----------
+QUERY:
+
+SELECT 'xAb' ~* '[W-Y]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* '[W-Y]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+
+SELECT 'xAb' !~* '[c-d]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!~* '[c-d]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+
+SELECT 'Δ' ~* '[γ-λ]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* '[γ-λ]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+
+SELECT 'δ' ~* '[Γ-Λ]' COLLATE PG_C_UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* '[Γ-Λ]' COLLATE PG_C_UTF8' at line 1")
+
+-----------
+QUERY:
+ -- same as above with cases reversed
+
+RESULT:
+	[]

@@ -1,0 +1,286 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+/*
+ * 1.1. test CREATE INDEX with buffered build
+ */
+
+-- Regular index with included columns
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box)
+RESULT: []
+
+-----------
+QUERY:
+-- size is chosen to exceed page size and trigger actual truncation
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,8000) AS x
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c2,c3)
+RESULT: []
+
+-----------
+QUERY:
+SELECT pg_get_indexdef(i.indexrelid)
+FROM pg_index i JOIN pg_class c ON i.indexrelid = c.oid
+WHERE i.indrelid = 'tbl_gist'::regclass ORDER BY c.relname
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,10))
+RESULT: []
+
+-----------
+QUERY:
+SET enable_bitmapscan TO off
+RESULT: []
+
+-----------
+QUERY:
+EXPLAIN  (costs off) SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,10))
+RESULT: []
+
+-----------
+QUERY:
+SET enable_bitmapscan TO default
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE tbl_gist
+RESULT: []
+
+-----------
+QUERY:
+/*
+ * 1.2. test CREATE INDEX with inserts
+ */
+
+-- Regular index with included columns
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box)
+RESULT: []
+
+-----------
+QUERY:
+-- size is chosen to exceed page size and trigger actual truncation
+CREATE INDEX tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c2,c3)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,8000) AS x
+RESULT: []
+
+-----------
+QUERY:
+SELECT pg_get_indexdef(i.indexrelid)
+FROM pg_index i JOIN pg_class c ON i.indexrelid = c.oid
+WHERE i.indrelid = 'tbl_gist'::regclass ORDER BY c.relname
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,10))
+RESULT: []
+
+-----------
+QUERY:
+SET enable_bitmapscan TO off
+RESULT: []
+
+-----------
+QUERY:
+EXPLAIN  (costs off) SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,10))
+RESULT: []
+
+-----------
+QUERY:
+SET enable_bitmapscan TO default
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE tbl_gist
+RESULT: []
+
+-----------
+QUERY:
+/*
+ * 2. CREATE INDEX CONCURRENTLY
+ */
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,10) AS x
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX CONCURRENTLY tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c2,c3)
+RESULT: []
+
+-----------
+QUERY:
+SELECT indexdef FROM pg_indexes WHERE tablename = 'tbl_gist' ORDER BY indexname
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE tbl_gist
+RESULT: []
+
+-----------
+QUERY:
+/*
+ * 3. REINDEX
+ */
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,10) AS x
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c3)
+RESULT: []
+
+-----------
+QUERY:
+SELECT indexdef FROM pg_indexes WHERE tablename = 'tbl_gist' ORDER BY indexname
+RESULT: []
+
+-----------
+QUERY:
+REINDEX INDEX tbl_gist_idx
+RESULT: []
+
+-----------
+QUERY:
+SELECT indexdef FROM pg_indexes WHERE tablename = 'tbl_gist' ORDER BY indexname
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE tbl_gist DROP COLUMN c1
+RESULT: []
+
+-----------
+QUERY:
+SELECT indexdef FROM pg_indexes WHERE tablename = 'tbl_gist' ORDER BY indexname
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE tbl_gist
+RESULT: []
+
+-----------
+QUERY:
+/*
+ * 4. Update, delete values in indexed table.
+ */
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,10) AS x
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c3)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE tbl_gist SET c1 = 100 WHERE c1 = 2
+RESULT: []
+
+-----------
+QUERY:
+UPDATE tbl_gist SET c1 = 1 WHERE c1 = 3
+RESULT: []
+
+-----------
+QUERY:
+DELETE FROM tbl_gist WHERE c1 = 5 OR c3 = 12
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE tbl_gist
+RESULT: []
+
+-----------
+QUERY:
+/*
+ * 5. Alter column type.
+ */
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,10) AS x
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c3)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE tbl_gist ALTER c1 TYPE bigint
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE tbl_gist ALTER c3 TYPE bigint
+RESULT: []
+
+-----------
+QUERY:
+-- \d tbl_gist
+DROP TABLE tbl_gist
+RESULT: []
+
+-----------
+QUERY:
+/*
+ * 6. EXCLUDE constraint.
+ */
+CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box, EXCLUDE USING gist (c4 WITH &&) INCLUDE (c1, c2, c3))
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,10) AS x
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(3*x,2*x),point(3*x+1,2*x+1)) FROM generate_series(1,10) AS x
+RESULT: []
+
+-----------
+QUERY:
+EXPLAIN  (costs off) SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,10))
+RESULT: []
+
+-----------
+QUERY:
+-- \d tbl_gist
+DROP TABLE tbl_gist
+RESULT: []
+=========================================
+Summary for test case index_including_gist/test.sql of postgres
+=========================================

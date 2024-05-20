@@ -1,0 +1,135 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- PARALLEL
+--
+
+begin
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- encourage use of parallel plans
+set parallel_setup_cost=0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+set parallel_tuple_cost=0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+set min_parallel_table_scan_size=0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+set max_parallel_workers_per_gather=4
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--
+-- Test write operations that has an underlying query that is eligible
+-- for parallel plans
+--
+explain (costs off) create table parallel_write as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create table parallel_write as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select length(stringu1) into parallel_write
+    from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select length(stringu1) into parallel_write
+    from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) create materialized view parallel_mat_view as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create materialized view parallel_mat_view as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create unique index on parallel_mat_view(length)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+refresh materialized view parallel_mat_view
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+refresh materialized view concurrently parallel_mat_view
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop materialized view parallel_mat_view
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+prepare prep_stmt as select length(stringu1) from tenk1 group by length(stringu1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) create table parallel_write as execute prep_stmt
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create table parallel_write as execute prep_stmt
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+rollback
+RESULT: ['duckdb: SAME']
+=========================================
+Summary for test case write_parallel/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 2 queries, which is 9.09%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 20 queries, which is 90.91%
+Guest results are identical to expected results

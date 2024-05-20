@@ -1,0 +1,339 @@
+
+-----------
+QUERY:
+--
+-- encoding-sensitive tests for json and jsonb
+--
+
+-- We provide expected-results files for UTF8 (json_encoding.out)
+-- and for SQL_ASCII (json_encoding_1.out).  Skip otherwise.
+SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+SELECT getdatabaseencoding();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\gset\n\\if :skip_test\n\\quit\n\\endif\n\nSELECT getdatabaseencoding()' at line 8")
+
+-----------
+QUERY:
+           -- just to label the results files
+
+-- first json
+
+-- basic unicode input
+SELECT '"\u"'::json;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::json' at line 6")
+
+-----------
+QUERY:
+			-- ERROR, incomplete escape
+SELECT '"\u00"'::json;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::json' at line 2")
+
+-----------
+QUERY:
+			-- ERROR, incomplete escape
+SELECT '"\u000g"'::json;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::json' at line 2")
+
+-----------
+QUERY:
+		-- ERROR, g is not a hex digit
+SELECT '"\u0000"'::json;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::json' at line 2")
+
+-----------
+QUERY:
+		-- OK, legal escape
+SELECT '"\uaBcD"'::json;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::json' at line 2")
+
+-----------
+QUERY:
+		-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+
+select json '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a' as correct_in_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a' as correct_in_utf8' at line 5")
+
+-----------
+QUERY:
+
+select json '{ "a":  "\ud83d\ud83d" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 1")
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select json '{ "a":  "\ude04\ud83d" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 2")
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select json '{ "a":  "\ud83dX" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 2")
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select json '{ "a":  "\ude04X" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 2")
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+
+select json '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'--handling of simple unicode escapes\n\nselect json \'{ "a":  "the Copyright \\u00a9\' at line 3')
+
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \u0024 character" }' as correct_everywhere;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as correct_everywhere' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \\u0024 character" }' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "null \u0000 escape" }' as not_unescaped;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as not_unescaped' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "null \\u0000 escape" }' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+
+select json '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as correct_in_utf8' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as correct_everywhere' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "null \u0000 escape" }' ->> 'a' as fails;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as fails' at line 1")
+
+-----------
+QUERY:
+
+select json '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+
+-- then jsonb
+
+-- basic unicode input
+SELECT '"\u"'::jsonb;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonb' at line 4")
+
+-----------
+QUERY:
+			-- ERROR, incomplete escape
+SELECT '"\u00"'::jsonb;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonb' at line 2")
+
+-----------
+QUERY:
+			-- ERROR, incomplete escape
+SELECT '"\u000g"'::jsonb;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonb' at line 2")
+
+-----------
+QUERY:
+		-- ERROR, g is not a hex digit
+SELECT '"\u0045"'::jsonb;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonb' at line 2")
+
+-----------
+QUERY:
+		-- OK, legal escape
+SELECT '"\u0000"'::jsonb;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonb' at line 2")
+
+-----------
+QUERY:
+		-- ERROR, we don/* REPLACED */''t support U+0000
+-- use octet_length here so we don/* REPLACED */''t get an odd unicode char in the
+-- output
+SELECT octet_length('"\uaBcD"'::jsonb::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonb::text)' at line 4")
+
+-----------
+QUERY:
+ -- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+
+SELECT octet_length((jsonb '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a')::text) AS correct_in_utf8;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'{ "a":  "\\ud83d\\ude04\\ud83d\\udc36" }\' -> \'a\')::text) AS correct_in_utf8\' at line 5')
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "\ud83d\ud83d" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 1")
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+SELECT jsonb '{ "a":  "\ude04\ud83d" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 2")
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+SELECT jsonb '{ "a":  "\ud83dX" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 2")
+
+-----------
+QUERY:
+ -- orphan high surrogate
+SELECT jsonb '{ "a":  "\ude04X" }' -> 'a';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-> 'a'' at line 2")
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+-- handling of simple unicode escapes
+
+SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as correct_in_utf8' at line 5")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "dollar \u0024 character" }' as correct_everywhere;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as correct_everywhere' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "dollar \\u0024 character" }' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "null \u0000 escape" }' as fails;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as fails' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "null \\u0000 escape" }' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as correct_in_utf8' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as correct_everywhere' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "null \u0000 escape" }' ->> 'a' as fails;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as fails' at line 1")
+
+-----------
+QUERY:
+
+SELECT jsonb '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '->> 'a' as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+
+-- soft error for input-time failure
+
+select * from pg_input_error_info('{ "a":  "\ud83d\ude04\ud83d\udc36" }', 'jsonb');
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'(\'{ "a":  "\\ud83d\\ude04\\ud83d\\udc36" }\', \'jsonb\')\' at line 3')

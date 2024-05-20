@@ -1,0 +1,99 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+-- Login event triggers
+CREATE TABLE user_logins(id serial, who text);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT SELECT ON user_logins TO public;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION on_login_proc() RETURNS event_trigger AS $$
+BEGIN
+  INSERT INTO user_logins (who) VALUES (SESSION_USER);
+  RAISE NOTICE 'You are welcome!';
+END;
+$$ LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE EVENT TRIGGER on_login_trigger ON login EXECUTE PROCEDURE on_login_proc();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER EVENT TRIGGER on_login_trigger ENABLE ALWAYS;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+\c
+SELECT COUNT(*) FROM user_logins;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+\c
+SELECT COUNT(*) FROM user_logins;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Check dathasloginevt in system catalog
+SELECT dathasloginevt FROM pg_database WHERE datname= :'DBNAME';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Cleanup
+DROP TABLE user_logins;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER on_login_trigger;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION on_login_proc();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+\c
+
+RESULT: [duckdb: SAME, mySQL: SAME]
+=========================================
+Summary for test case event_trigger_login/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 4 queries, which is 33.33%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 8 queries, which is 66.67%
+
+=================
+Results for mySQL
+SAME: 6 queries, which is 50.00%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 6 queries, which is 50.00%

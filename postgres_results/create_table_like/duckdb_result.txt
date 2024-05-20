@@ -1,0 +1,1098 @@
+
+-----------
+QUERY:
+/* Test inheritance of structure (LIKE) */
+CREATE TABLE inhx (xx text DEFAULT 'text');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+/*
+ * Test double inheritance
+ *
+ * Ensure that defaults are NOT included unless
+ * INCLUDING DEFAULTS is specified
+ */
+CREATE TABLE ctla (aa TEXT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ctlb (bb TEXT) INHERITS (ctla);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+
+CREATE TABLE foo (LIKE nonexistent);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+
+CREATE TABLE inhe (ee text, LIKE inhx) inherits (ctlb);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "inherits"
+
+-----------
+QUERY:
+
+INSERT INTO inhe VALUES ('ee-col1', 'ee-col2', DEFAULT, 'ee-col4');
+RESULT:
+	ERROR - Catalog Error: Table with name inhe does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+SELECT * FROM inhe;
+RESULT:
+	ERROR - Catalog Error: Table with name inhe does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ /* Columns aa, bb, xx value NULL, ee */
+SELECT * FROM inhx;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ /* Empty set since LIKE inherits structure only */
+SELECT * FROM ctlb;
+RESULT:
+	ERROR - Catalog Error: Table with name ctlb does not exist!
+Did you mean "ctla"?
+
+-----------
+QUERY:
+ /* Has ee entry */
+SELECT * FROM ctla;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ /* Has ee entry */
+
+CREATE TABLE inhf (LIKE inhx, LIKE inhx);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+ /* Throw error */
+
+CREATE TABLE inhf (LIKE inhx INCLUDING DEFAULTS INCLUDING CONSTRAINTS);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+INSERT INTO inhf DEFAULT VALUES;
+RESULT:
+	ERROR - Catalog Error: Table with name inhf does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+SELECT * FROM inhf;
+RESULT:
+	ERROR - Catalog Error: Table with name inhf does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ /* Single entry with value 'text' */
+
+ALTER TABLE inhx add constraint foo CHECK (xx = 'text');
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+ALTER TABLE inhx ADD PRIMARY KEY (xx);
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+CREATE TABLE inhg (LIKE inhx);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+ /* Doesn't copy constraint */
+INSERT INTO inhg VALUES ('foo');
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+DROP TABLE inhg;
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING CONSTRAINTS, y text);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+ /* Copies constraints */
+INSERT INTO inhg VALUES ('x', 'text', 'y');
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ /* Succeeds */
+INSERT INTO inhg VALUES ('x', 'text', 'y');
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ /* Succeeds -- Unique constraints not copied */
+INSERT INTO inhg VALUES ('x', 'foo',  'y');
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+  /* fails due to constraint */
+SELECT * FROM inhg;
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ /* Two records with three columns in order x=x, xx=text, y=y */
+DROP TABLE inhg;
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_like_id_1 (a bigint GENERATED ALWAYS AS IDENTITY, b text);
+RESULT:
+	ERROR - Not implemented Error: Constraint not implemented!
+
+-----------
+QUERY:
+
+-- \d test_like_id_1
+INSERT INTO test_like_id_1 (b) VALUES ('b1');
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_id_1 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_id_1;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_id_1 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_id_2 (LIKE test_like_id_1);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d test_like_id_2
+INSERT INTO test_like_id_2 (b) VALUES ('b2');
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_id_2 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_id_2;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_id_2 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+  -- identity was not copied
+CREATE TABLE test_like_id_3 (LIKE test_like_id_1 INCLUDING IDENTITY);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d test_like_id_3
+INSERT INTO test_like_id_3 (b) VALUES ('b3');
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_id_3 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_id_3;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_id_3 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+  -- identity was copied and applied
+DROP TABLE test_like_id_1, test_like_id_2, test_like_id_3;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_like_gen_1 (a int, b int GENERATED ALWAYS AS (a * 2) STORED);
+RESULT:
+	ERROR - Invalid Input Error: Can not create a STORED generated column!
+
+-----------
+QUERY:
+
+-- \d test_like_gen_1
+INSERT INTO test_like_gen_1 (a) VALUES (1);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_gen_1 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_gen_1;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_gen_1 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_gen_2 (LIKE test_like_gen_1);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d test_like_gen_2
+INSERT INTO test_like_gen_2 (a) VALUES (1);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_gen_2 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_gen_2;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_gen_2 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_gen_3 (LIKE test_like_gen_1 INCLUDING GENERATED);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "GENERATED"
+
+-----------
+QUERY:
+
+-- \d test_like_gen_3
+INSERT INTO test_like_gen_3 (a) VALUES (1);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_gen_3 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_gen_3;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_gen_3 does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+DROP TABLE test_like_gen_1, test_like_gen_2, test_like_gen_3;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+-- also test generated column with a /* REPLACED */''forward/* REPLACED */'' reference (bug #16342)
+CREATE TABLE test_like_4 (b int DEFAULT 42,
+  c int GENERATED ALWAYS AS (a * 2) STORED,
+  a int CHECK (a > 0));
+RESULT:
+	ERROR - Invalid Input Error: Can not create a STORED generated column!
+
+-----------
+QUERY:
+
+-- \d test_like_4
+CREATE TABLE test_like_4a (LIKE test_like_4);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_4b (LIKE test_like_4 INCLUDING DEFAULTS);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_4c (LIKE test_like_4 INCLUDING GENERATED);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "GENERATED"
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_4d (LIKE test_like_4 INCLUDING DEFAULTS INCLUDING GENERATED);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "GENERATED"
+
+-----------
+QUERY:
+
+-- \d test_like_4a
+INSERT INTO test_like_4a (a) VALUES(11);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4a does not exist!
+Did you mean "ctla"?
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4a;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4a does not exist!
+Did you mean "ctla"?
+
+-----------
+QUERY:
+
+-- \d test_like_4b
+INSERT INTO test_like_4b (a) VALUES(11);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4b does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4b;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4b does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+-- \d test_like_4c
+INSERT INTO test_like_4c (a) VALUES(11);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4c does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4c;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4c does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+-- \d test_like_4d
+INSERT INTO test_like_4d (a) VALUES(11);
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4d does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4d;
+RESULT:
+	ERROR - Catalog Error: Table with name test_like_4d does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+
+-- Test renumbering of Vars when combining LIKE with inheritance
+CREATE TABLE test_like_5 (x point, y point, z point);
+RESULT:
+	ERROR - Catalog Error: Type with name point does not exist!
+Did you mean "int"?
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_5x (p int CHECK (p > 0),
+   q int GENERATED ALWAYS AS (p * 2) STORED);
+RESULT:
+	ERROR - Invalid Input Error: Can not create a STORED generated column!
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_5c (LIKE test_like_4 INCLUDING ALL)
+  INHERITS (test_like_5, test_like_5x);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+-- \d test_like_5c
+
+DROP TABLE test_like_4, test_like_4a, test_like_4b, test_like_4c, test_like_4d;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+DROP TABLE test_like_5, test_like_5x, test_like_5c;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, y text);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+ /* copies indexes */
+INSERT INTO inhg VALUES (5, 10);
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+INSERT INTO inhg VALUES (20, 10);
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ -- should fail
+DROP TABLE inhg;
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+/* Multiple primary keys creation should fail */
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, PRIMARY KEY(x));
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+ /* fails */
+CREATE TABLE inhz (xx text DEFAULT 'text', yy int UNIQUE);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX inhz_xx_idx on inhz (xx) WHERE xx <> 'test';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+/* Ok to create multiple unique indexes */
+CREATE TABLE inhg (x text UNIQUE, LIKE inhz INCLUDING INDEXES);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+INSERT INTO inhg (xx, yy, x) VALUES ('test', 5, 10);
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+INSERT INTO inhg (xx, yy, x) VALUES ('test', 10, 15);
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+INSERT INTO inhg (xx, yy, x) VALUES ('foo', 10, 15);
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+ -- should fail
+DROP TABLE inhg;
+RESULT:
+	ERROR - Catalog Error: Table with name inhg does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+DROP TABLE inhz;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+/* Use primary key imported by LIKE for self-referential FK constraint */
+CREATE TABLE inhz (x text REFERENCES inhz, LIKE inhx INCLUDING INDEXES);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d inhz
+DROP TABLE inhz;
+RESULT:
+	ERROR - Catalog Error: Table with name inhz does not exist!
+Did you mean "inhx"?
+
+-----------
+QUERY:
+
+
+-- including storage and comments
+CREATE TABLE ctlt1 (a text CHECK (length(a) > 2) PRIMARY KEY, b text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX ctlt1_b_key ON ctlt1 (b);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX ctlt1_fnidx ON ctlt1 ((a || b));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE STATISTICS ctlt1_a_b_stat ON a,b FROM ctlt1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "STATISTICS"
+
+-----------
+QUERY:
+
+CREATE STATISTICS ctlt1_expr_stat ON (a || b) FROM ctlt1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "STATISTICS"
+
+-----------
+QUERY:
+
+COMMENT ON STATISTICS ctlt1_a_b_stat IS 'ab stats';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "STATISTICS"
+
+-----------
+QUERY:
+
+COMMENT ON STATISTICS ctlt1_expr_stat IS 'ab expr stats';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "STATISTICS"
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt1.a IS 'A';
+RESULT:
+	ERROR - Cannot alter entry "ctlt1" because there are entries that depend on it.
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt1.b IS 'B';
+RESULT:
+	ERROR - Cannot alter entry "ctlt1" because there are entries that depend on it.
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT ctlt1_a_check ON ctlt1 IS 't1_a_check';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "CONSTRAINT"
+
+-----------
+QUERY:
+
+COMMENT ON INDEX ctlt1_pkey IS 'index pkey';
+RESULT:
+	ERROR - Catalog Error: Index with name ctlt1_pkey does not exist!
+Did you mean "ctlt1_b_key"?
+
+-----------
+QUERY:
+
+COMMENT ON INDEX ctlt1_b_key IS 'index b_key';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt1 ALTER COLUMN a SET STORAGE MAIN;
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt2 (c text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt2 ALTER COLUMN c SET STORAGE EXTERNAL;
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt2.c IS 'C';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt3 (a text CHECK (length(a) < 5), c text CHECK (length(c) < 7));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt3 ALTER COLUMN c SET STORAGE EXTERNAL;
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt3 ALTER COLUMN a SET STORAGE MAIN;
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+CREATE INDEX ctlt3_fnidx ON ctlt3 ((a || c));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt3.a IS 'A3';
+RESULT:
+	ERROR - Cannot alter entry "ctlt3" because there are entries that depend on it.
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt3.c IS 'C';
+RESULT:
+	ERROR - Cannot alter entry "ctlt3" because there are entries that depend on it.
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT ctlt3_a_check ON ctlt3 IS 't3_a_check';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "CONSTRAINT"
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt4 (a text, c text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt4 ALTER COLUMN c SET STORAGE EXTERNAL;
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt12_storage (LIKE ctlt1 INCLUDING STORAGE, LIKE ctlt2 INCLUDING STORAGE);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d+ ctlt12_storage
+CREATE TABLE ctlt12_comments (LIKE ctlt1 INCLUDING COMMENTS, LIKE ctlt2 INCLUDING COMMENTS);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d+ ctlt12_comments
+CREATE TABLE ctlt1_inh (LIKE ctlt1 INCLUDING CONSTRAINTS INCLUDING COMMENTS) INHERITS (ctlt1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+-- \d+ ctlt1_inh
+SELECT description FROM pg_description, pg_constraint c WHERE classoid = 'pg_constraint'::regclass AND objoid = c.oid AND c.conrelid = 'ctlt1_inh'::regclass;
+RESULT:
+	ERROR - Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt13_inh () INHERITS (ctlt1, ctlt3);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+-- \d+ ctlt13_inh
+CREATE TABLE ctlt13_like (LIKE ctlt3 INCLUDING CONSTRAINTS INCLUDING INDEXES INCLUDING COMMENTS INCLUDING STORAGE) INHERITS (ctlt1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+-- \d+ ctlt13_like
+SELECT description FROM pg_description, pg_constraint c WHERE classoid = 'pg_constraint'::regclass AND objoid = c.oid AND c.conrelid = 'ctlt13_like'::regclass;
+RESULT:
+	ERROR - Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt_all (LIKE ctlt1 INCLUDING ALL);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d+ ctlt_all
+SELECT c.relname, objsubid, description FROM pg_description, pg_index i, pg_class c WHERE classoid = 'pg_class'::regclass AND objoid = i.indexrelid AND c.oid = i.indexrelid AND i.indrelid = 'ctlt_all'::regclass ORDER BY c.relname, objsubid;
+RESULT:
+	ERROR - Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+
+SELECT s.stxname, objsubid, description FROM pg_description, pg_statistic_ext s WHERE classoid = 'pg_statistic_ext'::regclass AND objoid = s.oid AND s.stxrelid = 'ctlt_all'::regclass ORDER BY s.stxname, objsubid;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_statistic_ext does not exist!
+Did you mean "pg_settings"?
+
+-----------
+QUERY:
+
+
+CREATE TABLE inh_error1 () INHERITS (ctlt1, ctlt4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+CREATE TABLE inh_error2 (LIKE ctlt4 INCLUDING STORAGE) INHERITS (ctlt1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INHERITS"
+
+-----------
+QUERY:
+
+
+-- Check that LIKE isn/* REPLACED */''t confused by a system catalog of the same name
+CREATE TABLE pg_attrdef (LIKE ctlt1 INCLUDING ALL);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d+ public.pg_attrdef
+DROP TABLE public.pg_attrdef;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_attrdef does not exist!
+Did you mean "temp.pg_catalog.pg_attrdef"?
+
+-----------
+QUERY:
+
+
+-- Check that LIKE isn/* REPLACED */''t confused when new table masks the old, either
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SCHEMA ctl_schema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL search_path = ctl_schema, public;
+RESULT:
+	ERROR - Not implemented Error: SET LOCAL is not implemented.
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt1 (LIKE ctlt1 INCLUDING ALL);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d+ ctlt1
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE ctlt1, ctlt2, ctlt3, ctlt4, ctlt12_storage, ctlt12_comments, ctlt1_inh, ctlt13_inh, ctlt13_like, ctlt_all, ctla, ctlb CASCADE;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+-- LIKE must respect NO INHERIT property of constraints
+CREATE TABLE noinh_con_copy (a int CHECK (a > 0) NO INHERIT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE noinh_con_copy1 (LIKE noinh_con_copy INCLUDING CONSTRAINTS);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+-- \d noinh_con_copy1
+
+-- fail, as partitioned tables don/* REPLACED */''t allow NO INHERIT constraints
+CREATE TABLE noinh_con_copy1_parted (LIKE noinh_con_copy INCLUDING ALL)
+  PARTITION BY LIST (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+
+DROP TABLE noinh_con_copy, noinh_con_copy1;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+
+/* LIKE with other relation kinds */
+
+CREATE TABLE ctlt4 (a int, b text);
+RESULT:
+	ERROR - Catalog Error: Table with name "ctlt4" already exists!
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE ctlseq1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt10 (LIKE ctlseq1);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+  -- fail
+
+CREATE VIEW ctlv1 AS SELECT * FROM ctlt4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt11 (LIKE ctlv1);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt11a (LIKE ctlv1 INCLUDING ALL);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+
+CREATE TYPE ctlty1 AS (a int, b text);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt12 (LIKE ctlty1);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+
+DROP SEQUENCE ctlseq1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TYPE ctlty1;
+RESULT:
+	ERROR - Catalog Error: Type with name ctlty1 does not exist!
+Did you mean "int1"?
+
+-----------
+QUERY:
+
+DROP VIEW ctlv1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE IF EXISTS ctlt4, ctlt10, ctlt11, ctlt11a, ctlt12;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time

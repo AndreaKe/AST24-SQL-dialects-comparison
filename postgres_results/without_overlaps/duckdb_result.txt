@@ -1,0 +1,860 @@
+
+-----------
+QUERY:
+-- Tests for WITHOUT OVERLAPS.
+--
+-- We leave behind several tables to test pg_dump etc:
+-- temporal_rng, temporal_rng2,
+-- temporal_fk_rng2rng.
+
+SET datestyle TO ISO, YMD;
+RESULT:
+	duckdb: ERROR - Parser Error: SET needs a single scalar value parameter
+
+-----------
+QUERY:
+
+
+--
+-- test input parser
+--
+
+-- PK with no columns just WITHOUT OVERLAPS:
+
+CREATE TABLE temporal_rng (
+	valid_at daterange,
+	CONSTRAINT temporal_rng_pk PRIMARY KEY (valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- PK with a range column/PERIOD that isn/* REPLACED */''t there:
+
+CREATE TABLE temporal_rng (
+	id INTEGER,
+	CONSTRAINT temporal_rng_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- PK with a non-range column:
+
+CREATE TABLE temporal_rng (
+	id int4range,
+	valid_at TEXT,
+	CONSTRAINT temporal_rng_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- PK with one column plus a range:
+
+CREATE TABLE temporal_rng (
+	-- Since we can/* REPLACED */''t depend on having btree_gist here,
+	-- use an int4range instead of an int.
+	-- (The rangetypes regression test uses the same trick.)
+	id int4range,
+	valid_at daterange,
+	CONSTRAINT temporal_rng_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+-- \d temporal_rng
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng_pk';
+RESULT:
+	duckdb: ERROR - Binder Error: Macro function 'pg_get_constraintdef(constraint_oid, pretty_bool)' requires 2 positional arguments, but a single positional argument was provided.
+
+-----------
+QUERY:
+
+SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng_pk';
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_get_indexdef does not exist!
+Did you mean "pg_get_viewdef"?
+
+-----------
+QUERY:
+
+
+-- PK with two columns plus a range:
+-- We don/* REPLACED */''t drop this table because tests below also need multiple scalar columns.
+CREATE TABLE temporal_rng2 (
+	id1 int4range,
+	id2 int4range,
+	valid_at daterange,
+	CONSTRAINT temporal_rng2_pk PRIMARY KEY (id1, id2, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+-- \d temporal_rng2
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng2_pk';
+RESULT:
+	duckdb: ERROR - Binder Error: Macro function 'pg_get_constraintdef(constraint_oid, pretty_bool)' requires 2 positional arguments, but a single positional argument was provided.
+
+-----------
+QUERY:
+
+SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng2_pk';
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_get_indexdef does not exist!
+Did you mean "pg_get_viewdef"?
+
+-----------
+QUERY:
+
+
+
+-- PK with a custom range type:
+CREATE TYPE textrange2 AS range (subtype=text, collation="C");
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "="
+
+-----------
+QUERY:
+
+CREATE TABLE temporal_rng3 (
+	id int4range,
+	valid_at textrange2,
+	CONSTRAINT temporal_rng3_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+ALTER TABLE temporal_rng3 DROP CONSTRAINT temporal_rng3_pk;
+RESULT:
+	duckdb: ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+DROP TABLE temporal_rng3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+DROP TYPE textrange2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name textrange2 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+-- PK with a multirange:
+CREATE TABLE temporal_mltrng (
+  id int4range,
+  valid_at tsmultirange,
+  CONSTRAINT temporal_mltrng_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+-- \d temporal_mltrng
+
+-- UNIQUE with no columns just WITHOUT OVERLAPS:
+
+CREATE TABLE temporal_rng3 (
+	valid_at daterange,
+	CONSTRAINT temporal_rng3_uq UNIQUE (valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- UNIQUE with a range column/PERIOD that isn/* REPLACED */''t there:
+
+CREATE TABLE temporal_rng3 (
+	id INTEGER,
+	CONSTRAINT temporal_rng3_uq UNIQUE (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- UNIQUE with a non-range column:
+
+CREATE TABLE temporal_rng3 (
+	id int4range,
+	valid_at TEXT,
+	CONSTRAINT temporal_rng3_uq UNIQUE (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- UNIQUE with one column plus a range:
+
+CREATE TABLE temporal_rng3 (
+	id int4range,
+	valid_at daterange,
+	CONSTRAINT temporal_rng3_uq UNIQUE (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+-- \d temporal_rng3
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
+RESULT:
+	duckdb: ERROR - Binder Error: Macro function 'pg_get_constraintdef(constraint_oid, pretty_bool)' requires 2 positional arguments, but a single positional argument was provided.
+
+-----------
+QUERY:
+
+SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_get_indexdef does not exist!
+Did you mean "pg_get_viewdef"?
+
+-----------
+QUERY:
+
+DROP TABLE temporal_rng3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- UNIQUE with two columns plus a range:
+CREATE TABLE temporal_rng3 (
+	id1 int4range,
+	id2 int4range,
+	valid_at daterange,
+	CONSTRAINT temporal_rng3_uq UNIQUE (id1, id2, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+-- \d temporal_rng3
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
+RESULT:
+	duckdb: ERROR - Binder Error: Macro function 'pg_get_constraintdef(constraint_oid, pretty_bool)' requires 2 positional arguments, but a single positional argument was provided.
+
+-----------
+QUERY:
+
+SELECT pg_get_indexdef(conindid, 0, true) FROM pg_constraint WHERE conname = 'temporal_rng3_uq';
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_get_indexdef does not exist!
+Did you mean "pg_get_viewdef"?
+
+-----------
+QUERY:
+
+DROP TABLE temporal_rng3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- UNIQUE with a custom range type:
+CREATE TYPE textrange2 AS range (subtype=text, collation="C");
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "="
+
+-----------
+QUERY:
+
+CREATE TABLE temporal_rng3 (
+	id int4range,
+	valid_at textrange2,
+	CONSTRAINT temporal_rng3_uq UNIQUE (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+ALTER TABLE temporal_rng3 DROP CONSTRAINT temporal_rng3_uq;
+RESULT:
+	duckdb: ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+DROP TABLE temporal_rng3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+DROP TYPE textrange2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name textrange2 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+--
+-- test ALTER TABLE ADD CONSTRAINT
+--
+
+DROP TABLE temporal_rng;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+CREATE TABLE temporal_rng (
+	id int4range,
+	valid_at daterange
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int4range does not exist!
+Did you mean "int4"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal_rng
+	ADD CONSTRAINT temporal_rng_pk
+	PRIMARY KEY (id, valid_at WITHOUT OVERLAPS);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+-- PK with USING INDEX (not possible):
+CREATE TABLE temporal3 (
+	id int4range,
+	valid_at daterange
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int4range does not exist!
+Did you mean "int4"?
+
+-----------
+QUERY:
+
+CREATE INDEX idx_temporal3_uq ON temporal3 USING gist (id, valid_at);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3
+	ADD CONSTRAINT temporal3_pk
+	PRIMARY KEY USING INDEX idx_temporal3_uq;
+RESULT:
+	duckdb: ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- UNIQUE with USING INDEX (not possible):
+CREATE TABLE temporal3 (
+	id int4range,
+	valid_at daterange
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int4range does not exist!
+Did you mean "int4"?
+
+-----------
+QUERY:
+
+CREATE INDEX idx_temporal3_uq ON temporal3 USING gist (id, valid_at);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3
+	ADD CONSTRAINT temporal3_uq
+	UNIQUE USING INDEX idx_temporal3_uq;
+RESULT:
+	duckdb: ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- UNIQUE with USING [UNIQUE] INDEX (possible but not a temporal constraint):
+CREATE TABLE temporal3 (
+	id int4range,
+	valid_at daterange
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int4range does not exist!
+Did you mean "int4"?
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX idx_temporal3_uq ON temporal3 (id, valid_at);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3
+	ADD CONSTRAINT temporal3_uq
+	UNIQUE USING INDEX idx_temporal3_uq;
+RESULT:
+	duckdb: ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- Add range column and the PK at the same time
+CREATE TABLE temporal3 (
+	id int4range
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int4range does not exist!
+Did you mean "int4"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3
+	ADD COLUMN valid_at daterange,
+	ADD CONSTRAINT temporal3_pk
+	PRIMARY KEY (id, valid_at WITHOUT OVERLAPS);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- Add range column and UNIQUE constraint at the same time
+CREATE TABLE temporal3 (
+	id int4range
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int4range does not exist!
+Did you mean "int4"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3
+	ADD COLUMN valid_at daterange,
+	ADD CONSTRAINT temporal3_uq
+	UNIQUE (id, valid_at WITHOUT OVERLAPS);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+--
+-- test PK inserts
+--
+
+-- okay:
+INSERT INTO temporal_rng (id, valid_at) VALUES ('[1,2)', daterange('2018-01-02', '2018-02-03'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO temporal_rng (id, valid_at) VALUES ('[1,2)', daterange('2018-03-03', '2018-04-04'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO temporal_rng (id, valid_at) VALUES ('[2,3)', daterange('2018-01-01', '2018-01-05'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO temporal_rng (id, valid_at) VALUES ('[3,4)', daterange('2018-01-01', NULL));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- should fail:
+INSERT INTO temporal_rng (id, valid_at) VALUES ('[1,2)', daterange('2018-01-01', '2018-01-05'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO temporal_rng (id, valid_at) VALUES (NULL, daterange('2018-01-01', '2018-01-05'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO temporal_rng (id, valid_at) VALUES ('[3,4)', NULL);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_rng does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+--
+-- test a range with both a PK and a UNIQUE constraint
+--
+
+CREATE TABLE temporal3 (
+  id int4range,
+  valid_at daterange,
+  id2 int8range,
+  name TEXT,
+  CONSTRAINT temporal3_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS),
+  CONSTRAINT temporal3_uniq UNIQUE (id2, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+INSERT INTO temporal3 (id, valid_at, id2, name)
+  VALUES
+  ('[1,2)', daterange('2000-01-01', '2010-01-01'), '[7,8)', 'foo'),
+  ('[2,3)', daterange('2000-01-01', '2010-01-01'), '[9,10)', 'bar')
+;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+--
+-- test changing the PK/* REPLACED */''s dependencies
+--
+
+CREATE TABLE temporal3 (
+	id int4range,
+	valid_at daterange,
+	CONSTRAINT temporal3_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+
+ALTER TABLE temporal3 ALTER COLUMN valid_at DROP NOT NULL;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3 ALTER COLUMN valid_at TYPE tstzrange USING tstzrange(lower(valid_at), upper(valid_at));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3 RENAME COLUMN valid_at TO valid_thru;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+ALTER TABLE temporal3 DROP COLUMN valid_thru;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+DROP TABLE temporal3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+--
+-- test PARTITION BY for ranges
+--
+
+-- temporal PRIMARY KEY:
+CREATE TABLE temporal_partitioned (
+	id int4range,
+	valid_at daterange,
+  name text,
+	CONSTRAINT temporal_paritioned_pk PRIMARY KEY (id, valid_at WITHOUT OVERLAPS)
+) PARTITION BY LIST (id);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+CREATE TABLE tp1 PARTITION OF temporal_partitioned FOR VALUES IN ('[1,2)', '[2,3)');
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+CREATE TABLE tp2 PARTITION OF temporal_partitioned FOR VALUES IN ('[3,4)', '[4,5)');
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+INSERT INTO temporal_partitioned (id, valid_at, name) VALUES
+  ('[1,2)', daterange('2000-01-01', '2000-02-01'), 'one'),
+  ('[1,2)', daterange('2000-02-01', '2000-03-01'), 'one'),
+  ('[3,4)', daterange('2000-01-01', '2010-01-01'), 'three');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_partitioned does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+SELECT * FROM temporal_partitioned ORDER BY id, valid_at;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_partitioned does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+SELECT * FROM tp1 ORDER BY id, valid_at;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tp1 does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+SELECT * FROM tp2 ORDER BY id, valid_at;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tp2 does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+DROP TABLE temporal_partitioned;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_partitioned does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+
+-- temporal UNIQUE:
+CREATE TABLE temporal_partitioned (
+	id int4range,
+	valid_at daterange,
+  name text,
+	CONSTRAINT temporal_paritioned_uq UNIQUE (id, valid_at WITHOUT OVERLAPS)
+) PARTITION BY LIST (id);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "WITHOUT"
+
+-----------
+QUERY:
+
+CREATE TABLE tp1 PARTITION OF temporal_partitioned FOR VALUES IN ('[1,2)', '[2,3)');
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+CREATE TABLE tp2 PARTITION OF temporal_partitioned FOR VALUES IN ('[3,4)', '[4,5)');
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+INSERT INTO temporal_partitioned (id, valid_at, name) VALUES
+  ('[1,2)', daterange('2000-01-01', '2000-02-01'), 'one'),
+  ('[1,2)', daterange('2000-02-01', '2000-03-01'), 'one'),
+  ('[3,4)', daterange('2000-01-01', '2010-01-01'), 'three');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_partitioned does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+SELECT * FROM temporal_partitioned ORDER BY id, valid_at;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_partitioned does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+SELECT * FROM tp1 ORDER BY id, valid_at;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tp1 does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+SELECT * FROM tp2 ORDER BY id, valid_at;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tp2 does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+DROP TABLE temporal_partitioned;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name temporal_partitioned does not exist!
+Did you mean "pg_proc"?
+
+-----------
+QUERY:
+
+
+RESET datestyle;
+RESULT:
+	duckdb: ERROR - Catalog Error: unrecognized configuration parameter "datestyle"
+
+Did you mean: "user"

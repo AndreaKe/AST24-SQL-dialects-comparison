@@ -1,0 +1,903 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- TEMP
+-- Test temp relations and indexes
+--
+
+-- test temp table/index masking
+
+CREATE TABLE temptest(col int)
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX i_temptest ON temptest(col)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(tcol int)
+RESULT: []
+
+-----------
+QUERY:
+CREATE INDEX i_temptest ON temptest(tcol)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP INDEX i_temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP INDEX i_temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: []
+
+-----------
+QUERY:
+-- test temp table selects
+
+CREATE TABLE temptest(col int)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (1)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(tcol float)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (2.1)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: []
+
+-----------
+QUERY:
+-- test temp table deletion
+
+CREATE TEMP TABLE temptest(col int)
+RESULT: []
+
+-----------
+QUERY:
+\c
+
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+-- Test ON COMMIT DELETE ROWS
+
+CREATE TEMP TABLE temptest(col int) ON COMMIT DELETE ROWS
+RESULT: []
+
+-----------
+QUERY:
+-- while we/* REPLACED */''re here, verify successful truncation of index with SQL function
+CREATE INDEX ON temptest(bit_length(''))
+RESULT: []
+
+-----------
+QUERY:
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (1)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (2)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: []
+
+-----------
+QUERY:
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(col) ON COMMIT DELETE ROWS AS SELECT 1
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE temptest
+RESULT: []
+
+-----------
+QUERY:
+-- Test ON COMMIT DROP
+
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(col int) ON COMMIT DROP
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (1)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest VALUES (2)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest(col) ON COMMIT DROP AS SELECT 1
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+-- Test it with a CHECK condition that produces a toasted pg_constraint entry
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+do $$
+begin
+  execute format($cmd$
+    CREATE TEMP TABLE temptest (col text CHECK (col < %L)) ON COMMIT DROP
+  $cmd$,
+    (SELECT string_agg(g.i::text || ':' || random()::text, '|')
+     FROM generate_series(1, 100) g(i)));
+end$$
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest
+RESULT: []
+
+-----------
+QUERY:
+-- ON COMMIT is only allowed for TEMP
+
+CREATE TABLE temptest(col int) ON COMMIT DELETE ROWS
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE temptest(col) ON COMMIT DELETE ROWS AS SELECT 1
+RESULT: []
+
+-----------
+QUERY:
+-- Test foreign keys
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest1(col int PRIMARY KEY)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest2(col int REFERENCES temptest1)
+  ON COMMIT DELETE ROWS
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest1 VALUES (1)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO temptest2 VALUES (1)
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest1
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM temptest2
+RESULT: []
+
+-----------
+QUERY:
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest3(col int PRIMARY KEY) ON COMMIT DELETE ROWS
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMP TABLE temptest4(col int REFERENCES temptest3)
+RESULT: []
+
+-----------
+QUERY:
+COMMIT
+RESULT: []
+
+-----------
+QUERY:
+-- Test manipulation of temp schema/* REPLACED */''s placement in search path
+
+create table public.whereami (f1 text)
+RESULT: []
+
+-----------
+QUERY:
+insert into public.whereami values ('public')
+RESULT: []
+
+-----------
+QUERY:
+create temp table whereami (f1 text)
+RESULT: []
+
+-----------
+QUERY:
+insert into whereami values ('temp')
+RESULT: []
+
+-----------
+QUERY:
+create function public.whoami() returns text
+  as $$select 'public'::text$$ language sql
+RESULT: []
+
+-----------
+QUERY:
+create function pg_temp.whoami() returns text
+  as $$select 'temp'::text$$ language sql
+RESULT: []
+
+-----------
+QUERY:
+-- default should have pg_temp implicitly first, but only for tables
+select * from whereami
+RESULT: []
+
+-----------
+QUERY:
+select whoami()
+RESULT: []
+
+-----------
+QUERY:
+-- can list temp first explicitly, but it still doesn/* REPLACED */''t affect functions
+set search_path = pg_temp, public
+RESULT: []
+
+-----------
+QUERY:
+select * from whereami
+RESULT: []
+
+-----------
+QUERY:
+select whoami()
+RESULT: []
+
+-----------
+QUERY:
+-- or put it last for security
+set search_path = public, pg_temp
+RESULT: []
+
+-----------
+QUERY:
+select * from whereami
+RESULT: []
+
+-----------
+QUERY:
+select whoami()
+RESULT: []
+
+-----------
+QUERY:
+-- you can invoke a temp function explicitly, though
+select pg_temp.whoami()
+RESULT: []
+
+-----------
+QUERY:
+drop table public.whereami
+RESULT: []
+
+-----------
+QUERY:
+-- types in temp schema
+set search_path = pg_temp, public
+RESULT: []
+
+-----------
+QUERY:
+create domain pg_temp.nonempty as text check (value <> '')
+RESULT: []
+
+-----------
+QUERY:
+-- function-syntax invocation of types matches rules for functions
+select nonempty('')
+RESULT: []
+
+-----------
+QUERY:
+select pg_temp.nonempty('')
+RESULT: []
+
+-----------
+QUERY:
+-- other syntax matches rules for tables
+select ''::nonempty
+RESULT: []
+
+-----------
+QUERY:
+reset search_path
+RESULT: []
+
+-----------
+QUERY:
+-- For partitioned temp tables, ON COMMIT actions ignore storage-less
+-- partitioned tables.
+begin
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit (a int)
+  partition by list (a) on commit delete rows
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_1
+  partition of temp_parted_oncommit
+  for values in (1) on commit delete rows
+RESULT: []
+
+-----------
+QUERY:
+insert into temp_parted_oncommit values (1)
+RESULT: []
+
+-----------
+QUERY:
+commit
+RESULT: []
+
+-----------
+QUERY:
+-- partitions are emptied by the previous commit
+select * from temp_parted_oncommit
+RESULT: []
+
+-----------
+QUERY:
+drop table temp_parted_oncommit
+RESULT: []
+
+-----------
+QUERY:
+-- Check dependencies between ON COMMIT actions with a partitioned
+-- table and its partitions.  Using ON COMMIT DROP on a parent removes
+-- the whole set.
+begin
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test (a int)
+  partition by list (a) on commit drop
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test1
+  partition of temp_parted_oncommit_test
+  for values in (1) on commit delete rows
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test2
+  partition of temp_parted_oncommit_test
+  for values in (2) on commit drop
+RESULT: []
+
+-----------
+QUERY:
+insert into temp_parted_oncommit_test values (1), (2)
+RESULT: []
+
+-----------
+QUERY:
+commit
+RESULT: []
+
+-----------
+QUERY:
+-- no relations remain in this case.
+select relname from pg_class where relname ~ '^temp_parted_oncommit_test'
+RESULT: []
+
+-----------
+QUERY:
+-- Using ON COMMIT DELETE on a partitioned table does not remove
+-- all rows if partitions preserve their data.
+begin
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test (a int)
+  partition by list (a) on commit delete rows
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test1
+  partition of temp_parted_oncommit_test
+  for values in (1) on commit preserve rows
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_parted_oncommit_test2
+  partition of temp_parted_oncommit_test
+  for values in (2) on commit drop
+RESULT: []
+
+-----------
+QUERY:
+insert into temp_parted_oncommit_test values (1), (2)
+RESULT: []
+
+-----------
+QUERY:
+commit
+RESULT: []
+
+-----------
+QUERY:
+-- Data from the remaining partition is still here as its rows are
+-- preserved.
+select * from temp_parted_oncommit_test
+RESULT: []
+
+-----------
+QUERY:
+-- two relations remain in this case.
+select relname from pg_class where relname ~ '^temp_parted_oncommit_test'
+  order by relname
+RESULT: []
+
+-----------
+QUERY:
+drop table temp_parted_oncommit_test
+RESULT: []
+
+-----------
+QUERY:
+-- Check dependencies between ON COMMIT actions with inheritance trees.
+-- Using ON COMMIT DROP on a parent removes the whole set.
+begin
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test (a int) on commit drop
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test1 ()
+  inherits(temp_inh_oncommit_test) on commit delete rows
+RESULT: []
+
+-----------
+QUERY:
+insert into temp_inh_oncommit_test1 values (1)
+RESULT: []
+
+-----------
+QUERY:
+commit
+RESULT: []
+
+-----------
+QUERY:
+-- no relations remain in this case
+select relname from pg_class where relname ~ '^temp_inh_oncommit_test'
+RESULT: []
+
+-----------
+QUERY:
+-- Data on the parent is removed, and the child goes away.
+begin
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test (a int) on commit delete rows
+RESULT: []
+
+-----------
+QUERY:
+create temp table temp_inh_oncommit_test1 ()
+  inherits(temp_inh_oncommit_test) on commit drop
+RESULT: []
+
+-----------
+QUERY:
+insert into temp_inh_oncommit_test1 values (1)
+RESULT: []
+
+-----------
+QUERY:
+insert into temp_inh_oncommit_test values (1)
+RESULT: []
+
+-----------
+QUERY:
+commit
+RESULT: []
+
+-----------
+QUERY:
+select * from temp_inh_oncommit_test
+RESULT: []
+
+-----------
+QUERY:
+-- one relation remains
+select relname from pg_class where relname ~ '^temp_inh_oncommit_test'
+RESULT: []
+
+-----------
+QUERY:
+drop table temp_inh_oncommit_test
+RESULT: []
+
+-----------
+QUERY:
+-- Tests with two-phase commit
+-- Transactions creating objects in a temporary namespace cannot be used
+-- with two-phase commit.
+
+-- These cases generate errors about temporary namespace.
+-- Function creation
+begin
+RESULT: []
+
+-----------
+QUERY:
+create function pg_temp.twophase_func() returns void as
+  $$ select '2pc_func'::text $$ language sql
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_func'
+RESULT: []
+
+-----------
+QUERY:
+-- Function drop
+create function pg_temp.twophase_func() returns void as
+  $$ select '2pc_func'::text $$ language sql
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+drop function pg_temp.twophase_func()
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_func'
+RESULT: []
+
+-----------
+QUERY:
+-- Operator creation
+begin
+RESULT: []
+
+-----------
+QUERY:
+create operator pg_temp.@@ (leftarg = int4, rightarg = int4, procedure = int4mi)
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_operator'
+RESULT: []
+
+-----------
+QUERY:
+-- These generate errors about temporary tables.
+begin
+RESULT: []
+
+-----------
+QUERY:
+create type pg_temp.twophase_type as (a int)
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_type'
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+create view pg_temp.twophase_view as select 1
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_view'
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+create sequence pg_temp.twophase_seq
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_sequence'
+RESULT: []
+
+-----------
+QUERY:
+-- Temporary tables cannot be used with two-phase commit.
+create temp table twophase_tab (a int)
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+select a from twophase_tab
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+insert into twophase_tab values (1)
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+lock twophase_tab in access exclusive mode
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: []
+
+-----------
+QUERY:
+begin
+RESULT: []
+
+-----------
+QUERY:
+drop table twophase_tab
+RESULT: []
+
+-----------
+QUERY:
+prepare transaction 'twophase_tab'
+RESULT: []
+
+-----------
+QUERY:
+-- Corner case: current_schema may create a temporary schema if namespace
+-- creation is pending, so check after that.  First reset the connection
+-- to remove the temporary namespace.
+\c -
+SET search_path TO 'pg_temp'
+RESULT: []
+
+-----------
+QUERY:
+BEGIN
+RESULT: []
+
+-----------
+QUERY:
+SELECT current_schema() ~ 'pg_temp' AS is_temp_schema
+RESULT: []
+
+-----------
+QUERY:
+PREPARE TRANSACTION 'twophase_search'
+RESULT: []
+=========================================
+Summary for test case temp/test.sql of postgres
+=========================================

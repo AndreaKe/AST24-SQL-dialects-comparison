@@ -1,0 +1,6248 @@
+
+-----------
+QUERY:
+select jsonb '{"a": 12}' @? '$';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 12}' @? '1';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 12}' @? '$.a.b';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 12}' @? '$.b';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 12}' @? '$.a + 2';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 12}' @? '$.b + 2';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"a": 12}}' @? '$.a.a';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"a": 12}}' @? '$.*.a';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"b": {"a": 12}}' @? '$.*.a';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"b": {"a": 12}}' @? '$.*.b';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"b": {"a": 12}}' @? 'strict $.*.b';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '{}' @? '$.*';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 1}' @? '$.*';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? 'lax $.**{1}';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? 'lax $.**{2}';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? 'lax $.**{3}';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '[]' @? '$[*]';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[*]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[1]';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? 'strict $[1]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', 'strict $[1]');
+RESULT:
+	postgres: jsonpath array subscript is out of bounds
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', 'strict $[1]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? 'lax $[10000000000000000]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? 'strict $[10000000000000000]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', 'lax $[10000000000000000]');
+RESULT:
+	postgres: jsonpath array subscript is out of integer range
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', 'strict $[10000000000000000]');
+RESULT:
+	postgres: jsonpath array subscript is out of integer range
+
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[0]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[0.3]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[0.5]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[0.9]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? '$[1.2]';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '[1]' @? 'strict $[1.2]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": [1,2,3], "b": [3,4,5]}' @? '$ ? (@.a[*] >  @.b[*])';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": [1,2,3], "b": [3,4,5]}' @? '$ ? (@.a[*] >= @.b[*])';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": [1,2,3], "b": [3,4,"5"]}' @? '$ ? (@.a[*] >= @.b[*])';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": [1,2,3], "b": [3,4,"5"]}' @? 'strict $ ? (@.a[*] >= @.b[*])';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": [1,2,3], "b": [3,4,null]}' @? '$ ? (@.a[*] >= @.b[*])';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '1' @? '$ ? ((@ == "1") is unknown)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '1' @? '$ ? ((@ == 1) is unknown)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '[{"a": 1}, {"a": 2}]' @? '$[0 to 1] ? (@.a > 1)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_exists('[{"a": 1}, {"a": 2}, 3]', 'lax $[*].a', silent => false);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_exists('[{"a": 1}, {"a": 2}, 3]', 'lax $[*].a', silent => true);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_exists('[{"a": 1}, {"a": 2}, 3]', 'strict $[*].a', silent => false);
+RESULT:
+	postgres: jsonpath member accessor can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_exists('[{"a": 1}, {"a": 2}, 3]', 'strict $[*].a', silent => true);
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('1', 'lax $.a');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $.a');
+RESULT:
+	postgres: jsonpath member accessor can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $.*');
+RESULT:
+	postgres: jsonpath wildcard member accessor can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $.a', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $.*', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'lax $.a');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.a');
+RESULT:
+	postgres: jsonpath member accessor can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.a', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', 'lax $.a');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', 'strict $.a');
+RESULT:
+	postgres: JSON object does not contain key "a"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', 'strict $.a', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('1', 'strict $[1]');
+RESULT:
+	postgres: jsonpath array accessor can only be applied to an array
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $[*]');
+RESULT:
+	postgres: jsonpath wildcard array accessor can only be applied to an array
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $[1]');
+RESULT:
+	postgres: jsonpath array subscript is out of bounds
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $["a"]');
+RESULT:
+	postgres: jsonpath array subscript is not a single numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $[1]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'strict $[*]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $[1]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $["a"]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('{"a": 12, "b": {"a": 13}}', '$.a');
+RESULT:
+	postgres: [(12,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": 12, "b": {"a": 13}}', '$.b');
+RESULT:
+	postgres: [({'a': 13},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": 12, "b": {"a": 13}}', '$.*');
+RESULT:
+	postgres: [(12,), ({'a': 13},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": 12, "b": {"a": 13}}', 'lax $.*.a');
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[*].a');
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[*].*');
+RESULT:
+	postgres: [(13,), (14,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[0].a');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[1].a');
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[2].a');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[0,1].a');
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[0 to 10].a');
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}]', 'lax $[0 to 10 / 0].a');
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[12, {"a": 13}, {"b": 14}, "ccc", true]', '$[2.5 - 1 to $.size() - 2]');
+RESULT:
+	postgres: [({'a': 13},), ({'b': 14},), ('ccc',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'lax $[0]');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', 'lax $[*]');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', 'lax $[0]');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', 'lax $[*]');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', 'lax $[*]');
+RESULT:
+	postgres: [(1,), (2,), (3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', 'strict $[*].a');
+RESULT:
+	postgres: jsonpath member accessor can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', 'strict $[*].a', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$[last]');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$[last ? (exists(last))]');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $[last]');
+RESULT:
+	postgres: jsonpath array subscript is out of bounds
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $[last]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1]', '$[last]');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', '$[last]');
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', '$[last - 1]');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', '$[last ? (@.type() == "number")]');
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', '$[last ? (@.type() == "string")]');
+RESULT:
+	postgres: jsonpath array subscript is not a single numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,3]', '$[last ? (@.type() == "string")]', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select * from jsonb_path_query('{"a": 10}', '$');
+RESULT:
+	postgres: [({'a': 10},)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{"a": 10}', '$ ? (@.a < $value)');
+RESULT:
+	postgres: could not find jsonpath variable "value"
+
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{"a": 10}', '$ ? (@.a < $value)', '1');
+RESULT:
+	postgres: "vars" argument is not an object
+DETAIL:  Jsonpath parameters should be encoded as key-value pairs of "vars" object.
+
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{"a": 10}', '$ ? (@.a < $value)', '[{"value" : 13}]');
+RESULT:
+	postgres: "vars" argument is not an object
+DETAIL:  Jsonpath parameters should be encoded as key-value pairs of "vars" object.
+
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{"a": 10}', '$ ? (@.a < $value)', '{"value" : 13}');
+RESULT:
+	postgres: [({'a': 10},)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{"a": 10}', '$ ? (@.a < $value)', '{"value" : 8}');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{"a": 10}', '$.a ? (@ < $value)', '{"value" : 13}');
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[10,11,12,13,14,15]', '$[*] ? (@ < $value)', '{"value" : 13}');
+RESULT:
+	postgres: [(10,), (11,), (12,)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[10,11,12,13,14,15]', '$[0,1] ? (@ < $x.value)', '{"x": {"value" : 13}}');
+RESULT:
+	postgres: [(10,), (11,)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[10,11,12,13,14,15]', '$[0 to 2] ? (@ < $value)', '{"value" : 15}');
+RESULT:
+	postgres: [(10,), (11,), (12,)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[1,"1",2,"2",null]', '$[*] ? (@ == "1")');
+RESULT:
+	postgres: [('1',)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[1,"1",2,"2",null]', '$[*] ? (@ == $value)', '{"value" : "1"}');
+RESULT:
+	postgres: [('1',)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[1,"1",2,"2",null]', '$[*] ? (@ == $value)', '{"value" : null}');
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[1, "2", null]', '$[*] ? (@ != null)');
+RESULT:
+	postgres: [(1,), ('2',)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[1, "2", null]', '$[*] ? (@ == null)');
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('{}', '$ ? (@ == @)');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select * from jsonb_path_query('[]', 'strict $ ? (@ == @)');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**');
+RESULT:
+	postgres: [({'a': {'b': 1}},), ({'b': 1},), (1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{0}');
+RESULT:
+	postgres: [({'a': {'b': 1}},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{0 to last}');
+RESULT:
+	postgres: [({'a': {'b': 1}},), ({'b': 1},), (1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{1}');
+RESULT:
+	postgres: [({'b': 1},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{1 to last}');
+RESULT:
+	postgres: [({'b': 1},), (1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{2}');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{2 to last}');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{3 to last}');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{last}');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{0}.b ? (@ > 0)');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{1}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{0 to last}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{1 to last}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"b": 1}}', 'lax $.**{1 to 2}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**{0}.b ? (@ > 0)');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**{1}.b ? (@ > 0)');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**{0 to last}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**{1 to last}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**{1 to 2}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": {"c": {"b": 1}}}', 'lax $.**{2 to 3}.b ? (@ > 0)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+
+select jsonb '{"a": {"b": 1}}' @? '$.**.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? '$.**{0}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? '$.**{1}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? '$.**{0 to last}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? '$.**{1 to last}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"b": 1}}' @? '$.**{1 to 2}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**{0}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**{1}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**{0 to last}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**{1 to last}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**{1 to 2}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": {"c": {"b": 1}}}' @? '$.**{2 to 3}.b ? ( @ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('{"g": {"x": 2}}', '$.g ? (exists (@.x))');
+RESULT:
+	postgres: [({'x': 2},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": {"x": 2}}', '$.g ? (exists (@.y))');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": {"x": 2}}', '$.g ? (exists (@.x ? (@ >= 2) ))');
+RESULT:
+	postgres: [({'x': 2},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'lax $.g ? (exists (@.x))');
+RESULT:
+	postgres: [({'x': 2},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'lax $.g ? (exists (@.x + "3"))');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'lax $.g ? ((exists (@.x + "3")) is unknown)');
+RESULT:
+	postgres: [({'x': 2},), ({'y': 3},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'strict $.g[*] ? (exists (@.x))');
+RESULT:
+	postgres: [({'x': 2},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'strict $.g[*] ? ((exists (@.x)) is unknown)');
+RESULT:
+	postgres: [({'y': 3},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'strict $.g ? (exists (@[*].x))');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"g": [{"x": 2}, {"y": 3}]}', 'strict $.g ? ((exists (@[*].x)) is unknown)');
+RESULT:
+	postgres: [([{'x': 2}, {'y': 3}],)]
+
+-----------
+QUERY:
+
+
+--test ternary logic
+select
+	x, y,
+	jsonb_path_query(
+		'[true, false, null]',
+		'$[*] ? (@ == true  &&  ($x == true && $y == true) ||
+				 @ == false && !($x == true && $y == true) ||
+				 @ == null  &&  ($x == true && $y == true) is unknown)',
+		jsonb_build_object('x', x, 'y', y)
+	) as "x && y"
+from
+	(values (jsonb 'true'), ('false'), ('"null"')) x(x),
+	(values (jsonb 'true'), ('false'), ('"null"')) y(y);
+RESULT:
+	postgres: [(True, True, True), (True, False, False), (True, 'null', None), (False, True, False), (False, False, False), (False, 'null', False), ('null', True, None), ('null', False, False), ('null', 'null', None)]
+
+-----------
+QUERY:
+
+
+select
+	x, y,
+	jsonb_path_query(
+		'[true, false, null]',
+		'$[*] ? (@ == true  &&  ($x == true || $y == true) ||
+				 @ == false && !($x == true || $y == true) ||
+				 @ == null  &&  ($x == true || $y == true) is unknown)',
+		jsonb_build_object('x', x, 'y', y)
+	) as "x || y"
+from
+	(values (jsonb 'true'), ('false'), ('"null"')) x(x),
+	(values (jsonb 'true'), ('false'), ('"null"')) y(y);
+RESULT:
+	postgres: [(True, True, True), (True, False, True), (True, 'null', True), (False, True, True), (False, False, False), (False, 'null', None), ('null', True, True), ('null', False, None), ('null', 'null', None)]
+
+-----------
+QUERY:
+
+
+select jsonb '{"a": 1, "b":1}' @? '$ ? (@.a == @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 1, "b":1}}' @? '$ ? (@.a == @.b)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 1, "b":1}}' @? '$.c ? (@.a == @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 1, "b":1}}' @? '$.c ? ($.c.a == @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 1, "b":1}}' @? '$.* ? (@.a == @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 1, "b":1}' @? '$.** ? (@.a == @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 1, "b":1}}' @? '$.** ? (@.a == @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('{"c": {"a": 2, "b":1}}', '$.** ? (@.a == 1 + 1)');
+RESULT:
+	postgres: [({'a': 2, 'b': 1},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"c": {"a": 2, "b":1}}', '$.** ? (@.a == (1 + 1))');
+RESULT:
+	postgres: [({'a': 2, 'b': 1},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"c": {"a": 2, "b":1}}', '$.** ? (@.a == @.b + 1)');
+RESULT:
+	postgres: [({'a': 2, 'b': 1},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"c": {"a": 2, "b":1}}', '$.** ? (@.a == (@.b + 1))');
+RESULT:
+	postgres: [({'a': 2, 'b': 1},)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": -1, "b":1}}' @? '$.** ? (@.a == - 1)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": -1, "b":1}}' @? '$.** ? (@.a == -1)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": -1, "b":1}}' @? '$.** ? (@.a == -@.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": -1, "b":1}}' @? '$.** ? (@.a == - @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 0, "b":1}}' @? '$.** ? (@.a == 1 - @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 2, "b":1}}' @? '$.** ? (@.a == 1 - - @.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"c": {"a": 0, "b":1}}' @? '$.** ? (@.a == 1 - +@.b)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,2,3]' @? '$ ? (+@[*] > +2)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,2,3]' @? '$ ? (+@[*] > +3)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,2,3]' @? '$ ? (-@[*] < -2)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,2,3]' @? '$ ? (-@[*] < -3)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '1' @? '$ ? ($ > 0)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+-- arithmetic errors
+select jsonb_path_query('[1,2,0,3]', '$[*] ? (2 / @ > 0)');
+RESULT:
+	postgres: [(1,), (2,), (3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,2,0,3]', '$[*] ? ((2 / @ > 0) is unknown)');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('0', '1 / $');
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('0', '1 / $ + 2');
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('0', '-(3 + 1 % $)');
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$ + "2"');
+RESULT:
+	postgres: right operand of jsonpath operator + is not a single numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1, 2]', '3 * $');
+RESULT:
+	postgres: right operand of jsonpath operator * is not a single numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"a"', '-$');
+RESULT:
+	postgres: operand of unary jsonpath operator - is not a numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,"2",3]', '+$');
+RESULT:
+	postgres: operand of unary jsonpath operator + is not a numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$ + "2"', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1, 2]', '3 * $', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"a"', '-$', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,"2",3]', '+$', silent => true);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb '["1",2,0,3]' @? '-$[*]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,"2",0,3]' @? '-$[*]';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '["1",2,0,3]' @? 'strict -$[*]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,"2",0,3]' @? 'strict -$[*]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+
+-- unwrapping of operator arguments in lax mode
+select jsonb_path_query('{"a": [2]}', 'lax $.a * 3');
+RESULT:
+	postgres: [(6,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": [2]}', 'lax $.a + 3');
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": [2, 3, 4]}', 'lax -$.a');
+RESULT:
+	postgres: [(-2,), (-3,), (-4,)]
+
+-----------
+QUERY:
+
+-- should fail
+select jsonb_path_query('{"a": [1, 2]}', 'lax $.a * 3');
+RESULT:
+	postgres: left operand of jsonpath operator * is not a single numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": [1, 2]}', 'lax $.a * 3', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+-- extension: boolean expressions
+select jsonb_path_query('2', '$ > 1');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('2', '$ <= 1');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('2', '$ == "2"');
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '2' @? '$ == "2"';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+select jsonb '2' @@ '$ > 1';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '2' @@ '$ <= 1';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb '2' @@ '$ == "2"';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '2' @@ '1';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '{}' @@ '$';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '[]' @@ '$';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '[1,2,3]' @@ '$[*]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb '[]' @@ '$[*]';
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb_path_match('[[1, true], [2, false]]', 'strict $[*] ? (@[0] > $x) [1]', '{"x": 1}');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_match('[[1, true], [2, false]]', 'strict $[*] ? (@[0] < $x) [1]', '{"x": 2}');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_match('[{"a": 1}, {"a": 2}, 3]', 'lax exists($[*].a)', silent => false);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_match('[{"a": 1}, {"a": 2}, 3]', 'lax exists($[*].a)', silent => true);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_match('[{"a": 1}, {"a": 2}, 3]', 'strict exists($[*].a)', silent => false);
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+select jsonb_path_match('[{"a": 1}, {"a": 2}, 3]', 'strict exists($[*].a)', silent => true);
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+
+
+select jsonb_path_query('[null,1,true,"a",[],{}]', '$.type()');
+RESULT:
+	postgres: [('array',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null,1,true,"a",[],{}]', 'lax $.type()');
+RESULT:
+	postgres: [('array',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null,1,true,"a",[],{}]', '$[*].type()');
+RESULT:
+	postgres: [('null',), ('number',), ('boolean',), ('string',), ('array',), ('object',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', 'null.type()');
+RESULT:
+	postgres: [('null',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', 'true.type()');
+RESULT:
+	postgres: [('boolean',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '(123).type()');
+RESULT:
+	postgres: [('number',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '"123".type()');
+RESULT:
+	postgres: [('string',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('{"a": 2}', '($.a - 5).abs() + 10');
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": 2.5}', '-($.a * $.a).floor() % 4.3');
+RESULT:
+	postgres: [(-1.7,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1, 2, 3]', '($[*] > 2) ? (@ == true)');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1, 2, 3]', '($[*] > 3).type()');
+RESULT:
+	postgres: [('boolean',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1, 2, 3]', '($[*].a > 3).type()');
+RESULT:
+	postgres: [('boolean',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1, 2, 3]', 'strict ($[*].a > 3).type()');
+RESULT:
+	postgres: [('null',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('[1,null,true,"11",[],[1],[1,2,3],{},{"a":1,"b":2}]', 'strict $[*].size()');
+RESULT:
+	postgres: jsonpath item method .size() can only be applied to an array
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,null,true,"11",[],[1],[1,2,3],{},{"a":1,"b":2}]', 'strict $[*].size()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[1,null,true,"11",[],[1],[1,2,3],{},{"a":1,"b":2}]', 'lax $[*].size()');
+RESULT:
+	postgres: [(1,), (1,), (1,), (1,), (0,), (1,), (3,), (1,), (1,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('[0, 1, -2, -3.4, 5.6]', '$[*].abs()');
+RESULT:
+	postgres: [(0,), (1,), (2,), (3.4,), (5.6,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[0, 1, -2, -3.4, 5.6]', '$[*].floor()');
+RESULT:
+	postgres: [(0,), (1,), (-2,), (-4,), (5,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[0, 1, -2, -3.4, 5.6]', '$[*].ceiling()');
+RESULT:
+	postgres: [(0,), (1,), (-2,), (-3,), (6,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[0, 1, -2, -3.4, 5.6]', '$[*].ceiling().abs()');
+RESULT:
+	postgres: [(0,), (1,), (2,), (3,), (6,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[0, 1, -2, -3.4, 5.6]', '$[*].ceiling().abs().type()');
+RESULT:
+	postgres: [('number',), ('number',), ('number',), ('number',), ('number',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('[{},1]', '$[*].keyvalue()');
+RESULT:
+	postgres: jsonpath item method .keyvalue() can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[{},1]', '$[*].keyvalue()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.keyvalue()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{"a": 1, "b": [1, 2], "c": {"a": "bbb"}}', '$.keyvalue()');
+RESULT:
+	postgres: [({'id': 0, 'key': 'a', 'value': 1},), ({'id': 0, 'key': 'b', 'value': [1, 2]},), ({'id': 0, 'key': 'c', 'value': {'a': 'bbb'}},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[{"a": 1, "b": [1, 2]}, {"c": {"a": "bbb"}}]', '$[*].keyvalue()');
+RESULT:
+	postgres: [({'id': 12, 'key': 'a', 'value': 1},), ({'id': 12, 'key': 'b', 'value': [1, 2]},), ({'id': 72, 'key': 'c', 'value': {'a': 'bbb'}},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[{"a": 1, "b": [1, 2]}, {"c": {"a": "bbb"}}]', 'strict $.keyvalue()');
+RESULT:
+	postgres: jsonpath item method .keyvalue() can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[{"a": 1, "b": [1, 2]}, {"c": {"a": "bbb"}}]', 'lax $.keyvalue()');
+RESULT:
+	postgres: [({'id': 12, 'key': 'a', 'value': 1},), ({'id': 12, 'key': 'b', 'value': [1, 2]},), ({'id': 72, 'key': 'c', 'value': {'a': 'bbb'}},)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[{"a": 1, "b": [1, 2]}, {"c": {"a": "bbb"}}]', 'strict $.keyvalue().a');
+RESULT:
+	postgres: jsonpath item method .keyvalue() can only be applied to an object
+
+
+-----------
+QUERY:
+
+select jsonb '{"a": 1, "b": [1, 2]}' @? 'lax $.keyvalue()';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb '{"a": 1, "b": [1, 2]}' @? 'lax $.keyvalue().key';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('null', '$.double()');
+RESULT:
+	postgres: jsonpath item method .double() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.double()');
+RESULT:
+	postgres: jsonpath item method .double() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.double()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.double()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.double()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.double()');
+RESULT:
+	postgres: jsonpath item method .double() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.double()');
+RESULT:
+	postgres: jsonpath item method .double() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.double()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.double()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.double()');
+RESULT:
+	postgres: [(1.23,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.double()');
+RESULT:
+	postgres: [(1.23,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.double()');
+RESULT:
+	postgres: argument "1.23aaa" of jsonpath item method .double() is invalid for type double precision
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1e1000', '$.double()');
+RESULT:
+	postgres: argument "10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" of jsonpath item method .double() is invalid for type double precision
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"nan"', '$.double()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .double()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NaN"', '$.double()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .double()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.double()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .double()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.double()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .double()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.double()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.double()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('{}', '$.abs()');
+RESULT:
+	postgres: jsonpath item method .abs() can only be applied to a numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.floor()');
+RESULT:
+	postgres: jsonpath item method .floor() can only be applied to a numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.2"', '$.ceiling()');
+RESULT:
+	postgres: jsonpath item method .ceiling() can only be applied to a numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.abs()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.floor()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.2"', '$.ceiling()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('["", "a", "abc", "abcabc"]', '$[*] ? (@ starts with "abc")');
+RESULT:
+	postgres: [('abc',), ('abcabc',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('["", "a", "abc", "abcabc"]', 'strict $ ? (@[*] starts with "abc")');
+RESULT:
+	postgres: [(['', 'a', 'abc', 'abcabc'],)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('["", "a", "abd", "abdabc"]', 'strict $ ? (@[*] starts with "abc")');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('["abc", "abcabc", null, 1]', 'strict $ ? (@[*] starts with "abc")');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('["abc", "abcabc", null, 1]', 'strict $ ? ((@[*] starts with "abc") is unknown)');
+RESULT:
+	postgres: [(['abc', 'abcabc', None, 1],)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[[null, 1, "abc", "abcabc"]]', 'lax $ ? (@[*] starts with "abc")');
+RESULT:
+	postgres: [([None, 1, 'abc', 'abcabc'],)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[[null, 1, "abd", "abdabc"]]', 'lax $ ? ((@[*] starts with "abc") is unknown)');
+RESULT:
+	postgres: [([None, 1, 'abd', 'abdabc'],)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "abd", "abdabc"]', 'lax $[*] ? ((@ starts with "abc") is unknown)');
+RESULT:
+	postgres: [(None,), (1,)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('[null, 1, "abc", "abd", "aBdC", "abdacb", "babc", "adc\nabc", "ab\nadc"]', 'lax $[*] ? (@ like_regex "^ab.*c")');
+RESULT:
+	postgres: [('abc',), ('abdacb',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "abc", "abd", "aBdC", "abdacb", "babc", "adc\nabc", "ab\nadc"]', 'lax $[*] ? (@ like_regex "^ab.*c" flag "i")');
+RESULT:
+	postgres: [('abc',), ('aBdC',), ('abdacb',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "abc", "abd", "aBdC", "abdacb", "babc", "adc\nabc", "ab\nadc"]', 'lax $[*] ? (@ like_regex "^ab.*c" flag "m")');
+RESULT:
+	postgres: [('abc',), ('abdacb',), ('adc\nabc',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "abc", "abd", "aBdC", "abdacb", "babc", "adc\nabc", "ab\nadc"]', 'lax $[*] ? (@ like_regex "^ab.*c" flag "s")');
+RESULT:
+	postgres: [('abc',), ('abdacb',), ('ab\nadc',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "a\\b" flag "q")');
+RESULT:
+	postgres: [('a\\b',), ('^a\\b$',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "a\\b" flag "")');
+RESULT:
+	postgres: [('a\x08',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "^a\\b$" flag "q")');
+RESULT:
+	postgres: [('^a\\b$',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "^a\\B$" flag "q")');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "^a\\B$" flag "iq")');
+RESULT:
+	postgres: [('^a\\b$',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "^a\\b$" flag "")');
+RESULT:
+	postgres: [('a\x08',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('null', '$.datetime()');
+RESULT:
+	postgres: jsonpath item method .datetime() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.datetime()');
+RESULT:
+	postgres: jsonpath item method .datetime() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.datetime()');
+RESULT:
+	postgres: jsonpath item method .datetime() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.datetime()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.datetime()');
+RESULT:
+	postgres: jsonpath item method .datetime() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.datetime()');
+RESULT:
+	postgres: jsonpath item method .datetime() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"bogus"', '$.datetime()');
+RESULT:
+	postgres: datetime format is not recognized: "bogus"
+HINT:  Use a datetime template argument to specify the input data format.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34"', '$.datetime("aaa")');
+RESULT:
+	postgres: invalid datetime format separator: "a"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"aaaa"', '$.datetime("HH24")');
+RESULT:
+	postgres: invalid value "aa" for "HH24"
+DETAIL:  Value must be an integer.
+
+
+-----------
+QUERY:
+
+
+select jsonb '"10-03-2017"' @? '$.datetime("dd-mm-yyyy")';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017"', '$.datetime("dd-mm-yyyy")');
+RESULT:
+	postgres: [('2017-03-10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017"', '$.datetime("dd-mm-yyyy").type()');
+RESULT:
+	postgres: [('date',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34"', '$.datetime("dd-mm-yyyy")');
+RESULT:
+	postgres: trailing characters remain in input string after datetime format
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34"', '$.datetime("dd-mm-yyyy").type()');
+RESULT:
+	postgres: trailing characters remain in input string after datetime format
+
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"10-03-2017 12:34"', '       $.datetime("dd-mm-yyyy HH24:MI").type()');
+RESULT:
+	postgres: [('timestamp without time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 +05:20"', '$.datetime("dd-mm-yyyy HH24:MI TZH:TZM").type()');
+RESULT:
+	postgres: [('timestamp with time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.datetime("HH24:MI:SS").type()');
+RESULT:
+	postgres: [('time without time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:20"', '$.datetime("HH24:MI:SS TZH:TZM").type()');
+RESULT:
+	postgres: [('time with time zone',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"10-03-2017T12:34:56"', '$.datetime("dd-mm-yyyy\"T\"HH24:MI:SS")');
+RESULT:
+	postgres: [('2017-03-10T12:34:56',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017t12:34:56"', '$.datetime("dd-mm-yyyy\"T\"HH24:MI:SS")');
+RESULT:
+	postgres: unmatched format character "T"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34:56"', '$.datetime("dd-mm-yyyy\"T\"HH24:MI:SS")');
+RESULT:
+	postgres: unmatched format character "T"
+
+
+-----------
+QUERY:
+
+
+-- Test .bigint()
+select jsonb_path_query('null', '$.bigint()');
+RESULT:
+	postgres: jsonpath item method .bigint() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.bigint()');
+RESULT:
+	postgres: jsonpath item method .bigint() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.bigint()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.bigint()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.bigint()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.bigint()');
+RESULT:
+	postgres: jsonpath item method .bigint() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.bigint()');
+RESULT:
+	postgres: jsonpath item method .bigint() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.bigint()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.bigint()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.bigint()');
+RESULT:
+	postgres: argument "1.23" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.bigint()');
+RESULT:
+	postgres: argument "1.23aaa" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1e1000', '$.bigint()');
+RESULT:
+	postgres: argument "10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"nan"', '$.bigint()');
+RESULT:
+	postgres: argument "nan" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NaN"', '$.bigint()');
+RESULT:
+	postgres: argument "NaN" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.bigint()');
+RESULT:
+	postgres: argument "inf" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.bigint()');
+RESULT:
+	postgres: argument "-inf" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.bigint()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.bigint()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.bigint()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"123"', '$.bigint()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.bigint()');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.83', '$.bigint()');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234567890123', '$.bigint()');
+RESULT:
+	postgres: [(1234567890123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1234567890123"', '$.bigint()');
+RESULT:
+	postgres: [(1234567890123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345678901234567890', '$.bigint()');
+RESULT:
+	postgres: argument "12345678901234567890" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12345678901234567890"', '$.bigint()');
+RESULT:
+	postgres: argument "12345678901234567890" of jsonpath item method .bigint() is invalid for type bigint
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"+123"', '$.bigint()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('-123', '$.bigint()');
+RESULT:
+	postgres: [(-123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-123"', '$.bigint()');
+RESULT:
+	postgres: [(-123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.bigint() * 2');
+RESULT:
+	postgres: [(246,)]
+
+-----------
+QUERY:
+
+
+-- Test .boolean()
+select jsonb_path_query('null', '$.boolean()');
+RESULT:
+	postgres: jsonpath item method .boolean() can only be applied to a bool, string, or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.boolean()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.boolean()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.boolean()');
+RESULT:
+	postgres: jsonpath item method .boolean() can only be applied to a bool, string, or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.boolean()');
+RESULT:
+	postgres: jsonpath item method .boolean() can only be applied to a bool, string, or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.boolean()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.boolean()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.boolean()');
+RESULT:
+	postgres: argument "1.23" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.boolean()');
+RESULT:
+	postgres: argument "1.23" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.boolean()');
+RESULT:
+	postgres: argument "1.23aaa" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1e1000', '$.boolean()');
+RESULT:
+	postgres: argument "10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"nan"', '$.boolean()');
+RESULT:
+	postgres: argument "nan" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NaN"', '$.boolean()');
+RESULT:
+	postgres: argument "NaN" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.boolean()');
+RESULT:
+	postgres: argument "inf" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.boolean()');
+RESULT:
+	postgres: argument "-inf" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.boolean()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.boolean()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"100"', '$.boolean()');
+RESULT:
+	postgres: argument "100" of jsonpath item method .boolean() is invalid for type boolean
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('false', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('0', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('-1', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('100', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1"', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"0"', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"true"', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"false"', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"TRUE"', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"FALSE"', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"yes"', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NO"', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"T"', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"f"', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"y"', '$.boolean()');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"N"', '$.boolean()');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.boolean().type()');
+RESULT:
+	postgres: [('boolean',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.boolean().type()');
+RESULT:
+	postgres: [('boolean',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"Yes"', '$.boolean().type()');
+RESULT:
+	postgres: [('boolean',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_array('[1, "yes", false]', '$[*].boolean()');
+RESULT:
+	postgres: [([True, True, False],)]
+
+-----------
+QUERY:
+
+
+-- Test .date()
+select jsonb_path_query('null', '$.date()');
+RESULT:
+	postgres: jsonpath item method .date() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.date()');
+RESULT:
+	postgres: jsonpath item method .date() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.date()');
+RESULT:
+	postgres: jsonpath item method .date() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.date()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.date()');
+RESULT:
+	postgres: jsonpath item method .date() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.date()');
+RESULT:
+	postgres: jsonpath item method .date() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"bogus"', '$.date()');
+RESULT:
+	postgres: date format is not recognized: "bogus"
+
+
+-----------
+QUERY:
+
+
+select jsonb '"2023-08-15"' @? '$.date()';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15"', '$.date()');
+RESULT:
+	postgres: [('2023-08-15',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15"', '$.date().type()');
+RESULT:
+	postgres: [('date',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"12:34:56"', '$.date()');
+RESULT:
+	postgres: date format is not recognized: "12:34:56"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:30"', '$.date()');
+RESULT:
+	postgres: date format is not recognized: "12:34:56 +05:30"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.date()');
+RESULT:
+	postgres: [('2023-08-15',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.date()');
+RESULT:
+	postgres: cannot convert value from timestamptz to date without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.date()');
+RESULT:
+	postgres: [('2023-08-15',)]
+
+-----------
+QUERY:
+ -- should work
+
+select jsonb_path_query('"2023-08-15"', '$.date(2)');
+RESULT:
+	postgres: syntax error at or near "2" of jsonpath input
+LINE 3: select jsonb_path_query('"2023-08-15"', '$.date(2)');
+                                                ^
+
+
+-----------
+QUERY:
+
+
+-- Test .decimal()
+select jsonb_path_query('null', '$.decimal()');
+RESULT:
+	postgres: jsonpath item method .decimal() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.decimal()');
+RESULT:
+	postgres: jsonpath item method .decimal() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.decimal()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.decimal()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.decimal()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.decimal()');
+RESULT:
+	postgres: jsonpath item method .decimal() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.decimal()');
+RESULT:
+	postgres: jsonpath item method .decimal() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.decimal()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.decimal()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.decimal()');
+RESULT:
+	postgres: [(1.23,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.decimal()');
+RESULT:
+	postgres: [(1.23,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.decimal()');
+RESULT:
+	postgres: argument "1.23aaa" of jsonpath item method .decimal() is invalid for type numeric
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1e1000', '$.decimal()');
+RESULT:
+	postgres: [(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"nan"', '$.decimal()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .decimal()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NaN"', '$.decimal()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .decimal()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.decimal()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .decimal()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.decimal()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .decimal()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.decimal()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.decimal()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.decimal()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"123"', '$.decimal()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345678901234567890', '$.decimal()');
+RESULT:
+	postgres: [(12345678901234567890,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12345678901234567890"', '$.decimal()');
+RESULT:
+	postgres: [(12345678901234567890,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"+12.3"', '$.decimal()');
+RESULT:
+	postgres: [(12.3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('-12.3', '$.decimal()');
+RESULT:
+	postgres: [(-12.3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-12.3"', '$.decimal()');
+RESULT:
+	postgres: [(-12.3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12.3', '$.decimal() * 2');
+RESULT:
+	postgres: [(24.6,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345.678', '$.decimal(6, 1)');
+RESULT:
+	postgres: [(12345.7,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345.678', '$.decimal(6, 2)');
+RESULT:
+	postgres: argument "12345.678" of jsonpath item method .decimal() is invalid for type numeric
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234.5678', '$.decimal(6, 2)');
+RESULT:
+	postgres: [(1234.57,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345.678', '$.decimal(4, 6)');
+RESULT:
+	postgres: argument "12345.678" of jsonpath item method .decimal() is invalid for type numeric
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345.678', '$.decimal(0, 6)');
+RESULT:
+	postgres: NUMERIC precision 0 must be between 1 and 1000
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345.678', '$.decimal(1001, 6)');
+RESULT:
+	postgres: NUMERIC precision 1001 must be between 1 and 1000
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234.5678', '$.decimal(+6, +2)');
+RESULT:
+	postgres: [(1234.57,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234.5678', '$.decimal(+6, -2)');
+RESULT:
+	postgres: [(1200,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234.5678', '$.decimal(-6, +2)');
+RESULT:
+	postgres: NUMERIC precision -6 must be between 1 and 1000
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234.5678', '$.decimal(6, -1001)');
+RESULT:
+	postgres: NUMERIC scale -1001 must be between -1000 and 1000
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234.5678', '$.decimal(6, 1001)');
+RESULT:
+	postgres: NUMERIC scale 1001 must be between -1000 and 1000
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('-1234.5678', '$.decimal(+6, -2)');
+RESULT:
+	postgres: [(-1200,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('0.0123456', '$.decimal(1,2)');
+RESULT:
+	postgres: [(0.01,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('0.0012345', '$.decimal(2,4)');
+RESULT:
+	postgres: [(0.0012,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('-0.00123456', '$.decimal(2,-4)');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12.3', '$.decimal(12345678901,1)');
+RESULT:
+	postgres: precision of jsonpath item method .decimal() is out of range for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('12.3', '$.decimal(1,12345678901)');
+RESULT:
+	postgres: scale of jsonpath item method .decimal() is out of range for type integer
+
+
+-----------
+QUERY:
+
+
+-- Test .integer()
+select jsonb_path_query('null', '$.integer()');
+RESULT:
+	postgres: jsonpath item method .integer() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.integer()');
+RESULT:
+	postgres: jsonpath item method .integer() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.integer()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.integer()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.integer()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.integer()');
+RESULT:
+	postgres: jsonpath item method .integer() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.integer()');
+RESULT:
+	postgres: jsonpath item method .integer() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.integer()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.integer()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.integer()');
+RESULT:
+	postgres: argument "1.23" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.integer()');
+RESULT:
+	postgres: argument "1.23aaa" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1e1000', '$.integer()');
+RESULT:
+	postgres: argument "10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"nan"', '$.integer()');
+RESULT:
+	postgres: argument "nan" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NaN"', '$.integer()');
+RESULT:
+	postgres: argument "NaN" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.integer()');
+RESULT:
+	postgres: argument "inf" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.integer()');
+RESULT:
+	postgres: argument "-inf" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.integer()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.integer()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.integer()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"123"', '$.integer()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.integer()');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.83', '$.integer()');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345678901', '$.integer()');
+RESULT:
+	postgres: argument "12345678901" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12345678901"', '$.integer()');
+RESULT:
+	postgres: argument "12345678901" of jsonpath item method .integer() is invalid for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"+123"', '$.integer()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('-123', '$.integer()');
+RESULT:
+	postgres: [(-123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-123"', '$.integer()');
+RESULT:
+	postgres: [(-123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.integer() * 2');
+RESULT:
+	postgres: [(246,)]
+
+-----------
+QUERY:
+
+
+-- Test .number()
+select jsonb_path_query('null', '$.number()');
+RESULT:
+	postgres: jsonpath item method .number() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.number()');
+RESULT:
+	postgres: jsonpath item method .number() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.number()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.number()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.number()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.number()');
+RESULT:
+	postgres: jsonpath item method .number() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.number()');
+RESULT:
+	postgres: jsonpath item method .number() can only be applied to a string or numeric value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.number()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.number()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.number()');
+RESULT:
+	postgres: [(1.23,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.number()');
+RESULT:
+	postgres: [(1.23,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.number()');
+RESULT:
+	postgres: argument "1.23aaa" of jsonpath item method .number() is invalid for type numeric
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1e1000', '$.number()');
+RESULT:
+	postgres: [(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"nan"', '$.number()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .number()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"NaN"', '$.number()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .number()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.number()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .number()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.number()');
+RESULT:
+	postgres: NaN or Infinity is not allowed for jsonpath item method .number()
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"inf"', '$.number()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-inf"', '$.number()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('123', '$.number()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"123"', '$.number()');
+RESULT:
+	postgres: [(123,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12345678901234567890', '$.number()');
+RESULT:
+	postgres: [(12345678901234567890,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12345678901234567890"', '$.number()');
+RESULT:
+	postgres: [(12345678901234567890,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"+12.3"', '$.number()');
+RESULT:
+	postgres: [(12.3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('-12.3', '$.number()');
+RESULT:
+	postgres: [(-12.3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"-12.3"', '$.number()');
+RESULT:
+	postgres: [(-12.3,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('12.3', '$.number() * 2');
+RESULT:
+	postgres: [(24.6,)]
+
+-----------
+QUERY:
+
+
+-- Test .string()
+select jsonb_path_query('null', '$.string()');
+RESULT:
+	postgres: jsonpath item method .string() can only be applied to a bool, string, numeric, or datetime value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('null', '$.string()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.string()');
+RESULT:
+	postgres: jsonpath item method .string() can only be applied to a bool, string, numeric, or datetime value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.string()');
+RESULT:
+	postgres: jsonpath item method .string() can only be applied to a bool, string, numeric, or datetime value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.string()');
+RESULT:
+	postgres: jsonpath item method .string() can only be applied to a bool, string, numeric, or datetime value
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.string()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.string()', silent => true);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('1.23', '$.string()');
+RESULT:
+	postgres: [('1.23',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23"', '$.string()');
+RESULT:
+	postgres: [('1.23',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"1.23aaa"', '$.string()');
+RESULT:
+	postgres: [('1.23aaa',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234', '$.string()');
+RESULT:
+	postgres: [('1234',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.string()');
+RESULT:
+	postgres: [('true',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('1234', '$.string().type()');
+RESULT:
+	postgres: [('string',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56 +5:30"', '$.timestamp().string()');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +5:30"', '$.timestamp().string()');
+RESULT:
+	postgres: [('2023-08-15 09:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query_array('[1.23, "yes", false]', '$[*].string()');
+RESULT:
+	postgres: [(['1.23', 'yes', 'false'],)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_array('[1.23, "yes", false]', '$[*].string().type()');
+RESULT:
+	postgres: [(['string', 'string', 'string'],)]
+
+-----------
+QUERY:
+
+
+-- Test .time()
+select jsonb_path_query('null', '$.time()');
+RESULT:
+	postgres: jsonpath item method .time() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.time()');
+RESULT:
+	postgres: jsonpath item method .time() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.time()');
+RESULT:
+	postgres: jsonpath item method .time() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.time()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.time()');
+RESULT:
+	postgres: jsonpath item method .time() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.time()');
+RESULT:
+	postgres: jsonpath item method .time() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"bogus"', '$.time()');
+RESULT:
+	postgres: time format is not recognized: "bogus"
+
+
+-----------
+QUERY:
+
+
+select jsonb '"12:34:56"' @? '$.time()';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.time()');
+RESULT:
+	postgres: [('12:34:56',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.time().type()');
+RESULT:
+	postgres: [('time without time zone',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15"', '$.time()');
+RESULT:
+	postgres: time format is not recognized: "2023-08-15"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: cannot convert value from timetz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: [('12:34:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.time()');
+RESULT:
+	postgres: [('12:34:56',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"12:34:56.789"', '$.time(-1)');
+RESULT:
+	postgres: syntax error at or near "-" of jsonpath input
+LINE 3: select jsonb_path_query('"12:34:56.789"', '$.time(-1)');
+                                                  ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789"', '$.time(2.0)');
+RESULT:
+	postgres: syntax error at or near "2.0" of jsonpath input
+LINE 2: select jsonb_path_query('"12:34:56.789"', '$.time(2.0)');
+                                                  ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789"', '$.time(12345678901)');
+RESULT:
+	postgres: time precision of jsonpath item method .time() is out of range for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789"', '$.time(0)');
+RESULT:
+	postgres: [('12:34:57',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789"', '$.time(2)');
+RESULT:
+	postgres: [('12:34:56.79',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789"', '$.time(5)');
+RESULT:
+	postgres: [('12:34:56.789',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789"', '$.time(10)');
+RESULT:
+	postgres: [('12:34:56.789',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789012"', '$.time(8)');
+RESULT:
+	postgres: [('12:34:56.789012',)]
+
+-----------
+QUERY:
+
+
+-- Test .time_tz()
+select jsonb_path_query('null', '$.time_tz()');
+RESULT:
+	postgres: jsonpath item method .time_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.time_tz()');
+RESULT:
+	postgres: jsonpath item method .time_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.time_tz()');
+RESULT:
+	postgres: jsonpath item method .time_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.time_tz()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.time_tz()');
+RESULT:
+	postgres: jsonpath item method .time_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.time_tz()');
+RESULT:
+	postgres: jsonpath item method .time_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"bogus"', '$.time_tz()');
+RESULT:
+	postgres: time_tz format is not recognized: "bogus"
+
+
+-----------
+QUERY:
+
+
+select jsonb '"12:34:56 +05:30"' @? '$.time_tz()';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:30"', '$.time_tz()');
+RESULT:
+	postgres: [('12:34:56+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:30"', '$.time_tz().type()');
+RESULT:
+	postgres: [('time with time zone',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15"', '$.time_tz()');
+RESULT:
+	postgres: time_tz format is not recognized: "2023-08-15"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.time_tz()');
+RESULT:
+	postgres: time_tz format is not recognized: "2023-08-15 12:34:56"
+
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(-1)');
+RESULT:
+	postgres: syntax error at or near "-" of jsonpath input
+LINE 3: select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(...
+                                                         ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(2.0)');
+RESULT:
+	postgres: syntax error at or near "2.0" of jsonpath input
+LINE 2: select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(...
+                                                         ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(12345678901)');
+RESULT:
+	postgres: time precision of jsonpath item method .time_tz() is out of range for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(0)');
+RESULT:
+	postgres: [('12:34:57+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(2)');
+RESULT:
+	postgres: [('12:34:56.79+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(5)');
+RESULT:
+	postgres: [('12:34:56.789+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(10)');
+RESULT:
+	postgres: [('12:34:56.789+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56.789012 +05:30"', '$.time_tz(8)');
+RESULT:
+	postgres: [('12:34:56.789012+05:30',)]
+
+-----------
+QUERY:
+
+
+-- Test .timestamp()
+select jsonb_path_query('null', '$.timestamp()');
+RESULT:
+	postgres: jsonpath item method .timestamp() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.timestamp()');
+RESULT:
+	postgres: jsonpath item method .timestamp() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.timestamp()');
+RESULT:
+	postgres: jsonpath item method .timestamp() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.timestamp()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.timestamp()');
+RESULT:
+	postgres: jsonpath item method .timestamp() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.timestamp()');
+RESULT:
+	postgres: jsonpath item method .timestamp() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"bogus"', '$.timestamp()');
+RESULT:
+	postgres: timestamp format is not recognized: "bogus"
+
+
+-----------
+QUERY:
+
+
+select jsonb '"2023-08-15 12:34:56"' @? '$.timestamp()';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp()');
+RESULT:
+	postgres: [('2023-08-15T12:34:56',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp().type()');
+RESULT:
+	postgres: [('timestamp without time zone',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15"', '$.timestamp()');
+RESULT:
+	postgres: [('2023-08-15T00:00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.timestamp()');
+RESULT:
+	postgres: timestamp format is not recognized: "12:34:56"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: timestamp format is not recognized: "12:34:56 +05:30"
+
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(-1)');
+RESULT:
+	postgres: syntax error at or near "-" of jsonpath input
+LINE 3: ...ect jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timesta...
+                                                             ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(2.0)');
+RESULT:
+	postgres: syntax error at or near "2.0" of jsonpath input
+LINE 2: ...ect jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timesta...
+                                                             ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(12345678901)');
+RESULT:
+	postgres: time precision of jsonpath item method .timestamp() is out of range for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(0)');
+RESULT:
+	postgres: [('2023-08-15T12:34:57',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(2)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.79',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(5)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.789',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789"', '$.timestamp(10)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.789',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789012"', '$.timestamp(8)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.789012',)]
+
+-----------
+QUERY:
+
+
+-- Test .timestamp_tz()
+select jsonb_path_query('null', '$.timestamp_tz()');
+RESULT:
+	postgres: jsonpath item method .timestamp_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('true', '$.timestamp_tz()');
+RESULT:
+	postgres: jsonpath item method .timestamp_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('1', '$.timestamp_tz()');
+RESULT:
+	postgres: jsonpath item method .timestamp_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', '$.timestamp_tz()');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+select jsonb_path_query('[]', 'strict $.timestamp_tz()');
+RESULT:
+	postgres: jsonpath item method .timestamp_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('{}', '$.timestamp_tz()');
+RESULT:
+	postgres: jsonpath item method .timestamp_tz() can only be applied to a string
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"bogus"', '$.timestamp_tz()');
+RESULT:
+	postgres: timestamp_tz format is not recognized: "bogus"
+
+
+-----------
+QUERY:
+
+
+select jsonb '"2023-08-15 12:34:56 +05:30"' @? '$.timestamp_tz()';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp_tz()');
+RESULT:
+	postgres: [('2023-08-15T12:34:56+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp_tz().type()');
+RESULT:
+	postgres: [('timestamp with time zone',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15"', '$.timestamp_tz()');
+RESULT:
+	postgres: cannot convert value from date to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15"', '$.timestamp_tz()');
+RESULT:
+	postgres: [('2023-08-14T22:00:00+00:00',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"12:34:56"', '$.timestamp_tz()');
+RESULT:
+	postgres: timestamp_tz format is not recognized: "12:34:56"
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56 +05:30"', '$.timestamp_tz()');
+RESULT:
+	postgres: timestamp_tz format is not recognized: "12:34:56 +05:30"
+
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(-1)');
+RESULT:
+	postgres: syntax error at or near "-" of jsonpath input
+LINE 3: ...nb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timesta...
+                                                             ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(2.0)');
+RESULT:
+	postgres: syntax error at or near "2.0" of jsonpath input
+LINE 2: ...nb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timesta...
+                                                             ^
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(12345678901)');
+RESULT:
+	postgres: time precision of jsonpath item method .timestamp_tz() is out of range for type integer
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(0)');
+RESULT:
+	postgres: [('2023-08-15T12:34:57+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(2)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.79+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(5)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.789+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789 +05:30"', '$.timestamp_tz(10)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.789+05:30',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56.789012 +05:30"', '$.timestamp_tz(8)');
+RESULT:
+	postgres: [('2023-08-15T12:34:56.789012+05:30',)]
+
+-----------
+QUERY:
+
+
+
+set time zone '+00';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: cannot convert value from timestamptz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: [('07:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time_tz()');
+RESULT:
+	postgres: [('07:04:56+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.time_tz()');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"12:34:56"', '$.time_tz()');
+RESULT:
+	postgres: [('12:34:56+00:00',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: [('2023-08-15T07:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp_tz()');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56"', '$.timestamp_tz()');
+RESULT:
+	postgres: [('2023-08-15T12:34:56+00:00',)]
+
+-----------
+QUERY:
+ -- should work
+
+select jsonb_path_query('"10-03-2017 12:34"', '$.datetime("dd-mm-yyyy HH24:MI")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34"', '$.datetime("dd-mm-yyyy HH24:MI TZH")');
+RESULT:
+	postgres: input string is too short for datetime format
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 +05"', '$.datetime("dd-mm-yyyy HH24:MI TZH")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 -05"', '$.datetime("dd-mm-yyyy HH24:MI TZH")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00-05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 +05:20"', '$.datetime("dd-mm-yyyy HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+05:20',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 -05:20"', '$.datetime("dd-mm-yyyy HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00-05:20',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34"', '$.datetime("HH24:MI")');
+RESULT:
+	postgres: [('12:34:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34"', '$.datetime("HH24:MI TZH")');
+RESULT:
+	postgres: input string is too short for datetime format
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 +05"', '$.datetime("HH24:MI TZH")');
+RESULT:
+	postgres: [('12:34:00+05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 -05"', '$.datetime("HH24:MI TZH")');
+RESULT:
+	postgres: [('12:34:00-05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 +05:20"', '$.datetime("HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('12:34:00+05:20',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 -05:20"', '$.datetime("HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('12:34:00-05:20',)]
+
+-----------
+QUERY:
+
+
+set time zone '+10';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: cannot convert value from timestamptz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: [('17:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time_tz()');
+RESULT:
+	postgres: [('17:04:56+10:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: [('2023-08-15T17:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp_tz()');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56"', '$.timestamp_tz()');
+RESULT:
+	postgres: [('2023-08-15T02:34:56+00:00',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp_tz()');
+RESULT:
+	postgres: [('2023-08-15T12:34:56+05:30',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"10-03-2017 12:34"', '$.datetime("dd-mm-yyyy HH24:MI")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34"', '$.datetime("dd-mm-yyyy HH24:MI TZH")');
+RESULT:
+	postgres: input string is too short for datetime format
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 +05"', '$.datetime("dd-mm-yyyy HH24:MI TZH")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 -05"', '$.datetime("dd-mm-yyyy HH24:MI TZH")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00-05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 +05:20"', '$.datetime("dd-mm-yyyy HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+05:20',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"10-03-2017 12:34 -05:20"', '$.datetime("dd-mm-yyyy HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('2017-03-10T12:34:00-05:20',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34"', '$.datetime("HH24:MI")');
+RESULT:
+	postgres: [('12:34:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34"', '$.datetime("HH24:MI TZH")');
+RESULT:
+	postgres: input string is too short for datetime format
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 +05"', '$.datetime("HH24:MI TZH")');
+RESULT:
+	postgres: [('12:34:00+05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 -05"', '$.datetime("HH24:MI TZH")');
+RESULT:
+	postgres: [('12:34:00-05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 +05:20"', '$.datetime("HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('12:34:00+05:20',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34 -05:20"', '$.datetime("HH24:MI TZH:TZM")');
+RESULT:
+	postgres: [('12:34:00-05:20',)]
+
+-----------
+QUERY:
+
+
+set time zone default;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: cannot convert value from timestamptz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.time()');
+RESULT:
+	postgres: [('09:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time_tz()');
+RESULT:
+	postgres: [('09:04:56+02:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+RESULT:
+	postgres: [('2023-08-15T09:04:56',)]
+
+-----------
+QUERY:
+ -- should work
+select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp_tz()');
+RESULT:
+	postgres: [('2023-08-15T12:34:56+05:30',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query('"2017-03-10"', '$.datetime().type()');
+RESULT:
+	postgres: [('date',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56"', '$.datetime().type()');
+RESULT:
+	postgres: [('timestamp without time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56+3"', '$.datetime().type()');
+RESULT:
+	postgres: [('timestamp with time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56+3"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56+03:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56+3:10"', '$.datetime().type()');
+RESULT:
+	postgres: [('timestamp with time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56+3:10"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56+03:10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10T12:34:56+3:10"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56+03:10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10t12:34:56+3:10"', '$.datetime()');
+RESULT:
+	postgres: datetime format is not recognized: "2017-03-10t12:34:56+3:10"
+HINT:  Use a datetime template argument to specify the input data format.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10 12:34:56.789+3:10"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56.789+03:10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10T12:34:56.789+3:10"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56.789+03:10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10t12:34:56.789+3:10"', '$.datetime()');
+RESULT:
+	postgres: datetime format is not recognized: "2017-03-10t12:34:56.789+3:10"
+HINT:  Use a datetime template argument to specify the input data format.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10T12:34:56.789EST"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56.789-05:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"2017-03-10T12:34:56.789Z"', '$.datetime()');
+RESULT:
+	postgres: [('2017-03-10T12:34:56.789+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.datetime().type()');
+RESULT:
+	postgres: [('time without time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56"', '$.datetime()');
+RESULT:
+	postgres: [('12:34:56',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56+3"', '$.datetime().type()');
+RESULT:
+	postgres: [('time with time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56+3"', '$.datetime()');
+RESULT:
+	postgres: [('12:34:56+03:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56+3:10"', '$.datetime().type()');
+RESULT:
+	postgres: [('time with time zone',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query('"12:34:56+3:10"', '$.datetime()');
+RESULT:
+	postgres: [('12:34:56+03:10',)]
+
+-----------
+QUERY:
+
+
+set time zone '+00';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- date comparison
+select jsonb_path_query(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ == "10.03.2017".datetime("dd.mm.yyyy"))');
+RESULT:
+	postgres: cannot convert value from date to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ >= "10.03.2017".datetime("dd.mm.yyyy"))');
+RESULT:
+	postgres: cannot convert value from date to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ <  "10.03.2017".datetime("dd.mm.yyyy"))');
+RESULT:
+	postgres: cannot convert value from date to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ == "10.03.2017".datetime("dd.mm.yyyy"))');
+RESULT:
+	postgres: [('2017-03-10',), ('2017-03-10T00:00:00',), ('2017-03-10T03:00:00+03:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ >= "10.03.2017".datetime("dd.mm.yyyy"))');
+RESULT:
+	postgres: [('2017-03-10',), ('2017-03-11',), ('2017-03-10T00:00:00',), ('2017-03-10T12:34:56',), ('2017-03-10T03:00:00+03:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ <  "10.03.2017".datetime("dd.mm.yyyy"))');
+RESULT:
+	postgres: [('2017-03-09',), ('2017-03-10T01:02:03+04:00',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ == "2017-03-10".date())');
+RESULT:
+	postgres: [('2017-03-10',), ('2017-03-10T00:00:00',), ('2017-03-10T03:00:00+03:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ >= "2017-03-10".date())');
+RESULT:
+	postgres: [('2017-03-10',), ('2017-03-11',), ('2017-03-10T00:00:00',), ('2017-03-10T12:34:56',), ('2017-03-10T03:00:00+03:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].datetime() ? (@ <  "2017-03-10".date())');
+RESULT:
+	postgres: [('2017-03-09',), ('2017-03-10T01:02:03+04:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].date() ? (@ == "2017-03-10".date())');
+RESULT:
+	postgres: cannot convert value from timestamptz to date without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].date() ? (@ >= "2017-03-10".date())');
+RESULT:
+	postgres: cannot convert value from timestamptz to date without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].date() ? (@ <  "2017-03-10".date())');
+RESULT:
+	postgres: cannot convert value from timestamptz to date without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].date() ? (@ == "2017-03-10".date())');
+RESULT:
+	postgres: [('2017-03-10',), ('2017-03-10',), ('2017-03-10',), ('2017-03-10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].date() ? (@ >= "2017-03-10".date())');
+RESULT:
+	postgres: [('2017-03-10',), ('2017-03-11',), ('2017-03-10',), ('2017-03-10',), ('2017-03-10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10", "2017-03-11", "2017-03-09", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
+	'$[*].date() ? (@ <  "2017-03-10".date())');
+RESULT:
+	postgres: [('2017-03-09',), ('2017-03-09',)]
+
+-----------
+QUERY:
+
+
+-- time comparison
+select jsonb_path_query(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ == "12:35".datetime("HH24:MI"))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ >= "12:35".datetime("HH24:MI"))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ <  "12:35".datetime("HH24:MI"))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ == "12:35".datetime("HH24:MI"))');
+RESULT:
+	postgres: [('12:35:00',), ('12:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ >= "12:35".datetime("HH24:MI"))');
+RESULT:
+	postgres: [('12:35:00',), ('12:36:00',), ('12:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ <  "12:35".datetime("HH24:MI"))');
+RESULT:
+	postgres: [('12:34:00',), ('12:35:00+01:00',), ('13:35:00+01:00',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ == "12:35:00".time())');
+RESULT:
+	postgres: [('12:35:00',), ('12:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ >= "12:35:00".time())');
+RESULT:
+	postgres: [('12:35:00',), ('12:36:00',), ('12:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].datetime() ? (@ <  "12:35:00".time())');
+RESULT:
+	postgres: [('12:34:00',), ('12:35:00+01:00',), ('13:35:00+01:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].time() ? (@ == "12:35:00".time())');
+RESULT:
+	postgres: cannot convert value from timetz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].time() ? (@ >= "12:35:00".time())');
+RESULT:
+	postgres: cannot convert value from timetz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].time() ? (@ <  "12:35:00".time())');
+RESULT:
+	postgres: cannot convert value from timetz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00.123", "12:35:00.123", "12:36:00.1123", "12:35:00.1123+00", "12:35:00.123+01", "13:35:00.123+01", "2017-03-10 12:35:00.1", "2017-03-10 12:35:00.123+01"]',
+	'$[*].time(2) ? (@ >= "12:35:00.123".time(2))');
+RESULT:
+	postgres: cannot convert value from timetz to time without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].time() ? (@ == "12:35:00".time())');
+RESULT:
+	postgres: [('12:35:00',), ('12:35:00',), ('12:35:00',), ('12:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].time() ? (@ >= "12:35:00".time())');
+RESULT:
+	postgres: [('12:35:00',), ('12:36:00',), ('12:35:00',), ('12:35:00',), ('13:35:00',), ('12:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00", "12:35:00", "12:36:00", "12:35:00+00", "12:35:00+01", "13:35:00+01", "2017-03-10 12:35:00", "2017-03-10 12:35:00+01"]',
+	'$[*].time() ? (@ <  "12:35:00".time())');
+RESULT:
+	postgres: [('12:34:00',), ('11:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00.123", "12:35:00.123", "12:36:00.1123", "12:35:00.1123+00", "12:35:00.123+01", "13:35:00.123+01", "2017-03-10 12:35:00.1", "2017-03-10 12:35:00.123+01"]',
+	'$[*].time(2) ? (@ >= "12:35:00.123".time(2))');
+RESULT:
+	postgres: [('12:35:00.12',), ('12:36:00.11',), ('12:35:00.12',), ('13:35:00.12',)]
+
+-----------
+QUERY:
+
+
+
+-- timetz comparison
+select jsonb_path_query(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ == "12:35 +1".datetime("HH24:MI TZH"))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ >= "12:35 +1".datetime("HH24:MI TZH"))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ <  "12:35 +1".datetime("HH24:MI TZH"))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ == "12:35 +1".datetime("HH24:MI TZH"))');
+RESULT:
+	postgres: [('12:35:00+01:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ >= "12:35 +1".datetime("HH24:MI TZH"))');
+RESULT:
+	postgres: [('12:35:00+01:00',), ('12:36:00+01:00',), ('12:35:00-02:00',), ('11:35:00',), ('12:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10", "2017-03-10 12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ <  "12:35 +1".datetime("HH24:MI TZH"))');
+RESULT:
+	postgres: [('12:34:00+01:00',), ('12:35:00+02:00',), ('10:35:00',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ == "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: [('12:35:00+01:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ >= "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: [('12:35:00+01:00',), ('12:36:00+01:00',), ('12:35:00-02:00',), ('11:35:00',), ('12:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].datetime() ? (@ <  "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: [('12:34:00+01:00',), ('12:35:00+02:00',), ('10:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].time_tz() ? (@ == "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].time_tz() ? (@ >= "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].time_tz() ? (@ <  "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["12:34:00.123+01", "12:35:00.123+01", "12:36:00.1123+01", "12:35:00.1123+02", "12:35:00.123-02", "10:35:00.123", "11:35:00.1", "12:35:00.123", "2017-03-10 12:35:00.123 +1"]',
+	'$[*].time_tz(2) ? (@ >= "12:35:00.123 +1".time_tz(2))');
+RESULT:
+	postgres: cannot convert value from time to timetz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].time_tz() ? (@ == "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: [('12:35:00+01:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].time_tz() ? (@ >= "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: [('12:35:00+01:00',), ('12:36:00+01:00',), ('12:35:00-02:00',), ('11:35:00+00:00',), ('12:35:00+00:00',), ('11:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00+01", "12:35:00+01", "12:36:00+01", "12:35:00+02", "12:35:00-02", "10:35:00", "11:35:00", "12:35:00", "2017-03-10 12:35:00 +1"]',
+	'$[*].time_tz() ? (@ <  "12:35:00 +1".time_tz())');
+RESULT:
+	postgres: [('12:34:00+01:00',), ('12:35:00+02:00',), ('10:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["12:34:00.123+01", "12:35:00.123+01", "12:36:00.1123+01", "12:35:00.1123+02", "12:35:00.123-02", "10:35:00.123", "11:35:00.1", "12:35:00.123", "2017-03-10 12:35:00.123 +1"]',
+	'$[*].time_tz(2) ? (@ >= "12:35:00.123 +1".time_tz(2))');
+RESULT:
+	postgres: [('12:35:00.12+01:00',), ('12:36:00.11+01:00',), ('12:35:00.12-02:00',), ('12:35:00.12+00:00',), ('11:35:00.12+00:00',)]
+
+-----------
+QUERY:
+
+
+-- timestamp comparison
+select jsonb_path_query(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ == "10.03.2017 12:35".datetime("dd.mm.yyyy HH24:MI"))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ >= "10.03.2017 12:35".datetime("dd.mm.yyyy HH24:MI"))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ < "10.03.2017 12:35".datetime("dd.mm.yyyy HH24:MI"))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ == "10.03.2017 12:35".datetime("dd.mm.yyyy HH24:MI"))');
+RESULT:
+	postgres: [('2017-03-10T12:35:00',), ('2017-03-10T13:35:00+01:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ >= "10.03.2017 12:35".datetime("dd.mm.yyyy HH24:MI"))');
+RESULT:
+	postgres: [('2017-03-10T12:35:00',), ('2017-03-10T12:36:00',), ('2017-03-10T13:35:00+01:00',), ('2017-03-10T12:35:00-01:00',), ('2017-03-11',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ < "10.03.2017 12:35".datetime("dd.mm.yyyy HH24:MI"))');
+RESULT:
+	postgres: [('2017-03-10T12:34:00',), ('2017-03-10T12:35:00+01:00',), ('2017-03-10',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].datetime() ? (@ == "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00',), ('2017-03-10T13:35:00+01:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].datetime() ? (@ >= "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00',), ('2017-03-10T12:36:00',), ('2017-03-10T13:35:00+01:00',), ('2017-03-10T12:35:00-01:00',), ('2017-03-11',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].datetime() ? (@ < "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: [('2017-03-10T12:34:00',), ('2017-03-10T12:35:00+01:00',), ('2017-03-10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp() ? (@ == "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp() ? (@ >= "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp() ? (@ < "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00.123", "2017-03-10 12:35:00.123", "2017-03-10 12:36:00.1123", "2017-03-10 12:35:00.1123+01", "2017-03-10 13:35:00.123+01", "2017-03-10 12:35:00.1-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp(2) ? (@ >= "2017-03-10 12:35:00.123".timestamp(2))');
+RESULT:
+	postgres: cannot convert value from timestamptz to timestamp without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp() ? (@ == "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00',), ('2017-03-10T12:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp() ? (@ >= "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00',), ('2017-03-10T12:36:00',), ('2017-03-10T12:35:00',), ('2017-03-10T13:35:00',), ('2017-03-11T00:00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00", "2017-03-10 12:35:00", "2017-03-10 12:36:00", "2017-03-10 12:35:00+01", "2017-03-10 13:35:00+01", "2017-03-10 12:35:00-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp() ? (@ < "2017-03-10 12:35:00".timestamp())');
+RESULT:
+	postgres: [('2017-03-10T12:34:00',), ('2017-03-10T11:35:00',), ('2017-03-10T00:00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00.123", "2017-03-10 12:35:00.123", "2017-03-10 12:36:00.1123", "2017-03-10 12:35:00.1123+01", "2017-03-10 13:35:00.123+01", "2017-03-10 12:35:00.1-01", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp(2) ? (@ >= "2017-03-10 12:35:00.123".timestamp(2))');
+RESULT:
+	postgres: [('2017-03-10T12:35:00.12',), ('2017-03-10T12:36:00.11',), ('2017-03-10T12:35:00.12',), ('2017-03-10T13:35:00.1',), ('2017-03-11T00:00:00',)]
+
+-----------
+QUERY:
+
+
+-- timestamptz comparison
+select jsonb_path_query(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ == "10.03.2017 12:35 +1".datetime("dd.mm.yyyy HH24:MI TZH"))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ >= "10.03.2017 12:35 +1".datetime("dd.mm.yyyy HH24:MI TZH"))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ < "10.03.2017 12:35 +1".datetime("dd.mm.yyyy HH24:MI TZH"))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ == "10.03.2017 12:35 +1".datetime("dd.mm.yyyy HH24:MI TZH"))');
+RESULT:
+	postgres: [('2017-03-10T12:35:00+01:00',), ('2017-03-10T11:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ >= "10.03.2017 12:35 +1".datetime("dd.mm.yyyy HH24:MI TZH"))');
+RESULT:
+	postgres: [('2017-03-10T12:35:00+01:00',), ('2017-03-10T12:36:00+01:00',), ('2017-03-10T12:35:00-02:00',), ('2017-03-10T11:35:00',), ('2017-03-10T12:35:00',), ('2017-03-11',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11", "12:34:56", "12:34:56+01"]',
+	'$[*].datetime() ? (@ < "10.03.2017 12:35 +1".datetime("dd.mm.yyyy HH24:MI TZH"))');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+01:00',), ('2017-03-10T12:35:00+02:00',), ('2017-03-10T10:35:00',), ('2017-03-10',)]
+
+-----------
+QUERY:
+
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].datetime() ? (@ == "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00+01:00',), ('2017-03-10T11:35:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].datetime() ? (@ >= "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00+01:00',), ('2017-03-10T12:36:00+01:00',), ('2017-03-10T12:35:00-02:00',), ('2017-03-10T11:35:00',), ('2017-03-10T12:35:00',), ('2017-03-11',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].datetime() ? (@ < "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+01:00',), ('2017-03-10T12:35:00+02:00',), ('2017-03-10T10:35:00',), ('2017-03-10',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz() ? (@ == "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz() ? (@ >= "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz() ? (@ < "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query(
+	'["2017-03-10 12:34:00.123+01", "2017-03-10 12:35:00.123+01", "2017-03-10 12:36:00.1123+01", "2017-03-10 12:35:00.1123+02", "2017-03-10 12:35:00.123-02", "2017-03-10 10:35:00.123", "2017-03-10 11:35:00.1", "2017-03-10 12:35:00.123", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz(2) ? (@ >= "2017-03-10 12:35:00.123 +1".timestamp_tz(2))');
+RESULT:
+	postgres: cannot convert value from timestamp to timestamptz without time zone usage
+HINT:  Use *_tz() function for time zone support.
+
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz() ? (@ == "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00+01:00',), ('2017-03-10T11:35:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz() ? (@ >= "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: [('2017-03-10T12:35:00+01:00',), ('2017-03-10T12:36:00+01:00',), ('2017-03-10T12:35:00-02:00',), ('2017-03-10T11:35:00+00:00',), ('2017-03-10T12:35:00+00:00',), ('2017-03-11T00:00:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00+01", "2017-03-10 12:35:00+01", "2017-03-10 12:36:00+01", "2017-03-10 12:35:00+02", "2017-03-10 12:35:00-02", "2017-03-10 10:35:00", "2017-03-10 11:35:00", "2017-03-10 12:35:00", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz() ? (@ < "2017-03-10 12:35:00 +1".timestamp_tz())');
+RESULT:
+	postgres: [('2017-03-10T12:34:00+01:00',), ('2017-03-10T12:35:00+02:00',), ('2017-03-10T10:35:00+00:00',), ('2017-03-10T00:00:00+00:00',)]
+
+-----------
+QUERY:
+
+select jsonb_path_query_tz(
+	'["2017-03-10 12:34:00.123+01", "2017-03-10 12:35:00.123+01", "2017-03-10 12:36:00.1123+01", "2017-03-10 12:35:00.1123+02", "2017-03-10 12:35:00.123-02", "2017-03-10 10:35:00.123", "2017-03-10 11:35:00.1", "2017-03-10 12:35:00.123", "2017-03-10", "2017-03-11"]',
+	'$[*].timestamp_tz(2) ? (@ >= "2017-03-10 12:35:00.123 +1".timestamp_tz(2))');
+RESULT:
+	postgres: [('2017-03-10T12:35:00.12+01:00',), ('2017-03-10T12:36:00.11+01:00',), ('2017-03-10T12:35:00.12-02:00',), ('2017-03-10T12:35:00.12+00:00',), ('2017-03-11T00:00:00+00:00',)]
+
+-----------
+QUERY:
+
+
+
+-- overflow during comparison
+select jsonb_path_query('"1000000-01-01"', '$.datetime() > "2020-01-01 12:00:00".datetime()'::jsonpath);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+set time zone default;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- jsonpath operators
+
+SELECT jsonb_path_query('[{"a": 1}, {"a": 2}]', '$[*]');
+RESULT:
+	postgres: [({'a': 1},), ({'a': 2},)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query('[{"a": 1}, {"a": 2}]', '$[*] ? (@.a > 10)');
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query('[{"a": 1}]', '$undefined_var');
+RESULT:
+	postgres: could not find jsonpath variable "undefined_var"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query('[{"a": 1}]', 'false');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+SELECT jsonb_path_query_array('[{"a": 1}, {"a": 2}, {}]', 'strict $[*].a');
+RESULT:
+	postgres: JSON object does not contain key "a"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_array('[{"a": 1}, {"a": 2}]', '$[*].a');
+RESULT:
+	postgres: [([1, 2],)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_array('[{"a": 1}, {"a": 2}]', '$[*].a ? (@ == 1)');
+RESULT:
+	postgres: [([1],)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_array('[{"a": 1}, {"a": 2}]', '$[*].a ? (@ > 10)');
+RESULT:
+	postgres: [([],)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_array('[{"a": 1}, {"a": 2}, {"a": 3}, {"a": 5}]', '$[*].a ? (@ > $min && @ < $max)', vars => '{"min": 1, "max": 4}');
+RESULT:
+	postgres: [([2, 3],)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_array('[{"a": 1}, {"a": 2}, {"a": 3}, {"a": 5}]', '$[*].a ? (@ > $min && @ < $max)', vars => '{"min": 3, "max": 4}');
+RESULT:
+	postgres: [([],)]
+
+-----------
+QUERY:
+
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}, {}]', 'strict $[*].a');
+RESULT:
+	postgres: JSON object does not contain key "a"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}, {}]', 'strict $[*].a', silent => true);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}]', '$[*].a');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}]', '$[*].a ? (@ == 1)');
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}]', '$[*].a ? (@ > 10)');
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}, {"a": 3}, {"a": 5}]', '$[*].a ? (@ > $min && @ < $max)', vars => '{"min": 1, "max": 4}');
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}, {"a": 2}, {"a": 3}, {"a": 5}]', '$[*].a ? (@ > $min && @ < $max)', vars => '{"min": 3, "max": 4}');
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}]', '$undefined_var');
+RESULT:
+	postgres: could not find jsonpath variable "undefined_var"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_query_first('[{"a": 1}]', 'false');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+SELECT jsonb '[{"a": 1}, {"a": 2}]' @? '$[*].a ? (@ > 1)';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT jsonb '[{"a": 1}, {"a": 2}]' @? '$[*] ? (@.a > 2)';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_exists('[{"a": 1}, {"a": 2}]', '$[*].a ? (@ > 1)');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_exists('[{"a": 1}, {"a": 2}, {"a": 3}, {"a": 5}]', '$[*] ? (@.a > $min && @.a < $max)', vars => '{"min": 1, "max": 4}');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_exists('[{"a": 1}, {"a": 2}, {"a": 3}, {"a": 5}]', '$[*] ? (@.a > $min && @.a < $max)', vars => '{"min": 3, "max": 4}');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_exists('[{"a": 1}]', '$undefined_var');
+RESULT:
+	postgres: could not find jsonpath variable "undefined_var"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_exists('[{"a": 1}]', 'false');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+SELECT jsonb_path_match('true', '$', silent => false);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('false', '$', silent => false);
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('null', '$', silent => false);
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('1', '$', silent => true);
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('1', '$', silent => false);
+RESULT:
+	postgres: single boolean result is expected
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('"a"', '$', silent => false);
+RESULT:
+	postgres: single boolean result is expected
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('{}', '$', silent => false);
+RESULT:
+	postgres: single boolean result is expected
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('[true]', '$', silent => false);
+RESULT:
+	postgres: single boolean result is expected
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('{}', 'lax $.a', silent => false);
+RESULT:
+	postgres: single boolean result is expected
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('{}', 'strict $.a', silent => false);
+RESULT:
+	postgres: JSON object does not contain key "a"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('{}', 'strict $.a', silent => true);
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('[true, true]', '$[*]', silent => false);
+RESULT:
+	postgres: single boolean result is expected
+
+
+-----------
+QUERY:
+
+SELECT jsonb '[{"a": 1}, {"a": 2}]' @@ '$[*].a > 1';
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT jsonb '[{"a": 1}, {"a": 2}]' @@ '$[*].a > 2';
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('[{"a": 1}, {"a": 2}]', '$[*].a > 1');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('[{"a": 1}]', '$undefined_var');
+RESULT:
+	postgres: could not find jsonpath variable "undefined_var"
+
+
+-----------
+QUERY:
+
+SELECT jsonb_path_match('[{"a": 1}]', 'false');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+-- test string comparison (Unicode codepoint collation)
+WITH str(j, num) AS
+(
+	SELECT jsonb_build_object('s', s), num
+	FROM unnest('{"", "a", "ab", "abc", "abcd", "b", "A", "AB", "ABC", "ABc", "ABcD", "B"}'::text[]) WITH ORDINALITY AS a(s, num)
+)
+SELECT
+	s1.j, s2.j,
+	jsonb_path_query_first(s1.j, '$.s < $s', vars => s2.j) lt,
+	jsonb_path_query_first(s1.j, '$.s <= $s', vars => s2.j) le,
+	jsonb_path_query_first(s1.j, '$.s == $s', vars => s2.j) eq,
+	jsonb_path_query_first(s1.j, '$.s >= $s', vars => s2.j) ge,
+	jsonb_path_query_first(s1.j, '$.s > $s', vars => s2.j) gt
+FROM str s1, str s2
+ORDER BY s1.num, s2.num;
+RESULT:
+	postgres: [({'s': ''}, {'s': ''}, False, True, True, True, False), ({'s': ''}, {'s': 'a'}, True, True, False, False, False), ({'s': ''}, {'s': 'ab'}, True, True, False, False, False), ({'s': ''}, {'s': 'abc'}, True, True, False, False, False), ({'s': ''}, {'s': 'abcd'}, True, True, False, False, False), ({'s': ''}, {'s': 'b'}, True, True, False, False, False), ({'s': ''}, {'s': 'A'}, True, True, False, False, False), ({'s': ''}, {'s': 'AB'}, True, True, False, False, False), ({'s': ''}, {'s': 'ABC'}, True, True, False, False, False), ({'s': ''}, {'s': 'ABc'}, True, True, False, False, False), ({'s': ''}, {'s': 'ABcD'}, True, True, False, False, False), ({'s': ''}, {'s': 'B'}, True, True, False, False, False), ({'s': 'a'}, {'s': ''}, False, False, False, True, True), ({'s': 'a'}, {'s': 'a'}, False, True, True, True, False), ({'s': 'a'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'a'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'a'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'a'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'a'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'a'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'a'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'a'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'a'}, {'s': 'ABcD'}, False, False, False, True, True), ({'s': 'a'}, {'s': 'B'}, False, False, False, True, True), ({'s': 'ab'}, {'s': ''}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'a'}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'ab'}, False, True, True, True, False), ({'s': 'ab'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'ab'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'ab'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'ab'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'ABcD'}, False, False, False, True, True), ({'s': 'ab'}, {'s': 'B'}, False, False, False, True, True), ({'s': 'abc'}, {'s': ''}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'a'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'ab'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'abc'}, False, True, True, True, False), ({'s': 'abc'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'abc'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'abc'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'ABcD'}, False, False, False, True, True), ({'s': 'abc'}, {'s': 'B'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': ''}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'a'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'ab'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'abc'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'abcd'}, False, True, True, True, False), ({'s': 'abcd'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'abcd'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'ABcD'}, False, False, False, True, True), ({'s': 'abcd'}, {'s': 'B'}, False, False, False, True, True), ({'s': 'b'}, {'s': ''}, False, False, False, True, True), ({'s': 'b'}, {'s': 'a'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'ab'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'abc'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'abcd'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'b'}, False, True, True, True, False), ({'s': 'b'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'ABcD'}, False, False, False, True, True), ({'s': 'b'}, {'s': 'B'}, False, False, False, True, True), ({'s': 'A'}, {'s': ''}, False, False, False, True, True), ({'s': 'A'}, {'s': 'a'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'A'}, False, True, True, True, False), ({'s': 'A'}, {'s': 'AB'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'ABC'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'ABc'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'ABcD'}, True, True, False, False, False), ({'s': 'A'}, {'s': 'B'}, True, True, False, False, False), ({'s': 'AB'}, {'s': ''}, False, False, False, True, True), ({'s': 'AB'}, {'s': 'a'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'AB'}, {'s': 'AB'}, False, True, True, True, False), ({'s': 'AB'}, {'s': 'ABC'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'ABc'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'ABcD'}, True, True, False, False, False), ({'s': 'AB'}, {'s': 'B'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': ''}, False, False, False, True, True), ({'s': 'ABC'}, {'s': 'a'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'ABC'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'ABC'}, {'s': 'ABC'}, False, True, True, True, False), ({'s': 'ABC'}, {'s': 'ABc'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'ABcD'}, True, True, False, False, False), ({'s': 'ABC'}, {'s': 'B'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': ''}, False, False, False, True, True), ({'s': 'ABc'}, {'s': 'a'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'ABc'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'ABc'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'ABc'}, {'s': 'ABc'}, False, True, True, True, False), ({'s': 'ABc'}, {'s': 'ABcD'}, True, True, False, False, False), ({'s': 'ABc'}, {'s': 'B'}, True, True, False, False, False), ({'s': 'ABcD'}, {'s': ''}, False, False, False, True, True), ({'s': 'ABcD'}, {'s': 'a'}, True, True, False, False, False), ({'s': 'ABcD'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'ABcD'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'ABcD'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'ABcD'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'ABcD'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'ABcD'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'ABcD'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'ABcD'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'ABcD'}, {'s': 'ABcD'}, False, True, True, True, False), ({'s': 'ABcD'}, {'s': 'B'}, True, True, False, False, False), ({'s': 'B'}, {'s': ''}, False, False, False, True, True), ({'s': 'B'}, {'s': 'a'}, True, True, False, False, False), ({'s': 'B'}, {'s': 'ab'}, True, True, False, False, False), ({'s': 'B'}, {'s': 'abc'}, True, True, False, False, False), ({'s': 'B'}, {'s': 'abcd'}, True, True, False, False, False), ({'s': 'B'}, {'s': 'b'}, True, True, False, False, False), ({'s': 'B'}, {'s': 'A'}, False, False, False, True, True), ({'s': 'B'}, {'s': 'AB'}, False, False, False, True, True), ({'s': 'B'}, {'s': 'ABC'}, False, False, False, True, True), ({'s': 'B'}, {'s': 'ABc'}, False, False, False, True, True), ({'s': 'B'}, {'s': 'ABcD'}, False, False, False, True, True), ({'s': 'B'}, {'s': 'B'}, False, True, True, True, False)]

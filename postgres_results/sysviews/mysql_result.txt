@@ -1,0 +1,205 @@
+
+-----------
+QUERY:
+--
+-- Test assorted system views
+--
+-- This test is mainly meant to provide some code coverage for the
+-- set-returning functions that underlie certain system views.
+-- The output of most of these functions is very environment-dependent,
+-- so our ability to test with fixed expected output is pretty limited /* REPLACED */,
+-- but even a trivial check of count(*) will exercise the normal code path
+-- through the SRF.
+
+select count(*) >= 0 as ok from pg_available_extension_versions;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_available_extension_versions' doesn't exist")
+
+-----------
+QUERY:
+
+
+select count(*) >= 0 as ok from pg_available_extensions;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_available_extensions' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- The entire output of pg_backend_memory_contexts is not stable,
+-- we test only the existence and basic condition of TopMemoryContext.
+select name, ident, parent, level, total_bytes >= free_bytes
+  from pg_backend_memory_contexts where level = 0;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_backend_memory_contexts' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- At introduction, pg_config had 23 entries /* REPLACED */, it may grow
+select count(*) > 20 as ok from pg_config;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_config' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- We expect no cursors in this test /* REPLACED */, see also portals.sql
+select count(*) = 0 as ok from pg_cursors;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_cursors' doesn't exist")
+
+-----------
+QUERY:
+
+
+select count(*) >= 0 as ok from pg_file_settings;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_file_settings' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- There will surely be at least one rule, with no errors.
+select count(*) > 0 as ok, count(*) FILTER (WHERE error IS NOT NULL) = 0 AS no_err
+  from pg_hba_file_rules;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(WHERE error IS NOT NULL) = 0 AS no_err\n  from pg_hba_file_rules' at line 2")
+
+-----------
+QUERY:
+
+
+-- There may be no rules, and there should be no errors.
+select count(*) >= 0 as ok, count(*) FILTER (WHERE error IS NOT NULL) = 0 AS no_err
+  from pg_ident_file_mappings;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(WHERE error IS NOT NULL) = 0 AS no_err\n  from pg_ident_file_mappings' at line 2")
+
+-----------
+QUERY:
+
+
+-- There will surely be at least one active lock
+select count(*) > 0 as ok from pg_locks;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- We expect no prepared statements in this test /* REPLACED */, see also prepare.sql
+select count(*) = 0 as ok from pg_prepared_statements;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- See also prepared_xacts.sql
+select count(*) >= 0 as ok from pg_prepared_xacts;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_prepared_xacts' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- There will surely be at least one SLRU cache
+select count(*) > 0 as ok from pg_stat_slru;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_stat_slru' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- There must be only one record
+select count(*) = 1 as ok from pg_stat_wal;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_stat_wal' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- We expect no walreceiver running in this test
+select count(*) = 0 as ok from pg_stat_wal_receiver;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_stat_wal_receiver' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- This is to record the prevailing planner enable_foo settings during
+-- a regression test run.
+select name, setting from pg_settings where name like 'enable%';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_settings' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- There are always wait event descriptions for various types.
+select type, count(*) > 0 as ok FROM pg_wait_events
+  group by type order by type COLLATE "C";
+RESULT:
+	mySQL: ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+-- Test that the pg_timezone_names and pg_timezone_abbrevs views are
+-- more-or-less working.  We can/* REPLACED */''t test their contents in any great detail
+-- without the outputs changing anytime IANA updates the underlying data,
+-- but it seems reasonable to expect at least one entry per major meridian.
+-- (At the time of writing, the actual counts are around 38 because of
+-- zones using fractional GMT offsets, so this is a pretty loose test.)
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_names;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_timezone_names' doesn't exist")
+
+-----------
+QUERY:
+
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_abbrevs;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_timezone_abbrevs' doesn't exist")
+
+-----------
+QUERY:
+
+-- Let/* REPLACED */''s check the non-default timezone abbreviation sets, too
+set timezone_abbreviations = 'Australia';
+RESULT:
+	mySQL: ERROR - (1193, "Unknown system variable 'timezone_abbreviations'")
+
+-----------
+QUERY:
+
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_abbrevs;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_timezone_abbrevs' doesn't exist")
+
+-----------
+QUERY:
+
+set timezone_abbreviations = 'India';
+RESULT:
+	mySQL: ERROR - (1193, "Unknown system variable 'timezone_abbreviations'")
+
+-----------
+QUERY:
+
+select count(distinct utc_offset) >= 24 as ok from pg_timezone_abbrevs;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.pg_timezone_abbrevs' doesn't exist")

@@ -1,0 +1,199 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- Test for facilities of security label
+--
+
+-- initial setups
+SET client_min_messages TO 'warning';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP ROLE IF EXISTS regress_seclabel_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP ROLE IF EXISTS regress_seclabel_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+RESET client_min_messages;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE USER regress_seclabel_user1 WITH CREATEROLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE USER regress_seclabel_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TABLE seclabel_tbl1 (a int, b text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE seclabel_tbl2 (x int, y text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW seclabel_view1 AS SELECT * FROM seclabel_tbl2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE FUNCTION seclabel_four() RETURNS integer AS $$SELECT 4$$ language sql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE DOMAIN seclabel_domain AS text;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+ALTER TABLE seclabel_tbl1 OWNER TO regress_seclabel_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER TABLE seclabel_tbl2 OWNER TO regress_seclabel_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+--
+-- Test of SECURITY LABEL statement without a plugin
+--
+SECURITY LABEL ON TABLE seclabel_tbl1 IS 'classified';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+			-- fail
+SECURITY LABEL FOR 'dummy' ON TABLE seclabel_tbl1 IS 'classified';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON TABLE seclabel_tbl1 IS '...invalid label...';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON TABLE seclabel_tbl3 IS 'unclassified';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+			-- fail
+
+SECURITY LABEL ON ROLE regress_seclabel_user1 IS 'classified';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+			-- fail
+SECURITY LABEL FOR 'dummy' ON ROLE regress_seclabel_user1 IS 'classified';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON ROLE regress_seclabel_user1 IS '...invalid label...';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON ROLE regress_seclabel_user3 IS 'unclassified';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+			-- fail
+
+-- clean up objects
+DROP FUNCTION seclabel_four();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP DOMAIN seclabel_domain;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP VIEW seclabel_view1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE seclabel_tbl1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE seclabel_tbl2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP USER regress_seclabel_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_seclabel_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+=========================================
+Summary for test case security_label/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 14 queries, which is 50.00%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 14 queries, which is 50.00%
+
+=================
+Results for mySQL
+SAME: 18 queries, which is 64.29%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 10 queries, which is 35.71%

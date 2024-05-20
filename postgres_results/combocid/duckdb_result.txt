@@ -1,244 +1,414 @@
+
+-----------
+QUERY:
 --
 -- Tests for some likely failure cases with combo cmin/cmax mechanism
 --
-CREATE TEMP TABLE combocidtest (foobar int)
+CREATE TEMP TABLE combocidtest (foobar int);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-BEGIN
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- a few dummy ops to push up the CommandId counter
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO combocidtest VALUES (1)
+INSERT INTO combocidtest VALUES (1);
+RESULT:
+	[]
 
-INSERT INTO combocidtest VALUES (2)
+-----------
+QUERY:
+
+INSERT INTO combocidtest VALUES (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
 
-
-SAVEPOINT s1
-ERROR: 
-
-SAVEPOINT s1
-
-Parser Error: syntax error at or near "SAVEPOINT"
+-----------
+QUERY:
 
 
-UPDATE combocidtest SET foobar = foobar + 10
+SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+
+UPDATE combocidtest SET foobar = foobar + 10;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- here we should see only updated tuples
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
--- here we should see only updated tuples
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
 
+-----------
+QUERY:
 
-ROLLBACK TO s1
-ERROR: 
 
-ROLLBACK TO s1
+ROLLBACK TO s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
 
-Parser Error: syntax error at or near "TO"
+-----------
+QUERY:
 
 
 -- now we should see old tuples, but with combo CIDs starting at 0
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
--- now we should see old tuples, but with combo CIDs starting at 0
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
 
+-----------
+QUERY:
 
-COMMIT
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- combo data is not there anymore, but should still see tuples
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
--- combo data is not there anymore, but should still see tuples
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
+
+-----------
+QUERY:
 
 
 -- Test combo CIDs with portals
-BEGIN
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO combocidtest VALUES (333)
+INSERT INTO combocidtest VALUES (333);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-DECLARE c CURSOR FOR SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
+DECLARE c CURSOR FOR SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DECLARE"
 
-DECLARE c CURSOR FOR SELECT ctid,cmin,* FROM combocidtest
-
-Parser Error: syntax error at or near "DECLARE"
-
-
-DELETE FROM combocidtest
+-----------
+QUERY:
 
 
-FETCH ALL FROM c
-ERROR: 
+DELETE FROM combocidtest;
+RESULT:
+	[]
 
-FETCH ALL FROM c
-
-Parser Error: syntax error at or near "FETCH"
-
-
-ROLLBACK
+-----------
+QUERY:
 
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
+FETCH ALL FROM c;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FETCH"
 
-SELECT ctid,cmin,* FROM combocidtest
+-----------
+QUERY:
 
-Binder Error: Referenced column "ctid" not found in FROM clause!
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
+
+-----------
+QUERY:
 
 
 -- check behavior with locked tuples
-BEGIN
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- a few dummy ops to push up the CommandId counter
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
 
-INSERT INTO combocidtest SELECT 1 LIMIT 0
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO combocidtest SELECT 1 LIMIT 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO combocidtest VALUES (444)
+INSERT INTO combocidtest VALUES (444);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
 
-
-SAVEPOINT s1
-ERROR: 
-
-SAVEPOINT s1
-
-Parser Error: syntax error at or near "SAVEPOINT"
+-----------
+QUERY:
 
 
--- this doesn''t affect cmin
-SELECT ctid,cmin,* FROM combocidtest FOR UPDATE
-ERROR: 
+SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
 
--- this doesn''t affect cmin
-SELECT ctid,cmin,* FROM combocidtest FOR UPDATE
+-----------
+QUERY:
 
-Parser Error: SELECT locking clause is not supported!
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-SELECT ctid,cmin,* FROM combocidtest
+-- this doesn/* REPLACED */''t affect cmin
+SELECT ctid,cmin,* FROM combocidtest FOR UPDATE;
+RESULT:
+	ERROR - Parser Error: SELECT locking clause is not supported!
 
-Binder Error: Referenced column "ctid" not found in FROM clause!
+-----------
+QUERY:
+
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
+
+-----------
+QUERY:
 
 
 -- but this does
-UPDATE combocidtest SET foobar = foobar + 10
+UPDATE combocidtest SET foobar = foobar + 10;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
 
-
-ROLLBACK TO s1
-ERROR: 
-
-ROLLBACK TO s1
-
-Parser Error: syntax error at or near "TO"
+-----------
+QUERY:
 
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
+ROLLBACK TO s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
 
-SELECT ctid,cmin,* FROM combocidtest
+-----------
+QUERY:
 
-Binder Error: Referenced column "ctid" not found in FROM clause!
+
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
 
+-----------
+QUERY:
 
-COMMIT
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT ctid,cmin,* FROM combocidtest
-ERROR: 
-
-SELECT ctid,cmin,* FROM combocidtest
-
-Binder Error: Referenced column "ctid" not found in FROM clause!
+SELECT ctid,cmin,* FROM combocidtest;
+RESULT:
+	ERROR - Binder Error: Referenced column "ctid" not found in FROM clause!
 Candidate bindings: "combocidtest.foobar"
+
+-----------
+QUERY:
 
 
 -- test for bug reported in
@@ -246,44 +416,77 @@ Candidate bindings: "combocidtest.foobar"
 CREATE TABLE IF NOT EXISTS testcase(
 	id int PRIMARY KEY,
 	balance numeric
-)
+);
+RESULT:
+	[]
 
-INSERT INTO testcase VALUES (1, 0)
+-----------
+QUERY:
 
-BEGIN
+INSERT INTO testcase VALUES (1, 0);
+RESULT:
+	[]
 
-SELECT * FROM testcase WHERE testcase.id = 1 FOR UPDATE
-ERROR: 
-SELECT * FROM testcase WHERE testcase.id = 1 FOR UPDATE
+-----------
+QUERY:
 
-Parser Error: SELECT locking clause is not supported!
+BEGIN;
+RESULT:
+	[]
 
-UPDATE testcase SET balance = balance + 400 WHERE id=1
+-----------
+QUERY:
 
-SAVEPOINT subxact
-ERROR: 
-SAVEPOINT subxact
+SELECT * FROM testcase WHERE testcase.id = 1 FOR UPDATE;
+RESULT:
+	ERROR - Parser Error: SELECT locking clause is not supported!
 
-Parser Error: syntax error at or near "SAVEPOINT"
+-----------
+QUERY:
 
-UPDATE testcase SET balance = balance - 100 WHERE id=1
+UPDATE testcase SET balance = balance + 400 WHERE id=1;
+RESULT:
+	[]
 
-ROLLBACK TO SAVEPOINT subxact
-ERROR: 
-ROLLBACK TO SAVEPOINT subxact
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "TO"
+SAVEPOINT subxact;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+UPDATE testcase SET balance = balance - 100 WHERE id=1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ROLLBACK TO SAVEPOINT subxact;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
 
 -- should return one tuple
-SELECT * FROM testcase WHERE id = 1 FOR UPDATE
-ERROR: 
--- should return one tuple
-SELECT * FROM testcase WHERE id = 1 FOR UPDATE
+SELECT * FROM testcase WHERE id = 1 FOR UPDATE;
+RESULT:
+	ERROR - Parser Error: SELECT locking clause is not supported!
 
-Parser Error: SELECT locking clause is not supported!
+-----------
+QUERY:
 
-ROLLBACK
+ROLLBACK;
+RESULT:
+	[]
 
-DROP TABLE testcase
+-----------
+QUERY:
 
-
+DROP TABLE testcase;
+RESULT:
+	[]

@@ -1,0 +1,3118 @@
+
+-----------
+QUERY:
+--
+-- STRINGS
+-- Test various data entry syntaxes.
+--
+
+-- SQL string continuation syntax
+-- E021-03 character string literals
+SELECT 'first line'
+' - next line'
+	' - third line'
+	AS "Three lines to one"
+RESULT:
+	postgres: [('first line - next line - third line',)]
+
+-----------
+QUERY:
+-- illegal string continuation syntax
+SELECT 'first line'
+' - next line' /* this comment is not allowed here */
+' - third line'
+	AS "Illegal comment within continuation"
+RESULT:
+	postgres: syntax error at or near "' - third line'"
+LINE 4: ' - third line'
+        ^
+
+
+-----------
+QUERY:
+-- Unicode escapes
+SET standard_conforming_strings TO on
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061"
+RESULT:
+	postgres: [('data',)]
+
+-----------
+QUERY:
+SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061" UESCAPE '*'
+RESULT:
+	postgres: [('dat\\+000061',)]
+
+-----------
+QUERY:
+SELECT U&'a\\b' AS "a\b"
+RESULT:
+	postgres: [('a\\b',)]
+
+-----------
+QUERY:
+SELECT U&' \' UESCAPE '!' AS "tricky"
+RESULT:
+	postgres: [(' \\',)]
+
+-----------
+QUERY:
+SELECT 'tricky' AS U&"\" UESCAPE '!'
+RESULT:
+	postgres: [('tricky',)]
+
+-----------
+QUERY:
+SELECT U&'wrong: \061'
+RESULT:
+	postgres: invalid Unicode escape
+LINE 1: SELECT U&'wrong: \061'
+                         ^
+HINT:  Unicode escapes must be \XXXX or \+XXXXXX.
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \+0061'
+RESULT:
+	postgres: invalid Unicode escape
+LINE 1: SELECT U&'wrong: \+0061'
+                         ^
+HINT:  Unicode escapes must be \XXXX or \+XXXXXX.
+
+
+-----------
+QUERY:
+SELECT U&'wrong: +0061' UESCAPE +
+RESULT:
+	postgres: UESCAPE must be followed by a simple string literal at or near "+"
+LINE 1: SELECT U&'wrong: +0061' UESCAPE +
+                                        ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: +0061' UESCAPE '+'
+RESULT:
+	postgres: invalid Unicode escape character at or near "'+'"
+LINE 1: SELECT U&'wrong: +0061' UESCAPE '+'
+                                        ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \db99'
+RESULT:
+	postgres: invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99'
+                              ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \db99xy'
+RESULT:
+	postgres: invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99xy'
+                              ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \db99\\'
+RESULT:
+	postgres: invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99\\'
+                              ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \db99\0061'
+RESULT:
+	postgres: invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99\0061'
+                              ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \+00db99\+000061'
+RESULT:
+	postgres: invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \+00db99\+000061'
+                                 ^
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \+2FFFFF'
+RESULT:
+	postgres: invalid Unicode escape value
+LINE 1: SELECT U&'wrong: \+2FFFFF'
+                         ^
+
+
+-----------
+QUERY:
+-- while we/* REPLACED */''re here, check the same cases in E-style literals
+SELECT E'd\u0061t\U00000061' AS "data"
+RESULT:
+	postgres: [('data',)]
+
+-----------
+QUERY:
+SELECT E'a\\b' AS "a\b"
+RESULT:
+	postgres: [('a\\b',)]
+
+-----------
+QUERY:
+SELECT E'wrong: \u061'
+RESULT:
+	postgres: invalid Unicode escape
+LINE 1: SELECT E'wrong: \u061'
+                        ^
+HINT:  Unicode escapes must be \uXXXX or \UXXXXXXXX.
+
+
+-----------
+QUERY:
+SELECT E'wrong: \U0061'
+RESULT:
+	postgres: invalid Unicode escape
+LINE 1: SELECT E'wrong: \U0061'
+                        ^
+HINT:  Unicode escapes must be \uXXXX or \UXXXXXXXX.
+
+
+-----------
+QUERY:
+SELECT E'wrong: \udb99'
+RESULT:
+	postgres: invalid Unicode surrogate pair at or near "'"
+LINE 1: SELECT E'wrong: \udb99'
+                              ^
+
+
+-----------
+QUERY:
+SELECT E'wrong: \udb99xy'
+RESULT:
+	postgres: invalid Unicode surrogate pair at or near "x"
+LINE 1: SELECT E'wrong: \udb99xy'
+                              ^
+
+
+-----------
+QUERY:
+SELECT E'wrong: \udb99\\'
+RESULT:
+	postgres: invalid Unicode surrogate pair at or near "\"
+LINE 1: SELECT E'wrong: \udb99\\'
+                              ^
+
+
+-----------
+QUERY:
+SELECT E'wrong: \udb99\u0061'
+RESULT:
+	postgres: invalid Unicode surrogate pair at or near "\u0061"
+LINE 1: SELECT E'wrong: \udb99\u0061'
+                              ^
+
+
+-----------
+QUERY:
+SELECT E'wrong: \U0000db99\U00000061'
+RESULT:
+	postgres: invalid Unicode surrogate pair at or near "\U00000061"
+LINE 1: SELECT E'wrong: \U0000db99\U00000061'
+                                  ^
+
+
+-----------
+QUERY:
+SELECT E'wrong: \U002FFFFF'
+RESULT:
+	postgres: invalid Unicode escape value at or near "\U002FFFFF"
+LINE 1: SELECT E'wrong: \U002FFFFF'
+                        ^
+
+
+-----------
+QUERY:
+SET standard_conforming_strings TO off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061"
+RESULT:
+	postgres: unsafe use of string constant with Unicode escapes
+LINE 1: SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061"
+               ^
+DETAIL:  String constants with Unicode escapes cannot be used when standard_conforming_strings is off.
+
+
+-----------
+QUERY:
+SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061" UESCAPE '*'
+RESULT:
+	postgres: unsafe use of string constant with Unicode escapes
+LINE 1: SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061...
+               ^
+DETAIL:  String constants with Unicode escapes cannot be used when standard_conforming_strings is off.
+
+
+-----------
+QUERY:
+SELECT U&' \' UESCAPE '!' AS "tricky"
+RESULT:
+	postgres: unsafe use of string constant with Unicode escapes
+LINE 1: SELECT U&' \' UESCAPE '!' AS "tricky"
+               ^
+DETAIL:  String constants with Unicode escapes cannot be used when standard_conforming_strings is off.
+
+
+-----------
+QUERY:
+SELECT 'tricky' AS U&"\" UESCAPE '!'
+RESULT:
+	postgres: [('tricky',)]
+
+-----------
+QUERY:
+SELECT U&'wrong: \061'
+RESULT:
+	postgres: unsafe use of string constant with Unicode escapes
+LINE 1: SELECT U&'wrong: \061'
+               ^
+DETAIL:  String constants with Unicode escapes cannot be used when standard_conforming_strings is off.
+
+
+-----------
+QUERY:
+SELECT U&'wrong: \+0061'
+RESULT:
+	postgres: unsafe use of string constant with Unicode escapes
+LINE 1: SELECT U&'wrong: \+0061'
+               ^
+DETAIL:  String constants with Unicode escapes cannot be used when standard_conforming_strings is off.
+
+
+-----------
+QUERY:
+SELECT U&'wrong: +0061' UESCAPE '+'
+RESULT:
+	postgres: unsafe use of string constant with Unicode escapes
+LINE 1: SELECT U&'wrong: +0061' UESCAPE '+'
+               ^
+DETAIL:  String constants with Unicode escapes cannot be used when standard_conforming_strings is off.
+
+
+-----------
+QUERY:
+RESET standard_conforming_strings
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- bytea
+SET bytea_output TO hex
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT E'\\xDeAdBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'\\x De Ad Be Ef '::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'\\xDeAdBeE'::bytea
+RESULT:
+	postgres: invalid hexadecimal data: odd number of digits
+LINE 1: SELECT E'\\xDeAdBeE'::bytea
+               ^
+
+
+-----------
+QUERY:
+SELECT E'\\xDeAdBeEx'::bytea
+RESULT:
+	postgres: invalid hexadecimal digit: "x"
+LINE 1: SELECT E'\\xDeAdBeEx'::bytea
+               ^
+
+
+-----------
+QUERY:
+SELECT E'\\xDe00BeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'DeAdBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'De\\000dBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'De\123dBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'De\\123dBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'De\\678dBeEf'::bytea
+RESULT:
+	postgres: invalid input syntax for type bytea
+LINE 1: SELECT E'De\\678dBeEf'::bytea
+               ^
+
+
+-----------
+QUERY:
+SET bytea_output TO escape
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT E'\\xDeAdBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'\\x De Ad Be Ef '::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'\\xDe00BeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'DeAdBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'De\\000dBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT E'De\\123dBeEf'::bytea
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+-- Test non-error-throwing API too
+SELECT pg_input_is_valid(E'\\xDeAdBeE', 'bytea')
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT * FROM pg_input_error_info(E'\\xDeAdBeE', 'bytea')
+RESULT:
+	postgres: [('invalid hexadecimal data: odd number of digits', None, None, '22023')]
+
+-----------
+QUERY:
+SELECT * FROM pg_input_error_info(E'\\xDeAdBeEx', 'bytea')
+RESULT:
+	postgres: [('invalid hexadecimal digit: "x"', None, None, '22023')]
+
+-----------
+QUERY:
+SELECT * FROM pg_input_error_info(E'foo\\99bar', 'bytea')
+RESULT:
+	postgres: [('invalid input syntax for type bytea', None, None, '22P02')]
+
+-----------
+QUERY:
+--
+-- test conversions between various string types
+-- E021-10 implicit casting among the character data types
+--
+
+SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_TBL
+RESULT:
+	postgres: [('a',), ('ab',), ('abcd',), ('abcd',)]
+
+-----------
+QUERY:
+SELECT CAST(f1 AS text) AS "text(varchar)" FROM VARCHAR_TBL
+RESULT:
+	postgres: [('a',), ('ab',), ('abcd',), ('abcd',)]
+
+-----------
+QUERY:
+SELECT CAST(name 'namefield' AS text) AS "text(name)"
+RESULT:
+	postgres: [('namefield',)]
+
+-----------
+QUERY:
+-- since this is an explicit cast, it should truncate w/o error:
+SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_TBL
+RESULT:
+	postgres: [('doh!      ',), ('hi de ho n',)]
+
+-----------
+QUERY:
+-- note: implicit-cast case is tested in char.sql
+
+SELECT CAST(f1 AS char(20)) AS "char(text)" FROM TEXT_TBL
+RESULT:
+	postgres: [('doh!                ',), ('hi de ho neighbor   ',)]
+
+-----------
+QUERY:
+SELECT CAST(f1 AS char(10)) AS "char(varchar)" FROM VARCHAR_TBL
+RESULT:
+	postgres: [('a         ',), ('ab        ',), ('abcd      ',), ('abcd      ',)]
+
+-----------
+QUERY:
+SELECT CAST(name 'namefield' AS char(10)) AS "char(name)"
+RESULT:
+	postgres: [('namefield ',)]
+
+-----------
+QUERY:
+SELECT CAST(f1 AS varchar) AS "varchar(text)" FROM TEXT_TBL
+RESULT:
+	postgres: [('doh!',), ('hi de ho neighbor',)]
+
+-----------
+QUERY:
+SELECT CAST(f1 AS varchar) AS "varchar(char)" FROM CHAR_TBL
+RESULT:
+	postgres: [('a',), ('ab',), ('abcd',), ('abcd',)]
+
+-----------
+QUERY:
+SELECT CAST(name 'namefield' AS varchar) AS "varchar(name)"
+RESULT:
+	postgres: [('namefield',)]
+
+-----------
+QUERY:
+--
+-- test SQL string functions
+-- E### and T### are feature reference numbers from SQL99
+--
+
+-- E021-09 trim function
+SELECT TRIM(BOTH FROM '  bunch o blanks  ') = 'bunch o blanks' AS "bunch o blanks"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT TRIM(LEADING FROM '  bunch o blanks  ') = 'bunch o blanks  ' AS "bunch o blanks  "
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT TRIM(TRAILING FROM '  bunch o blanks  ') = '  bunch o blanks' AS "  bunch o blanks"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT TRIM(BOTH 'x' FROM 'xxxxxsome Xsxxxxx') = 'some Xs' AS "some Xs"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- E021-06 substring expression
+SELECT SUBSTRING('1234567890' FROM 3) = '34567890' AS "34567890"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('1234567890' FROM 4 FOR 3) = '456' AS "456"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- test overflow cases
+SELECT SUBSTRING('string' FROM 2 FOR 2147483646) AS "tring"
+RESULT:
+	postgres: [('tring',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('string' FROM -10 FOR 2147483646) AS "string"
+RESULT:
+	postgres: [('string',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('string' FROM -10 FOR -2147483646) AS "error"
+RESULT:
+	postgres: negative substring length not allowed
+
+
+-----------
+QUERY:
+-- T581 regular expression substring (with SQL/* REPLACED */''s bizarre regexp syntax)
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"(b_d)#"%' ESCAPE '#') AS "bcd"
+RESULT:
+	postgres: [('bcd',)]
+
+-----------
+QUERY:
+-- obsolete SQL99 syntax
+SELECT SUBSTRING('abcdefg' FROM 'a#"(b_d)#"%' FOR '#') AS "bcd"
+RESULT:
+	postgres: [('bcd',)]
+
+-----------
+QUERY:
+-- No match should return NULL
+SELECT SUBSTRING('abcdefg' SIMILAR '#"(b_d)#"%' ESCAPE '#') IS NULL AS "True"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- Null inputs should return NULL
+SELECT SUBSTRING('abcdefg' SIMILAR '%' ESCAPE NULL) IS NULL AS "True"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING(NULL SIMILAR '%' ESCAPE '#') IS NULL AS "True"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('abcdefg' SIMILAR NULL ESCAPE '#') IS NULL AS "True"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- The first and last parts should act non-greedy
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%#"g' ESCAPE '#') AS "bcdef"
+RESULT:
+	postgres: [('bcdef',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('abcdefg' SIMILAR 'a*#"%#"g*' ESCAPE '#') AS "abcdefg"
+RESULT:
+	postgres: [('abcdefg',)]
+
+-----------
+QUERY:
+-- Vertical bar in any part affects only that part
+SELECT SUBSTRING('abcdefg' SIMILAR 'a|b#"%#"g' ESCAPE '#') AS "bcdef"
+RESULT:
+	postgres: [('bcdef',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%#"x|g' ESCAPE '#') AS "bcdef"
+RESULT:
+	postgres: [('bcdef',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%|ab#"g' ESCAPE '#') AS "bcdef"
+RESULT:
+	postgres: [('bcdef',)]
+
+-----------
+QUERY:
+-- Can/* REPLACED */''t have more than two part separators
+SELECT SUBSTRING('abcdefg' SIMILAR 'a*#"%#"g*#"x' ESCAPE '#') AS "error"
+RESULT:
+	postgres: SQL regular expression may not contain more than two escape-double-quote separators
+CONTEXT:  SQL function "substring" statement 1
+
+
+-----------
+QUERY:
+-- Postgres extension: with 0 or 1 separator, assume parts 1 and 3 are empty
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%g' ESCAPE '#') AS "bcdefg"
+RESULT:
+	postgres: [('bcdefg',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('abcdefg' SIMILAR 'a%g' ESCAPE '#') AS "abcdefg"
+RESULT:
+	postgres: [('abcdefg',)]
+
+-----------
+QUERY:
+-- substring() with just two arguments is not allowed by SQL spec /* REPLACED */,
+-- we accept it, but we interpret the pattern as a POSIX regexp not SQL
+SELECT SUBSTRING('abcdefg' FROM 'c.e') AS "cde"
+RESULT:
+	postgres: [('cde',)]
+
+-----------
+QUERY:
+-- With a parenthesized subexpression, return only what matches the subexpr
+SELECT SUBSTRING('abcdefg' FROM 'b(.*)f') AS "cde"
+RESULT:
+	postgres: [('cde',)]
+
+-----------
+QUERY:
+-- Check case where we have a match, but not a subexpression match
+SELECT SUBSTRING('foo' FROM 'foo(bar)?') IS NULL AS t
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- Check behavior of SIMILAR TO, which uses largely the same regexp variant
+SELECT 'abcdefg' SIMILAR TO '_bcd%' AS true
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'abcdefg' SIMILAR TO 'bcd%' AS false
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'abcdefg' SIMILAR TO '_bcd#%' ESCAPE '#' AS false
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'abcd%' SIMILAR TO '_bcd#%' ESCAPE '#' AS true
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- Postgres uses /* REPLACED */''\/* REPLACED */'' as the default escape character, which is not per spec
+SELECT 'abcdefg' SIMILAR TO '_bcd\%' AS false
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+-- and an empty string to mean /* REPLACED */''no escape/* REPLACED */'', which is also not per spec
+SELECT 'abcd\efg' SIMILAR TO '_bcd\%' ESCAPE '' AS true
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- these behaviors are per spec, though:
+SELECT 'abcdefg' SIMILAR TO '_bcd%' ESCAPE NULL AS null
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+SELECT 'abcdefg' SIMILAR TO '_bcd#%' ESCAPE '##' AS error
+RESULT:
+	postgres: invalid escape string
+HINT:  Escape string must be empty or one character.
+
+
+-----------
+QUERY:
+-- Test backslash escapes in regexp_replace/* REPLACED */''s replacement string
+SELECT regexp_replace('1112223333', E'(\\d{3})(\\d{3})(\\d{4})', E'(\\1) \\2-\\3')
+RESULT:
+	postgres: [('(111) 222-3333',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('foobarrbazz', E'(.)\\1', E'X\\&Y', 'g')
+RESULT:
+	postgres: [('fXooYbaXrrYbaXzzY',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('foobarrbazz', E'(.)\\1', E'X\\\\Y', 'g')
+RESULT:
+	postgres: [('fX\\YbaX\\YbaX\\Y',)]
+
+-----------
+QUERY:
+-- not an error, though perhaps it should be:
+SELECT regexp_replace('foobarrbazz', E'(.)\\1', E'X\\Y\\1Z\\')
+RESULT:
+	postgres: [('fX\\YoZ\\barrbazz',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('AAA   BBB   CCC   ', E'\\s+', ' ', 'g')
+RESULT:
+	postgres: [('AAA BBB CCC ',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('AAA', '^|$', 'Z', 'g')
+RESULT:
+	postgres: [('ZAAAZ',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'gi')
+RESULT:
+	postgres: [('Z Z',)]
+
+-----------
+QUERY:
+-- invalid regexp option
+SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'z')
+RESULT:
+	postgres: invalid regular expression option: "z"
+
+
+-----------
+QUERY:
+-- extended regexp_replace tests
+SELECT regexp_replace('A PostgreSQL function', 'A|e|i|o|u', 'X', 1)
+RESULT:
+	postgres: [('X PostgreSQL function',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'A|e|i|o|u', 'X', 1, 2)
+RESULT:
+	postgres: [('A PXstgreSQL function',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 0, 'i')
+RESULT:
+	postgres: [('X PXstgrXSQL fXnctXXn',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 1, 'i')
+RESULT:
+	postgres: [('X PostgreSQL function',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 2, 'i')
+RESULT:
+	postgres: [('A PXstgreSQL function',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 3, 'i')
+RESULT:
+	postgres: [('A PostgrXSQL function',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 9, 'i')
+RESULT:
+	postgres: [('A PostgreSQL function',)]
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'A|e|i|o|u', 'X', 7, 0, 'i')
+RESULT:
+	postgres: [('A PostgrXSQL fXnctXXn',)]
+
+-----------
+QUERY:
+-- /* REPLACED */''g/* REPLACED */'' flag should be ignored when N is specified
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 1, 'g')
+RESULT:
+	postgres: [('A PXstgreSQL function',)]
+
+-----------
+QUERY:
+-- errors
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', -1, 0, 'i')
+RESULT:
+	postgres: invalid value for parameter "start": -1
+
+
+-----------
+QUERY:
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, -1, 'i')
+RESULT:
+	postgres: invalid value for parameter "n": -1
+
+
+-----------
+QUERY:
+-- erroneous invocation of non-extended form
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', '1')
+RESULT:
+	postgres: invalid regular expression option: "1"
+HINT:  If you meant to use regexp_replace() with a start parameter, cast the fourth argument to integer explicitly.
+
+
+-----------
+QUERY:
+--  regexp_count tests
+SELECT regexp_count('123123123123123', '(12)3')
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+SELECT regexp_count('123123123123', '123', 1)
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+SELECT regexp_count('123123123123', '123', 3)
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+SELECT regexp_count('123123123123', '123', 33)
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT regexp_count('ABCABCABCABC', 'Abc', 1, '')
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT regexp_count('ABCABCABCABC', 'Abc', 1, 'i')
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+-- errors
+SELECT regexp_count('123123123123', '123', 0)
+RESULT:
+	postgres: invalid value for parameter "start": 0
+
+
+-----------
+QUERY:
+SELECT regexp_count('123123123123', '123', -3)
+RESULT:
+	postgres: invalid value for parameter "start": -3
+
+
+-----------
+QUERY:
+-- regexp_like tests
+SELECT regexp_like('Steven', '^Ste(v|ph)en$')
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT regexp_like('a'||CHR(10)||'d', 'a.d', 'n')
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT regexp_like('a'||CHR(10)||'d', 'a.d', 's')
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT regexp_like('abc', ' a . c ', 'x')
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT regexp_like('abc', 'a.c', 'g')
+RESULT:
+	postgres: regexp_like() does not support the "global" option
+
+
+-----------
+QUERY:
+-- error
+
+-- regexp_instr tests
+SELECT regexp_instr('abcdefghi', 'd.f')
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('abcdefghi', 'd.q')
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c')
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 2)
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 3)
+RESULT:
+	postgres: [(7,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 4)
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'A.C', 1, 2, 0, 'i')
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 0)
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 1)
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 2)
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 3)
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 4)
+RESULT:
+	postgres: [(7,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 5)
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 0)
+RESULT:
+	postgres: [(9,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 1)
+RESULT:
+	postgres: [(4,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 2)
+RESULT:
+	postgres: [(9,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 3)
+RESULT:
+	postgres: [(7,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 4)
+RESULT:
+	postgres: [(9,)]
+
+-----------
+QUERY:
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 5)
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+-- Check case where we have a match, but not a subexpression match
+SELECT regexp_instr('foo', 'foo(bar)?', 1, 1, 0, '', 1)
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+-- errors
+SELECT regexp_instr('abcabcabc', 'a.c', 0, 1)
+RESULT:
+	postgres: invalid value for parameter "start": 0
+
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 0)
+RESULT:
+	postgres: invalid value for parameter "n": 0
+
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, -1)
+RESULT:
+	postgres: invalid value for parameter "endoption": -1
+
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, 2)
+RESULT:
+	postgres: invalid value for parameter "endoption": 2
+
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, 0, 'g')
+RESULT:
+	postgres: regexp_instr() does not support the "global" option
+
+
+-----------
+QUERY:
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, 0, '', -1)
+RESULT:
+	postgres: invalid value for parameter "subexpr": -1
+
+
+-----------
+QUERY:
+-- regexp_substr tests
+SELECT regexp_substr('abcdefghi', 'd.f')
+RESULT:
+	postgres: [('def',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('abcdefghi', 'd.q') IS NULL AS t
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c')
+RESULT:
+	postgres: [('abc',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c', 2)
+RESULT:
+	postgres: [('abc',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 3)
+RESULT:
+	postgres: [('abc',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 4) IS NULL AS t
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'A.C', 1, 2, 'i')
+RESULT:
+	postgres: [('abc',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 0)
+RESULT:
+	postgres: [('12345678',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 1)
+RESULT:
+	postgres: [('123',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 2)
+RESULT:
+	postgres: [('45678',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 3)
+RESULT:
+	postgres: [('56',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 4)
+RESULT:
+	postgres: [('78',)]
+
+-----------
+QUERY:
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 5) IS NULL AS t
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- Check case where we have a match, but not a subexpression match
+SELECT regexp_substr('foo', 'foo(bar)?', 1, 1, '', 1) IS NULL AS t
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- errors
+SELECT regexp_substr('abcabcabc', 'a.c', 0, 1)
+RESULT:
+	postgres: invalid value for parameter "start": 0
+
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 0)
+RESULT:
+	postgres: invalid value for parameter "n": 0
+
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 1, 'g')
+RESULT:
+	postgres: regexp_substr() does not support the "global" option
+
+
+-----------
+QUERY:
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 1, '', -1)
+RESULT:
+	postgres: invalid value for parameter "subexpr": -1
+
+
+-----------
+QUERY:
+-- set so we can tell NULL from empty string
+\pset null '\\N'
+
+-- return all matches from regexp
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$)
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: \pset null '\\N'
+        ^
+
+
+-----------
+QUERY:
+-- test case insensitive
+SELECT regexp_matches('foObARbEqUEbAz', $re$(bar)(beque)$re$, 'i')
+RESULT:
+	postgres: [(['bAR', 'bEqUE'],)]
+
+-----------
+QUERY:
+-- global option - more than one match
+SELECT regexp_matches('foobarbequebazilbarfbonk', $re$(b[^b]+)(b[^b]+)$re$, 'g')
+RESULT:
+	postgres: [(['bar', 'beque'],), (['bazil', 'barf'],)]
+
+-----------
+QUERY:
+-- empty capture group (matched empty string)
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.*)(beque)$re$)
+RESULT:
+	postgres: [(['bar', '', 'beque'],)]
+
+-----------
+QUERY:
+-- no match
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)(beque)$re$)
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- optional capture group did not match, null entry in array
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)?(beque)$re$)
+RESULT:
+	postgres: [(['bar', None, 'beque'],)]
+
+-----------
+QUERY:
+-- no capture groups
+SELECT regexp_matches('foobarbequebaz', $re$barbeque$re$)
+RESULT:
+	postgres: [(['barbeque'],)]
+
+-----------
+QUERY:
+-- start/end-of-line matches are of zero length
+SELECT regexp_matches('foo' || chr(10) || 'bar' || chr(10) || 'bequq' || chr(10) || 'baz', '^', 'mg')
+RESULT:
+	postgres: [([''],), ([''],), ([''],), ([''],)]
+
+-----------
+QUERY:
+SELECT regexp_matches('foo' || chr(10) || 'bar' || chr(10) || 'bequq' || chr(10) || 'baz', '$', 'mg')
+RESULT:
+	postgres: [([''],), ([''],), ([''],), ([''],)]
+
+-----------
+QUERY:
+SELECT regexp_matches('1' || chr(10) || '2' || chr(10) || '3' || chr(10) || '4' || chr(10), '^.?', 'mg')
+RESULT:
+	postgres: [(['1'],), (['2'],), (['3'],), (['4'],), ([''],)]
+
+-----------
+QUERY:
+SELECT regexp_matches(chr(10) || '1' || chr(10) || '2' || chr(10) || '3' || chr(10) || '4' || chr(10), '.?$', 'mg')
+RESULT:
+	postgres: [([''],), (['1'],), ([''],), (['2'],), ([''],), (['3'],), ([''],), (['4'],), ([''],), ([''],)]
+
+-----------
+QUERY:
+SELECT regexp_matches(chr(10) || '1' || chr(10) || '2' || chr(10) || '3' || chr(10) || '4', '.?$', 'mg')
+RESULT:
+	postgres: [([''],), (['1'],), ([''],), (['2'],), ([''],), (['3'],), ([''],), (['4'],), ([''],)]
+
+-----------
+QUERY:
+-- give me errors
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$, 'gz')
+RESULT:
+	postgres: invalid regular expression option: "z"
+
+
+-----------
+QUERY:
+SELECT regexp_matches('foobarbequebaz', $re$(barbeque$re$)
+RESULT:
+	postgres: invalid regular expression: parentheses () not balanced
+
+
+-----------
+QUERY:
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque){2,1}$re$)
+RESULT:
+	postgres: invalid regular expression: invalid repetition count(s)
+
+
+-----------
+QUERY:
+-- split string on regexp
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', $re$\s+$re$) AS foo
+RESULT:
+	postgres: [('the', 3), ('quick', 5), ('brown', 5), ('fox', 3), ('jumps', 5), ('over', 4), ('the', 3), ('lazy', 4), ('dog', 3)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', $re$\s+$re$)
+RESULT:
+	postgres: [(['the', 'quick', 'brown', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'],)]
+
+-----------
+QUERY:
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', $re$\s*$re$) AS foo
+RESULT:
+	postgres: [('t', 1), ('h', 1), ('e', 1), ('q', 1), ('u', 1), ('i', 1), ('c', 1), ('k', 1), ('b', 1), ('r', 1), ('o', 1), ('w', 1), ('n', 1), ('f', 1), ('o', 1), ('x', 1), ('j', 1), ('u', 1), ('m', 1), ('p', 1), ('s', 1), ('o', 1), ('v', 1), ('e', 1), ('r', 1), ('t', 1), ('h', 1), ('e', 1), ('l', 1), ('a', 1), ('z', 1), ('y', 1), ('d', 1), ('o', 1), ('g', 1)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', $re$\s*$re$)
+RESULT:
+	postgres: [(['t', 'h', 'e', 'q', 'u', 'i', 'c', 'k', 'b', 'r', 'o', 'w', 'n', 'f', 'o', 'x', 'j', 'u', 'm', 'p', 's', 'o', 'v', 'e', 'r', 't', 'h', 'e', 'l', 'a', 'z', 'y', 'd', 'o', 'g'],)]
+
+-----------
+QUERY:
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', '') AS foo
+RESULT:
+	postgres: [('t', 1), ('h', 1), ('e', 1), (' ', 1), ('q', 1), ('u', 1), ('i', 1), ('c', 1), ('k', 1), (' ', 1), ('b', 1), ('r', 1), ('o', 1), ('w', 1), ('n', 1), (' ', 1), ('f', 1), ('o', 1), ('x', 1), (' ', 1), ('j', 1), ('u', 1), ('m', 1), ('p', 1), ('s', 1), (' ', 1), ('o', 1), ('v', 1), ('e', 1), ('r', 1), (' ', 1), ('t', 1), ('h', 1), ('e', 1), (' ', 1), ('l', 1), ('a', 1), ('z', 1), ('y', 1), (' ', 1), ('d', 1), ('o', 1), ('g', 1)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', '')
+RESULT:
+	postgres: [(['t', 'h', 'e', ' ', 'q', 'u', 'i', 'c', 'k', ' ', 'b', 'r', 'o', 'w', 'n', ' ', 'f', 'o', 'x', ' ', 'j', 'u', 'm', 'p', 's', ' ', 'o', 'v', 'e', 'r', ' ', 't', 'h', 'e', ' ', 'l', 'a', 'z', 'y', ' ', 'd', 'o', 'g'],)]
+
+-----------
+QUERY:
+-- case insensitive
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'i') AS foo
+RESULT:
+	postgres: [('th', 2), (' QUick bROWn FOx jUMPs ov', 25), ('r Th', 4), (' lazy dOG', 9)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'i')
+RESULT:
+	postgres: [(['th', ' QUick bROWn FOx jUMPs ov', 'r Th', ' lazy dOG'],)]
+
+-----------
+QUERY:
+-- no match of pattern
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', 'nomatch') AS foo
+RESULT:
+	postgres: [('the quick brown fox jumps over the lazy dog', 43)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', 'nomatch')
+RESULT:
+	postgres: [(['the quick brown fox jumps over the lazy dog'],)]
+
+-----------
+QUERY:
+-- some corner cases
+SELECT regexp_split_to_array('123456','1')
+RESULT:
+	postgres: [(['', '23456'],)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('123456','6')
+RESULT:
+	postgres: [(['12345', ''],)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('123456','.')
+RESULT:
+	postgres: [(['', '', '', '', '', '', ''],)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('123456','')
+RESULT:
+	postgres: [(['1', '2', '3', '4', '5', '6'],)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('123456','(?:)')
+RESULT:
+	postgres: [(['1', '2', '3', '4', '5', '6'],)]
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('1','')
+RESULT:
+	postgres: [(['1'],)]
+
+-----------
+QUERY:
+-- errors
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'zippy') AS foo
+RESULT:
+	postgres: invalid regular expression option: "z"
+
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'iz')
+RESULT:
+	postgres: invalid regular expression option: "z"
+
+
+-----------
+QUERY:
+-- global option meaningless for regexp_split
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'g') AS foo
+RESULT:
+	postgres: regexp_split_to_table() does not support the "global" option
+
+
+-----------
+QUERY:
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'g')
+RESULT:
+	postgres: regexp_split_to_array() does not support the "global" option
+
+
+-----------
+QUERY:
+-- change NULL-display back
+\pset null ''
+
+-- E021-11 position expression
+SELECT POSITION('4' IN '1234567890') = '4' AS "4"
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: \pset null ''
+        ^
+
+
+-----------
+QUERY:
+SELECT POSITION('5' IN '1234567890') = '5' AS "5"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+-- T312 character overlay function
+SELECT OVERLAY('abcdef' PLACING '45' FROM 4) AS "abc45f"
+RESULT:
+	postgres: [('abc45f',)]
+
+-----------
+QUERY:
+SELECT OVERLAY('yabadoo' PLACING 'daba' FROM 5) AS "yabadaba"
+RESULT:
+	postgres: [('yabadaba',)]
+
+-----------
+QUERY:
+SELECT OVERLAY('yabadoo' PLACING 'daba' FROM 5 FOR 0) AS "yabadabadoo"
+RESULT:
+	postgres: [('yabadabadoo',)]
+
+-----------
+QUERY:
+SELECT OVERLAY('babosa' PLACING 'ubb' FROM 2 FOR 4) AS "bubba"
+RESULT:
+	postgres: [('bubba',)]
+
+-----------
+QUERY:
+--
+-- test LIKE
+-- Be sure to form every test as a LIKE/NOT LIKE pair.
+--
+
+-- simplest examples
+-- E061-04 like predicate
+SELECT 'hawkeye' LIKE 'h%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT LIKE 'h%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' LIKE 'H%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT LIKE 'H%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' LIKE 'indio%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT LIKE 'indio%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' LIKE 'h%eye' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT LIKE 'h%eye' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'indio' LIKE '_ndio' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'indio' NOT LIKE '_ndio' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'indio' LIKE 'in__o' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'indio' NOT LIKE 'in__o' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'indio' LIKE 'in_o' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'indio' NOT LIKE 'in_o' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'abc'::name LIKE '_b_' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'abc'::name NOT LIKE '_b_' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'abc'::bytea LIKE '_b_'::bytea AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'abc'::bytea NOT LIKE '_b_'::bytea AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+-- unused escape character
+SELECT 'hawkeye' LIKE 'h%' ESCAPE '#' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT LIKE 'h%' ESCAPE '#' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'indio' LIKE 'ind_o' ESCAPE '$' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'indio' NOT LIKE 'ind_o' ESCAPE '$' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+-- escape character
+-- E061-05 like predicate with escape clause
+SELECT 'h%' LIKE 'h#%' ESCAPE '#' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'h%' NOT LIKE 'h#%' ESCAPE '#' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'h%wkeye' LIKE 'h#%' ESCAPE '#' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'h%wkeye' NOT LIKE 'h#%' ESCAPE '#' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'h%wkeye' LIKE 'h#%%' ESCAPE '#' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'h%wkeye' NOT LIKE 'h#%%' ESCAPE '#' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'h%awkeye' LIKE 'h#%a%k%e' ESCAPE '#' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'h%awkeye' NOT LIKE 'h#%a%k%e' ESCAPE '#' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'indio' LIKE '_ndio' ESCAPE '$' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'indio' NOT LIKE '_ndio' ESCAPE '$' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'i_dio' LIKE 'i$_d_o' ESCAPE '$' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'i_dio' NOT LIKE 'i$_d_o' ESCAPE '$' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'i_dio' LIKE 'i$_nd_o' ESCAPE '$' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'i_dio' NOT LIKE 'i$_nd_o' ESCAPE '$' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'i_dio' LIKE 'i$_d%o' ESCAPE '$' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'i_dio' NOT LIKE 'i$_d%o' ESCAPE '$' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'a_c'::bytea LIKE 'a$__'::bytea ESCAPE '$'::bytea AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'a_c'::bytea NOT LIKE 'a$__'::bytea ESCAPE '$'::bytea AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+-- escape character same as pattern character
+SELECT 'maca' LIKE 'm%aca' ESCAPE '%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'maca' NOT LIKE 'm%aca' ESCAPE '%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'ma%a' LIKE 'm%a%%a' ESCAPE '%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'ma%a' NOT LIKE 'm%a%%a' ESCAPE '%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'bear' LIKE 'b_ear' ESCAPE '_' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'bear' NOT LIKE 'b_ear' ESCAPE '_' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'be_r' LIKE 'b_e__r' ESCAPE '_' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'be_r' NOT LIKE 'b_e__r' ESCAPE '_' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'be_r' LIKE '__e__r' ESCAPE '_' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'be_r' NOT LIKE '__e__r' ESCAPE '_' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+--
+-- test ILIKE (case-insensitive LIKE)
+-- Be sure to form every test as an ILIKE/NOT ILIKE pair.
+--
+
+SELECT 'hawkeye' ILIKE 'h%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT ILIKE 'h%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' ILIKE 'H%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT ILIKE 'H%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' ILIKE 'H%Eye' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'hawkeye' NOT ILIKE 'H%Eye' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'Hawkeye' ILIKE 'h%' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'Hawkeye' NOT ILIKE 'h%' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+SELECT 'ABC'::name ILIKE '_b_' AS "true"
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+SELECT 'ABC'::name NOT ILIKE '_b_' AS "false"
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+--
+-- test %/_ combination cases, cf bugs #4821 and #5478
+--
+
+SELECT 'foo' LIKE '_%' as t, 'f' LIKE '_%' as t, '' LIKE '_%' as f
+RESULT:
+	postgres: [(True, True, False)]
+
+-----------
+QUERY:
+SELECT 'foo' LIKE '%_' as t, 'f' LIKE '%_' as t, '' LIKE '%_' as f
+RESULT:
+	postgres: [(True, True, False)]
+
+-----------
+QUERY:
+SELECT 'foo' LIKE '__%' as t, 'foo' LIKE '___%' as t, 'foo' LIKE '____%' as f
+RESULT:
+	postgres: [(True, True, False)]
+
+-----------
+QUERY:
+SELECT 'foo' LIKE '%__' as t, 'foo' LIKE '%___' as t, 'foo' LIKE '%____' as f
+RESULT:
+	postgres: [(True, True, False)]
+
+-----------
+QUERY:
+SELECT 'jack' LIKE '%____%' AS t
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+--
+-- basic tests of LIKE with indexes
+--
+
+CREATE TABLE texttest (a text PRIMARY KEY, b int)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT * FROM texttest WHERE a LIKE '%1%'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+CREATE TABLE byteatest (a bytea PRIMARY KEY, b int)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT * FROM byteatest WHERE a LIKE '%1%'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+DROP TABLE texttest, byteatest
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- test implicit type conversion
+--
+
+-- E021-07 character concatenation
+SELECT 'unknown' || ' and unknown' AS "Concat unknown types"
+RESULT:
+	postgres: [('unknown and unknown',)]
+
+-----------
+QUERY:
+SELECT text 'text' || ' and unknown' AS "Concat text to unknown type"
+RESULT:
+	postgres: [('text and unknown',)]
+
+-----------
+QUERY:
+SELECT char(20) 'characters' || ' and text' AS "Concat char to unknown type"
+RESULT:
+	postgres: [('characters and text',)]
+
+-----------
+QUERY:
+SELECT text 'text' || char(20) ' and characters' AS "Concat text to char"
+RESULT:
+	postgres: [('text and characters',)]
+
+-----------
+QUERY:
+SELECT text 'text' || varchar ' and varchar' AS "Concat text to varchar"
+RESULT:
+	postgres: [('text and varchar',)]
+
+-----------
+QUERY:
+--
+-- test substr with toasted text values
+--
+CREATE TABLE toasttest(f1 text)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(repeat('1234567890',10000))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(repeat('1234567890',10000))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- Ensure that some values are uncompressed, to test the faster substring
+-- operation used in that case
+--
+alter table toasttest alter column f1 set storage external
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(repeat('1234567890',10000))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(repeat('1234567890',10000))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- If the starting position is zero or less, then return from the start of the string
+-- adjusting the length to be consistent with the /* REPLACED */''negative start/* REPLACED */'' per SQL.
+SELECT substr(f1, -1, 5) from toasttest
+RESULT:
+	postgres: [('123',), ('123',), ('123',), ('123',)]
+
+-----------
+QUERY:
+-- If the length is less than zero, an ERROR is thrown.
+SELECT substr(f1, 5, -1) from toasttest
+RESULT:
+	postgres: negative substring length not allowed
+
+
+-----------
+QUERY:
+-- If no third argument (length) is provided, the length to the end of the
+-- string is assumed.
+SELECT substr(f1, 99995) from toasttest
+RESULT:
+	postgres: [('567890',), ('567890',), ('567890',), ('567890',)]
+
+-----------
+QUERY:
+-- If start plus length is > string length, the result is truncated to
+-- string length
+SELECT substr(f1, 99995, 10) from toasttest
+RESULT:
+	postgres: [('567890',), ('567890',), ('567890',), ('567890',)]
+
+-----------
+QUERY:
+TRUNCATE TABLE toasttest
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- expect >0 blocks
+SELECT pg_relation_size(reltoastrelid) = 0 AS is_empty
+  FROM pg_class where relname = 'toasttest'
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+TRUNCATE TABLE toasttest
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ALTER TABLE toasttest set (toast_tuple_target = 4080)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest values (repeat('1234567890',300))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- expect 0 blocks
+SELECT pg_relation_size(reltoastrelid) = 0 AS is_empty
+  FROM pg_class where relname = 'toasttest'
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+DROP TABLE toasttest
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- test substr with toasted bytea values
+--
+CREATE TABLE toasttest(f1 bytea)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- Ensure that some values are uncompressed, to test the faster substring
+-- operation used in that case
+--
+alter table toasttest alter column f1 set storage external
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- If the starting position is zero or less, then return from the start of the string
+-- adjusting the length to be consistent with the /* REPLACED */''negative start/* REPLACED */'' per SQL.
+SELECT substr(f1, -1, 5) from toasttest
+RESULT:
+	postgres: [(<memory at 0x7ba1780e6500>,), (<memory at 0x7ba1780e6440>,), (<memory at 0x7ba1780e7280>,), (<memory at 0x7ba1780e4dc0>,)]
+
+-----------
+QUERY:
+-- If the length is less than zero, an ERROR is thrown.
+SELECT substr(f1, 5, -1) from toasttest
+RESULT:
+	postgres: negative substring length not allowed
+
+
+-----------
+QUERY:
+-- If no third argument (length) is provided, the length to the end of the
+-- string is assumed.
+SELECT substr(f1, 99995) from toasttest
+RESULT:
+	postgres: [(<memory at 0x7ba1780e6500>,), (<memory at 0x7ba1780e7280>,), (<memory at 0x7ba1780e4dc0>,), (<memory at 0x7ba1780e6d40>,)]
+
+-----------
+QUERY:
+-- If start plus length is > string length, the result is truncated to
+-- string length
+SELECT substr(f1, 99995, 10) from toasttest
+RESULT:
+	postgres: [(<memory at 0x7ba1780e6500>,), (<memory at 0x7ba1780e7280>,), (<memory at 0x7ba1780e4dc0>,), (<memory at 0x7ba1780e6d40>,)]
+
+-----------
+QUERY:
+DROP TABLE toasttest
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- test internally compressing datums
+
+-- this tests compressing a datum to a very small size which exercises a
+-- corner case in packed-varlena handling: even though small, the compressed
+-- datum must be given a 4-byte header because there are no bits to indicate
+-- compression in a 1-byte header
+
+CREATE TABLE toasttest (c char(4096))
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+INSERT INTO toasttest VALUES('x')
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT length(c), c::text FROM toasttest
+RESULT:
+	postgres: [(1, 'x')]
+
+-----------
+QUERY:
+SELECT c FROM toasttest
+RESULT:
+	postgres: [('x                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ',)]
+
+-----------
+QUERY:
+DROP TABLE toasttest
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- test length
+--
+
+SELECT length('abcdef') AS "length_6"
+RESULT:
+	postgres: [(6,)]
+
+-----------
+QUERY:
+--
+-- test strpos
+--
+
+SELECT strpos('abcdef', 'cd') AS "pos_3"
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+SELECT strpos('abcdef', 'xy') AS "pos_0"
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT strpos('abcdef', '') AS "pos_1"
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+SELECT strpos('', 'xy') AS "pos_0"
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT strpos('', '') AS "pos_1"
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+--
+-- test replace
+--
+SELECT replace('abcdef', 'de', '45') AS "abc45f"
+RESULT:
+	postgres: [('abc45f',)]
+
+-----------
+QUERY:
+SELECT replace('yabadabadoo', 'ba', '123') AS "ya123da123doo"
+RESULT:
+	postgres: [('ya123da123doo',)]
+
+-----------
+QUERY:
+SELECT replace('yabadoo', 'bad', '') AS "yaoo"
+RESULT:
+	postgres: [('yaoo',)]
+
+-----------
+QUERY:
+--
+-- test split_part
+--
+select split_part('','@',1) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('','@',-1) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','',1) AS "joeuser@mydatabase"
+RESULT:
+	postgres: [('joeuser@mydatabase',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','',2) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','',-1) AS "joeuser@mydatabase"
+RESULT:
+	postgres: [('joeuser@mydatabase',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','',-2) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',0) AS "an error"
+RESULT:
+	postgres: field position must not be zero
+
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@@',1) AS "joeuser@mydatabase"
+RESULT:
+	postgres: [('joeuser@mydatabase',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@@',2) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',1) AS "joeuser"
+RESULT:
+	postgres: [('joeuser',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',2) AS "mydatabase"
+RESULT:
+	postgres: [('mydatabase',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',3) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('@joeuser@mydatabase@','@',2) AS "joeuser"
+RESULT:
+	postgres: [('joeuser',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',-1) AS "mydatabase"
+RESULT:
+	postgres: [('mydatabase',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',-2) AS "joeuser"
+RESULT:
+	postgres: [('joeuser',)]
+
+-----------
+QUERY:
+select split_part('joeuser@mydatabase','@',-3) AS "empty string"
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+select split_part('@joeuser@mydatabase@','@',-2) AS "mydatabase"
+RESULT:
+	postgres: [('mydatabase',)]
+
+-----------
+QUERY:
+--
+-- test to_bin, to_oct, and to_hex
+--
+select to_bin(-1234) AS "11111111111111111111101100101110"
+RESULT:
+	postgres: [('11111111111111111111101100101110',)]
+
+-----------
+QUERY:
+select to_bin(-1234::bigint)
+RESULT:
+	postgres: [('1111111111111111111111111111111111111111111111111111101100101110',)]
+
+-----------
+QUERY:
+select to_bin(256*256*256 - 1) AS "111111111111111111111111"
+RESULT:
+	postgres: [('111111111111111111111111',)]
+
+-----------
+QUERY:
+select to_bin(256::bigint*256::bigint*256::bigint*256::bigint - 1) AS "11111111111111111111111111111111"
+RESULT:
+	postgres: [('11111111111111111111111111111111',)]
+
+-----------
+QUERY:
+select to_oct(-1234) AS "37777775456"
+RESULT:
+	postgres: [('37777775456',)]
+
+-----------
+QUERY:
+select to_oct(-1234::bigint) AS "1777777777777777775456"
+RESULT:
+	postgres: [('1777777777777777775456',)]
+
+-----------
+QUERY:
+select to_oct(256*256*256 - 1) AS "77777777"
+RESULT:
+	postgres: [('77777777',)]
+
+-----------
+QUERY:
+select to_oct(256::bigint*256::bigint*256::bigint*256::bigint - 1) AS "37777777777"
+RESULT:
+	postgres: [('37777777777',)]
+
+-----------
+QUERY:
+select to_hex(-1234) AS "fffffb2e"
+RESULT:
+	postgres: [('fffffb2e',)]
+
+-----------
+QUERY:
+select to_hex(-1234::bigint) AS "fffffffffffffb2e"
+RESULT:
+	postgres: [('fffffffffffffb2e',)]
+
+-----------
+QUERY:
+select to_hex(256*256*256 - 1) AS "ffffff"
+RESULT:
+	postgres: [('ffffff',)]
+
+-----------
+QUERY:
+select to_hex(256::bigint*256::bigint*256::bigint*256::bigint - 1) AS "ffffffff"
+RESULT:
+	postgres: [('ffffffff',)]
+
+-----------
+QUERY:
+--
+-- SHA-2
+--
+SET bytea_output TO hex
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT sha224('')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT sha224('The quick brown fox jumps over the lazy dog.')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT sha256('')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT sha256('The quick brown fox jumps over the lazy dog.')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT sha384('')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT sha384('The quick brown fox jumps over the lazy dog.')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT sha512('')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT sha512('The quick brown fox jumps over the lazy dog.')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+--
+-- encode/decode
+--
+SELECT encode('\x1234567890abcdef00', 'hex')
+RESULT:
+	postgres: [('1234567890abcdef00',)]
+
+-----------
+QUERY:
+SELECT decode('1234567890abcdef00', 'hex')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e59c0>,)]
+
+-----------
+QUERY:
+SELECT encode(('\x' || repeat('1234567890abcdef0001', 7))::bytea, 'base64')
+RESULT:
+	postgres: [('EjRWeJCrze8AARI0VniQq83vAAESNFZ4kKvN7wABEjRWeJCrze8AARI0VniQq83vAAESNFZ4kKvN\n7wABEjRWeJCrze8AAQ==',)]
+
+-----------
+QUERY:
+SELECT decode(encode(('\x' || repeat('1234567890abcdef0001', 7))::bytea,
+                     'base64'), 'base64')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT encode('\x1234567890abcdef00', 'escape')
+RESULT:
+	postgres: [('\x124Vx\\220\\253\\315\\357\\000',)]
+
+-----------
+QUERY:
+SELECT decode(encode('\x1234567890abcdef00', 'escape'), 'escape')
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+--
+-- get_bit/set_bit etc
+--
+SELECT get_bit('\x1234567890abcdef00'::bytea, 43)
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+SELECT get_bit('\x1234567890abcdef00'::bytea, 99)
+RESULT:
+	postgres: index 99 out of valid range, 0..71
+
+
+-----------
+QUERY:
+-- error
+SELECT set_bit('\x1234567890abcdef00'::bytea, 43, 0)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT set_bit('\x1234567890abcdef00'::bytea, 99, 0)
+RESULT:
+	postgres: index 99 out of valid range, 0..71
+
+
+-----------
+QUERY:
+-- error
+SELECT get_byte('\x1234567890abcdef00'::bytea, 3)
+RESULT:
+	postgres: [(120,)]
+
+-----------
+QUERY:
+SELECT get_byte('\x1234567890abcdef00'::bytea, 99)
+RESULT:
+	postgres: index 99 out of valid range, 0..8
+
+
+-----------
+QUERY:
+-- error
+SELECT set_byte('\x1234567890abcdef00'::bytea, 7, 11)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e7400>,)]
+
+-----------
+QUERY:
+SELECT set_byte('\x1234567890abcdef00'::bytea, 99, 11)
+RESULT:
+	postgres: index 99 out of valid range, 0..8
+
+
+-----------
+QUERY:
+-- error
+
+--
+-- test behavior of escape_string_warning and standard_conforming_strings options
+--
+set escape_string_warning = off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+set standard_conforming_strings = off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+show escape_string_warning
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+show standard_conforming_strings
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+set escape_string_warning = on
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+set standard_conforming_strings = on
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+show escape_string_warning
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+show standard_conforming_strings
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+select 'a\bcd' as f1, 'a\b''cd' as f2, 'a\b''''cd' as f3, 'abcd\'   as f4, 'ab\''cd' as f5, '\\' as f6
+RESULT:
+	postgres: [('a\\bcd', "a\\b'cd", "a\\b''cd", 'abcd\\', "ab\\'cd", '\\\\')]
+
+-----------
+QUERY:
+set standard_conforming_strings = off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+select 'a\\bcd' as f1, 'a\\b\'cd' as f2, 'a\\b\'''cd' as f3, 'abcd\\'   as f4, 'ab\\\'cd' as f5, '\\\\' as f6
+RESULT:
+	postgres: [('a\\bcd', "a\\b'cd", "a\\b''cd", 'abcd\\', "ab\\'cd", '\\\\')]
+
+-----------
+QUERY:
+set escape_string_warning = off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+set standard_conforming_strings = on
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+select 'a\bcd' as f1, 'a\b''cd' as f2, 'a\b''''cd' as f3, 'abcd\'   as f4, 'ab\''cd' as f5, '\\' as f6
+RESULT:
+	postgres: [('a\\bcd', "a\\b'cd", "a\\b''cd", 'abcd\\', "ab\\'cd", '\\\\')]
+
+-----------
+QUERY:
+set standard_conforming_strings = off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+select 'a\\bcd' as f1, 'a\\b\'cd' as f2, 'a\\b\'''cd' as f3, 'abcd\\'   as f4, 'ab\\\'cd' as f5, '\\\\' as f6
+RESULT:
+	postgres: [('a\\bcd', "a\\b'cd", "a\\b''cd", 'abcd\\', "ab\\'cd", '\\\\')]
+
+-----------
+QUERY:
+reset standard_conforming_strings
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- Additional string functions
+--
+SET bytea_output TO escape
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT initcap('hi THOMAS')
+RESULT:
+	postgres: [('Hi Thomas',)]
+
+-----------
+QUERY:
+SELECT lpad('hi', 5, 'xy')
+RESULT:
+	postgres: [('xyxhi',)]
+
+-----------
+QUERY:
+SELECT lpad('hi', 5)
+RESULT:
+	postgres: [('   hi',)]
+
+-----------
+QUERY:
+SELECT lpad('hi', -5, 'xy')
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+SELECT lpad('hello', 2)
+RESULT:
+	postgres: [('he',)]
+
+-----------
+QUERY:
+SELECT lpad('hi', 5, '')
+RESULT:
+	postgres: [('hi',)]
+
+-----------
+QUERY:
+SELECT rpad('hi', 5, 'xy')
+RESULT:
+	postgres: [('hixyx',)]
+
+-----------
+QUERY:
+SELECT rpad('hi', 5)
+RESULT:
+	postgres: [('hi   ',)]
+
+-----------
+QUERY:
+SELECT rpad('hi', -5, 'xy')
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+SELECT rpad('hello', 2)
+RESULT:
+	postgres: [('he',)]
+
+-----------
+QUERY:
+SELECT rpad('hi', 5, '')
+RESULT:
+	postgres: [('hi',)]
+
+-----------
+QUERY:
+SELECT ltrim('zzzytrim', 'xyz')
+RESULT:
+	postgres: [('trim',)]
+
+-----------
+QUERY:
+SELECT translate('', '14', 'ax')
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+SELECT translate('12345', '14', 'ax')
+RESULT:
+	postgres: [('a23x5',)]
+
+-----------
+QUERY:
+SELECT translate('12345', '134', 'a')
+RESULT:
+	postgres: [('a25',)]
+
+-----------
+QUERY:
+SELECT ascii('x')
+RESULT:
+	postgres: [(120,)]
+
+-----------
+QUERY:
+SELECT ascii('')
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+SELECT chr(65)
+RESULT:
+	postgres: [('A',)]
+
+-----------
+QUERY:
+SELECT chr(0)
+RESULT:
+	postgres: null character not permitted
+
+
+-----------
+QUERY:
+SELECT repeat('Pg', 4)
+RESULT:
+	postgres: [('PgPgPgPg',)]
+
+-----------
+QUERY:
+SELECT repeat('Pg', -4)
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('1234567890'::bytea FROM 3) "34567890"
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('1234567890'::bytea FROM 4 FOR 3) AS "456"
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('string'::bytea FROM 2 FOR 2147483646) AS "tring"
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('string'::bytea FROM -10 FOR 2147483646) AS "string"
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT SUBSTRING('string'::bytea FROM -10 FOR -2147483646) AS "error"
+RESULT:
+	postgres: negative substring length not allowed
+
+
+-----------
+QUERY:
+SELECT trim(E'\\000'::bytea from E'\\000Tom\\000'::bytea)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT trim(leading E'\\000'::bytea from E'\\000Tom\\000'::bytea)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT trim(trailing E'\\000'::bytea from E'\\000Tom\\000'::bytea)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT btrim(E'\\000trim\\000'::bytea, E'\\000'::bytea)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT btrim(''::bytea, E'\\000'::bytea)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT btrim(E'\\000trim\\000'::bytea, ''::bytea)
+RESULT:
+	postgres: [(<memory at 0x7ba1780e47c0>,)]
+
+-----------
+QUERY:
+SELECT encode(overlay(E'Th\\000omas'::bytea placing E'Th\\001omas'::bytea from 2),'escape')
+RESULT:
+	postgres: [('TTh\x01omas',)]
+
+-----------
+QUERY:
+SELECT encode(overlay(E'Th\\000omas'::bytea placing E'\\002\\003'::bytea from 8),'escape')
+RESULT:
+	postgres: [('Th\\000omas\x02\x03',)]
+
+-----------
+QUERY:
+SELECT encode(overlay(E'Th\\000omas'::bytea placing E'\\002\\003'::bytea from 5 for 3),'escape')
+RESULT:
+	postgres: [('Th\\000o\x02\x03',)]
+
+-----------
+QUERY:
+SELECT bit_count('\x1234567890'::bytea)
+RESULT:
+	postgres: [(15,)]
+
+-----------
+QUERY:
+SELECT unistr('\0064at\+0000610')
+RESULT:
+	postgres: [('data0',)]
+
+-----------
+QUERY:
+SELECT unistr('d\u0061t\U000000610')
+RESULT:
+	postgres: [('data0',)]
+
+-----------
+QUERY:
+SELECT unistr('a\\b')
+RESULT:
+	postgres: [('a\\b',)]
+
+-----------
+QUERY:
+-- errors:
+SELECT unistr('wrong: \db99')
+RESULT:
+	postgres: invalid Unicode surrogate pair
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \db99\0061')
+RESULT:
+	postgres: invalid Unicode surrogate pair
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \+00db99\+000061')
+RESULT:
+	postgres: invalid Unicode surrogate pair
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \+2FFFFF')
+RESULT:
+	postgres: invalid Unicode code point: 2FFFFF
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \udb99\u0061')
+RESULT:
+	postgres: invalid Unicode surrogate pair
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \U0000db99\U00000061')
+RESULT:
+	postgres: invalid Unicode surrogate pair
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \U002FFFFF')
+RESULT:
+	postgres: invalid Unicode code point: 2FFFFF
+
+
+-----------
+QUERY:
+SELECT unistr('wrong: \xyz')
+RESULT:
+	postgres: invalid Unicode escape
+HINT:  Unicode escapes must be \XXXX, \+XXXXXX, \uXXXX, or \UXXXXXXXX.
+

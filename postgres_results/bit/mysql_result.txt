@@ -1,0 +1,1016 @@
+
+-----------
+QUERY:
+--
+-- BIT types
+--
+
+--
+-- Build tables for testing
+--
+
+CREATE TABLE BIT_TABLE(b BIT(11));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO BIT_TABLE VALUES (B'10');
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- too short
+INSERT INTO BIT_TABLE VALUES (B'00000000000');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_TABLE VALUES (B'11011000000');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_TABLE VALUES (B'01010101010');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_TABLE VALUES (B'101011111010');
+RESULT:
+	ERROR - (1406, "Data too long for column 'b' at row 1")
+
+-----------
+QUERY:
+ -- too long
+--INSERT INTO BIT_TABLE VALUES (/* REPLACED */''X554/* REPLACED */'') /* REPLACED */,
+--INSERT INTO BIT_TABLE VALUES (/* REPLACED */''X555/* REPLACED */'') /* REPLACED */,
+
+SELECT * FROM BIT_TABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--INSERT INTO BIT_TABLE VALUES (/* REPLACED */''X554/* REPLACED */'') /* REPLACE' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE TABLE VARBIT_TABLE(v BIT VARYING(11));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VARYING(11))' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO VARBIT_TABLE VALUES (B'');
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'0');
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'010101');
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'01010101010');
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_TABLE VALUES (B'101011111010');
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+ -- too long
+--INSERT INTO VARBIT_TABLE VALUES (/* REPLACED */''X554/* REPLACED */'') /* REPLACED */,
+--INSERT INTO VARBIT_TABLE VALUES (/* REPLACED */''X555/* REPLACED */'') /* REPLACED */,
+SELECT * FROM VARBIT_TABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--INSERT INTO VARBIT_TABLE VALUES (/* REPLACED */''X554/* REPLACED */'') /* REPL' at line 2")
+
+-----------
+QUERY:
+
+
+-- Literals with syntax errors
+SELECT b' 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'b' 0'' at line 2")
+
+-----------
+QUERY:
+
+SELECT b'0 ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'b'0 '' at line 1")
+
+-----------
+QUERY:
+
+SELECT x' 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x' 0'' at line 1")
+
+-----------
+QUERY:
+
+SELECT x'0 ';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x'0 '' at line 1")
+
+-----------
+QUERY:
+
+
+-- Concatenation
+SELECT v, b, (v || b) AS concat
+       FROM BIT_TABLE, VARBIT_TABLE
+       ORDER BY 3;
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Length
+SELECT b, length(b) AS lb
+       FROM BIT_TABLE;
+RESULT:
+	((b'\x00\x02', 2), (b'\x00\x00', 2), (b'\x06\xc0', 2), (b'\x02\xaa', 2))
+
+-----------
+QUERY:
+
+SELECT v, length(v) AS lv
+       FROM VARBIT_TABLE;
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Substring
+SELECT b,
+       SUBSTRING(b FROM 2 FOR 4) AS sub_2_4,
+       SUBSTRING(b FROM 7 FOR 13) AS sub_7_13,
+       SUBSTRING(b FROM 6) AS sub_6
+       FROM BIT_TABLE;
+RESULT:
+	((b'\x00\x02', b'\x02', b'', b''), (b'\x00\x00', b'\x00', b'', b''), (b'\x06\xc0', b'\xc0', b'', b''), (b'\x02\xaa', b'\xaa', b'', b''))
+
+-----------
+QUERY:
+
+SELECT v,
+       SUBSTRING(v FROM 2 FOR 4) AS sub_2_4,
+       SUBSTRING(v FROM 7 FOR 13) AS sub_7_13,
+       SUBSTRING(v FROM 6) AS sub_6
+       FROM VARBIT_TABLE;
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test overflow cases
+SELECT SUBSTRING('01010101'::bit(8) FROM 2 FOR 2147483646) AS "1010101";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bit(8) FROM 2 FOR 2147483646) AS "1010101"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::bit(8) FROM -10 FOR 2147483646) AS "01010101";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bit(8) FROM -10 FOR 2147483646) AS "01010101"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::bit(8) FROM -10 FOR -2147483646) AS "error";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bit(8) FROM -10 FOR -2147483646) AS "error"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::varbit FROM 2 FOR 2147483646) AS "1010101";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::varbit FROM 2 FOR 2147483646) AS "1010101"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::varbit FROM -10 FOR 2147483646) AS "01010101";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::varbit FROM -10 FOR 2147483646) AS "01010101"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('01010101'::varbit FROM -10 FOR -2147483646) AS "error";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::varbit FROM -10 FOR -2147483646) AS "error"\' at line 1')
+
+-----------
+QUERY:
+
+
+--- Bit operations
+DROP TABLE varbit_table;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--- Bit operations\nDROP TABLE varbit_table' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE varbit_table (a BIT VARYING(16), b BIT VARYING(16));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VARYING(16), b BIT VARYING(16))' at line 1")
+
+-----------
+QUERY:
+
+COPY varbit_table FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY varbit_table FROM stdin' at line 1")
+
+-----------
+QUERY:
+
+X0F	X10
+X1F	X11
+X2F	X12
+X3F	X13
+X8F	X04
+X000F	X0010
+X0123	XFFFF
+X2468	X2468
+XFA50	X05AF
+X1234	XFFF5
+\.
+
+SELECT a, b, ~a AS "~ a", a & b AS "a & b",
+       a | b AS "a | b", a # b AS "a # b" FROM varbit_table;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'X0F\tX10\nX1F\tX11\nX2F\tX12\nX3F\tX13\nX8F\tX04\nX000F\tX0010\nX0123\tXFFFF\nX2468\tX2468\nXFA5' at line 1")
+
+-----------
+QUERY:
+
+SELECT a,b,a<b AS "a<b",a<=b AS "a<=b",a=b AS "a=b",
+        a>=b AS "a>=b",a>b AS "a>b",a<>b AS "a<>b" FROM varbit_table;
+RESULT:
+	ERROR - (1146, "Table 'test.varbit_table' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a,a<<4 AS "a<<4",b,b>>2 AS "b>>2" FROM varbit_table;
+RESULT:
+	ERROR - (1146, "Table 'test.varbit_table' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE varbit_table;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.varbit_table'")
+
+-----------
+QUERY:
+
+
+--- Bit operations
+DROP TABLE bit_table;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--- Bit operations\nDROP TABLE bit_table' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE bit_table (a BIT(16), b BIT(16));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY bit_table FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY bit_table FROM stdin' at line 1")
+
+-----------
+QUERY:
+
+X0F00	X1000
+X1F00	X1100
+X2F00	X1200
+X3F00	X1300
+X8F00	X0400
+X000F	X0010
+X0123	XFFFF
+X2468	X2468
+XFA50	X05AF
+X1234	XFFF5
+\.
+
+SELECT a,b,~a AS "~ a",a & b AS "a & b",
+	a|b AS "a | b", a # b AS "a # b" FROM bit_table;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'X0F00\tX1000\nX1F00\tX1100\nX2F00\tX1200\nX3F00\tX1300\nX8F00\tX0400\nX000F\tX0010\nX0123\tXF' at line 1")
+
+-----------
+QUERY:
+
+SELECT a,b,a<b AS "a<b",a<=b AS "a<=b",a=b AS "a=b",
+        a>=b AS "a>=b",a>b AS "a>b",a<>b AS "a<>b" FROM bit_table;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+SELECT a,a<<4 AS "a<<4",b,b>>2 AS "b>>2" FROM bit_table;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+DROP TABLE bit_table;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- The following should fail
+select B'001' & B'10';
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+select B'0111' | B'011';
+RESULT:
+	((7,),)
+
+-----------
+QUERY:
+
+select B'0010' # B'011101';
+RESULT:
+	((b'\x02',),)
+
+-----------
+QUERY:
+
+
+-- More position tests, checking all the boundary cases
+SELECT POSITION(B'1010' IN B'0000101');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+   -- 0
+SELECT POSITION(B'1010' IN B'00001010');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+  -- 5
+SELECT POSITION(B'1010' IN B'00000101');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+  -- 0
+SELECT POSITION(B'1010' IN B'000001010');
+RESULT:
+	((2,),)
+
+-----------
+QUERY:
+  -- 6
+
+SELECT POSITION(B'' IN B'00001010');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+  -- 1
+SELECT POSITION(B'0' IN B'');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+  -- 0
+SELECT POSITION(B'' IN B'');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+  -- 0
+SELECT POSITION(B'101101' IN B'001011011011011000');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+  -- 3
+SELECT POSITION(B'10110110' IN B'001011011011010');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+  -- 3
+SELECT POSITION(B'1011011011011' IN B'001011011011011');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+  -- 3
+SELECT POSITION(B'1011011011011' IN B'00001011011011011');
+RESULT:
+	((2,),)
+
+-----------
+QUERY:
+  -- 5
+
+SELECT POSITION(B'11101011' IN B'11101011');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'11101011' IN B'011101011');
+RESULT:
+	((2,),)
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'11101011' IN B'00011101011');
+RESULT:
+	((2,),)
+
+-----------
+QUERY:
+ -- 4
+SELECT POSITION(B'11101011' IN B'0000011101011');
+RESULT:
+	((2,),)
+
+-----------
+QUERY:
+ -- 6
+
+SELECT POSITION(B'111010110' IN B'111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'111010110' IN B'0111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'111010110' IN B'000111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 4
+SELECT POSITION(B'111010110' IN B'00000111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 6
+
+SELECT POSITION(B'111010110' IN B'11101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'011101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'00011101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'0000011101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+
+SELECT POSITION(B'111010110' IN B'111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'111010110' IN B'0111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'111010110' IN B'000111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 4
+SELECT POSITION(B'111010110' IN B'00000111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 6
+
+SELECT POSITION(B'111010110' IN B'000001110101111101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'0000001110101111101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'000000001110101111101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+SELECT POSITION(B'111010110' IN B'00000000001110101111101011');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 0
+
+SELECT POSITION(B'111010110' IN B'0000011101011111010110');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 14
+SELECT POSITION(B'111010110' IN B'00000011101011111010110');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 15
+SELECT POSITION(B'111010110' IN B'0000000011101011111010110');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 17
+SELECT POSITION(B'111010110' IN B'000000000011101011111010110');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+ -- 19
+
+SELECT POSITION(B'000000000011101011111010110' IN B'000000000011101011111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 1
+SELECT POSITION(B'00000000011101011111010110' IN B'000000000011101011111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 2
+SELECT POSITION(B'0000000000011101011111010110' IN B'000000000011101011111010110');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+ -- 0
+
+
+-- Shifting
+
+CREATE TABLE BIT_SHIFT_TABLE(b BIT(16));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE VALUES (B'1101100000000000');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>1 FROM BIT_SHIFT_TABLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>2 FROM BIT_SHIFT_TABLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>4 FROM BIT_SHIFT_TABLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO BIT_SHIFT_TABLE SELECT b>>8 FROM BIT_SHIFT_TABLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT POSITION(B'1101' IN b),
+       POSITION(B'11011' IN b),
+       b
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	((0, 0, b'\xd8\x00'), (0, 0, b'l\x00'), (0, 0, b'6\x00'), (0, 1, b'\x1b\x00'), (1, 0, b'\r\x80'), (0, 0, b'\x06\xc0'), (0, 0, b'\x03`'), (0, 0, b'\x01\xb0'), (0, 0, b'\x00\xd8'), (0, 0, b'\x00l'), (0, 0, b'\x006'), (0, 2, b'\x00\x1b'), (2, 0, b'\x00\r'), (0, 0, b'\x00\x06'), (0, 0, b'\x00\x03'), (0, 0, b'\x00\x01'))
+
+-----------
+QUERY:
+
+SELECT b, b >> 1 AS bsr, b << 1 AS bsl
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	((b'\xd8\x00', 27648, 110592), (b'l\x00', 13824, 55296), (b'6\x00', 6912, 27648), (b'\x1b\x00', 3456, 13824), (b'\r\x80', 1728, 6912), (b'\x06\xc0', 864, 3456), (b'\x03`', 432, 1728), (b'\x01\xb0', 216, 864), (b'\x00\xd8', 108, 432), (b'\x00l', 54, 216), (b'\x006', 27, 108), (b'\x00\x1b', 13, 54), (b'\x00\r', 6, 26), (b'\x00\x06', 3, 12), (b'\x00\x03', 1, 6), (b'\x00\x01', 0, 2))
+
+-----------
+QUERY:
+
+SELECT b, b >> 8 AS bsr8, b << 8 AS bsl8
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	((b'\xd8\x00', 216, 14155776), (b'l\x00', 108, 7077888), (b'6\x00', 54, 3538944), (b'\x1b\x00', 27, 1769472), (b'\r\x80', 13, 884736), (b'\x06\xc0', 6, 442368), (b'\x03`', 3, 221184), (b'\x01\xb0', 1, 110592), (b'\x00\xd8', 0, 55296), (b'\x00l', 0, 27648), (b'\x006', 0, 13824), (b'\x00\x1b', 0, 6912), (b'\x00\r', 0, 3328), (b'\x00\x06', 0, 1536), (b'\x00\x03', 0, 768), (b'\x00\x01', 0, 256))
+
+-----------
+QUERY:
+
+SELECT b::bit(15), b::bit(15) >> 1 AS bsr, b::bit(15) << 1 AS bsl
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bit(15), b::bit(15) >> 1 AS bsr, b::bit(15) << 1 AS bsl\n       FROM BIT_SHIFT_' at line 1")
+
+-----------
+QUERY:
+
+SELECT b::bit(15), b::bit(15) >> 8 AS bsr8, b::bit(15) << 8 AS bsl8
+       FROM BIT_SHIFT_TABLE ;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bit(15), b::bit(15) >> 8 AS bsr8, b::bit(15) << 8 AS bsl8\n       FROM BIT_SHIF' at line 1")
+
+-----------
+QUERY:
+
+
+
+CREATE TABLE VARBIT_SHIFT_TABLE(v BIT VARYING(20));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VARYING(20))' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE VALUES (B'11011');
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_SHIFT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'0' AS BIT VARYING(6)) >>1 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BIT VARYING(6)) >>1 FROM VARBIT_SHIFT_TABLE' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'00' AS BIT VARYING(8)) >>2 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BIT VARYING(8)) >>2 FROM VARBIT_SHIFT_TABLE' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'0000' AS BIT VARYING(12)) >>4 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BIT VARYING(12)) >>4 FROM VARBIT_SHIFT_TABLE' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO VARBIT_SHIFT_TABLE SELECT CAST(v || B'00000000' AS BIT VARYING(20)) >>8 FROM VARBIT_SHIFT_TABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BIT VARYING(20)) >>8 FROM VARBIT_SHIFT_TABLE' at line 1")
+
+-----------
+QUERY:
+
+SELECT POSITION(B'1101' IN v),
+       POSITION(B'11011' IN v),
+       v
+       FROM VARBIT_SHIFT_TABLE ;
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_SHIFT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT v, v >> 1 AS vsr, v << 1 AS vsl
+       FROM VARBIT_SHIFT_TABLE ;
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_SHIFT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT v, v >> 8 AS vsr8, v << 8 AS vsl8
+       FROM VARBIT_SHIFT_TABLE ;
+RESULT:
+	ERROR - (1146, "Table 'test.VARBIT_SHIFT_TABLE' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE BIT_SHIFT_TABLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE VARBIT_SHIFT_TABLE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.VARBIT_SHIFT_TABLE'")
+
+-----------
+QUERY:
+
+
+-- Get/Set bit
+SELECT get_bit(B'0101011000100', 10);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.get_bit does not exist')
+
+-----------
+QUERY:
+
+SELECT set_bit(B'0101011000100100', 15, 1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.set_bit does not exist')
+
+-----------
+QUERY:
+
+SELECT set_bit(B'0101011000100100', 16, 1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.set_bit does not exist')
+
+-----------
+QUERY:
+	-- fail
+
+-- Overlay
+SELECT overlay(B'0101011100' placing '001' from 2 for 3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''001' from 2 for 3)' at line 4")
+
+-----------
+QUERY:
+
+SELECT overlay(B'0101011100' placing '101' from 6);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''101' from 6)' at line 1")
+
+-----------
+QUERY:
+
+SELECT overlay(B'0101011100' placing '001' from 11);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''001' from 11)' at line 1")
+
+-----------
+QUERY:
+
+SELECT overlay(B'0101011100' placing '001' from 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''001' from 20)' at line 1")
+
+-----------
+QUERY:
+
+
+-- bit_count
+SELECT bit_count(B'0101011100'::bit(10));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bit(10))' at line 2")
+
+-----------
+QUERY:
+
+SELECT bit_count(B'1111111111'::bit(10));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bit(10))' at line 1")
+
+-----------
+QUERY:
+
+
+-- This table is intentionally left around to exercise pg_dump/pg_upgrade
+CREATE TABLE bit_defaults(
+  b1 bit(4) DEFAULT '1001',
+  b2 bit(4) DEFAULT B'0101',
+  b3 bit varying(5) DEFAULT '1001',
+  b4 bit varying(5) DEFAULT B'0101'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varying(5) DEFAULT '1001',\n  b4 bit varying(5) DEFAULT B'0101'\n)' at line 5")
+
+-----------
+QUERY:
+
+-- \d bit_defaults
+INSERT INTO bit_defaults DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 2")
+
+-----------
+QUERY:
+
+TABLE bit_defaults;
+RESULT:
+	ERROR - (1146, "Table 'test.bit_defaults' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test non-error-throwing API for some core types
+SELECT pg_input_is_valid('01010001', 'bit(10)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('01010001', 'bit(10)');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('01010001', 'bit(10)')' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('01010Z01', 'bit(8)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('01010Z01', 'bit(8)');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('01010Z01', 'bit(8)')' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('x01010Z01', 'bit(32)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('x01010Z01', 'bit(32)');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('x01010Z01', 'bit(32)')' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT pg_input_is_valid('01010Z01', 'varbit');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('01010Z01', 'varbit');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('01010Z01', 'varbit')' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('x01010Z01', 'varbit');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('x01010Z01', 'varbit');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('x01010Z01', 'varbit')' at line 1")

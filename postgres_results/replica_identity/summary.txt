@@ -1,0 +1,405 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+CREATE TABLE test_replica_identity (
+       id serial primary key,
+       keya text not null,
+       keyb text not null,
+       nonkey text,
+       CONSTRAINT test_replica_identity_unique_defer UNIQUE (keya, keyb) DEFERRABLE,
+       CONSTRAINT test_replica_identity_unique_nondefer UNIQUE (keya, keyb)
+)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE TABLE test_replica_identity_othertable (id serial primary key)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE TABLE test_replica_identity_t3 (id serial constraint pk primary key deferrable)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE INDEX test_replica_identity_keyab ON test_replica_identity (keya, keyb)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX test_replica_identity_keyab_key ON test_replica_identity (keya, keyb)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX test_replica_identity_nonkey ON test_replica_identity (keya, nonkey)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE INDEX test_replica_identity_hash ON test_replica_identity USING hash (nonkey)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX test_replica_identity_expr ON test_replica_identity (keya, keyb, (3))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX test_replica_identity_partial ON test_replica_identity (keya, keyb) WHERE keyb != '3'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- default is /* REPLACED */''d/* REPLACED */''/DEFAULT for user created tables
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- but /* REPLACED */''none/* REPLACED */'' for system tables
+SELECT relreplident FROM pg_class WHERE oid = 'pg_class'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'pg_constraint'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+----
+-- Make sure we detect ineligible indexes
+----
+
+-- fail, not unique
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, not a candidate key, nullable column
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_nonkey
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, hash indexes cannot do uniqueness
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_hash
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, expression index
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_expr
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, partial index
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_partial
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, not our index
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_othertable_pkey
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, deferrable
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_defer
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- fail, deferrable
+ALTER TABLE test_replica_identity_t3 REPLICA IDENTITY USING INDEX pk
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+----
+-- Make sure index cases succeed
+----
+
+-- succeed, primary key
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_pkey
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_replica_identity
+
+-- succeed, nondeferrable unique constraint over nonnullable cols
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_nondefer
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- succeed unique index over nonnullable cols
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_replica_identity
+SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+----
+-- Make sure non index cases work
+----
+ALTER TABLE test_replica_identity REPLICA IDENTITY DEFAULT
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity REPLICA IDENTITY FULL
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d+ test_replica_identity
+ALTER TABLE test_replica_identity REPLICA IDENTITY NOTHING
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+---
+-- Test that ALTER TABLE rewrite preserves nondefault replica identity
+---
+
+-- constraint variant
+CREATE TABLE test_replica_identity2 (id int UNIQUE NOT NULL)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity2 REPLICA IDENTITY USING INDEX test_replica_identity2_id_key
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_replica_identity2
+ALTER TABLE test_replica_identity2 ALTER COLUMN id TYPE bigint
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_replica_identity2
+
+-- straight index variant
+CREATE TABLE test_replica_identity3 (id int NOT NULL)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX test_replica_identity3_id_key ON test_replica_identity3 (id)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity3 REPLICA IDENTITY USING INDEX test_replica_identity3_id_key
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_replica_identity3
+ALTER TABLE test_replica_identity3 ALTER COLUMN id TYPE bigint
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_replica_identity3
+
+-- ALTER TABLE DROP NOT NULL is not allowed for columns part of an index
+-- used as replica identity.
+ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- but it/* REPLACED */''s OK when the identity is FULL
+ALTER TABLE test_replica_identity3 REPLICA IDENTITY FULL
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--
+-- Test that replica identity can be set on an index that/* REPLACED */''s not yet valid.
+-- (This matches the way pg_dump will try to dump a partitioned table.)
+--
+CREATE TABLE test_replica_identity4(id integer NOT NULL) PARTITION BY LIST (id)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE TABLE test_replica_identity4_1(id integer NOT NULL)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ALTER TABLE ONLY test_replica_identity4
+  ATTACH PARTITION test_replica_identity4_1 FOR VALUES IN (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE ONLY test_replica_identity4
+  ADD CONSTRAINT test_replica_identity4_pkey PRIMARY KEY (id)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE ONLY test_replica_identity4
+  REPLICA IDENTITY USING INDEX test_replica_identity4_pkey
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE ONLY test_replica_identity4_1
+  ADD CONSTRAINT test_replica_identity4_1_pkey PRIMARY KEY (id)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d+ test_replica_identity4
+ALTER INDEX test_replica_identity4_pkey
+  ATTACH PARTITION test_replica_identity4_1_pkey
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d+ test_replica_identity4
+
+-- Dropping the primary key is not allowed if that would leave the replica
+-- identity as nullable
+CREATE TABLE test_replica_identity5 (a int not null, b int, c int,
+	PRIMARY KEY (b, c))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX test_replica_identity5_a_b_key ON test_replica_identity5 (a, b)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity5 REPLICA IDENTITY USING INDEX test_replica_identity5_a_b_key
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity5 ALTER b SET NOT NULL
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ALTER TABLE test_replica_identity5 ALTER b DROP NOT NULL
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity2
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity3
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity4
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity5
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity_othertable
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+DROP TABLE test_replica_identity_t3
+RESULT: ['duckdb: ERROR']
+=========================================
+Summary for test case replica_identity/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 20 queries, which is 30.30%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 46 queries, which is 69.70%
+Guest results are identical to expected results

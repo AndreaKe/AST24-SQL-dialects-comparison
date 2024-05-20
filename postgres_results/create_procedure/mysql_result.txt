@@ -1,0 +1,861 @@
+
+-----------
+QUERY:
+CALL nonexistent();
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.nonexistent does not exist')
+
+-----------
+QUERY:
+  -- error
+CALL random();
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.random does not exist')
+
+-----------
+QUERY:
+  -- error
+
+CREATE FUNCTION cp_testfunc1(a int) RETURNS int LANGUAGE SQL AS $$ SELECT a $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$ SELECT a $$' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE TABLE cp_test (a int, b text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE PROCEDURE ptest1(x text)
+LANGUAGE SQL
+AS $$
+INSERT INTO cp_test VALUES (1, x);
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nINSERT INTO cp_test VALUES (1, x);\n$$' at line 3")
+
+-----------
+QUERY:
+
+
+-- \df ptest1
+SELECT pg_get_functiondef('ptest1'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 2")
+
+-----------
+QUERY:
+
+
+-- show only normal functions
+-- \dfn public.*test*1
+
+-- show only procedures
+-- \dfp public.*test*1
+
+SELECT ptest1('x');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ptest1 does not exist')
+
+-----------
+QUERY:
+  -- error
+CALL ptest1('a');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1 does not exist')
+
+-----------
+QUERY:
+  -- ok
+CALL ptest1('xy' || 'zzy');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1 does not exist')
+
+-----------
+QUERY:
+  -- ok, constant-folded arg
+CALL ptest1(substring(random()::numeric(20,15)::text, 1, 1));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()::numeric(20,15)::text, 1, 1))' at line 2")
+
+-----------
+QUERY:
+  -- ok, volatile arg
+
+SELECT * FROM cp_test ORDER BY b COLLATE "C";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+
+-- SQL-standard body
+CREATE PROCEDURE ptest1s(x text)
+LANGUAGE SQL
+BEGIN ATOMIC
+  INSERT INTO cp_test VALUES (1, x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INSERT INTO cp_test VALUES (1, x)' at line 5")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- \df ptest1s
+SELECT pg_get_functiondef('ptest1s'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 2")
+
+-----------
+QUERY:
+
+
+CALL ptest1s('b');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1s does not exist')
+
+-----------
+QUERY:
+
+
+SELECT * FROM cp_test ORDER BY b COLLATE "C";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+-- utility functions currently not supported here
+CREATE PROCEDURE ptestx()
+LANGUAGE SQL
+BEGIN ATOMIC
+  CREATE TABLE x (a int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CREATE TABLE x (a int)' at line 5")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+
+CREATE PROCEDURE ptest2()
+LANGUAGE SQL
+AS $$
+SELECT 5;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nSELECT 5;\n$$' at line 3")
+
+-----------
+QUERY:
+
+
+CALL ptest2();
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest2 does not exist')
+
+-----------
+QUERY:
+
+
+
+-- nested CALL
+TRUNCATE cp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE PROCEDURE ptest3(y text)
+LANGUAGE SQL
+AS $$
+CALL ptest1(y);
+CALL ptest1($1);
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nCALL ptest1(y);\nCALL ptest1($1);\n$$' at line 3")
+
+-----------
+QUERY:
+
+
+CALL ptest3('b');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest3 does not exist')
+
+-----------
+QUERY:
+
+
+SELECT * FROM cp_test;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+
+-- output arguments
+
+CREATE PROCEDURE ptest4a(INOUT a int, INOUT b int)
+LANGUAGE SQL
+AS $$
+SELECT 1, 2;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nSELECT 1, 2;\n$$' at line 5")
+
+-----------
+QUERY:
+
+
+CALL ptest4a(NULL, NULL);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest4a does not exist')
+
+-----------
+QUERY:
+
+
+CREATE PROCEDURE ptest4b(INOUT b int, INOUT a int)
+LANGUAGE SQL
+AS $$
+CALL ptest4a(a, b);  -- error, not supported
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nCALL ptest4a(a, b);  -- error, not supported\n$$' at line 3")
+
+-----------
+QUERY:
+
+
+-- we used to get confused by a single output argument that is composite
+CREATE PROCEDURE ptest4c(INOUT comp int8_tbl)
+LANGUAGE SQL
+AS $$
+SELECT ROW(1, 2);
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8_tbl)\nLANGUAGE SQL\nAS $$\nSELECT ROW(1, 2);\n$$' at line 2")
+
+-----------
+QUERY:
+
+
+CALL ptest4c(NULL);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest4c does not exist')
+
+-----------
+QUERY:
+
+
+DROP PROCEDURE ptest4a, ptest4c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', ptest4c' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- named and default parameters
+
+CREATE OR REPLACE PROCEDURE ptest5(a int, b text, c int default 100)
+LANGUAGE SQL
+AS $$
+INSERT INTO cp_test VALUES(a, b);
+INSERT INTO cp_test VALUES(c, b);
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE ptest5(a int, b text, c int default 100)\nLANGUAGE SQL\nAS $$\nINSERT INT' at line 3")
+
+-----------
+QUERY:
+
+
+TRUNCATE cp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CALL ptest5(10, 'Hello', 20);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest5 does not exist')
+
+-----------
+QUERY:
+
+CALL ptest5(10, 'Hello');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest5 does not exist')
+
+-----------
+QUERY:
+
+CALL ptest5(10, b => 'Hello');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '=> 'Hello')' at line 1")
+
+-----------
+QUERY:
+
+CALL ptest5(b => 'Hello', a => 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '=> 'Hello', a => 10)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM cp_test;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+
+-- polymorphic types
+
+CREATE PROCEDURE ptest6(a int, b anyelement)
+LANGUAGE SQL
+AS $$
+SELECT NULL::int;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'anyelement)\nLANGUAGE SQL\nAS $$\nSELECT NULL::int;\n$$' at line 3")
+
+-----------
+QUERY:
+
+
+CALL ptest6(1, 2);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest6 does not exist')
+
+-----------
+QUERY:
+
+
+
+-- collation assignment
+
+CREATE PROCEDURE ptest7(a text, b text)
+LANGUAGE SQL
+AS $$
+SELECT a = b;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nSELECT a = b;\n$$' at line 5")
+
+-----------
+QUERY:
+
+
+CALL ptest7(least('a', 'b'), 'a');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest7 does not exist')
+
+-----------
+QUERY:
+
+
+
+-- empty body
+CREATE PROCEDURE ptest8(x text)
+BEGIN ATOMIC
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 4")
+
+-----------
+QUERY:
+
+
+-- \df ptest8
+SELECT pg_get_functiondef('ptest8'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 2")
+
+-----------
+QUERY:
+
+CALL ptest8('');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest8 does not exist')
+
+-----------
+QUERY:
+
+
+
+-- OUT parameters
+
+CREATE PROCEDURE ptest9(OUT a int)
+LANGUAGE SQL
+AS $$
+INSERT INTO cp_test VALUES (1, 'a');
+SELECT 1;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nINSERT INTO cp_test VALUES (1, 'a');\nSELECT 1;\n$$' at line 5")
+
+-----------
+QUERY:
+
+
+-- standard way to do a call:
+CALL ptest9(NULL);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest9 does not exist')
+
+-----------
+QUERY:
+
+-- you can write an expression, but it/* REPLACED */''s not evaluated
+CALL ptest9(1/0);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest9 does not exist')
+
+-----------
+QUERY:
+  -- no error
+-- ... and it had better match the type of the parameter
+CALL ptest9(1./0.);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest9 does not exist')
+
+-----------
+QUERY:
+  -- error
+
+-- check named-parameter matching
+CREATE PROCEDURE ptest10(OUT a int, IN b int, IN c int)
+LANGUAGE SQL AS $$ SELECT b - c $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$ SELECT b - c $$' at line 5")
+
+-----------
+QUERY:
+
+
+CALL ptest10(null, 7, 4);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest10 does not exist')
+
+-----------
+QUERY:
+
+CALL ptest10(a => null, b => 8, c => 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '=> null, b => 8, c => 2)' at line 1")
+
+-----------
+QUERY:
+
+CALL ptest10(null, 7, c => 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '=> 2)' at line 1")
+
+-----------
+QUERY:
+
+CALL ptest10(null, c => 4, b => 11);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '=> 4, b => 11)' at line 1")
+
+-----------
+QUERY:
+
+CALL ptest10(b => 8, c => 2, a => 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '=> 8, c => 2, a => 0)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE PROCEDURE ptest11(a OUT int, VARIADIC b int[]) LANGUAGE SQL
+  AS $$ SELECT b[1] + b[2] $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OUT int, VARIADIC b int[]) LANGUAGE SQL\n  AS $$ SELECT b[1] + b[2] $$' at line 1")
+
+-----------
+QUERY:
+
+
+CALL ptest11(null, 11, 12, 13);
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest11 does not exist')
+
+-----------
+QUERY:
+
+
+-- check resolution of ambiguous DROP commands
+
+CREATE PROCEDURE ptest10(IN a int, IN b int, IN c int)
+LANGUAGE SQL AS $$ SELECT a + b - c $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$ SELECT a + b - c $$' at line 4")
+
+-----------
+QUERY:
+
+
+-- \df ptest10
+
+drop procedure ptest10;
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest10 does not exist')
+
+-----------
+QUERY:
+  -- fail
+drop procedure ptest10(int, int, int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int, int, int)' at line 2")
+
+-----------
+QUERY:
+  -- fail
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop procedure ptest10(out int, int, int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(out int, int, int)' at line 1")
+
+-----------
+QUERY:
+
+-- \df ptest10
+drop procedure ptest10(int, int, int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int, int, int)' at line 2")
+
+-----------
+QUERY:
+  -- now this would work
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop procedure ptest10(in int, int, int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(in int, int, int)' at line 1")
+
+-----------
+QUERY:
+
+-- \df ptest10
+drop procedure ptest10(int, int, int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int, int, int)' at line 2")
+
+-----------
+QUERY:
+  -- now this would work
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- various error cases
+
+CALL version();
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.version does not exist')
+
+-----------
+QUERY:
+  -- error: not a procedure
+CALL sum(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sum(1)' at line 2")
+
+-----------
+QUERY:
+  -- error: not a procedure
+
+CREATE PROCEDURE ptestx() LANGUAGE SQL WINDOW AS $$ INSERT INTO cp_test VALUES (1, 'a') $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WINDOW AS $$ INSERT INTO cp_test VALUES (1, 'a') $$' at line 3")
+
+-----------
+QUERY:
+
+CREATE PROCEDURE ptestx() LANGUAGE SQL STRICT AS $$ INSERT INTO cp_test VALUES (1, 'a') $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$ INSERT INTO cp_test VALUES (1, 'a') $$' at line 1")
+
+-----------
+QUERY:
+
+CREATE PROCEDURE ptestx(a VARIADIC int[], b OUT int) LANGUAGE SQL
+  AS $$ SELECT a[1] $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VARIADIC int[], b OUT int) LANGUAGE SQL\n  AS $$ SELECT a[1] $$' at line 1")
+
+-----------
+QUERY:
+
+CREATE PROCEDURE ptestx(a int DEFAULT 42, b OUT int) LANGUAGE SQL
+  AS $$ SELECT a $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT 42, b OUT int) LANGUAGE SQL\n  AS $$ SELECT a $$' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER PROCEDURE ptest1(text) STRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text) STRICT' at line 1")
+
+-----------
+QUERY:
+
+ALTER FUNCTION ptest1(text) VOLATILE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text) VOLATILE' at line 1")
+
+-----------
+QUERY:
+  -- error: not a function
+ALTER PROCEDURE cp_testfunc1(int) VOLATILE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) VOLATILE' at line 2")
+
+-----------
+QUERY:
+  -- error: not a procedure
+ALTER PROCEDURE nonexistent() VOLATILE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() VOLATILE' at line 2")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION ptest1(text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text)' at line 1")
+
+-----------
+QUERY:
+  -- error: not a function
+DROP PROCEDURE cp_testfunc1(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 2")
+
+-----------
+QUERY:
+  -- error: not a procedure
+DROP PROCEDURE nonexistent();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 2")
+
+-----------
+QUERY:
+
+
+
+-- privileges
+
+CREATE USER regress_cp_user1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT INSERT ON cp_test TO regress_cp_user1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+REVOKE EXECUTE ON PROCEDURE ptest1(text) FROM PUBLIC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text) FROM PUBLIC' at line 1")
+
+-----------
+QUERY:
+
+SET ROLE regress_cp_user1;
+RESULT:
+	ERROR - (3530, '`regress_cp_user1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CALL ptest1('a');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1 does not exist')
+
+-----------
+QUERY:
+  -- error
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 2")
+
+-----------
+QUERY:
+
+GRANT EXECUTE ON PROCEDURE ptest1(text) TO regress_cp_user1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text) TO regress_cp_user1' at line 1")
+
+-----------
+QUERY:
+
+SET ROLE regress_cp_user1;
+RESULT:
+	ERROR - (3530, '`regress_cp_user1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CALL ptest1('a');
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1 does not exist')
+
+-----------
+QUERY:
+  -- ok
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 2")
+
+-----------
+QUERY:
+
+
+
+-- ROUTINE syntax
+
+ALTER ROUTINE cp_testfunc1(int) RENAME TO cp_testfunc1a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROUTINE cp_testfunc1(int) RENAME TO cp_testfunc1a' at line 3")
+
+-----------
+QUERY:
+
+ALTER ROUTINE cp_testfunc1a RENAME TO cp_testfunc1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROUTINE cp_testfunc1a RENAME TO cp_testfunc1' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER ROUTINE ptest1(text) RENAME TO ptest1a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROUTINE ptest1(text) RENAME TO ptest1a' at line 1")
+
+-----------
+QUERY:
+
+ALTER ROUTINE ptest1a RENAME TO ptest1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROUTINE ptest1a RENAME TO ptest1' at line 1")
+
+-----------
+QUERY:
+
+
+DROP ROUTINE cp_testfunc1(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROUTINE cp_testfunc1(int)' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- cleanup
+
+DROP PROCEDURE ptest1;
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1 does not exist')
+
+-----------
+QUERY:
+
+DROP PROCEDURE ptest1s;
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest1s does not exist')
+
+-----------
+QUERY:
+
+DROP PROCEDURE ptest2;
+RESULT:
+	ERROR - (1305, 'PROCEDURE test.ptest2 does not exist')
+
+-----------
+QUERY:
+
+
+DROP TABLE cp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP USER regress_cp_user1;
+RESULT:
+	[]

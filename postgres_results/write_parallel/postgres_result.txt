@@ -1,0 +1,147 @@
+
+-----------
+QUERY:
+--
+-- PARALLEL
+--
+
+begin
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- encourage use of parallel plans
+set parallel_setup_cost=0
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+set parallel_tuple_cost=0
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+set min_parallel_table_scan_size=0
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+set max_parallel_workers_per_gather=4
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+--
+-- Test write operations that has an underlying query that is eligible
+-- for parallel plans
+--
+explain (costs off) create table parallel_write as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	postgres: [('Finalize HashAggregate',), ('  Group Key: (length((stringu1)::text))',), ('  ->  Gather',), ('        Workers Planned: 4',), ('        ->  Partial HashAggregate',), ('              Group Key: length((stringu1)::text)',), ('              ->  Parallel Seq Scan on tenk1',)]
+
+-----------
+QUERY:
+create table parallel_write as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+explain (costs off) select length(stringu1) into parallel_write
+    from tenk1 group by length(stringu1)
+RESULT:
+	postgres: [('Finalize HashAggregate',), ('  Group Key: (length((stringu1)::text))',), ('  ->  Gather',), ('        Workers Planned: 4',), ('        ->  Partial HashAggregate',), ('              Group Key: length((stringu1)::text)',), ('              ->  Parallel Seq Scan on tenk1',)]
+
+-----------
+QUERY:
+select length(stringu1) into parallel_write
+    from tenk1 group by length(stringu1)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+explain (costs off) create materialized view parallel_mat_view as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	postgres: [('Finalize HashAggregate',), ('  Group Key: (length((stringu1)::text))',), ('  ->  Gather',), ('        Workers Planned: 4',), ('        ->  Partial HashAggregate',), ('              Group Key: length((stringu1)::text)',), ('              ->  Parallel Seq Scan on tenk1',)]
+
+-----------
+QUERY:
+create materialized view parallel_mat_view as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+create unique index on parallel_mat_view(length)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+refresh materialized view parallel_mat_view
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+refresh materialized view concurrently parallel_mat_view
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+drop materialized view parallel_mat_view
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+prepare prep_stmt as select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+explain (costs off) create table parallel_write as execute prep_stmt
+RESULT:
+	postgres: [('Finalize HashAggregate',), ('  Group Key: (length((stringu1)::text))',), ('  ->  Gather',), ('        Workers Planned: 4',), ('        ->  Partial HashAggregate',), ('              Group Key: length((stringu1)::text)',), ('              ->  Parallel Seq Scan on tenk1',)]
+
+-----------
+QUERY:
+create table parallel_write as execute prep_stmt
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+rollback
+RESULT:
+	postgres: None

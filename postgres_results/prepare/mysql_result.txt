@@ -1,0 +1,281 @@
+
+-----------
+QUERY:
+-- Regression tests for prepareable statements. We query the content
+-- of the pg_prepared_statements view as prepared statements are
+-- created and removed.
+
+SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+PREPARE q1 AS SELECT 1 AS a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS SELECT 1 AS a' at line 1")
+
+-----------
+QUERY:
+
+EXECUTE q1;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (q1) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- should fail
+PREPARE q1 AS SELECT 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS SELECT 2' at line 2")
+
+-----------
+QUERY:
+
+
+-- should succeed
+DEALLOCATE q1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'q1' at line 2")
+
+-----------
+QUERY:
+
+PREPARE q1 AS SELECT 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS SELECT 2' at line 1")
+
+-----------
+QUERY:
+
+EXECUTE q1;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (q1) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+PREPARE q2 AS SELECT 2 AS b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS SELECT 2 AS b' at line 1")
+
+-----------
+QUERY:
+
+SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- sql92 syntax
+DEALLOCATE PREPARE q1;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (q1) given to DEALLOCATE PREPARE')
+
+-----------
+QUERY:
+
+
+SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+DEALLOCATE PREPARE q2;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (q2) given to DEALLOCATE PREPARE')
+
+-----------
+QUERY:
+
+-- the view should return the empty set again
+SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- parameterized queries
+PREPARE q2(text) AS
+	SELECT datname, datistemplate, datallowconn
+	FROM pg_database WHERE datname = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text) AS\n\tSELECT datname, datistemplate, datallowconn\n\tFROM pg_database WHERE d' at line 2")
+
+-----------
+QUERY:
+
+
+EXECUTE q2('postgres');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('postgres')' at line 1")
+
+-----------
+QUERY:
+
+
+PREPARE q3(text, int, float, boolean, smallint) AS
+	SELECT * FROM tenk1 WHERE string4 = $1 AND (four = $2 OR
+	ten = $3::bigint OR true = $4 OR odd = $5::int)
+	ORDER BY unique1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(text, int, float, boolean, smallint) AS\n\tSELECT * FROM tenk1 WHERE string4 = $1' at line 1")
+
+-----------
+QUERY:
+
+
+EXECUTE q3('AAAAxx', 5::smallint, 10.5::float, false, 4::bigint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('AAAAxx', 5::smallint, 10.5::float, false, 4::bigint)' at line 1")
+
+-----------
+QUERY:
+
+
+-- too few params
+EXECUTE q3('bool');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('bool')' at line 2")
+
+-----------
+QUERY:
+
+
+-- too many params
+EXECUTE q3('bytea', 5::smallint, 10.5::float, false, 4::bigint, true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('bytea', 5::smallint, 10.5::float, false, 4::bigint, true)' at line 2")
+
+-----------
+QUERY:
+
+
+-- wrong param types
+EXECUTE q3(5::smallint, 10.5::float, false, 4::bigint, 'bytea');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(5::smallint, 10.5::float, false, 4::bigint, 'bytea')' at line 2")
+
+-----------
+QUERY:
+
+
+-- invalid type
+PREPARE q4(nonexistenttype) AS SELECT $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(nonexistenttype) AS SELECT $1' at line 2")
+
+-----------
+QUERY:
+
+
+-- create table as execute
+PREPARE q5(int, text) AS
+	SELECT * FROM tenk1 WHERE unique1 = $1 OR stringu1 = $2
+	ORDER BY unique1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int, text) AS\n\tSELECT * FROM tenk1 WHERE unique1 = $1 OR stringu1 = $2\n\tORDER B' at line 2")
+
+-----------
+QUERY:
+
+CREATE TEMPORARY TABLE q5_prep_results AS EXECUTE q5(200, 'DTAAAA');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE q5(200, 'DTAAAA')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM q5_prep_results;
+RESULT:
+	ERROR - (1146, "Table 'test.q5_prep_results' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE TEMPORARY TABLE q5_prep_nodata AS EXECUTE q5(200, 'DTAAAA')
+    WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE q5(200, 'DTAAAA')\n    WITH NO DATA' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM q5_prep_nodata;
+RESULT:
+	ERROR - (1146, "Table 'test.q5_prep_nodata' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- unknown or unspecified parameter types: should succeed
+PREPARE q6 AS
+    SELECT * FROM tenk1 WHERE unique1 = $1 AND stringu1 = $2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS\n    SELECT * FROM tenk1 WHERE unique1 = $1 AND stringu1 = $2' at line 2")
+
+-----------
+QUERY:
+
+PREPARE q7(unknown) AS
+    SELECT * FROM road WHERE thepath = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(unknown) AS\n    SELECT * FROM road WHERE thepath = $1' at line 1")
+
+-----------
+QUERY:
+
+
+-- DML statements
+PREPARE q8 AS
+    UPDATE tenk1 SET stringu1 = $2 WHERE unique1 = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS\n    UPDATE tenk1 SET stringu1 = $2 WHERE unique1 = $1' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements
+    ORDER BY name;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test DEALLOCATE ALL /* REPLACED */,
+DEALLOCATE ALL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ALL' at line 2")
+
+-----------
+QUERY:
+
+SELECT name, statement, parameter_types FROM pg_prepared_statements
+    ORDER BY name;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")

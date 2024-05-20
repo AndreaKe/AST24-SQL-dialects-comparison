@@ -1,0 +1,440 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- DEPENDENCIES
+--
+
+CREATE USER regress_dep_user;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE USER regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE USER regress_dep_user3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE GROUP regress_dep_group;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE deptest (f1 serial primary key, f2 text);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON TABLE deptest TO GROUP regress_dep_group;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT ALL ON TABLE deptest TO regress_dep_user, regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t drop neither because they have privileges somewhere
+DROP USER regress_dep_user;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP GROUP regress_dep_group;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- if we revoke the privileges we can drop the group
+REVOKE SELECT ON deptest FROM GROUP regress_dep_group;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP GROUP regress_dep_group;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t drop the user if we revoke the privileges partially
+REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, MAINTAIN ON deptest FROM regress_dep_user;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- now we are OK to drop him
+REVOKE TRIGGER ON deptest FROM regress_dep_user;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- we are OK too if we drop the privileges all at once
+REVOKE ALL ON deptest FROM regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t drop the owner of an object
+-- the error message detail here would include a pg_toast_nnn name that
+-- is not constant, so suppress it
+-- \set VERBOSITY terse
+ALTER TABLE deptest OWNER TO regress_dep_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user3;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- \set VERBOSITY default
+
+-- if we drop the object, we can drop the user too
+DROP TABLE deptest;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test DROP OWNED
+CREATE USER regress_dep_user0;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE USER regress_dep_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE USER regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_dep_user0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- permission denied
+DROP OWNED BY regress_dep_user1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP OWNED BY regress_dep_user0, regress_dep_user2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+REASSIGN OWNED BY regress_dep_user0 TO regress_dep_user1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+REASSIGN OWNED BY regress_dep_user1 TO regress_dep_user0;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+-- this one is allowed
+DROP OWNED BY regress_dep_user0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE deptest1 (f1 int unique);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT ALL ON deptest1 TO regress_dep_user1 WITH GRANT OPTION;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_dep_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE deptest (a serial primary key, b text);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT ALL ON deptest1 TO regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+\z deptest1
+
+DROP OWNED BY regress_dep_user1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+-- all grants revoked
+\z deptest1
+-- table was dropped
+-- \d deptest
+
+-- Test REASSIGN OWNED
+GRANT ALL ON deptest1 TO regress_dep_user1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT CREATE ON DATABASE regression TO regress_dep_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_dep_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE SCHEMA deptest;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE deptest (a serial primary key, b text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_dep_user1 IN SCHEMA deptest
+  GRANT ALL ON TABLES TO regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION deptest_func() RETURNS void LANGUAGE plpgsql
+  AS $$ BEGIN END; $$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TYPE deptest_enum AS ENUM ('red');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TYPE deptest_range AS RANGE (SUBTYPE = int4);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE deptest2 (f1 int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+-- make a serial column the hard way
+CREATE SEQUENCE ss1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER TABLE deptest2 ALTER f1 SET DEFAULT nextval('ss1');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER SEQUENCE ss1 OWNED BY deptest2.f1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- When reassigning ownership of a composite type, its pg_class entry
+-- should match
+CREATE TYPE deptest_t AS (a int);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT typowner = relowner
+FROM pg_type JOIN pg_class c ON typrelid = c.oid WHERE typname = 'deptest_t';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REASSIGN OWNED BY regress_dep_user1 TO regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- \dt deptest
+
+SELECT typowner = relowner
+FROM pg_type JOIN pg_class c ON typrelid = c.oid WHERE typname = 'deptest_t';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- doesn/* REPLACED */''t work: grant still exists
+DROP USER regress_dep_user1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP OWNED BY regress_dep_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP USER regress_dep_user2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP OWNED BY regress_dep_user2, regress_dep_user0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP USER regress_dep_user0;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+=========================================
+Summary for test case dependency/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 19 queries, which is 30.65%
+DIFFERENT: 2 queries, which is 3.23%
+ERROR: 41 queries, which is 66.13%
+
+=================
+Results for mySQL
+SAME: 27 queries, which is 43.55%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 35 queries, which is 56.45%

@@ -1,0 +1,320 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- Regular expression tests
+--
+
+-- Don/* REPLACED */''t want to have to double backslashes in regexes
+set standard_conforming_strings = on
+RESULT: []
+
+-----------
+QUERY:
+-- Test simple quantified backrefs
+select 'bbbbb' ~ '^([bc])\1*$' as t
+RESULT: []
+
+-----------
+QUERY:
+select 'ccc' ~ '^([bc])\1*$' as t
+RESULT: []
+
+-----------
+QUERY:
+select 'xxx' ~ '^([bc])\1*$' as f
+RESULT: []
+
+-----------
+QUERY:
+select 'bbc' ~ '^([bc])\1*$' as f
+RESULT: []
+
+-----------
+QUERY:
+select 'b' ~ '^([bc])\1*$' as t
+RESULT: []
+
+-----------
+QUERY:
+-- Test quantified backref within a larger expression
+select 'abc abc abc' ~ '^(\w+)( \1)+$' as t
+RESULT: []
+
+-----------
+QUERY:
+select 'abc abd abc' ~ '^(\w+)( \1)+$' as f
+RESULT: []
+
+-----------
+QUERY:
+select 'abc abc abd' ~ '^(\w+)( \1)+$' as f
+RESULT: []
+
+-----------
+QUERY:
+select 'abc abc abc' ~ '^(.+)( \1)+$' as t
+RESULT: []
+
+-----------
+QUERY:
+select 'abc abd abc' ~ '^(.+)( \1)+$' as f
+RESULT: []
+
+-----------
+QUERY:
+select 'abc abc abd' ~ '^(.+)( \1)+$' as f
+RESULT: []
+
+-----------
+QUERY:
+-- Test some cases that crashed in 9.2beta1 due to pmatch[] array overrun
+select substring('asd TO foo' from ' TO (([a-z0-9._]+|"([^"]+|"")+")+)')
+RESULT: []
+
+-----------
+QUERY:
+select substring('a' from '((a))+')
+RESULT: []
+
+-----------
+QUERY:
+select substring('a' from '((a)+)')
+RESULT: []
+
+-----------
+QUERY:
+-- Test regexp_match()
+select regexp_match('abc', '')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_match('abc', 'bc')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_match('abc', 'd') is null
+RESULT: []
+
+-----------
+QUERY:
+select regexp_match('abc', '(B)(c)', 'i')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_match('abc', 'Bd', 'ig')
+RESULT: []
+
+-----------
+QUERY:
+-- error
+
+-- Test lookahead constraints
+select regexp_matches('ab', 'a(?=b)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?=b)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('abc', 'a(?=b)b*(?=c)c*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a(?=b)b*(?=c)c*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a(?!b)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?!b)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('b', '(?=b)b')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('a', '(?=b)b')
+RESULT: []
+
+-----------
+QUERY:
+-- Test lookbehind constraints
+select regexp_matches('abb', '(?<=a)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?<=a)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('abc', 'a(?<=a)b*(?<=b)c*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a(?<=a)b*(?<=b)c*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a*(?<!a)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a*(?<!a)b+')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('b', 'a*(?<!a)b+')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?<!a)b*')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('b', '(?<=b)b')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('foobar', '(?<=f)b+')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('foobar', '(?<=foo)b+')
+RESULT: []
+
+-----------
+QUERY:
+select regexp_matches('foobar', '(?<=oo)b+')
+RESULT: []
+
+-----------
+QUERY:
+-- Test optimization of single-chr-or-bracket-expression lookaround constraints
+select 'xz' ~ 'x(?=[xy])'
+RESULT: []
+
+-----------
+QUERY:
+select 'xy' ~ 'x(?=[xy])'
+RESULT: []
+
+-----------
+QUERY:
+select 'xz' ~ 'x(?![xy])'
+RESULT: []
+
+-----------
+QUERY:
+select 'xy' ~ 'x(?![xy])'
+RESULT: []
+
+-----------
+QUERY:
+select 'x'  ~ 'x(?![xy])'
+RESULT: []
+
+-----------
+QUERY:
+select 'xyy' ~ '(?<=[xy])yy+'
+RESULT: []
+
+-----------
+QUERY:
+select 'zyy' ~ '(?<=[xy])yy+'
+RESULT: []
+
+-----------
+QUERY:
+select 'xyy' ~ '(?<![xy])yy+'
+RESULT: []
+
+-----------
+QUERY:
+select 'zyy' ~ '(?<![xy])yy+'
+RESULT: []
+
+-----------
+QUERY:
+-- Test conversion of regex patterns to indexable conditions
+explain (costs off) select * from pg_proc where proname ~ 'abc'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abc'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abc$'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abcd*e'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abc+d'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^(abc)(def)'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^(abc)$'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^(abc)?d'
+RESULT: []
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abcd(x|(?=\w\w)q)'
+RESULT: []
+
+-----------
+QUERY:
+-- Test for infinite loop in pullback() (CVE-2007-4772)
+select 'a' ~ '($|^)*'
+RESULT: []
+
+-----------
+QUERY:
+-- These cases expose a bug in the original fix for CVE-2007-4772
+select 'a' ~ '(^)+^'
+RESULT: []
+=========================================
+Summary for test case regex/test.sql of postgres
+=========================================

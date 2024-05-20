@@ -1,0 +1,218 @@
+
+-----------
+QUERY:
+--
+-- CREATE_CAST
+--
+
+-- Create some types to test with
+CREATE TYPE casttesttype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE casttesttype' at line 6")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION casttesttype_in(cstring)
+   RETURNS casttesttype
+   AS 'textin'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')\n   RETURNS casttesttype\n   AS 'textin'\n   LANGUAGE internal STRICT IMMUTABLE' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION casttesttype_out(casttesttype)
+   RETURNS cstring
+   AS 'textout'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')\n   RETURNS cstring\n   AS 'textout'\n   LANGUAGE internal STRICT IMMUTABLE' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TYPE casttesttype (
+   internallength = variable,
+   input = casttesttype_in,
+   output = casttesttype_out,
+   alignment = int4
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE casttesttype (\n   internallength = variable,\n   input = casttesttype_in,\n  ' at line 1")
+
+-----------
+QUERY:
+
+
+-- a dummy function to test with
+CREATE FUNCTION casttestfunc(casttesttype) RETURNS int4 LANGUAGE SQL AS
+$$ SELECT 1; $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') RETURNS int4 LANGUAGE SQL AS\n$$ SELECT 1; $$' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT casttestfunc('foo'::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text)' at line 1")
+
+-----------
+QUERY:
+ -- fails, as there/* REPLACED */''s no cast
+
+-- Try binary coercion cast
+CREATE CAST (text AS casttesttype) WITHOUT FUNCTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (text AS casttesttype) WITHOUT FUNCTION' at line 4")
+
+-----------
+QUERY:
+
+SELECT casttestfunc('foo'::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text)' at line 1")
+
+-----------
+QUERY:
+ -- doesn/* REPLACED */''t work, as the cast is explicit
+SELECT casttestfunc('foo'::text::casttesttype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text::casttesttype)' at line 2")
+
+-----------
+QUERY:
+ -- should work
+DROP CAST (text AS casttesttype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (text AS casttesttype)' at line 2")
+
+-----------
+QUERY:
+ -- cleanup
+
+-- Try IMPLICIT binary coercion cast
+CREATE CAST (text AS casttesttype) WITHOUT FUNCTION AS IMPLICIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (text AS casttesttype) WITHOUT FUNCTION AS IMPLICIT' at line 4")
+
+-----------
+QUERY:
+
+SELECT casttestfunc('foo'::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text)' at line 1")
+
+-----------
+QUERY:
+ -- Should work now
+
+-- Try I/O conversion cast.
+SELECT 1234::int4::casttesttype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int4::casttesttype' at line 4")
+
+-----------
+QUERY:
+ -- No cast yet, should fail
+
+CREATE CAST (int4 AS casttesttype) WITH INOUT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (int4 AS casttesttype) WITH INOUT' at line 3")
+
+-----------
+QUERY:
+
+SELECT 1234::int4::casttesttype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int4::casttesttype' at line 1")
+
+-----------
+QUERY:
+ -- Should work now
+
+DROP CAST (int4 AS casttesttype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (int4 AS casttesttype)' at line 3")
+
+-----------
+QUERY:
+
+
+-- Try cast with a function
+
+CREATE FUNCTION int4_casttesttype(int4) RETURNS casttesttype LANGUAGE SQL AS
+$$ SELECT ('foo'::text || $1::text)::casttesttype; $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int4) RETURNS casttesttype LANGUAGE SQL AS\n$$ SELECT ('foo'::text || $1::text)::' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE CAST (int4 AS casttesttype) WITH FUNCTION int4_casttesttype(int4) AS IMPLICIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (int4 AS casttesttype) WITH FUNCTION int4_casttesttype(int4) AS IMPLICIT' at line 1")
+
+-----------
+QUERY:
+
+SELECT 1234::int4::casttesttype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int4::casttesttype' at line 1")
+
+-----------
+QUERY:
+ -- Should work now
+
+DROP FUNCTION int4_casttesttype(int4) CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int4) CASCADE' at line 3")
+
+-----------
+QUERY:
+
+
+-- Try it with a function that requires an implicit cast
+
+CREATE FUNCTION bar_int4_text(int4) RETURNS text LANGUAGE SQL AS
+$$ SELECT ('bar'::text || $1::text); $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int4) RETURNS text LANGUAGE SQL AS\n$$ SELECT ('bar'::text || $1::text); $$' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE CAST (int4 AS casttesttype) WITH FUNCTION bar_int4_text(int4) AS IMPLICIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CAST (int4 AS casttesttype) WITH FUNCTION bar_int4_text(int4) AS IMPLICIT' at line 1")
+
+-----------
+QUERY:
+
+SELECT 1234::int4::casttesttype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int4::casttesttype' at line 1")
+
+-----------
+QUERY:
+ -- Should work now
+
+-- check dependencies generated for that
+SELECT pg_describe_object(classid, objid, objsubid) as obj,
+       pg_describe_object(refclassid, refobjid, refobjsubid) as objref,
+       deptype
+FROM pg_depend
+WHERE classid = 'pg_cast'::regclass AND
+      objid = (SELECT oid FROM pg_cast
+               WHERE castsource = 'int4'::regtype
+                 AND casttarget = 'casttesttype'::regtype)
+ORDER BY refclassid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND\n      objid = (SELECT oid FROM pg_cast\n               WHERE casts' at line 8")

@@ -1,3 +1,6 @@
+
+-----------
+QUERY:
 CREATE TABLE brintest_multi (
 	int8col bigint,
 	int2col smallint,
@@ -19,33 +22,14 @@ CREATE TABLE brintest_multi (
 	numericcol numeric,
 	uuidcol uuid,
 	lsncol pg_lsn
-) WITH (fillfactor=10)
-ERROR: CREATE TABLE brintest_multi (
-	int8col bigint,
-	int2col smallint,
-	int4col integer,
-	oidcol oid,
-	tidcol tid,
-	float4col real,
-	float8col double precision,
-	macaddrcol macaddr,
-	macaddr8col macaddr8,
-	inetcol inet,
-	cidrcol cidr,
-	datecol date,
-	timecol time without time zone,
-	timestampcol timestamp without time zone,
-	timestamptzcol timestamp with time zone,
-	intervalcol interval,
-	timetzcol time with time zone,
-	numericcol numeric,
-	uuidcol uuid,
-	lsncol pg_lsn
-) WITH (fillfactor=10)
-
-Catalog Error: Type with name tid does not exist!
+) WITH (fillfactor=10);
+RESULT:
+	ERROR - Catalog Error: Type with name tid does not exist!
 Did you mean "oid"?
 
+-----------
+QUERY:
+
 
 INSERT INTO brintest_multi SELECT
 	142857 * tenthous,
@@ -68,79 +52,48 @@ INSERT INTO brintest_multi SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 100
-ERROR: 
-
-INSERT INTO brintest_multi SELECT
-	142857 * tenthous,
-	thousand,
-	twothousand,
-	unique1::oid,
-	format('(%s,%s)', tenthous, twenty)::tid,
-	(four + 1.0)/(hundred+1),
-	odd::float8 / (tenthous + 1),
-	format('%s:00:%s:00:%s:00', to_hex(odd), to_hex(even), to_hex(hundred))::macaddr,
-	substr(fipshash(unique1::text), 1, 16)::macaddr8,
-	inet '10.2.3.4/24' + tenthous,
-	cidr '10.2.3/24' + tenthous,
-	date '1995-08-15' + tenthous,
-	time '01:20:30' + thousand * interval '18.5 second',
-	timestamp '1942-07-23 03:05:09' + tenthous * interval '36.38 hours',
-	timestamptz '1972-10-10 03:00' + thousand * interval '1 hour',
-	justify_days(justify_hours(tenthous * interval '12 minutes')),
-	timetz '01:30:20+02' + hundred * interval '15 seconds',
-	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
-	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
-	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 100
-
-Catalog Error: Table with name brintest_multi does not exist!
+FROM tenk1 ORDER BY unique2 LIMIT 100;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "INT2_TBL"?
 
+-----------
+QUERY:
 
--- throw in some NULL''s and different values
+
+-- throw in some NULL/* REPLACED */''s and different values
 INSERT INTO brintest_multi (inetcol, cidrcol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
-FROM tenk1 ORDER BY thousand, tenthous LIMIT 25
-ERROR: 
-
--- throw in some NULL''s and different values
-INSERT INTO brintest_multi (inetcol, cidrcol) SELECT
-	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
-	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
-FROM tenk1 ORDER BY thousand, tenthous LIMIT 25
-
-Catalog Error: Table with name brintest_multi does not exist!
+FROM tenk1 ORDER BY thousand, tenthous LIMIT 25;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "INT2_TBL"?
+
+-----------
+QUERY:
 
 
 -- test minmax-multi specific index options
 -- number of values must be >= 16
 CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	int8col int8_minmax_multi_ops(values_per_range = 7)
-)
-ERROR: 
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
--- test minmax-multi specific index options
--- number of values must be >= 16
-CREATE INDEX brinidx_multi ON brintest_multi USING brin (
-	int8col int8_minmax_multi_ops(values_per_range = 7)
-)
-
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
 -- number of values must be <= 256
 CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	int8col int8_minmax_multi_ops(values_per_range = 257)
-)
-ERROR: 
--- number of values must be <= 256
-CREATE INDEX brinidx_multi ON brintest_multi USING brin (
-	int8col int8_minmax_multi_ops(values_per_range = 257)
-)
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
 
 -- first create an index with a single page range, to force compaction
@@ -166,45 +119,22 @@ CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	numericcol numeric_minmax_multi_ops,
 	uuidcol uuid_minmax_multi_ops,
 	lsncol pg_lsn_minmax_multi_ops
-)
-ERROR: 
+);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
--- first create an index with a single page range, to force compaction
--- due to exceeding the number of values per summary
-CREATE INDEX brinidx_multi ON brintest_multi USING brin (
-	int8col int8_minmax_multi_ops,
-	int2col int2_minmax_multi_ops,
-	int4col int4_minmax_multi_ops,
-	oidcol oid_minmax_multi_ops,
-	tidcol tid_minmax_multi_ops,
-	float4col float4_minmax_multi_ops,
-	float8col float8_minmax_multi_ops,
-	macaddrcol macaddr_minmax_multi_ops,
-	macaddr8col macaddr8_minmax_multi_ops,
-	inetcol inet_minmax_multi_ops,
-	cidrcol inet_minmax_multi_ops,
-	datecol date_minmax_multi_ops,
-	timecol time_minmax_multi_ops,
-	timestampcol timestamp_minmax_multi_ops,
-	timestamptzcol timestamptz_minmax_multi_ops,
-	intervalcol interval_minmax_multi_ops,
-	timetzcol timetz_minmax_multi_ops,
-	numericcol numeric_minmax_multi_ops,
-	uuidcol uuid_minmax_multi_ops,
-	lsncol pg_lsn_minmax_multi_ops
-)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
-DROP INDEX brinidx_multi
-ERROR: 
-
-DROP INDEX brinidx_multi
-
-Catalog Error: Index with name brinidx_multi does not exist!
+DROP INDEX brinidx_multi;
+RESULT:
+	ERROR - Catalog Error: Index with name brinidx_multi does not exist!
 Did you mean "concur_reindex_ind1"?
 
+-----------
+QUERY:
+
 
 CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	int8col int8_minmax_multi_ops,
@@ -227,47 +157,23 @@ CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	numericcol numeric_minmax_multi_ops,
 	uuidcol uuid_minmax_multi_ops,
 	lsncol pg_lsn_minmax_multi_ops
-) with (pages_per_range = 1)
-ERROR: 
+) with (pages_per_range = 1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX brinidx_multi ON brintest_multi USING brin (
-	int8col int8_minmax_multi_ops,
-	int2col int2_minmax_multi_ops,
-	int4col int4_minmax_multi_ops,
-	oidcol oid_minmax_multi_ops,
-	tidcol tid_minmax_multi_ops,
-	float4col float4_minmax_multi_ops,
-	float8col float8_minmax_multi_ops,
-	macaddrcol macaddr_minmax_multi_ops,
-	macaddr8col macaddr8_minmax_multi_ops,
-	inetcol inet_minmax_multi_ops,
-	cidrcol inet_minmax_multi_ops,
-	datecol date_minmax_multi_ops,
-	timecol time_minmax_multi_ops,
-	timestampcol timestamp_minmax_multi_ops,
-	timestamptzcol timestamptz_minmax_multi_ops,
-	intervalcol interval_minmax_multi_ops,
-	timetzcol timetz_minmax_multi_ops,
-	numericcol numeric_minmax_multi_ops,
-	uuidcol uuid_minmax_multi_ops,
-	lsncol pg_lsn_minmax_multi_ops
-) with (pages_per_range = 1)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
 CREATE TABLE brinopers_multi (colname name, typ text,
 	op text[], value text[], matches int[],
 	check (cardinality(op) = cardinality(value)),
-	check (cardinality(op) = cardinality(matches)))
-ERROR: 
+	check (cardinality(op) = cardinality(matches)));
+RESULT:
+	ERROR - Binder Error: Cardinality can only operate on MAPs
 
-CREATE TABLE brinopers_multi (colname name, typ text,
-	op text[], value text[], matches int[],
-	check (cardinality(op) = cardinality(value)),
-	check (cardinality(op) = cardinality(matches)))
-
-Binder Error: Cardinality can only operate on MAPs
+-----------
+QUERY:
 
 
 INSERT INTO brinopers_multi VALUES
@@ -394,514 +300,399 @@ INSERT INTO brinopers_multi VALUES
 	('lsncol', 'pg_lsn',
 	 '{>, >=, =, <=, <, IS, IS NOT}',
 	 '{0/1200, 0/1200, 44/455222, 198/1999799, 198/1999799, NULL, NULL}',
-	 '{100, 100, 1, 100, 100, 25, 100}')
-ERROR: 
-
-INSERT INTO brinopers_multi VALUES
-	('int2col', 'int2',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 800, 999, 999}',
-	 '{100, 100, 1, 100, 100}'),
-	('int2col', 'int4',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 800, 999, 1999}',
-	 '{100, 100, 1, 100, 100}'),
-	('int2col', 'int8',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 800, 999, 1428427143}',
-	 '{100, 100, 1, 100, 100}'),
-	('int4col', 'int2',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 800, 1999, 1999}',
-	 '{100, 100, 1, 100, 100}'),
-	('int4col', 'int4',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 800, 1999, 1999}',
-	 '{100, 100, 1, 100, 100}'),
-	('int4col', 'int8',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 800, 1999, 1428427143}',
-	 '{100, 100, 1, 100, 100}'),
-	('int8col', 'int2',
-	 '{>, >=}',
-	 '{0, 0}',
-	 '{100, 100}'),
-	('int8col', 'int4',
-	 '{>, >=}',
-	 '{0, 0}',
-	 '{100, 100}'),
-	('int8col', 'int8',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 1257141600, 1428427143, 1428427143}',
-	 '{100, 100, 1, 100, 100}'),
-	('oidcol', 'oid',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 8800, 9999, 9999}',
-	 '{100, 100, 1, 100, 100}'),
-	('tidcol', 'tid',
-	 '{>, >=, =, <=, <}',
-	 '{"(0,0)", "(0,0)", "(8800,0)", "(9999,19)", "(9999,19)"}',
-	 '{100, 100, 1, 100, 100}'),
-	('float4col', 'float4',
-	 '{>, >=, =, <=, <}',
-	 '{0.0103093, 0.0103093, 1, 1, 1}',
-	 '{100, 100, 4, 100, 96}'),
-	('float4col', 'float8',
-	 '{>, >=, =, <=, <}',
-	 '{0.0103093, 0.0103093, 1, 1, 1}',
-	 '{100, 100, 4, 100, 96}'),
-	('float8col', 'float4',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 0, 1.98, 1.98}',
-	 '{99, 100, 1, 100, 100}'),
-	('float8col', 'float8',
-	 '{>, >=, =, <=, <}',
-	 '{0, 0, 0, 1.98, 1.98}',
-	 '{99, 100, 1, 100, 100}'),
-	('macaddrcol', 'macaddr',
-	 '{>, >=, =, <=, <}',
-	 '{00:00:01:00:00:00, 00:00:01:00:00:00, 2c:00:2d:00:16:00, ff:fe:00:00:00:00, ff:fe:00:00:00:00}',
-	 '{99, 100, 2, 100, 100}'),
-	('macaddr8col', 'macaddr8',
-	 '{>, >=, =, <=, <}',
-	 '{b1:d1:0e:7b:af:a4:42:12, d9:35:91:bd:f7:86:0e:1e, 72:8f:20:6c:2a:01:bf:57, 23:e8:46:63:86:07:ad:cb, 13:16:8e:6a:2e:6c:84:b4}',
-	 '{31, 17, 1, 11, 4}'),
-	('inetcol', 'inet',
-	 '{=, <, <=, >, >=}',
-	 '{10.2.14.231/24, 255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
-	 '{1, 100, 100, 125, 125}'),
-	('inetcol', 'cidr',
-	 '{<, <=, >, >=}',
-	 '{255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
-	 '{100, 100, 125, 125}'),
-	('cidrcol', 'inet',
-	 '{=, <, <=, >, >=}',
-	 '{10.2.14/24, 255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
-	 '{2, 100, 100, 125, 125}'),
-	('cidrcol', 'cidr',
-	 '{=, <, <=, >, >=}',
-	 '{10.2.14/24, 255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
-	 '{2, 100, 100, 125, 125}'),
-	('datecol', 'date',
-	 '{>, >=, =, <=, <}',
-	 '{1995-08-15, 1995-08-15, 2009-12-01, 2022-12-30, 2022-12-30}',
-	 '{100, 100, 1, 100, 100}'),
-	('timecol', 'time',
-	 '{>, >=, =, <=, <}',
-	 '{01:20:30, 01:20:30, 02:28:57, 06:28:31.5, 06:28:31.5}',
-	 '{100, 100, 1, 100, 100}'),
-	('timestampcol', 'timestamp',
-	 '{>, >=, =, <=, <}',
-	 '{1942-07-23 03:05:09, 1942-07-23 03:05:09, 1964-03-24 19:26:45, 1984-01-20 22:42:21, 1984-01-20 22:42:21}',
-	 '{100, 100, 1, 100, 100}'),
-	('timestampcol', 'timestamptz',
-	 '{>, >=, =, <=, <}',
-	 '{1942-07-23 03:05:09, 1942-07-23 03:05:09, 1964-03-24 19:26:45, 1984-01-20 22:42:21, 1984-01-20 22:42:21}',
-	 '{100, 100, 1, 100, 100}'),
-	('timestamptzcol', 'timestamptz',
-	 '{>, >=, =, <=, <}',
-	 '{1972-10-10 03:00:00-04, 1972-10-10 03:00:00-04, 1972-10-19 09:00:00-07, 1972-11-20 19:00:00-03, 1972-11-20 19:00:00-03}',
-	 '{100, 100, 1, 100, 100}'),
-	('intervalcol', 'interval',
-	 '{>, >=, =, <=, <}',
-	 '{00:00:00, 00:00:00, 1 mons 13 days 12:24, 2 mons 23 days 07:48:00, 1 year}',
-	 '{100, 100, 1, 100, 100}'),
-	('timetzcol', 'timetz',
-	 '{>, >=, =, <=, <}',
-	 '{01:30:20+02, 01:30:20+02, 01:35:50+02, 23:55:05+02, 23:55:05+02}',
-	 '{99, 100, 2, 100, 100}'),
-	('numericcol', 'numeric',
-	 '{>, >=, =, <=, <}',
-	 '{0.00, 0.01, 2268164.347826086956521739130434782609, 99470151.9, 99470151.9}',
-	 '{100, 100, 1, 100, 100}'),
-	('uuidcol', 'uuid',
-	 '{>, >=, =, <=, <}',
-	 '{00040004-0004-0004-0004-000400040004, 00040004-0004-0004-0004-000400040004, 52225222-5222-5222-5222-522252225222, 99989998-9998-9998-9998-999899989998, 99989998-9998-9998-9998-999899989998}',
-	 '{100, 100, 1, 100, 100}'),
-	('lsncol', 'pg_lsn',
-	 '{>, >=, =, <=, <, IS, IS NOT}',
-	 '{0/1200, 0/1200, 44/455222, 198/1999799, 198/1999799, NULL, NULL}',
-	 '{100, 100, 1, 100, 100, 25, 100}')
-
-Catalog Error: Table with name brinopers_multi does not exist!
+	 '{100, 100, 1, 100, 100, 25, 100}');
+RESULT:
+	ERROR - Catalog Error: Table with name brinopers_multi does not exist!
 Did you mean "pg_am"?
 
+-----------
+QUERY:
+
 
 DO $x$
 DECLARE
-	r record
-ERROR: 
+	r record;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DO"
 
-DO $x$
-DECLARE
-	r record
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "DO"
+	r2 record;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "r2"
 
-	r2 record
-ERROR: 
-	r2 record
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "r2"
+	cond text;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "cond"
 
-	cond text
-ERROR: 
-	cond text
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "cond"
+	idx_ctids tid[];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "idx_ctids"
 
-	idx_ctids tid[]
-ERROR: 
-	idx_ctids tid[]
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "idx_ctids"
+	ss_ctids tid[];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ss_ctids"
 
-	ss_ctids tid[]
-ERROR: 
-	ss_ctids tid[]
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "ss_ctids"
+	count int;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "count"
 
-	count int
-ERROR: 
-	count int
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "count"
+	plan_ok bool;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_ok"
 
-	plan_ok bool
-ERROR: 
-	plan_ok bool
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "plan_ok"
+	plan_line text;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_line"
 
-	plan_line text
-ERROR: 
-	plan_line text
-
-Parser Error: syntax error at or near "plan_line"
+-----------
+QUERY:
 
 BEGIN
 	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_multi, unnest(op) WITH ORDINALITY AS oper LOOP
 
 		-- prepare the condition
 		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-ERROR: 
-BEGIN
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_multi, unnest(op) WITH ORDINALITY AS oper LOOP
+			cond := format('%I %s %L', r.colname, r.oper, r.value);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-		-- prepare the condition
-		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
 		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
-ERROR: 
-		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
+			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ELSE"
 
-Parser Error: syntax error at or near "ELSE"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		-- run the query using the brin index
-		SET enable_seqscan = 0
-ERROR: 
-
-		-- run the query using the brin index
-		SET enable_seqscan = 0
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+		SET enable_seqscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-		SET enable_bitmapscan = 1
-ERROR: 
-		SET enable_bitmapscan = 1
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+		SET enable_bitmapscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
 
-		plan_ok := false
-ERROR: 
 
-		plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_ok"
 
-Parser Error: syntax error at or near "plan_ok"
+-----------
+QUERY:
 
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
 			IF plan_line LIKE '%Bitmap Heap Scan on brintest_multi%' THEN
-				plan_ok := true
-ERROR: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Bitmap Heap Scan on brintest_multi%' THEN
-				plan_ok := true
+				plan_ok := true;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
-			END IF
-ERROR: 
-			END IF
+			END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END LOOP
-ERROR: 
-		END LOOP
+		END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-Parser Error: syntax error at or near "LOOP"
+-----------
+QUERY:
 
 		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
-ERROR: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
+			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO idx_ctids
-ERROR: 
+			INTO idx_ctids;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INTO"
 
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO idx_ctids
-
-Parser Error: syntax error at or near "INTO"
+-----------
+QUERY:
 
 
 		-- run the query using a seqscan
-		SET enable_seqscan = 1
-ERROR: 
-
-		-- run the query using a seqscan
-		SET enable_seqscan = 1
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+		SET enable_seqscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-		SET enable_bitmapscan = 0
-ERROR: 
-		SET enable_bitmapscan = 0
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+		SET enable_bitmapscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
 
-		plan_ok := false
-ERROR: 
 
-		plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_ok"
 
-Parser Error: syntax error at or near "plan_ok"
+-----------
+QUERY:
 
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
 			IF plan_line LIKE '%Seq Scan on brintest_multi%' THEN
-				plan_ok := true
-ERROR: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Seq Scan on brintest_multi%' THEN
-				plan_ok := true
+				plan_ok := true;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
-			END IF
-ERROR: 
-			END IF
+			END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END LOOP
-ERROR: 
-		END LOOP
+		END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-Parser Error: syntax error at or near "LOOP"
+-----------
+QUERY:
 
 		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
-ERROR: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
+			RAISE WARNING 'did not get seqscan plan for %', r;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO ss_ctids
-ERROR: 
+			INTO ss_ctids;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INTO"
 
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO ss_ctids
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "INTO"
-
-
-		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
-ERROR: 
 
 		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
+		count := array_length(idx_ctids, 1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "count"
 
-Parser Error: syntax error at or near "count"
+-----------
+QUERY:
 
 
 		IF NOT (count = array_length(ss_ctids, 1) AND
 				idx_ctids @> ss_ctids AND
 				idx_ctids <@ ss_ctids) THEN
 			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
-ERROR: 
+			RAISE WARNING 'something not right in %: count %', r, count;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-		IF NOT (count = array_length(ss_ctids, 1) AND
-				idx_ctids @> ss_ctids AND
-				idx_ctids <@ ss_ctids) THEN
-			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "IF"
-
-			SET enable_seqscan = 1
-ERROR: 
-			SET enable_seqscan = 1
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+			SET enable_seqscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-			SET enable_bitmapscan = 0
-ERROR: 
-			SET enable_bitmapscan = 0
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
-
-Did you mean: "enable_object_cache"
-
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-ERROR: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-
-Parser Error: syntax error at or near "FOR"
-
-			END LOOP
-ERROR: 
-			END LOOP
-
-Parser Error: syntax error at or near "LOOP"
-
-
-			SET enable_seqscan = 0
-ERROR: 
-
-			SET enable_seqscan = 0
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+			SET enable_bitmapscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
-			SET enable_bitmapscan = 1
-ERROR: 
-			SET enable_bitmapscan = 1
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
+				RAISE NOTICE 'seqscan: %', r2;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
+
+-----------
+QUERY:
+
+			END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
+
+-----------
+QUERY:
+
+
+			SET enable_seqscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
-ERROR: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
+				RAISE NOTICE 'bitmapscan: %', r2;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
-			END LOOP
-ERROR: 
-			END LOOP
+			END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-Parser Error: syntax error at or near "LOOP"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
-ERROR: 
+		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
+-----------
+QUERY:
+ END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
- END IF
-ERROR:  END IF
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "IF"
+	END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-	END LOOP
-ERROR: 
-	END LOOP
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "LOOP"
+END;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
 
-END
-ERROR: 
-END
+-----------
+QUERY:
 
-TransactionContext Error: cannot commit - no transaction is active
+$x$;
+RESULT:
+	ERROR - Parser Error: unterminated dollar-quoted string at or near "$x$;"
 
-$x$
-ERROR: 
-$x$
-
-Parser Error: unterminated dollar-quoted string at or near "$x$
-"
+-----------
+QUERY:
 
 
-RESET enable_seqscan
-ERROR: 
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
-RESET enable_seqscan
+Did you mean: "enable_object_cache"
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
-RESET enable_bitmapscan
-ERROR: 
-RESET enable_bitmapscan
-
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
 INSERT INTO brintest_multi SELECT
@@ -925,180 +716,206 @@ INSERT INTO brintest_multi SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5
-ERROR: 
-
-INSERT INTO brintest_multi SELECT
-	142857 * tenthous,
-	thousand,
-	twothousand,
-	unique1::oid,
-	format('(%s,%s)', tenthous, twenty)::tid,
-	(four + 1.0)/(hundred+1),
-	odd::float8 / (tenthous + 1),
-	format('%s:00:%s:00:%s:00', to_hex(odd), to_hex(even), to_hex(hundred))::macaddr,
-	substr(fipshash(unique1::text), 1, 16)::macaddr8,
-	inet '10.2.3.4' + tenthous,
-	cidr '10.2.3/24' + tenthous,
-	date '1995-08-15' + tenthous,
-	time '01:20:30' + thousand * interval '18.5 second',
-	timestamp '1942-07-23 03:05:09' + tenthous * interval '36.38 hours',
-	timestamptz '1972-10-10 03:00' + thousand * interval '1 hour',
-	justify_days(justify_hours(tenthous * interval '12 minutes')),
-	timetz '01:30:20' + hundred * interval '15 seconds',
-	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
-	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
-	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5
-
-Catalog Error: Table with name brintest_multi does not exist!
+FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "INT2_TBL"?
 
+-----------
+QUERY:
 
-SELECT brin_desummarize_range('brinidx_multi', 0)
-ERROR: 
 
-SELECT brin_desummarize_range('brinidx_multi', 0)
-
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
 
-VACUUM brintest_multi
-ERROR: 
-VACUUM brintest_multi
+-----------
+QUERY:
 
-Catalog Error: Table with name brintest_multi does not exist!
+VACUUM brintest_multi;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "INT2_TBL"?
-LINE 2: VACUUM brintest_multi
+LINE 2: VACUUM brintest_multi;
                ^
+
+-----------
+QUERY:
   -- force a summarization cycle in brinidx
 
 -- Try inserting a values with NaN, to test distance calculation.
-insert into public.brintest_multi (float4col) values (real 'nan')
-ERROR:   -- force a summarization cycle in brinidx
-
--- Try inserting a values with NaN, to test distance calculation.
-insert into public.brintest_multi (float4col) values (real 'nan')
-
-Catalog Error: Table with name brintest_multi does not exist!
+insert into public.brintest_multi (float4col) values (real 'nan');
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "memory.INT2_TBL"?
 
-insert into public.brintest_multi (float8col) values (real 'nan')
-ERROR: 
-insert into public.brintest_multi (float8col) values (real 'nan')
+-----------
+QUERY:
 
-Catalog Error: Table with name brintest_multi does not exist!
+insert into public.brintest_multi (float8col) values (real 'nan');
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "memory.INT2_TBL"?
 
+-----------
+QUERY:
 
-UPDATE brintest_multi SET int8col = int8col * int4col
-ERROR: 
 
-UPDATE brintest_multi SET int8col = int8col * int4col
-
-Catalog Error: Table with name brintest_multi does not exist!
+UPDATE brintest_multi SET int8col = int8col * int4col;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_multi does not exist!
 Did you mean "INT2_TBL"?
 LINE 3: UPDATE brintest_multi SET int8col = int8col ...
                ^
 
+-----------
+QUERY:
+
 
 -- Test handling of inet netmasks with inet_minmax_multi_ops
-CREATE TABLE brin_test_inet (a inet)
+CREATE TABLE brin_test_inet (a inet);
+RESULT:
+	[]
 
-CREATE INDEX ON brin_test_inet USING brin (a inet_minmax_multi_ops)
-ERROR: 
-CREATE INDEX ON brin_test_inet USING brin (a inet_minmax_multi_ops)
+-----------
+QUERY:
 
-Not implemented Error: Index with opclass not supported yet!
+CREATE INDEX ON brin_test_inet USING brin (a inet_minmax_multi_ops);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-INSERT INTO brin_test_inet VALUES ('127.0.0.1/0')
+-----------
+QUERY:
 
-INSERT INTO brin_test_inet VALUES ('0.0.0.0/12')
+INSERT INTO brin_test_inet VALUES ('127.0.0.1/0');
+RESULT:
+	[]
 
-DROP TABLE brin_test_inet
+-----------
+QUERY:
+
+INSERT INTO brin_test_inet VALUES ('0.0.0.0/12');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE brin_test_inet;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_multi')
-ERROR: 
-
--- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_multi')
-
-Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
+SELECT brin_summarize_new_values('brintest_multi');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
 Did you mean "map_values"?
+
+-----------
+QUERY:
  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
-ERROR:  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
-
-Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
+SELECT brin_summarize_new_values('tenk1_unique1');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
 Did you mean "map_values"?
+
+-----------
+QUERY:
  -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_multi')
-ERROR:  -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_multi')
-
-Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
+SELECT brin_summarize_new_values('brinidx_multi');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
 Did you mean "map_values"?
+
+-----------
+QUERY:
  -- ok, no change expected
 
 -- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_multi', -1)
-ERROR:  -- ok, no change expected
-
--- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_multi', -1)
-
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_multi', -1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
  -- error, invalid range
-SELECT brin_desummarize_range('brinidx_multi', 0)
-ERROR:  -- error, invalid range
-SELECT brin_desummarize_range('brinidx_multi', 0)
-
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
 
-SELECT brin_desummarize_range('brinidx_multi', 0)
-ERROR: 
-SELECT brin_desummarize_range('brinidx_multi', 0)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
 
-SELECT brin_desummarize_range('brinidx_multi', 100000000)
-ERROR: 
-SELECT brin_desummarize_range('brinidx_multi', 100000000)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_multi', 100000000);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 
 -- test building an index with many values, to force compaction of the buffer
-CREATE TABLE brin_large_range (a int4)
+CREATE TABLE brin_large_range (a int4);
+RESULT:
+	[]
 
-INSERT INTO brin_large_range SELECT i FROM generate_series(1,10000) s(i)
+-----------
+QUERY:
 
-CREATE INDEX brin_large_range_idx ON brin_large_range USING brin (a int4_minmax_multi_ops)
-ERROR: 
-CREATE INDEX brin_large_range_idx ON brin_large_range USING brin (a int4_minmax_multi_ops)
+INSERT INTO brin_large_range SELECT i FROM generate_series(1,10000) s(i);
+RESULT:
+	[]
 
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
-DROP TABLE brin_large_range
+CREATE INDEX brin_large_range_idx ON brin_large_range USING brin (a int4_minmax_multi_ops);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
+
+-----------
+QUERY:
+
+DROP TABLE brin_large_range;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Test brin_summarize_range
 CREATE TABLE brin_summarize_multi (
     value int
-) WITH (fillfactor=10, autovacuum_enabled=false)
+) WITH (fillfactor=10, autovacuum_enabled=false);
+RESULT:
+	[]
 
-CREATE INDEX brin_summarize_multi_idx ON brin_summarize_multi USING brin (value) WITH (pages_per_range=2)
-ERROR: 
-CREATE INDEX brin_summarize_multi_idx ON brin_summarize_multi USING brin (value) WITH (pages_per_range=2)
+-----------
+QUERY:
 
-Binder Error: Unknown index type: BRIN
+CREATE INDEX brin_summarize_multi_idx ON brin_summarize_multi USING brin (value) WITH (pages_per_range=2);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BRIN
+
+-----------
+QUERY:
 
 -- Fill a few pages
 DO $$
@@ -1109,569 +926,788 @@ BEGIN
     EXIT WHEN curtid > tid '(2, 0)';
   END LOOP;
 END;
-$$
-ERROR: 
--- Fill a few pages
-DO $$
-DECLARE curtid tid;
-BEGIN
-  LOOP
-    INSERT INTO brin_summarize_multi VALUES (1) RETURNING ctid INTO curtid;
-    EXIT WHEN curtid > tid '(2, 0)';
-  END LOOP;
-END;
-$$
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DO"
 
-Parser Error: syntax error at or near "DO"
+-----------
+QUERY:
 
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_multi_idx', 0)
-ERROR: 
-
--- summarize one range
-SELECT brin_summarize_range('brin_summarize_multi_idx', 0)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_multi_idx', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 -- nothing: already summarized
-SELECT brin_summarize_range('brin_summarize_multi_idx', 1)
-ERROR: 
--- nothing: already summarized
-SELECT brin_summarize_range('brin_summarize_multi_idx', 1)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_multi_idx', 1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_multi_idx', 2)
-ERROR: 
--- summarize one range
-SELECT brin_summarize_range('brin_summarize_multi_idx', 2)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_multi_idx', 2);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
 
--- nothing: page doesn''t exist in table
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295)
-ERROR: 
--- nothing: page doesn''t exist in table
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+-- nothing: page doesn/* REPLACED */''t exist in table
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 -- invalid block number values
-SELECT brin_summarize_range('brin_summarize_multi_idx', -1)
-ERROR: 
--- invalid block number values
-SELECT brin_summarize_range('brin_summarize_multi_idx', -1)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_multi_idx', -1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
 
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296)
-ERROR: 
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 
 
 -- test brin cost estimates behave sanely based on correlation of values
-CREATE TABLE brin_test_multi (a INT, b INT)
+CREATE TABLE brin_test_multi (a INT, b INT);
+RESULT:
+	[]
 
-INSERT INTO brin_test_multi SELECT x/100,x%100 FROM generate_series(1,10000) x(x)
+-----------
+QUERY:
 
-CREATE INDEX brin_test_multi_a_idx ON brin_test_multi USING brin (a) WITH (pages_per_range = 2)
-ERROR: 
-CREATE INDEX brin_test_multi_a_idx ON brin_test_multi USING brin (a) WITH (pages_per_range = 2)
+INSERT INTO brin_test_multi SELECT x/100,x%100 FROM generate_series(1,10000) x(x);
+RESULT:
+	[]
 
-Binder Error: Unknown index type: BRIN
+-----------
+QUERY:
 
-CREATE INDEX brin_test_multi_b_idx ON brin_test_multi USING brin (b) WITH (pages_per_range = 2)
-ERROR: 
-CREATE INDEX brin_test_multi_b_idx ON brin_test_multi USING brin (b) WITH (pages_per_range = 2)
+CREATE INDEX brin_test_multi_a_idx ON brin_test_multi USING brin (a) WITH (pages_per_range = 2);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BRIN
 
-Binder Error: Unknown index type: BRIN
+-----------
+QUERY:
 
-VACUUM ANALYZE brin_test_multi
+CREATE INDEX brin_test_multi_b_idx ON brin_test_multi USING brin (b) WITH (pages_per_range = 2);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BRIN
+
+-----------
+QUERY:
+
+VACUUM ANALYZE brin_test_multi;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Ensure brin index is used when columns are perfectly correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1
-ERROR: 
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: COSTS
 
--- Ensure brin index is used when columns are perfectly correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1
-
-Not implemented Error: Unimplemented explain type: COSTS
+-----------
+QUERY:
 
 -- Ensure brin index is not used when values are not correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1
-ERROR: 
--- Ensure brin index is not used when values are not correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: COSTS
 
-Not implemented Error: Unimplemented explain type: COSTS
+-----------
+QUERY:
 
 
 
 -- do some inequality tests
-CREATE TABLE brin_test_multi_1 (a INT, b BIGINT) WITH (fillfactor=10)
+CREATE TABLE brin_test_multi_1 (a INT, b BIGINT) WITH (fillfactor=10);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_test_multi_1
 SELECT i/5 + mod(911 * i + 483, 25),
        i/10 + mod(751 * i + 221, 41)
-  FROM generate_series(1,1000) s(i)
+  FROM generate_series(1,1000) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX brin_test_multi_1_idx_1 ON brin_test_multi_1 USING brin (a int4_minmax_multi_ops) WITH (pages_per_range=5)
-ERROR: 
+CREATE INDEX brin_test_multi_1_idx_1 ON brin_test_multi_1 USING brin (a int4_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX brin_test_multi_1_idx_1 ON brin_test_multi_1 USING brin (a int4_minmax_multi_ops) WITH (pages_per_range=5)
+-----------
+QUERY:
 
-Not implemented Error: Index with opclass not supported yet!
+CREATE INDEX brin_test_multi_1_idx_2 ON brin_test_multi_1 USING brin (b int8_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX brin_test_multi_1_idx_2 ON brin_test_multi_1 USING brin (b int8_minmax_multi_ops) WITH (pages_per_range=5)
-ERROR: 
-CREATE INDEX brin_test_multi_1_idx_2 ON brin_test_multi_1 USING brin (b int8_minmax_multi_ops) WITH (pages_per_range=5)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
-SET enable_seqscan=off
-ERROR: 
-
-SET enable_seqscan=off
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+SET enable_seqscan=off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
+
 
 -- int: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37;
+RESULT:
 	[(122,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113;
+RESULT:
 	[(502,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177;
+RESULT:
 	[(827,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25;
+RESULT:
 	[(67,)]
+
+-----------
+QUERY:
 
 
 -- int: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120;
+RESULT:
 	[(458,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180;
+RESULT:
 	[(163,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71;
+RESULT:
 	[(703,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63;
+RESULT:
 	[(748,)]
+
+-----------
+QUERY:
 
 
 -- int: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207;
+RESULT:
 	[(4,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177;
+RESULT:
 	[(5,)]
+
+-----------
+QUERY:
 
 
 -- bigint: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73;
+RESULT:
 	[(525,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47;
+RESULT:
 	[(274,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199;
+RESULT:
 	[(1000,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150;
+RESULT:
 	[(1000,)]
+
+-----------
+QUERY:
 
 
 -- bigint: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93;
+RESULT:
 	[(266,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37;
+RESULT:
 	[(825,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215;
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201;
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 
 -- bigint: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
+RESULT:
 	[(11,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
+RESULT:
 	[(9,)]
+
+-----------
+QUERY:
 
 
 -- now do the same, but insert the rows with the indexes already created
--- so that we don''t use the ''build callback'' and instead use the regular
+-- so that we don/* REPLACED */''t use the /* REPLACED */''build callback/* REPLACED */'' and instead use the regular
 -- approach of adding rows into existing ranges
-TRUNCATE brin_test_multi_1
+TRUNCATE brin_test_multi_1;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brin_test_multi_1
 SELECT i/5 + mod(911 * i + 483, 25),
        i/10 + mod(751 * i + 221, 41)
-  FROM generate_series(1,1000) s(i)
+  FROM generate_series(1,1000) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- int: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37;
+RESULT:
 	[(122,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113;
+RESULT:
 	[(502,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177;
+RESULT:
 	[(827,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25;
+RESULT:
 	[(67,)]
+
+-----------
+QUERY:
 
 
 -- int: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120;
+RESULT:
 	[(458,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180;
+RESULT:
 	[(163,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71;
+RESULT:
 	[(703,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63;
+RESULT:
 	[(748,)]
+
+-----------
+QUERY:
 
 
 -- int: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207;
+RESULT:
 	[(4,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177;
+RESULT:
 	[(5,)]
+
+-----------
+QUERY:
 
 
 -- bigint: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73;
+RESULT:
 	[(525,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47;
+RESULT:
 	[(274,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199;
+RESULT:
 	[(1000,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150;
+RESULT:
 	[(1000,)]
+
+-----------
+QUERY:
 
 
 -- bigint: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93;
+RESULT:
 	[(266,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37;
+RESULT:
 	[(825,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215;
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201;
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 
 -- bigint: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
+RESULT:
 	[(11,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
+RESULT:
 	[(9,)]
 
+-----------
+QUERY:
 
 
-DROP TABLE brin_test_multi_1
 
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
+DROP TABLE brin_test_multi_1;
+RESULT:
+	[]
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
 
 
 
 -- do some inequality tests for varlena data types
-CREATE TABLE brin_test_multi_2 (a UUID) WITH (fillfactor=10)
+CREATE TABLE brin_test_multi_2 (a UUID) WITH (fillfactor=10);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_test_multi_2
-SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random()
-ERROR: 
-INSERT INTO brin_test_multi_2
-SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random()
-
-Catalog Error: Scalar Function with name fipshash does not exist!
+SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random();
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name fipshash does not exist!
 Did you mean "hash"?
 LINE 3: ...v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash...
                                                   ^
 
-
-CREATE INDEX brin_test_multi_2_idx ON brin_test_multi_2 USING brin (a uuid_minmax_multi_ops) WITH (pages_per_range=5)
-ERROR: 
-
-CREATE INDEX brin_test_multi_2_idx ON brin_test_multi_2 USING brin (a uuid_minmax_multi_ops) WITH (pages_per_range=5)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
-SET enable_seqscan=off
-ERROR: 
+CREATE INDEX brin_test_multi_2_idx ON brin_test_multi_2 USING brin (a uuid_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-SET enable_seqscan=off
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+SET enable_seqscan=off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6';
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 
 
 -- now do the same, but insert the rows with the indexes already created
--- so that we don''t use the ''build callback'' and instead use the regular
+-- so that we don/* REPLACED */''t use the /* REPLACED */''build callback/* REPLACED */'' and instead use the regular
 -- approach of adding rows into existing ranges
 
-TRUNCATE brin_test_multi_2
+TRUNCATE brin_test_multi_2;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_test_multi_2
-SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random()
-ERROR: 
-INSERT INTO brin_test_multi_2
-SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random()
-
-Catalog Error: Scalar Function with name fipshash does not exist!
+SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random();
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name fipshash does not exist!
 Did you mean "hash"?
 LINE 3: ...v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash...
                                                   ^
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6';
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-DROP TABLE brin_test_multi_2
 
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
+DROP TABLE brin_test_multi_2;
+RESULT:
+	[]
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
+
 
 -- test overflows during CREATE INDEX with extreme timestamp values
-CREATE TABLE brin_timestamp_test(a TIMESTAMPTZ)
+CREATE TABLE brin_timestamp_test(a TIMESTAMPTZ);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET datestyle TO iso
-ERROR: 
-
-SET datestyle TO iso
-
-Catalog Error: unrecognized configuration parameter "datestyle"
+SET datestyle TO iso;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "datestyle"
 
 Did you mean: "user"
+
+-----------
+QUERY:
 
 
 -- values close to timestamp minimum
 INSERT INTO brin_timestamp_test
 SELECT '4713-01-01 00:00:01 BC'::timestamptz + (i || ' seconds')::interval
-  FROM generate_series(1,30) s(i)
+  FROM generate_series(1,30) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- values close to timestamp maximum
 INSERT INTO brin_timestamp_test
 SELECT '294276-12-01 00:00:01'::timestamptz + (i || ' seconds')::interval
-  FROM generate_series(1,30) s(i)
-ERROR: 
-
--- values close to timestamp maximum
-INSERT INTO brin_timestamp_test
-SELECT '294276-12-01 00:00:01'::timestamptz + (i || ' seconds')::interval
-  FROM generate_series(1,30) s(i)
-
-Conversion Error: timestamp field value out of range: "294276-12-01 00:00:01", expected format is (YYYY-MM-DD HH:MM:SS[.US][±HH:MM| ZONE])
+  FROM generate_series(1,30) s(i);
+RESULT:
+	ERROR - Conversion Error: timestamp field value out of range: "294276-12-01 00:00:01", expected format is (YYYY-MM-DD HH:MM:SS[.US][±HH:MM| ZONE])
 LINE 5: SELECT '294276-12-01 00:00:01'::timestamptz + (i || ' seconds')::interval
-  FROM generate_series(1,30) s(i)
-...
+  FROM generate_series(1,30) s(i);...
                                       ^
 
+-----------
+QUERY:
 
-CREATE INDEX ON brin_timestamp_test USING brin (a timestamptz_minmax_multi_ops) WITH (pages_per_range=1)
-ERROR: 
 
-CREATE INDEX ON brin_timestamp_test USING brin (a timestamptz_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_timestamp_test USING brin (a timestamptz_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
-DROP TABLE brin_timestamp_test
+DROP TABLE brin_timestamp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test overflows during CREATE INDEX with extreme date values
-CREATE TABLE brin_date_test(a DATE)
+CREATE TABLE brin_date_test(a DATE);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- insert values close to date minimum
-INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i)
-ERROR: 
-
--- insert values close to date minimum
-INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i)
-
-Binder Error: No function matches the given name and argument types '+(DATE, BIGINT)'. You might need to add explicit type casts.
+INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '+(DATE, BIGINT)'. You might need to add explicit type casts.
 	Candidate functions:
 	+(TINYINT) -> TINYINT
 	+(TINYINT, TINYINT) -> TINYINT
@@ -1720,18 +1756,17 @@ Binder Error: No function matches the given name and argument types '+(DATE, BIG
 	+(INET, HUGEINT) -> INET
 
 LINE 4: ...s close to date minimum
-INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i)
+INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i);
                                                   ^
 
+-----------
+QUERY:
+
 
 -- insert values close to date minimum
-INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i)
-ERROR: 
-
--- insert values close to date minimum
-INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i)
-
-Binder Error: No function matches the given name and argument types '+(DATE, BIGINT)'. You might need to add explicit type casts.
+INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '+(DATE, BIGINT)'. You might need to add explicit type casts.
 	Candidate functions:
 	+(TINYINT) -> TINYINT
 	+(TINYINT, TINYINT) -> TINYINT
@@ -1780,121 +1815,155 @@ Binder Error: No function matches the given name and argument types '+(DATE, BIG
 	+(INET, HUGEINT) -> INET
 
 LINE 4: ...s close to date minimum
-INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i)
+INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i);
                                                   ^
 
-
-CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1)
-ERROR: 
-
-CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
-ERROR: 
+CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-SET enable_seqscan = off
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+SET enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
 
 
 -- make sure the ranges were built correctly and 2023-01-01 eliminates all
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date
-ERROR: 
+SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
 
--- make sure the ranges were built correctly and 2023-01-01 eliminates all
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date
-
-Not implemented Error: Unimplemented explain type: TIMING
+-----------
+QUERY:
 
 
-DROP TABLE brin_date_test
+DROP TABLE brin_date_test;
+RESULT:
+	[]
 
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
 
 
 -- test handling of infinite timestamp values
-CREATE TABLE brin_timestamp_test(a TIMESTAMP)
+CREATE TABLE brin_timestamp_test(a TIMESTAMP);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_timestamp_test VALUES ('-infinity'), ('infinity')
+INSERT INTO brin_timestamp_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_timestamp_test
-SELECT i FROM generate_series('2000-01-01'::timestamp, '2000-02-09'::timestamp, '1 day'::interval) s(i)
+SELECT i FROM generate_series('2000-01-01'::timestamp, '2000-02-09'::timestamp, '1 day'::interval) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_timestamp_test USING brin (a timestamp_minmax_multi_ops) WITH (pages_per_range=1)
-ERROR: 
+CREATE INDEX ON brin_timestamp_test USING brin (a timestamp_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX ON brin_timestamp_test USING brin (a timestamp_minmax_multi_ops) WITH (pages_per_range=1)
+-----------
+QUERY:
 
-Not implemented Error: Index with opclass not supported yet!
+
+SET enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
-ERROR: 
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_timestamp_test WHERE a = '2023-01-01'::timestamp;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
 
-SET enable_seqscan = off
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_timestamp_test WHERE a = '1900-01-01'::timestamp;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_timestamp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_timestamp_test WHERE a = '2023-01-01'::timestamp
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_timestamp_test WHERE a = '2023-01-01'::timestamp
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_timestamp_test WHERE a = '1900-01-01'::timestamp
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_timestamp_test WHERE a = '1900-01-01'::timestamp
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-DROP TABLE brin_timestamp_test
-
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
 -- test handling of infinite date values
-CREATE TABLE brin_date_test(a DATE)
+CREATE TABLE brin_date_test(a DATE);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_date_test VALUES ('-infinity'), ('infinity')
+INSERT INTO brin_date_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	[]
 
-INSERT INTO brin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i)
-ERROR: 
-INSERT INTO brin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i)
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types '+(DATE, BIGINT)'. You might need to add explicit type casts.
+INSERT INTO brin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '+(DATE, BIGINT)'. You might need to add explicit type casts.
 	Candidate functions:
 	+(TINYINT) -> TINYINT
 	+(TINYINT, TINYINT) -> TINYINT
@@ -1942,196 +2011,233 @@ Binder Error: No function matches the given name and argument types '+(DATE, BIG
 	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
 	+(INET, HUGEINT) -> INET
 
-LINE 2: ...rin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i)
+LINE 2: ...rin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i);
                                                   ^
 
-
-CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1)
-ERROR: 
-
-CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
-ERROR: 
+CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-SET enable_seqscan = off
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '1900-01-01'::date
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '1900-01-01'::date
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-DROP TABLE brin_date_test
-
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+SET enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-RESET datestyle
-ERROR: 
-RESET datestyle
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "datestyle"
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_date_test WHERE a = '1900-01-01'::date;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_date_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+RESET datestyle;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "datestyle"
 
 Did you mean: "user"
+
+-----------
+QUERY:
 
 
 -- test handling of overflow for interval values
-CREATE TABLE brin_interval_test(a INTERVAL)
+CREATE TABLE brin_interval_test(a INTERVAL);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series(-178000000, -177999980) s(i)
+INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series(-178000000, -177999980) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series( 177999980,  178000000) s(i)
+INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series( 177999980,  178000000) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1)
-ERROR: 
+CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1)
+-----------
+QUERY:
 
-Not implemented Error: Index with opclass not supported yet!
+
+SET enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
-ERROR: 
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
 
-SET enable_seqscan = off
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '30 years'::interval;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_interval_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '30 years'::interval
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '30 years'::interval
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-DROP TABLE brin_interval_test
-
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
 -- test handling of infinite interval values
-CREATE TABLE brin_interval_test(a INTERVAL)
+CREATE TABLE brin_interval_test(a INTERVAL);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity')
-ERROR: 
-
-INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity')
-
-Conversion Error: Could not convert string '-infinity' to INTERVAL
-LINE 3: INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity')
+INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+LINE 3: INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity');
                                                ^
 
-INSERT INTO brin_interval_test SELECT (i || ' days')::interval FROM generate_series(100, 140) s(i)
+-----------
+QUERY:
+
+INSERT INTO brin_interval_test SELECT (i || ' days')::interval FROM generate_series(100, 140) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1)
-ERROR: 
+CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1)
-
-Not implemented Error: Index with opclass not supported yet!
-
-
-SET enable_seqscan = off
-ERROR: 
-
-SET enable_seqscan = off
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '30 years'::interval
-ERROR: 
-
-EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '30 years'::interval
-
-Not implemented Error: Unimplemented explain type: TIMING
-
-
-DROP TABLE brin_interval_test
-
-RESET enable_seqscan
-ERROR: 
-RESET enable_seqscan
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+SET enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-RESET datestyle
-ERROR: 
-RESET datestyle
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "datestyle"
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '30 years'::interval;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: TIMING
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_interval_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+RESET datestyle;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "datestyle"
 
 Did you mean: "user"
-
-

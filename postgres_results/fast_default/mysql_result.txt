@@ -1,0 +1,2102 @@
+
+-----------
+QUERY:
+--
+-- ALTER TABLE ADD COLUMN DEFAULT test
+--
+
+SET search_path = fast_default;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+CREATE SCHEMA fast_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE m(id OID);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OID)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO m VALUES (NULL::OID);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::OID)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION set(tabname name) RETURNS VOID
+AS $$
+BEGIN
+  UPDATE m
+  SET id = (SELECT c.relfilenode
+            FROM pg_class AS c, pg_namespace AS s
+            WHERE c.relname = tabname
+                AND c.relnamespace = s.oid
+                AND s.nspname = 'fast_default');
+END;
+$$ LANGUAGE 'plpgsql';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set(tabname name) RETURNS VOID\nAS $$\nBEGIN\n  UPDATE m\n  SET id = (SELECT c.relfi' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION comp() RETURNS TEXT
+AS $$
+BEGIN
+  RETURN (SELECT CASE
+               WHEN m.id = c.relfilenode THEN 'Unchanged'
+               ELSE 'Rewritten'
+               END
+           FROM m, pg_class AS c, pg_namespace AS s
+           WHERE c.relname = 't'
+               AND c.relnamespace = s.oid
+               AND s.nspname = 'fast_default');
+END;
+$$ LANGUAGE 'plpgsql';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$\nBEGIN\n  RETURN (SELECT CASE\n               WHEN m.id = c.relfilenode THEN ' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION log_rewrite() RETURNS event_trigger
+LANGUAGE plpgsql as
+$func$
+
+declare
+   this_schema text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'event_trigger\nLANGUAGE plpgsql as\n$func$\n\ndeclare\n   this_schema text' at line 1")
+
+-----------
+QUERY:
+
+begin
+    select into this_schema relnamespace::regnamespace::text
+    from pg_class
+    where oid = pg_event_trigger_table_rewrite_oid();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'select into this_schema relnamespace::regnamespace::text\n    from pg_class\n    w' at line 2")
+
+-----------
+QUERY:
+
+    if this_schema = 'fast_default'
+    then
+        RAISE NOTICE 'rewriting table % for reason %',
+          pg_event_trigger_table_rewrite_oid()::regclass,
+          pg_event_trigger_table_rewrite_reason();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'if this_schema = 'fast_default'\n    then\n        RAISE NOTICE 'rewriting table %' at line 1")
+
+-----------
+QUERY:
+
+    end if;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'end if' at line 1")
+
+-----------
+QUERY:
+
+end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'end' at line 1")
+
+-----------
+QUERY:
+
+$func$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '$func$' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE has_volatile AS
+SELECT * FROM generate_series(1,10) id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,10) id' at line 2")
+
+-----------
+QUERY:
+
+
+
+CREATE EVENT TRIGGER has_volatile_rewrite
+                  ON table_rewrite
+   EXECUTE PROCEDURE log_rewrite();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER has_volatile_rewrite\n                  ON table_rewrite\n   EXECUTE PROCE' at line 1")
+
+-----------
+QUERY:
+
+
+-- only the last of these should trigger a rewrite
+ALTER TABLE has_volatile ADD col1 int;
+RESULT:
+	ERROR - (1146, "Table 'test.has_volatile' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER TABLE has_volatile ADD col2 int DEFAULT 1;
+RESULT:
+	ERROR - (1146, "Table 'test.has_volatile' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER TABLE has_volatile ADD col3 timestamptz DEFAULT current_timestamp;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'timestamptz DEFAULT current_timestamp' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE has_volatile ADD col4 int DEFAULT (random() * 10000)::int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() * 10000)::int' at line 1")
+
+-----------
+QUERY:
+
+
+
+
+-- Test a large sample of different datatypes
+CREATE TABLE T(pk INT NOT NULL PRIMARY KEY, c_int INT DEFAULT 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT set('t');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set('t')' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (1), (2);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_bpchar BPCHAR(5) DEFAULT 'hello',
+              ALTER COLUMN c_int SET DEFAULT 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BPCHAR(5) DEFAULT 'hello',\n              ALTER COLUMN c_int SET DEFAULT 2' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (3), (4);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+
+ALTER TABLE T ADD COLUMN c_text TEXT  DEFAULT 'world',
+              ALTER COLUMN c_bpchar SET DEFAULT 'dog';
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'c_text' can't have a default value")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (5), (6);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_date DATE DEFAULT '2016-06-02',
+              ALTER COLUMN c_text SET DEFAULT 'cat';
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (7), (8);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_timestamp TIMESTAMP DEFAULT '2016-09-01 12:00:00',
+              ADD COLUMN c_timestamp_null TIMESTAMP,
+              ALTER COLUMN c_date SET DEFAULT '2010-01-01';
+RESULT:
+	ERROR - (1054, "Unknown column 'c_date' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (9), (10);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_array TEXT[]
+                  DEFAULT '{"This", "is", "the", "real", "world"}',
+              ALTER COLUMN c_timestamp SET DEFAULT '1970-12-31 11:12:13',
+              ALTER COLUMN c_timestamp_null SET DEFAULT '2016-09-29 12:00:00';
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'[]\n                  DEFAULT \'{"This", "is", "the", "real", "world"}\',\n         \' at line 1')
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (11), (12);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_small SMALLINT DEFAULT -5,
+              ADD COLUMN c_small_null SMALLINT,
+              ALTER COLUMN c_array
+                  SET DEFAULT '{"This", "is", "no", "fantasy"}';
+RESULT:
+	ERROR - (1054, "Unknown column 'c_array' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (13), (14);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_big BIGINT DEFAULT 180000000000018,
+              ALTER COLUMN c_small SET DEFAULT 9,
+              ALTER COLUMN c_small_null SET DEFAULT 13;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_small' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (15), (16);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_num NUMERIC DEFAULT 1.00000000001,
+              ALTER COLUMN c_big SET DEFAULT -9999999999999999;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_big' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (17), (18);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_time TIME DEFAULT '12:00:00',
+              ALTER COLUMN c_num SET DEFAULT 2.000000000000002;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_num' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (19), (20);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_interval INTERVAL DEFAULT '1 day',
+              ALTER COLUMN c_time SET DEFAULT '23:59:59';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INTERVAL DEFAULT '1 day',\n              ALTER COLUMN c_time SET DEFAULT '23:59:5' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (21), (22);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_hugetext TEXT DEFAULT repeat('abcdefg',1000),
+              ALTER COLUMN c_interval SET DEFAULT '3 hours';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'repeat('abcdefg',1000),\n              ALTER COLUMN c_interval SET DEFAULT '3 hou' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (23), (24);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ALTER COLUMN c_interval DROP DEFAULT,
+              ALTER COLUMN c_hugetext SET DEFAULT repeat('poiuyt', 1000);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'repeat('poiuyt', 1000)' at line 2")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (25), (26);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ALTER COLUMN c_bpchar    DROP DEFAULT,
+              ALTER COLUMN c_date      DROP DEFAULT,
+              ALTER COLUMN c_text      DROP DEFAULT,
+              ALTER COLUMN c_timestamp DROP DEFAULT,
+              ALTER COLUMN c_array     DROP DEFAULT,
+              ALTER COLUMN c_small     DROP DEFAULT,
+              ALTER COLUMN c_big       DROP DEFAULT,
+              ALTER COLUMN c_num       DROP DEFAULT,
+              ALTER COLUMN c_time      DROP DEFAULT,
+              ALTER COLUMN c_hugetext  DROP DEFAULT;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_bpchar' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (27), (28);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+SELECT pk, c_int, c_bpchar, c_text, c_date, c_timestamp,
+       c_timestamp_null, c_array, c_small, c_small_null,
+       c_big, c_num, c_time, c_interval,
+       c_hugetext = repeat('abcdefg',1000) as c_hugetext_origdef,
+       c_hugetext = repeat('poiuyt', 1000) as c_hugetext_newdef
+FROM T ORDER BY pk;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_bpchar' in 'field list'")
+
+-----------
+QUERY:
+
+
+SELECT comp();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.comp does not exist')
+
+-----------
+QUERY:
+
+
+DROP TABLE T;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test expressions in the defaults
+CREATE OR REPLACE FUNCTION foo(a INT) RETURNS TEXT AS $$
+DECLARE res TEXT := '';
+        i INT;
+BEGIN
+  i := 0;
+  WHILE (i < a) LOOP
+    res := res || chr(ascii('a') + i);
+    i := i + 1;
+  END LOOP;
+  RETURN res;
+END; $$ LANGUAGE PLPGSQL STABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION foo(a INT) RETURNS TEXT AS $$\nDECLARE res TEXT := '';\n        i INT;\nBE' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE TABLE T(pk INT NOT NULL PRIMARY KEY, c_int INT DEFAULT LENGTH(foo(6)));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LENGTH(foo(6)))' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT set('t');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set('t')' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (1), (2);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_bpchar BPCHAR(5) DEFAULT foo(4),
+              ALTER COLUMN c_int SET DEFAULT LENGTH(foo(8));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BPCHAR(5) DEFAULT foo(4),\n              ALTER COLUMN c_int SET DEFAULT LENGTH(fo' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (3), (4);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_text TEXT  DEFAULT foo(6),
+              ALTER COLUMN c_bpchar SET DEFAULT foo(3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'foo(6),\n              ALTER COLUMN c_bpchar SET DEFAULT foo(3)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (5), (6);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_date DATE
+                  DEFAULT '2016-06-02'::DATE  + LENGTH(foo(10)),
+              ALTER COLUMN c_text SET DEFAULT foo(12);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::DATE  + LENGTH(foo(10)),\n              ALTER COLUMN c_text SET DEFAULT foo(12)' at line 2")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (7), (8);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_timestamp TIMESTAMP
+                  DEFAULT '2016-09-01'::DATE + LENGTH(foo(10)),
+              ALTER COLUMN c_date
+                  SET DEFAULT '2010-01-01'::DATE - LENGTH(foo(4));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::DATE + LENGTH(foo(10)),\n              ALTER COLUMN c_date\n                  SE' at line 2")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (9), (10);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_array TEXT[]
+                  DEFAULT ('{"This", "is", "' || foo(4) ||
+                           '","the", "real", "world"}')::TEXT[],
+              ALTER COLUMN c_timestamp
+                  SET DEFAULT '1970-12-31'::DATE + LENGTH(foo(30));
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'[]\n                  DEFAULT (\'{"This", "is", "\' || foo(4) ||\n                  \' at line 1')
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (11), (12);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ALTER COLUMN c_int DROP DEFAULT,
+              ALTER COLUMN c_array
+                  SET DEFAULT ('{"This", "is", "' || foo(1) ||
+                               '", "fantasy"}')::text[];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text[]' at line 4")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (13), (14);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ALTER COLUMN c_bpchar    DROP DEFAULT,
+              ALTER COLUMN c_date      DROP DEFAULT,
+              ALTER COLUMN c_text      DROP DEFAULT,
+              ALTER COLUMN c_timestamp DROP DEFAULT,
+              ALTER COLUMN c_array     DROP DEFAULT;
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (15), (16);
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT * FROM T;
+RESULT:
+	ERROR - (1146, "Table 'test.T' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT comp();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.comp does not exist')
+
+-----------
+QUERY:
+
+
+DROP TABLE T;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.T'")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION foo(INT);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(INT)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Fall back to full rewrite for volatile expressions
+CREATE TABLE T(pk INT NOT NULL PRIMARY KEY);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT set('t');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set('t')' at line 1")
+
+-----------
+QUERY:
+
+
+-- now() is stable, because it returns the transaction timestamp
+ALTER TABLE T ADD COLUMN c1 TIMESTAMP DEFAULT now();
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT comp();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.comp does not exist')
+
+-----------
+QUERY:
+
+
+-- clock_timestamp() is volatile
+ALTER TABLE T ADD COLUMN c2 TIMESTAMP DEFAULT clock_timestamp();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'clock_timestamp()' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT comp();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.comp does not exist')
+
+-----------
+QUERY:
+
+
+-- check that we notice insertion of a volatile default argument
+CREATE FUNCTION foolme(timestamptz DEFAULT clock_timestamp())
+  RETURNS timestamptz
+  IMMUTABLE AS 'select $1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT clock_timestamp())\n  RETURNS timestamptz\n  IMMUTABLE AS 'select $1' LANG' at line 2")
+
+-----------
+QUERY:
+
+ALTER TABLE T ADD COLUMN c3 timestamptz DEFAULT foolme();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'timestamptz DEFAULT foolme()' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT attname, atthasmissing, attmissingval FROM pg_attribute
+  WHERE attrelid = 't'::regclass AND attnum > 0
+  ORDER BY attnum;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND attnum > 0\n  ORDER BY attnum' at line 2")
+
+-----------
+QUERY:
+
+
+DROP TABLE T;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP FUNCTION foolme(timestamptz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(timestamptz)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Simple querie
+CREATE TABLE T (pk INT NOT NULL PRIMARY KEY);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT set('t');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set('t')' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T SELECT * FROM generate_series(1, 10) a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 10) a' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_bigint BIGINT NOT NULL DEFAULT -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO T SELECT b, b - 10 FROM generate_series(11, 20) a(b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(11, 20) a(b)' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_text TEXT DEFAULT 'hello';
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'c_text' can't have a default value")
+
+-----------
+QUERY:
+
+
+INSERT INTO T SELECT b, b - 10, (b + 10)::text FROM generate_series(21, 30) a(b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text FROM generate_series(21, 30) a(b)' at line 1")
+
+-----------
+QUERY:
+
+
+-- WHERE clause
+SELECT c_bigint, c_text FROM T WHERE c_bigint = -1 LIMIT 1;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (VERBOSE TRUE, COSTS FALSE)
+SELECT c_bigint, c_text FROM T WHERE c_bigint = -1 LIMIT 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE TRUE, COSTS FALSE)\nSELECT c_bigint, c_text FROM T WHERE c_bigint = -1 LI' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT c_bigint, c_text FROM T WHERE c_text = 'hello' LIMIT 1;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT c_bigint, c_text FROM T WHERE c_text = 'hello' LIMIT 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE TRUE, COSTS FALSE) SELECT c_bigint, c_text FROM T WHERE c_text = 'hello'' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- COALESCE
+SELECT COALESCE(c_bigint, pk), COALESCE(c_text, pk::text)
+FROM T
+ORDER BY pk LIMIT 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text)\nFROM T\nORDER BY pk LIMIT 10' at line 2")
+
+-----------
+QUERY:
+
+
+-- Aggregate function
+SELECT SUM(c_bigint), MAX(c_text COLLATE "C" ), MIN(c_text COLLATE "C") FROM T;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+-- ORDER BY
+SELECT * FROM T ORDER BY c_bigint, c_text, pk LIMIT 10;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'order clause'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (VERBOSE TRUE, COSTS FALSE)
+SELECT * FROM T ORDER BY c_bigint, c_text, pk LIMIT 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE TRUE, COSTS FALSE)\nSELECT * FROM T ORDER BY c_bigint, c_text, pk LIMIT 1' at line 1")
+
+-----------
+QUERY:
+
+
+-- LIMIT
+SELECT * FROM T WHERE c_bigint > -1 ORDER BY c_bigint, c_text, pk LIMIT 10;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'order clause'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (VERBOSE TRUE, COSTS FALSE)
+SELECT * FROM T WHERE c_bigint > -1 ORDER BY c_bigint, c_text, pk LIMIT 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE TRUE, COSTS FALSE)\nSELECT * FROM T WHERE c_bigint > -1 ORDER BY c_bigint' at line 1")
+
+-----------
+QUERY:
+
+
+--  DELETE with RETURNING
+DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *' at line 2")
+
+-----------
+QUERY:
+
+EXPLAIN (VERBOSE TRUE, COSTS FALSE)
+DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE TRUE, COSTS FALSE)\nDELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *' at line 1")
+
+-----------
+QUERY:
+
+
+-- UPDATE
+UPDATE T SET c_text = '"' || c_text || '"'  WHERE pk < 10;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT * FROM T WHERE c_text LIKE '"%"' ORDER BY PK;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'where clause'")
+
+-----------
+QUERY:
+
+
+SELECT comp();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.comp does not exist')
+
+-----------
+QUERY:
+
+
+DROP TABLE T;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Combine with other DDL
+CREATE TABLE T(pk INT NOT NULL PRIMARY KEY);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT set('t');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set('t')' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (1), (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_int INT NOT NULL DEFAULT -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (3), (4);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ADD COLUMN c_text TEXT DEFAULT 'Hello';
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'c_text' can't have a default value")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (5), (6);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE T ALTER COLUMN c_text SET DEFAULT 'world',
+              ALTER COLUMN c_int  SET DEFAULT 1;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'T'")
+
+-----------
+QUERY:
+
+
+INSERT INTO T VALUES (7), (8);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM T ORDER BY pk;
+RESULT:
+	((1, -1), (2, -1))
+
+-----------
+QUERY:
+
+
+-- Add an index
+CREATE INDEX i ON T(c_int, c_text);
+RESULT:
+	ERROR - (1072, "Key column 'c_text' doesn't exist in table")
+
+-----------
+QUERY:
+
+
+SELECT c_text FROM T WHERE c_int = -1;
+RESULT:
+	ERROR - (1054, "Unknown column 'c_text' in 'field list'")
+
+-----------
+QUERY:
+
+
+SELECT comp();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.comp does not exist')
+
+-----------
+QUERY:
+
+
+-- query to exercise expand_tuple function
+CREATE TABLE t1 AS
+SELECT 1::int AS a , 2::int AS b
+FROM generate_series(1,20) q;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int AS a , 2::int AS b\nFROM generate_series(1,20) q' at line 3")
+
+-----------
+QUERY:
+
+
+ALTER TABLE t1 ADD COLUMN c text;
+RESULT:
+	ERROR - (1146, "Table 'test.t1' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a,
+       stddev(cast((SELECT sum(1) FROM generate_series(1,20) x) AS float4))
+          OVER (PARTITION BY a,b,c ORDER BY b)
+       AS z
+FROM t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,20) x) AS float4))\n          OVER (PARTITION BY a,b,c ORDER BY b)\n       AS z' at line 2")
+
+-----------
+QUERY:
+
+
+DROP TABLE T;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test that we account for missing columns without defaults correctly
+-- in expand_tuple, and that rows are correctly expanded for triggers
+
+CREATE FUNCTION test_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+
+begin
+    raise notice 'old tuple: %', to_json(OLD)::text;
+    if TG_OP = 'DELETE'
+    then
+       return OLD;
+    else
+       return NEW;
+    end if;
+end;
+
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger\nLANGUAGE plpgsql\nAS $$\n\nbegin\n    raise notice 'old tuple: %', to_json(O' at line 5")
+
+-----------
+QUERY:
+
+
+-- 2 new columns, both have defaults
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, 4, 5),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, 4, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- 2 new columns, first has default
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, 4, None),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, 4, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- 2 new columns, second has default
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, None, 5),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, None, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- 2 new columns, neither has default
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, None, None),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, 3, None, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- same as last 4 tests but here the last original column has a NULL value
+-- 2 new columns, both have defaults
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, 4, 5),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, 4, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- 2 new columns, first has default
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, 4, None),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, 4, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- 2 new columns, second has default
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, None, 5),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, None, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- 2 new columns, neither has default
+CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO t (a,b,c) VALUES (1,2,NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN x int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN y int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE test_trigger()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, None, None),)
+
+-----------
+QUERY:
+
+UPDATE t SET y = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM t;
+RESULT:
+	((1, 1, 2, None, None, 2),)
+
+-----------
+QUERY:
+
+DROP TABLE t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- make sure expanded tuple has correct self pointer
+-- it will be required by the RI trigger doing the cascading delete
+
+CREATE TABLE leader (a int PRIMARY KEY, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE follower (a int REFERENCES leader ON DELETE CASCADE, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO leader VALUES (1, 1), (2, 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE leader ADD c int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE leader DROP c;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DELETE FROM leader;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check that ALTER TABLE ... ALTER TYPE does the right thing
+
+CREATE TABLE vtype( a integer);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO vtype VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE vtype ADD COLUMN b DOUBLE PRECISION DEFAULT 0.2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE vtype ADD COLUMN c BOOLEAN DEFAULT true;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM vtype;
+RESULT:
+	((1, 0.2, 1),)
+
+-----------
+QUERY:
+
+ALTER TABLE vtype
+      ALTER b TYPE text USING b::text,
+      ALTER c TYPE text USING c::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE text USING b::text,\n      ALTER c TYPE text USING c::text' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM vtype;
+RESULT:
+	((1, 0.2, 1),)
+
+-----------
+QUERY:
+
+
+-- also check the case that doesn/* REPLACED */''t rewrite the table
+
+CREATE TABLE vtype2 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO vtype2 VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE vtype2 ADD COLUMN b varchar(10) DEFAULT 'xxx';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE vtype2 ALTER COLUMN b SET DEFAULT 'yyy';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO vtype2 VALUES (2);
+RESULT:
+	ERROR - (1136, "Column count doesn't match value count at row 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE vtype2 ALTER COLUMN b TYPE varchar(20) USING b::varchar(20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE varchar(20) USING b::varchar(20)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vtype2;
+RESULT:
+	((1, 'xxx'),)
+
+-----------
+QUERY:
+
+
+
+-- Ensure that defaults are checked when evaluating whether HOT update
+-- is possible, this was broken for a while:
+-- https://postgr.es/m/20190202133521.ylauh3ckqa7colzj%40alap3.anarazel.de
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE t();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO t DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE t ADD COLUMN a int DEFAULT 1;
+RESULT:
+	ERROR - (1146, "Table 'test.t' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE INDEX ON t(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON t(a)' at line 1")
+
+-----------
+QUERY:
+
+-- set column with a default 1 to NULL, due to a bug that wasn/* REPLACED */''t
+-- noticed has heap_getattr buggily returned NULL for default columns
+UPDATE t SET a = NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.t' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- verify that index and non-index scans show the same result
+SET LOCAL enable_seqscan = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+SELECT * FROM t WHERE a IS NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.t' doesn't exist")
+
+-----------
+QUERY:
+
+SET LOCAL enable_seqscan = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+SELECT * FROM t WHERE a IS NULL;
+RESULT:
+	ERROR - (1146, "Table 'test.t' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- verify that a default set on a non-plain table doesn/* REPLACED */''t set a missing
+-- value on the attribute
+CREATE FOREIGN DATA WRAPPER dummy;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FOREIGN DATA WRAPPER dummy' at line 3")
+
+-----------
+QUERY:
+
+CREATE SERVER s0 FOREIGN DATA WRAPPER dummy;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+CREATE FOREIGN TABLE ft1 (c1 integer NOT NULL) SERVER s0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FOREIGN TABLE ft1 (c1 integer NOT NULL) SERVER s0' at line 1")
+
+-----------
+QUERY:
+
+ALTER FOREIGN TABLE ft1 ADD COLUMN c8 integer DEFAULT 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FOREIGN TABLE ft1 ADD COLUMN c8 integer DEFAULT 0' at line 1")
+
+-----------
+QUERY:
+
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE char(10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE char(10)' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*)
+  FROM pg_attribute
+  WHERE attrelid = 'ft1'::regclass AND
+    (attmissingval IS NOT NULL OR atthasmissing);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND\n    (attmissingval IS NOT NULL OR atthasmissing)' at line 3")
+
+-----------
+QUERY:
+
+
+-- cleanup
+DROP FOREIGN TABLE ft1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FOREIGN TABLE ft1' at line 2")
+
+-----------
+QUERY:
+
+DROP SERVER s0;
+RESULT:
+	ERROR - (1477, 'The foreign server name you are trying to reference does not exist. Data source error:  s0')
+
+-----------
+QUERY:
+
+DROP FOREIGN DATA WRAPPER dummy;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FOREIGN DATA WRAPPER dummy' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE vtype;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE vtype2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE follower;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE leader;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP FUNCTION test_trigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE t1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.t1'")
+
+-----------
+QUERY:
+
+DROP FUNCTION set(name);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set(name)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION comp();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE m;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.m'")
+
+-----------
+QUERY:
+
+DROP TABLE has_volatile;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.has_volatile'")
+
+-----------
+QUERY:
+
+DROP EVENT TRIGGER has_volatile_rewrite;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRIGGER has_volatile_rewrite' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION log_rewrite;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.log_rewrite does not exist')
+
+-----------
+QUERY:
+
+DROP SCHEMA fast_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Leave a table with an active fast default in place, for pg_upgrade testing
+set search_path = public;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+create table has_fast_default(f1 int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into has_fast_default values(1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table has_fast_default add column f2 int default 42;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+table has_fast_default;
+RESULT:
+	((1, 42),)

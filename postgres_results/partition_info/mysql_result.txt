@@ -1,0 +1,566 @@
+
+-----------
+QUERY:
+--
+-- Tests for functions providing information about partitions
+--
+SELECT * FROM pg_partition_tree(NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(NULL)' at line 4")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_tree(0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors(NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(NULL)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors(0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_partition_root(NULL);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+
+-- Test table partition trees
+CREATE TABLE ptif_test (a int, b int) PARTITION BY range (a);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_test0 PARTITION OF ptif_test
+  FOR VALUES FROM (minvalue) TO (0) PARTITION BY list (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ptif_test\n  FOR VALUES FROM (minvalue) TO (0) PARTITION BY list (b)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_test01 PARTITION OF ptif_test0 FOR VALUES IN (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ptif_test0 FOR VALUES IN (1)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_test1 PARTITION OF ptif_test
+  FOR VALUES FROM (0) TO (100) PARTITION BY list (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ptif_test\n  FOR VALUES FROM (0) TO (100) PARTITION BY list (b)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_test11 PARTITION OF ptif_test1 FOR VALUES IN (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ptif_test1 FOR VALUES IN (1)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_test2 PARTITION OF ptif_test
+  FOR VALUES FROM (100) TO (200);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ptif_test\n  FOR VALUES FROM (100) TO (200)' at line 1")
+
+-----------
+QUERY:
+
+-- This partitioned table should remain with no partitions.
+CREATE TABLE ptif_test3 PARTITION OF ptif_test
+  FOR VALUES FROM (200) TO (maxvalue) PARTITION BY list (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ptif_test\n  FOR VALUES FROM (200) TO (maxvalue) PARTITION BY list (b)' at line 2")
+
+-----------
+QUERY:
+
+
+-- Test pg_partition_root for tables
+SELECT pg_partition_root('ptif_test');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test0');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test01');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test3');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+
+-- Test index partition tree
+CREATE INDEX ptif_test_index ON ONLY ptif_test (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ptif_test (a)' at line 2")
+
+-----------
+QUERY:
+
+CREATE INDEX ptif_test0_index ON ONLY ptif_test0 (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ptif_test0 (a)' at line 1")
+
+-----------
+QUERY:
+
+ALTER INDEX ptif_test_index ATTACH PARTITION ptif_test0_index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX ptif_test_index ATTACH PARTITION ptif_test0_index' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX ptif_test01_index ON ptif_test01 (a);
+RESULT:
+	ERROR - (1146, "Table 'test.ptif_test01' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER INDEX ptif_test0_index ATTACH PARTITION ptif_test01_index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX ptif_test0_index ATTACH PARTITION ptif_test01_index' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX ptif_test1_index ON ONLY ptif_test1 (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ptif_test1 (a)' at line 1")
+
+-----------
+QUERY:
+
+ALTER INDEX ptif_test_index ATTACH PARTITION ptif_test1_index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX ptif_test_index ATTACH PARTITION ptif_test1_index' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX ptif_test11_index ON ptif_test11 (a);
+RESULT:
+	ERROR - (1146, "Table 'test.ptif_test11' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER INDEX ptif_test1_index ATTACH PARTITION ptif_test11_index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX ptif_test1_index ATTACH PARTITION ptif_test11_index' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX ptif_test2_index ON ptif_test2 (a);
+RESULT:
+	ERROR - (1146, "Table 'test.ptif_test2' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER INDEX ptif_test_index ATTACH PARTITION ptif_test2_index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX ptif_test_index ATTACH PARTITION ptif_test2_index' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX ptif_test3_index ON ptif_test3 (a);
+RESULT:
+	ERROR - (1146, "Table 'test.ptif_test3' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER INDEX ptif_test_index ATTACH PARTITION ptif_test3_index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX ptif_test_index ATTACH PARTITION ptif_test3_index' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test pg_partition_root for indexes
+SELECT pg_partition_root('ptif_test_index');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test0_index');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test01_index');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test3_index');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+
+-- List all tables members of the tree
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test')' at line 3")
+
+-----------
+QUERY:
+
+-- List tables from an intermediate level
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test0') p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test0') p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+-- List from leaf table
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test01') p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test01') p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+-- List from partitioned table with no partitions
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test3') p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test3') p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+-- List all ancestors of root and leaf tables
+SELECT * FROM pg_partition_ancestors('ptif_test01');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test01')' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_test');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test')' at line 1")
+
+-----------
+QUERY:
+
+-- List all members using pg_partition_root with leaf table reference
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree(pg_partition_root('ptif_test01')) p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(pg_partition_root('ptif_test01')) p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+
+-- List all indexes members of the tree
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test_index');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test_index')' at line 3")
+
+-----------
+QUERY:
+
+-- List indexes from an intermediate level
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test0_index') p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test0_index') p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+-- List from leaf index
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test01_index') p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test01_index') p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+-- List from partitioned index with no partitions
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_test3_index') p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test3_index') p\n  JOIN pg_class c ON (p.relid = c.oid)' at line 3")
+
+-----------
+QUERY:
+
+-- List all members using pg_partition_root with leaf index reference
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree(pg_partition_root('ptif_test01_index')) p
+  JOIN pg_class c ON (p.relid = c.oid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(pg_partition_root('ptif_test01_index')) p\n  JOIN pg_class c ON (p.relid = c.oid' at line 3")
+
+-----------
+QUERY:
+
+-- List all ancestors of root and leaf indexes
+SELECT * FROM pg_partition_ancestors('ptif_test01_index');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test01_index')' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_test_index');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test_index')' at line 1")
+
+-----------
+QUERY:
+
+
+DROP TABLE ptif_test;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ptif_test'")
+
+-----------
+QUERY:
+
+
+-- Table that is not part of any partition tree is not listed.
+CREATE TABLE ptif_normal_table(a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT relid, parentrelid, level, isleaf
+  FROM pg_partition_tree('ptif_normal_table');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_normal_table')' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_normal_table');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_normal_table')' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_normal_table');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+DROP TABLE ptif_normal_table;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Various partitioning-related functions return empty/NULL if passed relations
+-- of types that cannot be part of a partition tree /* REPLACED */, for example, views,
+-- materialized views, legacy inheritance children or parents, etc.
+CREATE VIEW ptif_test_view AS SELECT 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW ptif_test_matview AS SELECT 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW ptif_test_matview AS SELECT 1' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_li_parent ();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ptif_li_child () INHERITS (ptif_li_parent);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') INHERITS (ptif_li_parent)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_tree('ptif_test_view');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test_view')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_tree('ptif_test_matview');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test_matview')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_tree('ptif_li_parent');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_li_parent')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_tree('ptif_li_child');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_li_child')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_test_view');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test_view')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_test_matview');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_test_matview')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_li_parent');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_li_parent')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_partition_ancestors('ptif_li_child');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('ptif_li_child')' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test_view');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_test_matview');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_li_parent');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_partition_root('ptif_li_child');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_partition_root does not exist')
+
+-----------
+QUERY:
+
+DROP VIEW ptif_test_view;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP MATERIALIZED VIEW ptif_test_matview;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW ptif_test_matview' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE ptif_li_parent, ptif_li_child;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ptif_li_parent,test.ptif_li_child'")

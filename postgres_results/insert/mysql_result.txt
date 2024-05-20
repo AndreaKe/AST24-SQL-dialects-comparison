@@ -1,0 +1,2997 @@
+
+-----------
+QUERY:
+--
+-- insert with DEFAULT in the target_list
+--
+create table inserttest (col1 int4, col2 int4 NOT NULL, col3 text default 'testing');
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'col3' can't have a default value")
+
+-----------
+QUERY:
+
+insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT, DEFAULT);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (col2, col3) values (3, DEFAULT);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (col1, col2, col3) values (DEFAULT, 5, DEFAULT);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest values (DEFAULT, 5, 'test');
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest values (DEFAULT, 7);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+select * from inserttest;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- insert with similar expression / target_list values (all fail)
+--
+insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (col1, col2, col3) values (1, 2);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (col1) values (1, 2);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (col1) values (DEFAULT, DEFAULT);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+select * from inserttest;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- VALUES test
+--
+insert into inserttest values(10, 20, '40'), (-1, 2, DEFAULT),
+    ((select 2), (select i from (values(3)) as foo (i)), 'values are fun!');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(3)) as foo (i)), 'values are fun!')' at line 5")
+
+-----------
+QUERY:
+
+
+select * from inserttest;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- TOASTed value test
+--
+insert into inserttest values(30, 50, repeat('x', 10000));
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+select col1, col2, char_length(col3) from inserttest;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table inserttest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttest'")
+
+-----------
+QUERY:
+
+
+--
+-- tuple larger than fillfactor
+--
+CREATE TABLE large_tuple_test (a int, b text) WITH (fillfactor = 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(fillfactor = 10)' at line 4")
+
+-----------
+QUERY:
+
+ALTER TABLE large_tuple_test ALTER COLUMN b SET STORAGE plain;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE plain' at line 1")
+
+-----------
+QUERY:
+
+
+-- create page w/ free space in range [nearlyEmptyFreeSpace, MaxHeapTupleSize)
+INSERT INTO large_tuple_test (select 1, NULL);
+RESULT:
+	ERROR - (1146, "Table 'test.large_tuple_test' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- should still fit on the page
+INSERT INTO large_tuple_test (select 2, repeat('a', 1000));
+RESULT:
+	ERROR - (1146, "Table 'test.large_tuple_test' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 'main'))' at line 1")
+
+-----------
+QUERY:
+
+
+-- add small record to the second page
+INSERT INTO large_tuple_test (select 3, NULL);
+RESULT:
+	ERROR - (1146, "Table 'test.large_tuple_test' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- now this tuple won/* REPLACED */''t fit on the second page, but the insert should
+-- still succeed by extending the relation
+INSERT INTO large_tuple_test (select 4, repeat('a', 8126));
+RESULT:
+	ERROR - (1146, "Table 'test.large_tuple_test' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE large_tuple_test;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.large_tuple_test'")
+
+-----------
+QUERY:
+
+
+--
+-- check indirection (field/array assignment), cf bug #14265
+--
+-- these tests are aware that transformInsertStmt has 3 separate code paths
+--
+
+create type insert_test_type as (if1 int, if2 text[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type insert_test_type as (if1 int, if2 text[])' at line 7")
+
+-----------
+QUERY:
+
+
+create table inserttest (f1 int, f2 int[],
+                         f3 insert_test_type, f4 insert_test_type[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[],\n                         f3 insert_test_type, f4 insert_test_type[])' at line 1")
+
+-----------
+QUERY:
+
+
+insert into inserttest (f2[1], f2[2]) values (1,2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (1,2)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttest (f2[1], f2[2]) values (3,4), (5,6);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (3,4), (5,6)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttest (f2[1], f2[2]) select 7,8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) select 7,8' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttest (f2[1], f2[2]) values (1,default);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (1,default)' at line 1")
+
+-----------
+QUERY:
+  -- not supported
+
+insert into inserttest (f3.if1, f3.if2) values (1,array['foo']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['foo'])' at line 3")
+
+-----------
+QUERY:
+
+insert into inserttest (f3.if1, f3.if2) values (1,'{foo}'), (2,'{bar}');
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (f3.if1, f3.if2) select 3, '{baz,quux}';
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttest (f3.if1, f3.if2) values (1,default);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+  -- not supported
+
+insert into inserttest (f3.if2[1], f3.if2[2]) values ('foo', 'bar');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f3.if2[2]) values ('foo', 'bar')' at line 3")
+
+-----------
+QUERY:
+
+insert into inserttest (f3.if2[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux')' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttest (f3.if2[1], f3.if2[2]) select 'bear', 'beer';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f3.if2[2]) select 'bear', 'beer'' at line 1")
+
+-----------
+QUERY:
+
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) values ('foo', 'bar');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].if2[1], f4[1].if2[2]) values ('foo', 'bar')' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) values ('foo', 'bar'), ('baz', 'quux');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].if2[1], f4[1].if2[2]) values ('foo', 'bar'), ('baz', 'quux')' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttest (f4[1].if2[1], f4[1].if2[2]) select 'bear', 'beer';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].if2[1], f4[1].if2[2]) select 'bear', 'beer'' at line 1")
+
+-----------
+QUERY:
+
+
+select * from inserttest;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- also check reverse-listing
+create table inserttest2 (f1 bigint, f2 text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create rule irule1 as on insert to inserttest2 do also
+  insert into inserttest (f3.if2[1], f3.if2[2])
+  values (new.f1,new.f2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule irule1 as on insert to inserttest2 do also\n  insert into inserttest (f3.if2' at line 1")
+
+-----------
+QUERY:
+
+create rule irule2 as on insert to inserttest2 do also
+  insert into inserttest (f4[1].if1, f4[1].if2[2])
+  values (1,'fool'),(new.f1,new.f2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule irule2 as on insert to inserttest2 do also\n  insert into inserttest (f4[1].' at line 1")
+
+-----------
+QUERY:
+
+create rule irule3 as on insert to inserttest2 do also
+  insert into inserttest (f4[1].if1, f4[1].if2[2])
+  select new.f1, new.f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule irule3 as on insert to inserttest2 do also\n  insert into inserttest (f4[1].' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ inserttest2
+
+drop table inserttest2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop table inserttest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttest'")
+
+-----------
+QUERY:
+
+
+-- Make the same tests with domains over the array and composite fields
+
+create domain insert_pos_ints as int[] check (value[1] > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_pos_ints as int[] check (value[1] > 0)' at line 3")
+
+-----------
+QUERY:
+
+
+create domain insert_test_domain as insert_test_type
+  check ((value).if2[1] is not null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_test_domain as insert_test_type\n  check ((value).if2[1] is not nul' at line 1")
+
+-----------
+QUERY:
+
+
+create table inserttesta (f1 int, f2 insert_pos_ints);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert_pos_ints)' at line 1")
+
+-----------
+QUERY:
+
+create table inserttestb (f3 insert_test_domain, f4 insert_test_domain[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert_test_domain, f4 insert_test_domain[])' at line 1")
+
+-----------
+QUERY:
+
+
+insert into inserttesta (f2[1], f2[2]) values (1,2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (1,2)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttesta (f2[1], f2[2]) values (3,4), (5,6);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (3,4), (5,6)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttesta (f2[1], f2[2]) select 7,8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) select 7,8' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttesta (f2[1], f2[2]) values (1,default);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (1,default)' at line 1")
+
+-----------
+QUERY:
+  -- not supported
+insert into inserttesta (f2[1], f2[2]) values (0,2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (0,2)' at line 2")
+
+-----------
+QUERY:
+
+insert into inserttesta (f2[1], f2[2]) values (3,4), (0,6);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) values (3,4), (0,6)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttesta (f2[1], f2[2]) select 0,8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f2[2]) select 0,8' at line 1")
+
+-----------
+QUERY:
+
+
+insert into inserttestb (f3.if1, f3.if2) values (1,array['foo']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['foo'])' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if1, f3.if2) values (1,'{foo}'), (2,'{bar}');
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if1, f3.if2) select 3, '{baz,quux}';
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if1, f3.if2) values (1,default);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+  -- not supported
+insert into inserttestb (f3.if1, f3.if2) values (1,array[null]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[null])' at line 2")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if1, f3.if2) values (1,'{null}'), (2,'{bar}');
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if1, f3.if2) select 3, '{null,quux}';
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) values ('foo', 'bar');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f3.if2[2]) values ('foo', 'bar')' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f3.if2[2]) values ('foo', 'bar'), ('baz', 'quux')' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3.if2[1], f3.if2[2]) select 'bear', 'beer';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f3.if2[2]) select 'bear', 'beer'' at line 1")
+
+-----------
+QUERY:
+
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar')' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar'), (row(2,'{y}'), 'baz', 'quux');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].if2[1], f4[1].if2[2]) values (row(1,'{x}'), 'foo', 'bar'), (row(2,'{y}'), 'b' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttestb (f3, f4[1].if2[1], f4[1].if2[2]) select row(1,'{x}')::insert_test_domain, 'bear', 'beer';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].if2[1], f4[1].if2[2]) select row(1,'{x}')::insert_test_domain, 'bear', 'beer' at line 1")
+
+-----------
+QUERY:
+
+
+select * from inserttesta;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttesta' doesn't exist")
+
+-----------
+QUERY:
+
+select * from inserttestb;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- also check reverse-listing
+create table inserttest2 (f1 bigint, f2 text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create rule irule1 as on insert to inserttest2 do also
+  insert into inserttestb (f3.if2[1], f3.if2[2])
+  values (new.f1,new.f2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule irule1 as on insert to inserttest2 do also\n  insert into inserttestb (f3.if' at line 1")
+
+-----------
+QUERY:
+
+create rule irule2 as on insert to inserttest2 do also
+  insert into inserttestb (f4[1].if1, f4[1].if2[2])
+  values (1,'fool'),(new.f1,new.f2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule irule2 as on insert to inserttest2 do also\n  insert into inserttestb (f4[1]' at line 1")
+
+-----------
+QUERY:
+
+create rule irule3 as on insert to inserttest2 do also
+  insert into inserttestb (f4[1].if1, f4[1].if2[2])
+  select new.f1, new.f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule irule3 as on insert to inserttest2 do also\n  insert into inserttestb (f4[1]' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ inserttest2
+
+drop table inserttest2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop table inserttesta;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttesta'")
+
+-----------
+QUERY:
+
+drop table inserttestb;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttestb'")
+
+-----------
+QUERY:
+
+drop domain insert_pos_ints;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_pos_ints' at line 1")
+
+-----------
+QUERY:
+
+drop domain insert_test_domain;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_test_domain' at line 1")
+
+-----------
+QUERY:
+
+
+-- Verify that multiple inserts to subfields of a domain-over-container
+-- check the domain constraints only on the finished value
+
+create domain insert_nnarray as int[]
+  check (value[1] is not null and value[2] is not null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_nnarray as int[]\n  check (value[1] is not null and value[2] is not' at line 4")
+
+-----------
+QUERY:
+
+
+create domain insert_test_domain as insert_test_type
+  check ((value).if1 is not null and (value).if2 is not null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_test_domain as insert_test_type\n  check ((value).if1 is not null a' at line 1")
+
+-----------
+QUERY:
+
+
+create table inserttesta (f1 insert_nnarray);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert_nnarray)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttesta (f1[1]) values (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1]) values (1)' at line 1")
+
+-----------
+QUERY:
+  -- fail
+insert into inserttesta (f1[1], f1[2]) values (1, 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], f1[2]) values (1, 2)' at line 2")
+
+-----------
+QUERY:
+
+
+create table inserttestb (f1 insert_test_domain);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert_test_domain)' at line 1")
+
+-----------
+QUERY:
+
+insert into inserttestb (f1.if1) values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+  -- fail
+insert into inserttestb (f1.if1, f1.if2) values (1, '{foo}');
+RESULT:
+	ERROR - (1146, "Table 'test.inserttestb' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table inserttesta;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttesta'")
+
+-----------
+QUERY:
+
+drop table inserttestb;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttestb'")
+
+-----------
+QUERY:
+
+drop domain insert_nnarray;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain insert_nnarray' at line 1")
+
+-----------
+QUERY:
+
+drop type insert_test_type cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type insert_test_type cascade' at line 1")
+
+-----------
+QUERY:
+
+
+-- direct partition inserts should check partition bound constraint
+create table range_parted (
+	a text,
+	b int
+) partition by range (a, (b+0));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', (b+0))' at line 5")
+
+-----------
+QUERY:
+
+
+-- no partitions, so fail
+insert into range_parted values ('a', 11);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+create table part1 partition of range_parted for values from ('a', 1) to ('a', 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of range_parted for values from ('a', 1) to ('a', 10)' at line 1")
+
+-----------
+QUERY:
+
+create table part2 partition of range_parted for values from ('a', 10) to ('a', 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of range_parted for values from ('a', 10) to ('a', 20)' at line 1")
+
+-----------
+QUERY:
+
+create table part3 partition of range_parted for values from ('b', 1) to ('b', 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of range_parted for values from ('b', 1) to ('b', 10)' at line 1")
+
+-----------
+QUERY:
+
+create table part4 partition of range_parted for values from ('b', 10) to ('b', 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of range_parted for values from ('b', 10) to ('b', 20)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail
+insert into part1 values ('a', 11);
+RESULT:
+	ERROR - (1146, "Table 'test.part1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part1 values ('b', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part1' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into part1 values ('a', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part1' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail
+insert into part4 values ('b', 21);
+RESULT:
+	ERROR - (1146, "Table 'test.part4' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part4 values ('a', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.part4' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into part4 values ('b', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.part4' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- fail (partition key a has a NOT NULL constraint)
+insert into part1 values (null);
+RESULT:
+	ERROR - (1146, "Table 'test.part1' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail (expression key (b+0) cannot be null either)
+insert into part1 values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.part1' doesn't exist")
+
+-----------
+QUERY:
+
+
+create table list_parted (
+	a text,
+	b int
+) partition by list (lower(a));
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table part_aa_bb partition of list_parted FOR VALUES IN ('aa', 'bb');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted FOR VALUES IN ('aa', 'bb')' at line 1")
+
+-----------
+QUERY:
+
+create table part_cc_dd partition of list_parted FOR VALUES IN ('cc', 'dd');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted FOR VALUES IN ('cc', 'dd')' at line 1")
+
+-----------
+QUERY:
+
+create table part_null partition of list_parted FOR VALUES IN (null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted FOR VALUES IN (null)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail
+insert into part_aa_bb values ('cc', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_aa_bb' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_aa_bb values ('AAa', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_aa_bb' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_aa_bb values (null);
+RESULT:
+	ERROR - (1146, "Table 'test.part_aa_bb' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into part_cc_dd values ('cC', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_cc_dd' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_null values (null, 0);
+RESULT:
+	ERROR - (1146, "Table 'test.part_null' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- check in case of multi-level partitioned table
+create table part_ee_ff partition of list_parted for values in ('ee', 'ff') partition by range (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted for values in ('ee', 'ff') partition by range (b)' at line 2")
+
+-----------
+QUERY:
+
+create table part_ee_ff1 partition of part_ee_ff for values from (1) to (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_ee_ff for values from (1) to (10)' at line 1")
+
+-----------
+QUERY:
+
+create table part_ee_ff2 partition of part_ee_ff for values from (10) to (20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_ee_ff for values from (10) to (20)' at line 1")
+
+-----------
+QUERY:
+
+
+-- test default partition
+create table part_default partition of list_parted default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted default' at line 2")
+
+-----------
+QUERY:
+
+-- Negative test: a row, which would fit in other partition, does not fit
+-- default partition, even when inserted directly
+insert into part_default values ('aa', 2);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default values (null, 2);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into part_default values ('Zz', 2);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+-- test if default partition works as expected for multi-level partitioned
+-- table as well as when default partition itself is further partitioned
+drop table part_default;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.part_default'")
+
+-----------
+QUERY:
+
+create table part_xx_yy partition of list_parted for values in ('xx', 'yy') partition by list (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted for values in ('xx', 'yy') partition by list (a)' at line 1")
+
+-----------
+QUERY:
+
+create table part_xx_yy_p1 partition of part_xx_yy for values in ('xx');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_xx_yy for values in ('xx')' at line 1")
+
+-----------
+QUERY:
+
+create table part_xx_yy_defpart partition of part_xx_yy default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_xx_yy default' at line 1")
+
+-----------
+QUERY:
+
+create table part_default partition of list_parted default partition by range(b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted default partition by range(b)' at line 1")
+
+-----------
+QUERY:
+
+create table part_default_p1 partition of part_default for values from (20) to (30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_default for values from (20) to (30)' at line 1")
+
+-----------
+QUERY:
+
+create table part_default_p2 partition of part_default for values from (30) to (40);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_default for values from (30) to (40)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail
+insert into part_ee_ff1 values ('EE', 11);
+RESULT:
+	ERROR - (1146, "Table 'test.part_ee_ff1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default_p2 values ('gg', 43);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default_p2' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail (even the parent/* REPLACED */''s, ie, part_ee_ff/* REPLACED */''s partition constraint applies)
+insert into part_ee_ff1 values ('cc', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_ee_ff1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default values ('gg', 43);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into part_ee_ff1 values ('ff', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_ee_ff1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_ee_ff2 values ('ff', 11);
+RESULT:
+	ERROR - (1146, "Table 'test.part_ee_ff2' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default_p1 values ('cd', 25);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default_p1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default_p2 values ('de', 35);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default_p2' doesn't exist")
+
+-----------
+QUERY:
+
+insert into list_parted values ('ab', 21);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into list_parted values ('xx', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into list_parted values ('yy', 2);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from list_parted;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from list_parted' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check tuple routing for partitioned tables
+
+-- fail
+insert into range_parted values ('a', 0);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into range_parted values ('a', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into range_parted values ('a', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail
+insert into range_parted values ('a', 20);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into range_parted values ('b', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into range_parted values ('b', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail (partition key (b+0) is null)
+insert into range_parted values ('a');
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check default partition
+create table part_def partition of range_parted default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of range_parted default' at line 2")
+
+-----------
+QUERY:
+
+-- fail
+insert into part_def values ('b', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.part_def' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into part_def values ('c', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.part_def' doesn't exist")
+
+-----------
+QUERY:
+
+insert into range_parted values (null, null);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into range_parted values ('a', null);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into range_parted values (null, 19);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into range_parted values ('b', 20);
+RESULT:
+	ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+select tableoid::regclass, * from range_parted;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from range_parted' at line 1")
+
+-----------
+QUERY:
+
+-- ok
+insert into list_parted values (null, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into list_parted (a) values ('aA');
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail (partition of part_ee_ff not found in both cases)
+insert into list_parted values ('EE', 0);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_ee_ff values ('EE', 0);
+RESULT:
+	ERROR - (1146, "Table 'test.part_ee_ff' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+insert into list_parted values ('EE', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_ee_ff values ('EE', 10);
+RESULT:
+	ERROR - (1146, "Table 'test.part_ee_ff' doesn't exist")
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from list_parted;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from list_parted' at line 1")
+
+-----------
+QUERY:
+
+
+-- some more tests to exercise tuple-routing with multi-level partitioning
+create table part_gg partition of list_parted for values in ('gg') partition by range (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted for values in ('gg') partition by range (b)' at line 2")
+
+-----------
+QUERY:
+
+create table part_gg1 partition of part_gg for values from (minvalue) to (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_gg for values from (minvalue) to (1)' at line 1")
+
+-----------
+QUERY:
+
+create table part_gg2 partition of part_gg for values from (1) to (10) partition by range (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_gg for values from (1) to (10) partition by range (b)' at line 1")
+
+-----------
+QUERY:
+
+create table part_gg2_1 partition of part_gg2 for values from (1) to (5);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_gg2 for values from (1) to (5)' at line 1")
+
+-----------
+QUERY:
+
+create table part_gg2_2 partition of part_gg2 for values from (5) to (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_gg2 for values from (5) to (10)' at line 1")
+
+-----------
+QUERY:
+
+
+create table part_ee_ff3 partition of part_ee_ff for values from (20) to (30) partition by range (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_ee_ff for values from (20) to (30) partition by range (b)' at line 1")
+
+-----------
+QUERY:
+
+create table part_ee_ff3_1 partition of part_ee_ff3 for values from (20) to (25);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_ee_ff3 for values from (20) to (25)' at line 1")
+
+-----------
+QUERY:
+
+create table part_ee_ff3_2 partition of part_ee_ff3 for values from (25) to (30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of part_ee_ff3 for values from (25) to (30)' at line 1")
+
+-----------
+QUERY:
+
+
+truncate list_parted;
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into list_parted values ('aa'), ('cc');
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into list_parted select 'Ff', s.a from generate_series(1, 29) s(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 29) s(a)' at line 1")
+
+-----------
+QUERY:
+
+insert into list_parted select 'gg', s.a from generate_series(1, 9) s(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 9) s(a)' at line 1")
+
+-----------
+QUERY:
+
+insert into list_parted (b) values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+select tableoid::regclass::text, a, min(b) as min_b, max(b) as max_b from list_parted group by 1, 2 order by 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, a, min(b) as min_b, max(b) as max_b from list_parted group by ' at line 1")
+
+-----------
+QUERY:
+
+
+-- direct partition inserts should check hash partition bound constraint
+
+create table hash_parted (
+	a int
+) partition by hash (a part_test_int4_ops);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'part_test_int4_ops)' at line 5")
+
+-----------
+QUERY:
+
+create table hpart0 partition of hash_parted for values with (modulus 4, remainder 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 4, remainder 0)' at line 1")
+
+-----------
+QUERY:
+
+create table hpart1 partition of hash_parted for values with (modulus 4, remainder 1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 4, remainder 1)' at line 1")
+
+-----------
+QUERY:
+
+create table hpart2 partition of hash_parted for values with (modulus 4, remainder 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 4, remainder 2)' at line 1")
+
+-----------
+QUERY:
+
+create table hpart3 partition of hash_parted for values with (modulus 4, remainder 3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 4, remainder 3)' at line 1")
+
+-----------
+QUERY:
+
+
+insert into hash_parted values(generate_series(1,10));
+RESULT:
+	ERROR - (1146, "Table 'test.hash_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- direct insert of values divisible by 4 - ok /* REPLACED */,
+insert into hpart0 values(12),(16);
+RESULT:
+	ERROR - (1146, "Table 'test.hpart0' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail /* REPLACED */,
+insert into hpart0 values(11);
+RESULT:
+	ERROR - (1146, "Table 'test.hpart0' doesn't exist")
+
+-----------
+QUERY:
+
+-- 11 % 4 -> 3 remainder i.e. valid data for hpart3 partition
+insert into hpart3 values(11);
+RESULT:
+	ERROR - (1146, "Table 'test.hpart3' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- view data
+select tableoid::regclass as part, a, a%4 as "remainder = a % 4"
+from hash_parted order by part;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::regclass as part, a, a%4 as "remainder = a % 4"\nfrom hash_parted order by part\' at line 2')
+
+-----------
+QUERY:
+
+
+-- test \d+ output on a table which has both partitioned and unpartitioned
+-- partitions
+-- \d+ list_parted
+
+-- cleanup
+drop table range_parted, list_parted;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.range_parted,test.list_parted'")
+
+-----------
+QUERY:
+
+drop table hash_parted;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.hash_parted'")
+
+-----------
+QUERY:
+
+
+-- test that a default partition added as the first partition accepts any value
+-- including null
+create table list_parted (a int) partition by list (a);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table part_default partition of list_parted default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of list_parted default' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ part_default
+insert into part_default values (null);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+insert into part_default values (-1);
+RESULT:
+	ERROR - (1146, "Table 'test.part_default' doesn't exist")
+
+-----------
+QUERY:
+
+select tableoid::regclass, a from list_parted;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, a from list_parted' at line 1")
+
+-----------
+QUERY:
+
+-- cleanup
+drop table list_parted;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.list_parted'")
+
+-----------
+QUERY:
+
+
+-- more tests for certain multi-level partitioning scenarios
+create table mlparted (a int, b int) partition by range (a, b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', b)' at line 2")
+
+-----------
+QUERY:
+
+create table mlparted1 (b int not null, a int not null) partition by range ((b+0));
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table mlparted11 (like mlparted1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted1' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted11 drop a;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted11' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted11 add a int;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted11' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted11 drop a;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted11' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted11 add a int not null;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted11' doesn't exist")
+
+-----------
+QUERY:
+
+-- attnum for key attribute /* REPLACED */''a/* REPLACED */'' is different in mlparted, mlparted1, and mlparted11
+select attrelid::regclass, attname, attnum
+from pg_attribute
+where attname = 'a'
+ and (attrelid = 'mlparted'::regclass
+   or attrelid = 'mlparted1'::regclass
+   or attrelid = 'mlparted11'::regclass)
+order by attrelid::regclass::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, attname, attnum\nfrom pg_attribute\nwhere attname = 'a'\n and (attrelid' at line 2")
+
+-----------
+QUERY:
+
+
+alter table mlparted1 attach partition mlparted11 for values from (2) to (5);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted11 for values from (2) to (5)' at line 1")
+
+-----------
+QUERY:
+
+alter table mlparted attach partition mlparted1 for values from (1, 2) to (1, 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted1 for values from (1, 2) to (1, 10)' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that /* REPLACED */''(1, 2)/* REPLACED */'' is correctly routed to mlparted11.
+insert into mlparted values (1, 2);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from mlparted;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from mlparted' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that proper message is shown after failure to route through mlparted1
+insert into mlparted (a, b) values (1, 5);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+
+truncate mlparted;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted add constraint check_b check (b = 3);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- have a BR trigger modify the row such that the check_b is violated
+create function mlparted11_trig_fn()
+returns trigger AS
+$$
+begin
+  NEW.b := 4;
+  return NEW;
+end;
+$$
+language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger AS\n$$\nbegin\n  NEW.b := 4;\n  return NEW;\nend;\n$$\nlanguage plpgsql' at line 3")
+
+-----------
+QUERY:
+
+create trigger mlparted11_trig before insert ON mlparted11
+  for each row execute procedure mlparted11_trig_fn();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure mlparted11_trig_fn()' at line 2")
+
+-----------
+QUERY:
+
+
+-- check that the correct row is shown when constraint check_b fails after
+-- /* REPLACED */''(1, 2)/* REPLACED */'' is routed to mlparted11 (actually /* REPLACED */''(1, 4)/* REPLACED */'' would be shown due
+-- to the BR trigger mlparted11_trig_fn)
+insert into mlparted values (1, 2);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+drop trigger mlparted11_trig on mlparted11;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'on mlparted11' at line 1")
+
+-----------
+QUERY:
+
+drop function mlparted11_trig_fn();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that inserting into an internal partition successfully results in
+-- checking its partition constraint before inserting into the leaf partition
+-- selected by tuple-routing
+insert into mlparted1 (a, b) values (2, 3);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- check routing error through a list partitioned table when the key is null
+create table lparted_nonullpart (a int, b char) partition by list (b);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table lparted_nonullpart_a partition of lparted_nonullpart for values in ('a');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of lparted_nonullpart for values in ('a')' at line 1")
+
+-----------
+QUERY:
+
+insert into lparted_nonullpart values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.lparted_nonullpart' doesn't exist")
+
+-----------
+QUERY:
+
+drop table lparted_nonullpart;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.lparted_nonullpart'")
+
+-----------
+QUERY:
+
+
+-- check that RETURNING works correctly with tuple-routing
+alter table mlparted drop constraint check_b;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+create table mlparted12 partition of mlparted1 for values from (5) to (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted1 for values from (5) to (10)' at line 1")
+
+-----------
+QUERY:
+
+create table mlparted2 (b int not null, a int not null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table mlparted attach partition mlparted2 for values from (1, 10) to (1, 20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted2 for values from (1, 10) to (1, 20)' at line 1")
+
+-----------
+QUERY:
+
+create table mlparted3 partition of mlparted for values from (1, 20) to (1, 30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted for values from (1, 20) to (1, 30)' at line 1")
+
+-----------
+QUERY:
+
+create table mlparted4 (like mlparted);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted4 drop a;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted4' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted4 add a int not null;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted4' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted attach partition mlparted4 for values from (1, 30) to (1, 40);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted4 for values from (1, 30) to (1, 40)' at line 1")
+
+-----------
+QUERY:
+
+with ins (a, b, c) as
+  (insert into mlparted (b, a) select s.a, 1 from generate_series(2, 39) s(a) returning tableoid::regclass, *)
+  select a, b, min(c), max(c) from ins group by a, b order by 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert into mlparted (b, a) select s.a, 1 from generate_series(2, 39) s(a) retur' at line 2")
+
+-----------
+QUERY:
+
+
+alter table mlparted add c text;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+create table mlparted5 (c text, a int not null, b int not null) partition by list (c);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table mlparted5a (a int not null, c text, b int not null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table mlparted5 attach partition mlparted5a for values in ('a');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted5a for values in ('a')' at line 1")
+
+-----------
+QUERY:
+
+alter table mlparted attach partition mlparted5 for values from (1, 40) to (1, 50);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted5 for values from (1, 40) to (1, 50)' at line 1")
+
+-----------
+QUERY:
+
+alter table mlparted add constraint check_b check (a = 1 and b < 45);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted values (1, 45, 'a');
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+create function mlparted5abrtrig_func() returns trigger as $$ begin new.c = 'b'; return new; end; $$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger as $$ begin new.c = 'b'; return new; end; $$ language plpgsql' at line 1")
+
+-----------
+QUERY:
+
+create trigger mlparted5abrtrig before insert on mlparted5a for each row execute procedure mlparted5abrtrig_func();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure mlparted5abrtrig_func()' at line 1")
+
+-----------
+QUERY:
+
+insert into mlparted5 (a, b, c) values (1, 40, 'a');
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted5' doesn't exist")
+
+-----------
+QUERY:
+
+drop table mlparted5;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mlparted5'")
+
+-----------
+QUERY:
+
+alter table mlparted drop constraint check_b;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check multi-level default partition
+create table mlparted_def partition of mlparted default partition by range(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted default partition by range(a)' at line 2")
+
+-----------
+QUERY:
+
+create table mlparted_def1 partition of mlparted_def for values from (40) to (50);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted_def for values from (40) to (50)' at line 1")
+
+-----------
+QUERY:
+
+create table mlparted_def2 partition of mlparted_def for values from (50) to (60);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted_def for values from (50) to (60)' at line 1")
+
+-----------
+QUERY:
+
+insert into mlparted values (40, 100);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted_def1 values (42, 100);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted_def1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted_def2 values (54, 50);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted_def2' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail
+insert into mlparted values (70, 100);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted_def1 values (52, 50);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted_def1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted_def2 values (34, 50);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted_def2' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+create table mlparted_defd partition of mlparted_def default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted_def default' at line 2")
+
+-----------
+QUERY:
+
+insert into mlparted values (70, 100);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+
+select tableoid::regclass, * from mlparted_def;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from mlparted_def' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check multi-level tuple routing with attributes dropped from the
+-- top-most parent.  First remove the last attribute.
+alter table mlparted add d int, add e int;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted drop e;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+create table mlparted5 partition of mlparted
+  for values from (1, 40) to (1, 50) partition by range (c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted\n  for values from (1, 40) to (1, 50) partition by range (c)' at line 1")
+
+-----------
+QUERY:
+
+create table mlparted5_ab partition of mlparted5
+  for values from ('a') to ('c') partition by list (c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted5\n  for values from ('a') to ('c') partition by list (c)' at line 1")
+
+-----------
+QUERY:
+
+-- This partitioned table should remain with no partitions.
+create table mlparted5_cd partition of mlparted5
+  for values from ('c') to ('e') partition by list (c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted5\n  for values from ('c') to ('e') partition by list (c)' at line 2")
+
+-----------
+QUERY:
+
+create table mlparted5_a partition of mlparted5_ab for values in ('a');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mlparted5_ab for values in ('a')' at line 1")
+
+-----------
+QUERY:
+
+create table mlparted5_b (d int, b int, c text, a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table mlparted5_ab attach partition mlparted5_b for values in ('b');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition mlparted5_b for values in ('b')' at line 1")
+
+-----------
+QUERY:
+
+truncate mlparted;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted values (1, 2, 'a', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted values (1, 40, 'a', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5_a
+insert into mlparted values (1, 45, 'b', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5_b
+insert into mlparted values (1, 45, 'c', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5_cd, fails
+insert into mlparted values (1, 45, 'f', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5, fails
+select tableoid::regclass, * from mlparted order by a, b, c, d;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from mlparted order by a, b, c, d' at line 2")
+
+-----------
+QUERY:
+
+alter table mlparted drop d;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+truncate mlparted;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+-- Remove the before last attribute.
+alter table mlparted add e int, add d int;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+alter table mlparted drop e;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted values (1, 2, 'a', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mlparted values (1, 40, 'a', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5_a
+insert into mlparted values (1, 45, 'b', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5_b
+insert into mlparted values (1, 45, 'c', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5_cd, fails
+insert into mlparted values (1, 45, 'f', 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+  -- goes to mlparted5, fails
+select tableoid::regclass, * from mlparted order by a, b, c, d;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from mlparted order by a, b, c, d' at line 2")
+
+-----------
+QUERY:
+
+alter table mlparted drop d;
+RESULT:
+	ERROR - (1146, "Table 'test.mlparted' doesn't exist")
+
+-----------
+QUERY:
+
+drop table mlparted5;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mlparted5'")
+
+-----------
+QUERY:
+
+
+-- check that message shown after failure to find a partition shows the
+-- appropriate key description (or none) in various situations
+create table key_desc (a int, b int) partition by list ((a+0));
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table key_desc_1 partition of key_desc for values in (1) partition by range (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of key_desc for values in (1) partition by range (b)' at line 1")
+
+-----------
+QUERY:
+
+
+create user regress_insert_other_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+grant select (a) on key_desc_1 to regress_insert_other_user;
+RESULT:
+	ERROR - (1146, "Table 'test.key_desc_1' doesn't exist")
+
+-----------
+QUERY:
+
+grant insert on key_desc to regress_insert_other_user;
+RESULT:
+	ERROR - (1146, "Table 'test.key_desc' doesn't exist")
+
+-----------
+QUERY:
+
+
+set role regress_insert_other_user;
+RESULT:
+	ERROR - (3530, '`regress_insert_other_user`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- no key description is shown
+insert into key_desc values (1, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.key_desc' doesn't exist")
+
+-----------
+QUERY:
+
+
+reset role;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role' at line 1")
+
+-----------
+QUERY:
+
+grant select (b) on key_desc_1 to regress_insert_other_user;
+RESULT:
+	ERROR - (1146, "Table 'test.key_desc_1' doesn't exist")
+
+-----------
+QUERY:
+
+set role regress_insert_other_user;
+RESULT:
+	ERROR - (3530, '`regress_insert_other_user`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- key description (b)=(1) is now shown
+insert into key_desc values (1, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.key_desc' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- key description is not shown if key contains expression
+insert into key_desc values (2, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.key_desc' doesn't exist")
+
+-----------
+QUERY:
+
+reset role;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role' at line 1")
+
+-----------
+QUERY:
+
+revoke all on key_desc from regress_insert_other_user;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'regress_insert_other_user' on host '%' on table 'key_desc'")
+
+-----------
+QUERY:
+
+revoke all on key_desc_1 from regress_insert_other_user;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'regress_insert_other_user' on host '%' on table 'key_desc_1'")
+
+-----------
+QUERY:
+
+drop role regress_insert_other_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop table key_desc, key_desc_1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.key_desc,test.key_desc_1'")
+
+-----------
+QUERY:
+
+
+-- test minvalue/maxvalue restrictions
+create table mcrparted (a int, b int, c int) partition by range (a, abs(b), c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', abs(b), c)' at line 2")
+
+-----------
+QUERY:
+
+create table mcrparted0 partition of mcrparted for values from (minvalue, 0, 0) to (1, maxvalue, maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (minvalue, 0, 0) to (1, maxvalue, maxvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted2 partition of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, minvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, minvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted4 partition of mcrparted for values from (21, minvalue, 0) to (30, 20, minvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (21, minvalue, 0) to (30, 20, minvalue)' at line 1")
+
+-----------
+QUERY:
+
+
+-- check multi-column range partitioning expression enforces the same
+-- constraint as what tuple-routing would determine it to be
+create table mcrparted0 partition of mcrparted for values from (minvalue, minvalue, minvalue) to (1, maxvalue, maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (minvalue, minvalue, minvalue) to (1, maxvalue, max' at line 3")
+
+-----------
+QUERY:
+
+create table mcrparted1 partition of mcrparted for values from (2, 1, minvalue) to (10, 5, 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (2, 1, minvalue) to (10, 5, 10)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted2 partition of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (10, 6, minvalue) to (10, maxvalue, maxvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted3 partition of mcrparted for values from (11, 1, 1) to (20, 10, 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (11, 1, 1) to (20, 10, 10)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted4 partition of mcrparted for values from (21, minvalue, minvalue) to (30, 20, maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (21, minvalue, minvalue) to (30, 20, maxvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted5 partition of mcrparted for values from (30, 21, 20) to (maxvalue, maxvalue, maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (30, 21, 20) to (maxvalue, maxvalue, maxvalue)' at line 1")
+
+-----------
+QUERY:
+
+
+-- null not allowed in range partition
+insert into mcrparted values (null, null, null);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- routed to mcrparted0
+insert into mcrparted values (0, 1, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted0 values (0, 1, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted0' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- routed to mcparted1
+insert into mcrparted values (9, 1000, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted1 values (9, 1000, 1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted values (10, 5, -1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted1 values (10, 5, -1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted values (2, 1, 0);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted1 values (2, 1, 0);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- routed to mcparted2
+insert into mcrparted values (10, 6, 1000);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted2 values (10, 6, 1000);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted2' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted values (10, 1000, 1000);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted2 values (10, 1000, 1000);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted2' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- no partition exists, nor does mcrparted3 accept it
+insert into mcrparted values (11, 1, -1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted3 values (11, 1, -1);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted3' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- routed to mcrparted5
+insert into mcrparted values (30, 21, 20);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted5 values (30, 21, 20);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted5' doesn't exist")
+
+-----------
+QUERY:
+
+insert into mcrparted4 values (30, 21, 20);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted4' doesn't exist")
+
+-----------
+QUERY:
+	-- error
+
+-- check rows
+select tableoid::regclass::text, * from mcrparted order by 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * from mcrparted order by 1' at line 4")
+
+-----------
+QUERY:
+
+
+-- cleanup
+drop table mcrparted;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mcrparted'")
+
+-----------
+QUERY:
+
+
+-- check that a BR constraint can/* REPLACED */''t make partition contain violating rows
+create table brtrigpartcon (a int, b text) partition by list (a);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table brtrigpartcon1 partition of brtrigpartcon for values in (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of brtrigpartcon for values in (1)' at line 1")
+
+-----------
+QUERY:
+
+create or replace function brtrigpartcon1trigf() returns trigger as $$begin new.a := 2; return new; end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function brtrigpartcon1trigf() returns trigger as $$begin new.a := 2; return new' at line 1")
+
+-----------
+QUERY:
+
+create trigger brtrigpartcon1trig before insert on brtrigpartcon1 for each row execute procedure brtrigpartcon1trigf();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure brtrigpartcon1trigf()' at line 1")
+
+-----------
+QUERY:
+
+insert into brtrigpartcon values (1, 'hi there');
+RESULT:
+	ERROR - (1146, "Table 'test.brtrigpartcon' doesn't exist")
+
+-----------
+QUERY:
+
+insert into brtrigpartcon1 values (1, 'hi there');
+RESULT:
+	ERROR - (1146, "Table 'test.brtrigpartcon1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- check that the message shows the appropriate column description in a
+-- situation where the partitioned table is not the primary ModifyTable node
+create table inserttest3 (f1 text default 'foo', f2 text default 'bar', f3 int);
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'f1' can't have a default value")
+
+-----------
+QUERY:
+
+create role regress_coldesc_role;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+grant insert on inserttest3 to regress_coldesc_role;
+RESULT:
+	ERROR - (1146, "Table 'test.inserttest3' doesn't exist")
+
+-----------
+QUERY:
+
+grant insert on brtrigpartcon to regress_coldesc_role;
+RESULT:
+	ERROR - (1146, "Table 'test.brtrigpartcon' doesn't exist")
+
+-----------
+QUERY:
+
+revoke select on brtrigpartcon from regress_coldesc_role;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'regress_coldesc_role' on host '%' on table 'brtrigpartcon'")
+
+-----------
+QUERY:
+
+set role regress_coldesc_role;
+RESULT:
+	ERROR - (3530, '`regress_coldesc_role`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+with result as (insert into brtrigpartcon values (1, 'hi there') returning 1)
+  insert into inserttest3 (f3) select * from result;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert into brtrigpartcon values (1, 'hi there') returning 1)\n  insert into inse' at line 1")
+
+-----------
+QUERY:
+
+reset role;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role' at line 1")
+
+-----------
+QUERY:
+
+
+-- cleanup
+revoke all on inserttest3 from regress_coldesc_role;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'regress_coldesc_role' on host '%' on table 'inserttest3'")
+
+-----------
+QUERY:
+
+revoke all on brtrigpartcon from regress_coldesc_role;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'regress_coldesc_role' on host '%' on table 'brtrigpartcon'")
+
+-----------
+QUERY:
+
+drop role regress_coldesc_role;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop table inserttest3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inserttest3'")
+
+-----------
+QUERY:
+
+drop table brtrigpartcon;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.brtrigpartcon'")
+
+-----------
+QUERY:
+
+drop function brtrigpartcon1trigf();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that /* REPLACED */''do nothing/* REPLACED */'' BR triggers work with tuple-routing
+create table donothingbrtrig_test (a int, b text) partition by list (a);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table donothingbrtrig_test1 (b text, a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create table donothingbrtrig_test2 (c text, b text, a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table donothingbrtrig_test2 drop column c;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create or replace function donothingbrtrig_func() returns trigger as $$begin raise notice 'b: %', new.b; return NULL; end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function donothingbrtrig_func() returns trigger as $$begin raise notice 'b: %', ' at line 1")
+
+-----------
+QUERY:
+
+create trigger donothingbrtrig1 before insert on donothingbrtrig_test1 for each row execute procedure donothingbrtrig_func();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure donothingbrtrig_func()' at line 1")
+
+-----------
+QUERY:
+
+create trigger donothingbrtrig2 before insert on donothingbrtrig_test2 for each row execute procedure donothingbrtrig_func();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure donothingbrtrig_func()' at line 1")
+
+-----------
+QUERY:
+
+alter table donothingbrtrig_test attach partition donothingbrtrig_test1 for values in (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition donothingbrtrig_test1 for values in (1)' at line 1")
+
+-----------
+QUERY:
+
+alter table donothingbrtrig_test attach partition donothingbrtrig_test2 for values in (2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition donothingbrtrig_test2 for values in (2)' at line 1")
+
+-----------
+QUERY:
+
+insert into donothingbrtrig_test values (1, 'foo'), (2, 'bar');
+RESULT:
+	ERROR - (1146, "Table 'test.donothingbrtrig_test' doesn't exist")
+
+-----------
+QUERY:
+
+copy donothingbrtrig_test from stdout;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'copy donothingbrtrig_test from stdout' at line 1")
+
+-----------
+QUERY:
+
+1	baz
+2	qux
+\.
+select tableoid::regclass, * from donothingbrtrig_test;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1\tbaz\n2\tqux\n\\.\nselect tableoid::regclass, * from donothingbrtrig_test' at line 1")
+
+-----------
+QUERY:
+
+
+-- cleanup
+drop table donothingbrtrig_test;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.donothingbrtrig_test'")
+
+-----------
+QUERY:
+
+drop function donothingbrtrig_func();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- check multi-column range partitioning with minvalue/maxvalue constraints
+create table mcrparted (a text, b int) partition by range(a, b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', b)' at line 2")
+
+-----------
+QUERY:
+
+create table mcrparted1_lt_b partition of mcrparted for values from (minvalue, minvalue) to ('b', minvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from (minvalue, minvalue) to ('b', minvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted2_b partition of mcrparted for values from ('b', minvalue) to ('c', minvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('b', minvalue) to ('c', minvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted3_c_to_common partition of mcrparted for values from ('c', minvalue) to ('common', minvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('c', minvalue) to ('common', minvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted4_common_lt_0 partition of mcrparted for values from ('common', minvalue) to ('common', 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('common', minvalue) to ('common', 0)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted5_common_0_to_10 partition of mcrparted for values from ('common', 0) to ('common', 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('common', 0) to ('common', 10)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted6_common_ge_10 partition of mcrparted for values from ('common', 10) to ('common', maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('common', 10) to ('common', maxvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted7_gt_common_lt_d partition of mcrparted for values from ('common', maxvalue) to ('d', minvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('common', maxvalue) to ('d', minvalue)' at line 1")
+
+-----------
+QUERY:
+
+create table mcrparted8_ge_d partition of mcrparted for values from ('d', minvalue) to (maxvalue, maxvalue);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of mcrparted for values from ('d', minvalue) to (maxvalue, maxvalue)' at line 1")
+
+-----------
+QUERY:
+
+
+-- \d+ mcrparted
+-- \d+ mcrparted1_lt_b
+-- \d+ mcrparted2_b
+-- \d+ mcrparted3_c_to_common
+-- \d+ mcrparted4_common_lt_0
+-- \d+ mcrparted5_common_0_to_10
+-- \d+ mcrparted6_common_ge_10
+-- \d+ mcrparted7_gt_common_lt_d
+-- \d+ mcrparted8_ge_d
+
+insert into mcrparted values ('aaa', 0), ('b', 0), ('bz', 10), ('c', -10),
+    ('comm', -10), ('common', -10), ('common', 0), ('common', 10),
+    ('commons', 0), ('d', -10), ('e', 0);
+RESULT:
+	ERROR - (1146, "Table 'test.mcrparted' doesn't exist")
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from mcrparted order by a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, * from mcrparted order by a, b' at line 1")
+
+-----------
+QUERY:
+
+drop table mcrparted;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mcrparted'")
+
+-----------
+QUERY:
+
+
+-- check that wholerow vars in the RETURNING list work with partitioned tables
+create table returningwrtest (a int) partition by list (a);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table returningwrtest1 partition of returningwrtest for values in (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of returningwrtest for values in (1)' at line 1")
+
+-----------
+QUERY:
+
+insert into returningwrtest values (1) returning returningwrtest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning returningwrtest' at line 1")
+
+-----------
+QUERY:
+
+
+-- check also that the wholerow vars in RETURNING list are converted as needed
+alter table returningwrtest add b text;
+RESULT:
+	ERROR - (1146, "Table 'test.returningwrtest' doesn't exist")
+
+-----------
+QUERY:
+
+create table returningwrtest2 (b text, c int, a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table returningwrtest2 drop c;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table returningwrtest attach partition returningwrtest2 for values in (2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition returningwrtest2 for values in (2)' at line 1")
+
+-----------
+QUERY:
+
+insert into returningwrtest values (2, 'foo') returning returningwrtest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning returningwrtest' at line 1")
+
+-----------
+QUERY:
+
+drop table returningwrtest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.returningwrtest'")

@@ -1,0 +1,904 @@
+
+-----------
+QUERY:
+--
+-- ERRORS
+--
+
+-- bad in postquel, but ok in PostgreSQL
+select 1;
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+
+
+--
+-- UNSUPPORTED STUFF
+
+-- doesn/* REPLACED */''t work
+-- notify pg_class
+--
+
+--
+-- SELECT
+
+-- this used to be a syntax error, but now we allow an empty target list
+select;
+RESULT:
+	ERROR - Parser Error: SELECT clause without selection list
+
+-----------
+QUERY:
+
+
+-- no such relation
+select * from nonesuch;
+RESULT:
+	ERROR - Catalog Error: Table with name nonesuch does not exist!
+Did you mean "temp.information_schema.columns"?
+
+-----------
+QUERY:
+
+
+-- bad name in target list
+select nonesuch from pg_database;
+RESULT:
+	ERROR - Binder Error: Referenced column "nonesuch" not found in FROM clause!
+Candidate bindings: "pg_database.oid"
+
+-----------
+QUERY:
+
+
+-- empty distinct list isn/* REPLACED */''t OK
+select distinct from pg_database;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "from"
+
+-----------
+QUERY:
+
+
+-- bad attribute name on lhs of operator
+select * from pg_database where nonesuch = pg_database.datname;
+RESULT:
+	ERROR - Binder Error: Referenced column "nonesuch" not found in FROM clause!
+Candidate bindings: "pg_database.oid"
+
+-----------
+QUERY:
+
+
+-- bad attribute name on rhs of operator
+select * from pg_database where pg_database.datname = nonesuch;
+RESULT:
+	ERROR - Binder Error: Referenced column "nonesuch" not found in FROM clause!
+Candidate bindings: "pg_database.oid"
+
+-----------
+QUERY:
+
+
+-- bad attribute name in select distinct on
+select distinct on (foobar) * from pg_database;
+RESULT:
+	ERROR - Binder Error: Referenced column "foobar" not found in FROM clause!
+Candidate bindings: "pg_database.oid"
+
+-----------
+QUERY:
+
+
+-- grouping with FOR UPDATE
+select null from pg_database group by datname for update;
+RESULT:
+	ERROR - Parser Error: SELECT locking clause is not supported!
+
+-----------
+QUERY:
+
+select null from pg_database group by grouping sets (()) for update;
+RESULT:
+	ERROR - Parser Error: SELECT locking clause is not supported!
+
+-----------
+QUERY:
+
+
+
+--
+-- DELETE
+
+-- missing relation name (this had better not wildcard!)
+delete from;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+-- no such relation
+delete from nonesuch;
+RESULT:
+	ERROR - Catalog Error: Table with name nonesuch does not exist!
+Did you mean "temp.information_schema.columns"?
+LINE 4: delete from nonesuch;
+                    ^
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP
+
+-- missing relation name (this had better not wildcard!)
+drop table;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+-- no such relation
+drop table nonesuch;
+RESULT:
+	ERROR - Catalog Error: Table with name nonesuch does not exist!
+Did you mean "temp.information_schema.columns"?
+
+-----------
+QUERY:
+
+
+
+--
+-- ALTER TABLE
+
+-- relation renaming
+
+-- missing relation name
+alter table rename;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+-- no such relation
+alter table nonesuch rename to newnonesuch;
+RESULT:
+	ERROR - Catalog Error: Table with name nonesuch does not exist!
+Did you mean "temp.information_schema.columns"?
+
+-----------
+QUERY:
+
+
+-- no such relation
+alter table nonesuch rename to stud_emp;
+RESULT:
+	ERROR - Catalog Error: Table with name nonesuch does not exist!
+Did you mean "temp.information_schema.columns"?
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table stud_emp rename to student;
+RESULT:
+	ERROR - Catalog Error: Table with name stud_emp does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- self-conflict
+alter table stud_emp rename to stud_emp;
+RESULT:
+	ERROR - Catalog Error: Table with name stud_emp does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+
+-- attribute renaming
+
+-- no such relation
+alter table nonesuchrel rename column nonesuchatt to newnonesuchatt;
+RESULT:
+	ERROR - Catalog Error: Table with name nonesuchrel does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+
+
+-- no such attribute
+alter table emp rename column nonesuchatt to newnonesuchatt;
+RESULT:
+	ERROR - Catalog Error: Table with name emp does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table emp rename column salary to manager;
+RESULT:
+	ERROR - Catalog Error: Table with name emp does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table emp rename column salary to ctid;
+RESULT:
+	ERROR - Catalog Error: Table with name emp does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+
+--
+-- TRANSACTION STUFF
+
+-- not in a xact
+abort;
+RESULT:
+	ERROR - TransactionContext Error: cannot rollback - no transaction is active
+
+-----------
+QUERY:
+
+
+-- not in a xact
+end;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+
+--
+-- CREATE AGGREGATE
+
+-- sfunc/finalfunc type disagreement
+create aggregate newavg2 (sfunc = int4pl,
+			  basetype = int4,
+			  stype = int4,
+			  finalfunc = int2um,
+			  initcond = '0');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+-- left out basetype
+create aggregate newcnt1 (sfunc = int4inc,
+			  stype = int4,
+			  initcond = '0');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP INDEX
+
+-- missing index name
+drop index;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+-- bad index name
+drop index 314159;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "314159"
+
+-----------
+QUERY:
+
+
+-- no such index
+drop index nonesuch;
+RESULT:
+	ERROR - Catalog Error: Index with name nonesuch does not exist!
+Did you mean "concur_temp_ind_1"?
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP AGGREGATE
+
+-- missing aggregate name
+drop aggregate;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+-- missing aggregate type
+drop aggregate newcnt1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+-- bad aggregate name
+drop aggregate 314159 (int);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+-- bad aggregate type
+drop aggregate newcnt (nonesuch);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+-- no such aggregate
+drop aggregate nonesuch (int4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+-- no such aggregate for type
+drop aggregate newcnt (float4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "aggregate"
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP FUNCTION
+
+-- missing function name
+drop function ();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+-- bad function name
+drop function 314159();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "314159"
+
+-----------
+QUERY:
+
+
+-- no such function
+drop function nonesuch();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP TYPE
+
+-- missing type name
+drop type;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+-- bad type name
+drop type 314159;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "314159"
+
+-----------
+QUERY:
+
+
+-- no such type
+drop type nonesuch;
+RESULT:
+	ERROR - Catalog Error: Type with name nonesuch does not exist!
+Did you mean "dec"?
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP OPERATOR
+
+-- missing everything
+drop operator;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- bad operator name
+drop operator equals;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- missing type list
+drop operator ===;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- missing parentheses
+drop operator int4, int4;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- missing operator name
+drop operator (int4, int4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- missing type list contents
+drop operator === ();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such operator
+drop operator === (int4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such operator by that name
+drop operator === (int4, int4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = (nonesuch);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = ( , int4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = (nonesuch, int4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such type2
+drop operator = (int4, nonesuch);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+-- no such type2
+drop operator = (int4, );
+RESULT:
+	ERROR - Parser Error: syntax error at or near "operator"
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP RULE
+
+-- missing rule name
+drop rule;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+-- bad rule name
+drop rule 314159;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "314159"
+
+-----------
+QUERY:
+
+
+-- no such rule
+drop rule nonesuch on noplace;
+RESULT:
+	ERROR - Not implemented Error: Cannot drop this type yet
+
+-----------
+QUERY:
+
+
+-- these postquel variants are no longer supported
+drop tuple rule nonesuch;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "tuple"
+
+-----------
+QUERY:
+
+drop instance rule nonesuch on noplace;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "instance"
+
+-----------
+QUERY:
+
+drop rewrite rule nonesuch;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "rewrite"
+
+-----------
+QUERY:
+
+
+--
+-- Check that division-by-zero is properly caught.
+--
+
+select 1/0;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1::int8/0;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1/0::int8;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1::int2/0;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1/0::int2;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1::numeric/0;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1/0::numeric;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1::float8/0;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1/0::float8;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1::float4/0;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+select 1/0::float4;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+
+--
+-- Test psql/* REPLACED */''s reporting of syntax error location
+--
+
+xxx;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "xxx"
+
+-----------
+QUERY:
+
+
+CREATE foo;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "foo"
+
+-----------
+QUERY:
+
+
+CREATE TABLE ;
+RESULT:
+	ERROR - Parser Error: syntax error at or near ";"
+
+-----------
+QUERY:
+
+
+CREATE TABLE
+\g
+
+INSERT INTO foo VALUES(123) foo;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+
+INSERT INTO 123
+VALUES(123);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "123"
+
+-----------
+QUERY:
+
+
+INSERT INTO foo
+VALUES(123) 123
+;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "123"
+
+-----------
+QUERY:
+
+
+-- with a tab
+CREATE TABLE foo
+  (id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY,
+	id3 INTEGER NOT NUL,
+   id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the left
+CREATE TABLE foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the right
+CREATE TABLE foo(
+id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- long line to be truncated both ways
+CREATE TABLE foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the left, many lines
+CREATE
+TEMPORARY
+TABLE
+foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+id4 INT4
+UNIQUE
+NOT
+NULL,
+id5 TEXT
+UNIQUE
+NOT
+NULL)
+;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the right, many lines
+CREATE
+TEMPORARY
+TABLE
+foo(
+id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY)
+;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- long line to be truncated both ways, many lines
+CREATE
+TEMPORARY
+TABLE
+foo
+(id
+INT4
+UNIQUE NOT NULL, idx INT4 UNIQUE NOT NULL, idy INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,
+idz INT4 UNIQUE NOT NULL,
+idv INT4 UNIQUE NOT NULL);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"
+
+-----------
+QUERY:
+
+
+-- more than 10 lines...
+CREATE
+TEMPORARY
+TABLE
+foo
+(id
+INT4
+UNIQUE
+NOT
+NULL
+,
+idm
+INT4
+UNIQUE
+NOT
+NULL,
+idx INT4 UNIQUE NOT NULL, idy INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,
+idz INT4 UNIQUE NOT NULL,
+idv
+INT4
+UNIQUE
+NOT
+NULL);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "NUL"

@@ -1,0 +1,1145 @@
+
+-----------
+QUERY:
+--
+-- PARTITION_AGGREGATE
+-- Test partitionwise aggregation on partitioned tables
+--
+-- Note: to ensure plan stability, it/* REPLACED */''s a good idea to make the partitions of
+-- any one partitioned table in this test all have different numbers of rows.
+--
+
+-- Enable partitionwise aggregate, which by default is disabled.
+SET enable_partitionwise_aggregate TO true;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO true' at line 10")
+
+-----------
+QUERY:
+
+-- Enable partitionwise join, which by default is disabled.
+SET enable_partitionwise_join TO true;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO true' at line 2")
+
+-----------
+QUERY:
+
+-- Disable parallel plans.
+SET max_parallel_workers_per_gather TO 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO 0' at line 2")
+
+-----------
+QUERY:
+
+-- Disable incremental sort, which can influence selected plans due to fuzz factor.
+SET enable_incremental_sort TO off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO off' at line 2")
+
+-----------
+QUERY:
+
+
+--
+-- Tests for list partitioned tables.
+--
+CREATE TABLE pagg_tab (a int, b int, c text, d int) PARTITION BY LIST(c);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_p1 PARTITION OF pagg_tab FOR VALUES IN ('0000', '0001', '0002', '0003', '0004');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab FOR VALUES IN ('0000', '0001', '0002', '0003', '0004')' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_p2 PARTITION OF pagg_tab FOR VALUES IN ('0005', '0006', '0007', '0008');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab FOR VALUES IN ('0005', '0006', '0007', '0008')' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_p3 PARTITION OF pagg_tab FOR VALUES IN ('0009', '0010', '0011');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab FOR VALUES IN ('0009', '0010', '0011')' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO pagg_tab SELECT i % 20, i % 30, to_char(i % 12, 'FM0000'), i % 30 FROM generate_series(0, 2999) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0, 2999) i' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE pagg_tab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab' at line 1")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause matches /* REPLACED */, full aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT c, sum(a), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY c HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, sum(a), avg(b), count(*), min(a), max(b) FROM pagg_tab GROU' at line 2")
+
+-----------
+QUERY:
+
+SELECT c, sum(a), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY c HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY a HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), avg(b), count(*), min(a), max(b) FROM pagg_tab GROU' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY a HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check with multiple columns in GROUP BY
+EXPLAIN (COSTS OFF)
+SELECT a, c, count(*) FROM pagg_tab GROUP BY a, c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, c, count(*) FROM pagg_tab GROUP BY a, c' at line 2")
+
+-----------
+QUERY:
+
+-- Check with multiple columns in GROUP BY, order in GROUP BY is reversed
+EXPLAIN (COSTS OFF)
+SELECT a, c, count(*) FROM pagg_tab GROUP BY c, a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, c, count(*) FROM pagg_tab GROUP BY c, a' at line 2")
+
+-----------
+QUERY:
+
+-- Check with multiple columns in GROUP BY, order in target-list is reversed
+EXPLAIN (COSTS OFF)
+SELECT c, a, count(*) FROM pagg_tab GROUP BY a, c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, a, count(*) FROM pagg_tab GROUP BY a, c' at line 2")
+
+-----------
+QUERY:
+
+
+-- Test when input relation for grouping is dummy
+EXPLAIN (COSTS OFF)
+SELECT c, sum(a) FROM pagg_tab WHERE 1 = 2 GROUP BY c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, sum(a) FROM pagg_tab WHERE 1 = 2 GROUP BY c' at line 2")
+
+-----------
+QUERY:
+
+SELECT c, sum(a) FROM pagg_tab WHERE 1 = 2 GROUP BY c;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF)
+SELECT c, sum(a) FROM pagg_tab WHERE c = 'x' GROUP BY c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, sum(a) FROM pagg_tab WHERE c = 'x' GROUP BY c' at line 1")
+
+-----------
+QUERY:
+
+SELECT c, sum(a) FROM pagg_tab WHERE c = 'x' GROUP BY c;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test GroupAggregate paths by disabling hash aggregates.
+SET enable_hashagg TO false;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO false' at line 2")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause matches full aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING av' at line 2")
+
+-----------
+QUERY:
+
+SELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING av' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test partitionwise grouping without any aggregates
+EXPLAIN (COSTS OFF)
+SELECT c FROM pagg_tab GROUP BY c ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c FROM pagg_tab GROUP BY c ORDER BY 1' at line 2")
+
+-----------
+QUERY:
+
+SELECT c FROM pagg_tab GROUP BY c ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF)
+SELECT a FROM pagg_tab WHERE a < 3 GROUP BY a ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a FROM pagg_tab WHERE a < 3 GROUP BY a ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+SELECT a FROM pagg_tab WHERE a < 3 GROUP BY a ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab' doesn't exist")
+
+-----------
+QUERY:
+
+
+RESET enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+
+-- ROLLUP, partitionwise aggregation does not apply
+EXPLAIN (COSTS OFF)
+SELECT c, sum(a) FROM pagg_tab GROUP BY rollup(c) ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, sum(a) FROM pagg_tab GROUP BY rollup(c) ORDER BY 1, 2' at line 2")
+
+-----------
+QUERY:
+
+
+-- ORDERED SET within the aggregate.
+-- Full aggregation /* REPLACED */, since all the rows that belong to the same group come
+-- from the same partition, having an ORDER BY within the aggregate doesn/* REPLACED */''t
+-- make any difference.
+EXPLAIN (COSTS OFF)
+SELECT c, sum(b order by a) FROM pagg_tab GROUP BY c ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT c, sum(b order by a) FROM pagg_tab GROUP BY c ORDER BY 1, 2' at line 5")
+
+-----------
+QUERY:
+
+-- Since GROUP BY clause does not match with PARTITION KEY /* REPLACED */, we need to do
+-- partial aggregation. However, ORDERED SET are not partial safe and thus
+-- partitionwise aggregation plan is not generated.
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b order by a) FROM pagg_tab GROUP BY a ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b order by a) FROM pagg_tab GROUP BY a ORDER BY 1, 2' at line 4")
+
+-----------
+QUERY:
+
+
+
+-- JOIN query
+
+CREATE TABLE pagg_tab1(x int, y int) PARTITION BY RANGE(x);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab1_p1 PARTITION OF pagg_tab1 FOR VALUES FROM (0) TO (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab1 FOR VALUES FROM (0) TO (10)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab1_p2 PARTITION OF pagg_tab1 FOR VALUES FROM (10) TO (20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab1 FOR VALUES FROM (10) TO (20)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab1_p3 PARTITION OF pagg_tab1 FOR VALUES FROM (20) TO (30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab1 FOR VALUES FROM (20) TO (30)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE pagg_tab2(x int, y int) PARTITION BY RANGE(y);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab2_p1 PARTITION OF pagg_tab2 FOR VALUES FROM (0) TO (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab2 FOR VALUES FROM (0) TO (10)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab2_p2 PARTITION OF pagg_tab2 FOR VALUES FROM (10) TO (20);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab2 FOR VALUES FROM (10) TO (20)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab2_p3 PARTITION OF pagg_tab2 FOR VALUES FROM (20) TO (30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab2 FOR VALUES FROM (20) TO (30)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO pagg_tab1 SELECT i % 30, i % 20 FROM generate_series(0, 299, 2) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0, 299, 2) i' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO pagg_tab2 SELECT i % 20, i % 30 FROM generate_series(0, 299, 3) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0, 299, 3) i' at line 1")
+
+-----------
+QUERY:
+
+
+ANALYZE pagg_tab1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab1' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE pagg_tab2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab2' at line 1")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause matches /* REPLACED */, full aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT t1.x, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT t1.x, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHER' at line 2")
+
+-----------
+QUERY:
+
+SELECT t1.x, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check with whole-row reference /* REPLACED */, partitionwise aggregation does not apply
+EXPLAIN (COSTS OFF)
+SELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHE' at line 2")
+
+-----------
+QUERY:
+
+SELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- GROUP BY having other matching key
+EXPLAIN (COSTS OFF)
+SELECT t2.y, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t2.y ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT t2.y, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHER' at line 2")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+-- Also test GroupAggregate paths by disabling hash aggregates.
+SET enable_hashagg TO false;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO false' at line 3")
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF)
+SELECT t1.y, sum(t1.x), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.y HAVING avg(t1.x) > 10 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT t1.y, sum(t1.x), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHER' at line 1")
+
+-----------
+QUERY:
+
+SELECT t1.y, sum(t1.x), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.y HAVING avg(t1.x) > 10 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab1' doesn't exist")
+
+-----------
+QUERY:
+
+RESET enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check with LEFT/RIGHT/FULL OUTER JOINs which produces NULL values for
+-- aggregation
+
+-- LEFT JOIN, should produce partial partitionwise aggregation plan as
+-- GROUP BY is on nullable column
+EXPLAIN (COSTS OFF)
+SELECT b.y, sum(a.y) FROM pagg_tab1 a LEFT JOIN pagg_tab2 b ON a.x = b.y GROUP BY b.y ORDER BY 1 NULLS LAST;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT b.y, sum(a.y) FROM pagg_tab1 a LEFT JOIN pagg_tab2 b ON a.x = ' at line 6")
+
+-----------
+QUERY:
+
+SELECT b.y, sum(a.y) FROM pagg_tab1 a LEFT JOIN pagg_tab2 b ON a.x = b.y GROUP BY b.y ORDER BY 1 NULLS LAST;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NULLS LAST' at line 1")
+
+-----------
+QUERY:
+
+
+-- RIGHT JOIN, should produce full partitionwise aggregation plan as
+-- GROUP BY is on non-nullable column
+EXPLAIN (COSTS OFF)
+SELECT b.y, sum(a.y) FROM pagg_tab1 a RIGHT JOIN pagg_tab2 b ON a.x = b.y GROUP BY b.y ORDER BY 1 NULLS LAST;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT b.y, sum(a.y) FROM pagg_tab1 a RIGHT JOIN pagg_tab2 b ON a.x =' at line 3")
+
+-----------
+QUERY:
+
+SELECT b.y, sum(a.y) FROM pagg_tab1 a RIGHT JOIN pagg_tab2 b ON a.x = b.y GROUP BY b.y ORDER BY 1 NULLS LAST;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NULLS LAST' at line 1")
+
+-----------
+QUERY:
+
+
+-- FULL JOIN, should produce partial partitionwise aggregation plan as
+-- GROUP BY is on nullable column
+EXPLAIN (COSTS OFF)
+SELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON ' at line 3")
+
+-----------
+QUERY:
+
+SELECT a.x, sum(b.x) FROM pagg_tab1 a FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL OUTER JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x ORDER BY 1 NULLS LAST' at line 1")
+
+-----------
+QUERY:
+
+
+-- LEFT JOIN, with dummy relation on right side, ideally
+-- should produce full partitionwise aggregation plan as GROUP BY is on
+-- non-nullable columns.
+-- But right now we are unable to do partitionwise join in this case.
+EXPLAIN (COSTS OFF)
+SELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20) a LEFT JOIN (SELECT * FROM pagg_tab2 WHERE y > 10) b ON a.x = b.y WHERE a.x > 5 or b.y < 20  GROUP BY a.x, b.y ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20)' at line 5")
+
+-----------
+QUERY:
+
+SELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20) a LEFT JOIN (SELECT * FROM pagg_tab2 WHERE y > 10) b ON a.x = b.y WHERE a.x > 5 or b.y < 20  GROUP BY a.x, b.y ORDER BY 1, 2;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- FULL JOIN, with dummy relations on both sides, ideally
+-- should produce partial partitionwise aggregation plan as GROUP BY is on
+-- nullable columns.
+-- But right now we are unable to do partitionwise join in this case.
+EXPLAIN (COSTS OFF)
+SELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20) a FULL JOIN (SELECT * FROM pagg_tab2 WHERE y > 10) b ON a.x = b.y WHERE a.x > 5 or b.y < 20  GROUP BY a.x, b.y ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20)' at line 5")
+
+-----------
+QUERY:
+
+SELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20) a FULL JOIN (SELECT * FROM pagg_tab2 WHERE y > 10) b ON a.x = b.y WHERE a.x > 5 or b.y < 20 GROUP BY a.x, b.y ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN (SELECT * FROM pagg_tab2 WHERE y > 10) b ON a.x = b.y WHERE a.x > 5 or' at line 1")
+
+-----------
+QUERY:
+
+
+-- Empty join relation because of empty outer side, no partitionwise agg plan
+EXPLAIN (COSTS OFF)
+SELECT a.x, a.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x = 1 AND x = 2) a LEFT JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x, a.y ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a.x, a.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x = 1 A' at line 2")
+
+-----------
+QUERY:
+
+SELECT a.x, a.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x = 1 AND x = 2) a LEFT JOIN pagg_tab2 b ON a.x = b.y GROUP BY a.x, a.y ORDER BY 1, 2;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab1' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- Partition by multiple columns
+
+CREATE TABLE pagg_tab_m (a int, b int, c int) PARTITION BY RANGE(a, ((a+b)/2));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', ((a+b)/2))' at line 3")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_m_p1 PARTITION OF pagg_tab_m FOR VALUES FROM (0, 0) TO (12, 12);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_m FOR VALUES FROM (0, 0) TO (12, 12)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_m_p2 PARTITION OF pagg_tab_m FOR VALUES FROM (12, 12) TO (22, 22);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_m FOR VALUES FROM (12, 12) TO (22, 22)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_m_p3 PARTITION OF pagg_tab_m FOR VALUES FROM (22, 22) TO (30, 30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_m FOR VALUES FROM (22, 22) TO (30, 30)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO pagg_tab_m SELECT i % 30, i % 40, i % 50 FROM generate_series(0, 2999) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0, 2999) i' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE pagg_tab_m;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab_m' at line 1")
+
+-----------
+QUERY:
+
+
+-- Partial aggregation as GROUP BY clause does not match with PARTITION KEY
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a HAVING avg(c) < 22 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a HAVING ' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a HAVING avg(c) < 22 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_m' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Full aggregation as GROUP BY clause matches with PARTITION KEY
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a, (a+b)/2 HAVING sum(b) < 50 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a, (a+b)/' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a, (a+b)/2 HAVING sum(b) < 50 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_m' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Full aggregation as PARTITION KEY is part of GROUP BY clause
+EXPLAIN (COSTS OFF)
+SELECT a, c, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY (a+b)/2, 2, 1 HAVING sum(b) = 50 AND avg(c) > 25 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, c, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY (a+b)/' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, c, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY (a+b)/2, 2, 1 HAVING sum(b) = 50 AND avg(c) > 25 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_m' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- Test with multi-level partitioning scheme
+
+CREATE TABLE pagg_tab_ml (a int, b int, c text) PARTITION BY RANGE(a);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_ml_p1 PARTITION OF pagg_tab_ml FOR VALUES FROM (0) TO (12);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_ml FOR VALUES FROM (0) TO (12)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_ml_p2 PARTITION OF pagg_tab_ml FOR VALUES FROM (12) TO (20) PARTITION BY LIST (c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_ml FOR VALUES FROM (12) TO (20) PARTITION BY LIST (c)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_ml_p2_s1 PARTITION OF pagg_tab_ml_p2 FOR VALUES IN ('0000', '0001', '0002');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_ml_p2 FOR VALUES IN ('0000', '0001', '0002')' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_ml_p2_s2 PARTITION OF pagg_tab_ml_p2 FOR VALUES IN ('0003');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_ml_p2 FOR VALUES IN ('0003')' at line 1")
+
+-----------
+QUERY:
+
+
+-- This level of partitioning has different column positions than the parent
+CREATE TABLE pagg_tab_ml_p3(b int, c text, a int) PARTITION BY RANGE (b);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_ml_p3_s1(c text, a int, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_ml_p3_s2 PARTITION OF pagg_tab_ml_p3 FOR VALUES FROM (7) TO (10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_ml_p3 FOR VALUES FROM (7) TO (10)' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE pagg_tab_ml_p3 ATTACH PARTITION pagg_tab_ml_p3_s1 FOR VALUES FROM (0) TO (7);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION pagg_tab_ml_p3_s1 FOR VALUES FROM (0) TO (7)' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE pagg_tab_ml ATTACH PARTITION pagg_tab_ml_p3 FOR VALUES FROM (20) TO (30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION pagg_tab_ml_p3 FOR VALUES FROM (20) TO (30)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO pagg_tab_ml SELECT i % 30, i % 10, to_char(i % 4, 'FM0000') FROM generate_series(0, 29999) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0, 29999) i' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE pagg_tab_ml;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab_ml' at line 1")
+
+-----------
+QUERY:
+
+
+-- For Parallel Append
+SET max_parallel_workers_per_gather TO 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO 2' at line 2")
+
+-----------
+QUERY:
+
+SET parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+
+-- Full aggregation at level 1 as GROUP BY clause matches with PARTITION KEY
+-- for level 1 only. For subpartitions, GROUP BY clause does not match with
+-- PARTITION KEY, but still we do not see a partial aggregation as array_agg()
+-- is not partial agg safe.
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GR' at line 5")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'distinct c), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, ' at line 1")
+
+-----------
+QUERY:
+
+
+-- Without ORDER BY clause, to test Gather at top-most path
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GR' at line 2")
+
+-----------
+QUERY:
+
+
+RESET parallel_setup_cost;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'parallel_setup_cost' at line 1")
+
+-----------
+QUERY:
+
+
+-- Full aggregation at level 1 as GROUP BY clause matches with PARTITION KEY
+-- for level 1 only. For subpartitions, GROUP BY clause does not match with
+-- PARTITION KEY, thus we will have a partial aggregation for them.
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) ' at line 4")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_ml' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Partial aggregation at all levels as GROUP BY clause does not match with
+-- PARTITION KEY
+EXPLAIN (COSTS OFF)
+SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b ORDER BY 1, 2,' at line 3")
+
+-----------
+QUERY:
+
+SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b HAVING avg(a) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_ml' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Full aggregation at all levels as GROUP BY clause matches with PARTITION KEY
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING a' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_ml' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Parallelism within partitionwise aggregates
+
+SET min_parallel_table_scan_size TO '8kB';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '8kB'' at line 3")
+
+-----------
+QUERY:
+
+SET parallel_setup_cost TO 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO 0' at line 1")
+
+-----------
+QUERY:
+
+
+-- Full aggregation at level 1 as GROUP BY clause matches with PARTITION KEY
+-- for level 1 only. For subpartitions, GROUP BY clause does not match with
+-- PARTITION KEY, thus we will have a partial aggregation for them.
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) ' at line 4")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_ml' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Partial aggregation at all levels as GROUP BY clause does not match with
+-- PARTITION KEY
+EXPLAIN (COSTS OFF)
+SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b ORDER BY 1, 2,' at line 3")
+
+-----------
+QUERY:
+
+SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b HAVING avg(a) < 15 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_ml' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Full aggregation at all levels as GROUP BY clause matches with PARTITION KEY
+EXPLAIN (COSTS OFF)
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING a' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_ml' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- Parallelism within partitionwise aggregates (single level)
+
+-- Add few parallel setup cost, so that we will see a plan which gathers
+-- partially created paths even for full aggregation and sticks a single Gather
+-- followed by finalization step.
+-- Without this, the cost of doing partial aggregation + Gather + finalization
+-- for each partition and then Append over it turns out to be same and this
+-- wins as we add it first. This parallel_setup_cost plays a vital role in
+-- costing such plans.
+SET parallel_setup_cost TO 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO 10' at line 10")
+
+-----------
+QUERY:
+
+
+CREATE TABLE pagg_tab_para(x int, y int) PARTITION BY RANGE(x);
+RESULT:
+	ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_para_p1 PARTITION OF pagg_tab_para FOR VALUES FROM (0) TO (12);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_para FOR VALUES FROM (0) TO (12)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_para_p2 PARTITION OF pagg_tab_para FOR VALUES FROM (12) TO (22);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_para FOR VALUES FROM (12) TO (22)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE pagg_tab_para_p3 PARTITION OF pagg_tab_para FOR VALUES FROM (22) TO (30);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF pagg_tab_para FOR VALUES FROM (22) TO (30)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO pagg_tab_para SELECT i % 30, i % 20 FROM generate_series(0, 29999) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0, 29999) i' at line 1")
+
+-----------
+QUERY:
+
+
+ANALYZE pagg_tab_para;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab_para' at line 1")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause matches /* REPLACED */, full aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVI' at line 2")
+
+-----------
+QUERY:
+
+SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_para' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+EXPLAIN (COSTS OFF)
+SELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVING avg(x) < 12 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVI' at line 2")
+
+-----------
+QUERY:
+
+SELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVING avg(x) < 12 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_para' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test when parent can produce parallel paths but not any (or some) of its children
+-- (Use one more aggregate to tilt the cost estimates for the plan we want)
+ALTER TABLE pagg_tab_para_p1 SET (parallel_workers = 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SET (parallel_workers = 0)' at line 3")
+
+-----------
+QUERY:
+
+ALTER TABLE pagg_tab_para_p3 SET (parallel_workers = 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SET (parallel_workers = 0)' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE pagg_tab_para;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab_para' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP' at line 1")
+
+-----------
+QUERY:
+
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_para' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE pagg_tab_para_p2 SET (parallel_workers = 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SET (parallel_workers = 0)' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE pagg_tab_para;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pagg_tab_para' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP' at line 1")
+
+-----------
+QUERY:
+
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_para' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Reset parallelism parameters to get partitionwise aggregation plan.
+RESET min_parallel_table_scan_size;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'min_parallel_table_scan_size' at line 2")
+
+-----------
+QUERY:
+
+RESET parallel_setup_cost;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'parallel_setup_cost' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVI' at line 1")
+
+-----------
+QUERY:
+
+SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+RESULT:
+	ERROR - (1146, "Table 'test.pagg_tab_para' doesn't exist")

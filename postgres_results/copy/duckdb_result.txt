@@ -1,0 +1,888 @@
+
+-----------
+QUERY:
+--
+-- COPY
+--
+
+-- directory paths are passed to us in environment variables
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+
+--- test copying in CSV mode with various styles
+--- of embedded line ending characters
+
+create temp table copytest (
+	style	text,
+	test 	text,
+	filler	int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+insert into copytest values('DOS',E'abc\r\ndef',1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into copytest values('Unix',E'abc\ndef',2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into copytest values('Mac',E'abc\rdef',3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into copytest values(E'esc\\ape',E'a\\r\\\r\\\n\\nb',4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/copytest.csv'
+copy copytest to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv' csv;
+RESULT:
+	ERROR - IO Error: Cannot open file "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv": No such file or directory
+
+-----------
+QUERY:
+
+
+create temp table copytest2 (like copytest);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+
+copy copytest2 from /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv' csv;
+RESULT:
+	ERROR - Catalog Error: Table with name copytest2 does not exist!
+Did you mean "copytest"?
+
+-----------
+QUERY:
+
+
+select * from copytest except select * from copytest2;
+RESULT:
+	ERROR - Catalog Error: Table with name copytest2 does not exist!
+Did you mean "copytest"?
+
+-----------
+QUERY:
+
+
+truncate copytest2;
+RESULT:
+	ERROR - Catalog Error: Table with name copytest2 does not exist!
+Did you mean "copytest"?
+LINE 3: truncate copytest2;
+                 ^
+
+-----------
+QUERY:
+
+
+--- same test but with an escape char different from quote char
+
+copy copytest to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv' csv quote '''' escape E'\\';
+RESULT:
+	ERROR - IO Error: Cannot open file "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv": No such file or directory
+
+-----------
+QUERY:
+
+
+copy copytest2 from /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/copytest.csv' csv quote '''' escape E'\\';
+RESULT:
+	ERROR - Catalog Error: Table with name copytest2 does not exist!
+Did you mean "copytest"?
+
+-----------
+QUERY:
+
+
+select * from copytest except select * from copytest2;
+RESULT:
+	ERROR - Catalog Error: Table with name copytest2 does not exist!
+Did you mean "copytest"?
+
+-----------
+QUERY:
+
+
+
+-- test header line feature
+
+create temp table copytest3 (
+	c1 int,
+	"col with , comma" text,
+	"col with "" quote"  int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+copy copytest3 from stdin csv header;
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+this is just a line full of junk that would error out if parsed
+1,a,1
+2,b,2
+\.
+
+copy copytest3 to stdout csv header;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "this"
+
+-----------
+QUERY:
+
+
+create temp table copytest4 (
+	c1 int,
+	"colname with tab: 	" text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+copy copytest4 from stdin (header);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+this is just a line full of junk that would error out if parsed
+1	a
+2	b
+\.
+
+copy copytest4 to stdout (header);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "this"
+
+-----------
+QUERY:
+
+
+-- test copy from with a partitioned table
+create table parted_copytest (
+	a int,
+	b int,
+	c text
+) partition by list (b);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+
+create table parted_copytest_a1 (c text, b int, a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create table parted_copytest_a2 (a int, c text, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+alter table parted_copytest attach partition parted_copytest_a1 for values in(1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "attach"
+
+-----------
+QUERY:
+
+alter table parted_copytest attach partition parted_copytest_a2 for values in(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "attach"
+
+-----------
+QUERY:
+
+
+-- We must insert enough rows to trigger multi-inserts.  These are only
+-- enabled adaptively when there are few enough partition changes.
+insert into parted_copytest select x,1,'One' from generate_series(1,1000) x;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+insert into parted_copytest select x,2,'Two' from generate_series(1001,1010) x;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+insert into parted_copytest select x,1,'One' from generate_series(1011,1020) x;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/parted_copytest.csv'
+copy (select * from parted_copytest order by a) to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/parted_copytest.csv';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+LINE 4: copy (select * from parted_copytest order by a) to /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/parted_copytest.csv';...
+                            ^
+
+-----------
+QUERY:
+
+
+truncate parted_copytest;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+LINE 3: truncate parted_copytest;
+                 ^
+
+-----------
+QUERY:
+
+
+copy parted_copytest from /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/parted_copytest.csv';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+-- Ensure COPY FREEZE errors for partitioned tables.
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+truncate parted_copytest;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+LINE 2: truncate parted_copytest;
+                 ^
+
+-----------
+QUERY:
+
+copy parted_copytest from /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/parted_copytest.csv' (freeze);
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select tableoid::regclass,count(*),sum(a) from parted_copytest
+group by tableoid order by tableoid::regclass::name;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+truncate parted_copytest;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+LINE 3: truncate parted_copytest;
+                 ^
+
+-----------
+QUERY:
+
+
+-- create before insert row trigger on parted_copytest_a2
+create function part_ins_func() returns trigger language plpgsql as $$
+begin
+  return new;
+end;
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "returns"
+
+-----------
+QUERY:
+
+
+create trigger part_ins_trig
+	before insert on parted_copytest_a2
+	for each row
+	execute procedure part_ins_func();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "trigger"
+
+-----------
+QUERY:
+
+
+copy parted_copytest from /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/parted_copytest.csv';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+select tableoid::regclass,count(*),sum(a) from parted_copytest
+group by tableoid order by tableoid::regclass::name;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+truncate table parted_copytest;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+LINE 3: truncate table parted_copytest;
+                       ^
+
+-----------
+QUERY:
+
+create index on parted_copytest (b);
+RESULT:
+	ERROR - Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
+
+drop trigger part_ins_trig on parted_copytest_a2;
+RESULT:
+	ERROR - Not implemented Error: Cannot drop this type yet
+
+-----------
+QUERY:
+
+
+copy parted_copytest from stdin;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+1	1	str1
+2	2	str2
+\.
+
+-- Ensure index entries were properly added during the copy.
+select * from parted_copytest where b = 1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+select * from parted_copytest where b = 2;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+drop table parted_copytest;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_copytest does not exist!
+Did you mean "parted_copytest_a1"?
+
+-----------
+QUERY:
+
+
+--
+-- Progress reporting for COPY
+--
+create table tab_progress_reporting (
+	name text,
+	age int4,
+	location point,
+	salary int4,
+	manager name
+);
+RESULT:
+	ERROR - Catalog Error: Type with name point does not exist!
+Did you mean "int"?
+
+-----------
+QUERY:
+
+
+-- Add a trigger to catch and print the contents of the catalog view
+-- pg_stat_progress_copy during data insertion.  This allows to test
+-- the validation of some progress reports for COPY FROM where the trigger
+-- would fire.
+create function notice_after_tab_progress_reporting() returns trigger AS
+$$
+declare report record;
+begin
+  -- The fields ignored here are the ones that may not remain
+  -- consistent across multiple runs.  The sizes reported may differ
+  -- across platforms, so just check if these are strictly positive.
+  with progress_data as (
+    select
+       relid::regclass::text as relname,
+       command,
+       type,
+       bytes_processed > 0 as has_bytes_processed,
+       bytes_total > 0 as has_bytes_total,
+       tuples_processed,
+       tuples_excluded
+      from pg_stat_progress_copy
+      where pid = pg_backend_pid())
+  select into report (to_jsonb(r)) as value
+    from progress_data r;
+
+  raise info 'progress: %', report.value::text;
+  return new;
+end;
+$$ language plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "returns"
+
+-----------
+QUERY:
+
+
+create trigger check_after_tab_progress_reporting
+	after insert on tab_progress_reporting
+	for each statement
+	execute function notice_after_tab_progress_reporting();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "trigger"
+
+-----------
+QUERY:
+
+
+-- Generate COPY FROM report with PIPE.
+copy tab_progress_reporting from stdin;
+RESULT:
+	ERROR - Catalog Error: Table with name tab_progress_reporting does not exist!
+Did you mean "pg_settings"?
+
+-----------
+QUERY:
+
+sharon	25	(15,12)	1000	sam
+sam	30	(10,5)	2000	bill
+bill	20	(11,10)	1000	sharon
+\.
+
+-- Generate COPY FROM report with FILE, with some excluded tuples.
+truncate tab_progress_reporting;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "sharon"
+
+-----------
+QUERY:
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+copy tab_progress_reporting from /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data'
+	where (salary < 2000);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "where"
+
+-----------
+QUERY:
+
+
+drop trigger check_after_tab_progress_reporting on tab_progress_reporting;
+RESULT:
+	ERROR - Not implemented Error: Cannot drop this type yet
+
+-----------
+QUERY:
+
+drop function notice_after_tab_progress_reporting();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+drop table tab_progress_reporting;
+RESULT:
+	ERROR - Catalog Error: Table with name tab_progress_reporting does not exist!
+Did you mean "pg_settings"?
+
+-----------
+QUERY:
+
+
+-- Test header matching feature
+create table header_copytest (
+	a int,
+	b int,
+	c text
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Make sure it works with dropped columns
+alter table header_copytest drop column c;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table header_copytest add column c text;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+copy header_copytest to stdout with (header match);
+RESULT:
+	ERROR - Invalid Input Error: Failed to cast value: Could not convert string 'match' to BOOL
+
+-----------
+QUERY:
+
+copy header_copytest from stdin with (header wrong_choice);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+-- works
+copy header_copytest from stdin with (header match);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+a	b	c
+1	2	foo
+\.
+copy header_copytest (c, a, b) from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+c	a	b
+bar	3	4
+\.
+copy header_copytest from stdin with (header match, format csv);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "c"
+
+-----------
+QUERY:
+
+a,b,c
+5,6,baz
+\.
+-- errors
+copy header_copytest (c, b, a) from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	b	c
+1	2	foo
+\.
+copy header_copytest from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	b	\N
+1	2	foo
+\.
+copy header_copytest from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	b
+1	2
+\.
+copy header_copytest from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	b	c	d
+1	2	foo	bar
+\.
+copy header_copytest from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	b	d
+1	2	foo
+\.
+SELECT * FROM header_copytest ORDER BY a;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+
+-- Drop an extra column, in the middle of the existing set.
+alter table header_copytest drop column b;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- works
+copy header_copytest (c, a) from stdin with (header match);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+c	a
+foo	7
+\.
+copy header_copytest (a, c) from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "c"
+
+-----------
+QUERY:
+
+a	c
+8	foo
+\.
+-- errors
+copy header_copytest from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	........pg.dropped.2........	c
+1	2	foo
+\.
+copy header_copytest (a, c) from stdin with (header match);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+a	c	b
+1	foo	2
+\.
+
+SELECT * FROM header_copytest ORDER BY a;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+drop table header_copytest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test COPY with overlong column defaults
+create temp table oversized_column_default (
+    col1 varchar(5) DEFAULT 'more than 5 chars',
+    col2 varchar(5));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- normal COPY should work
+copy oversized_column_default from stdin;
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+\.
+-- error if the column is excluded
+copy oversized_column_default (col2) from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+\.
+-- error if the DEFAULT option is given
+copy oversized_column_default from stdin (default '');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+\.
+drop table oversized_column_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+
+
+--
+-- Create partitioned table that does not allow bulk insertions, to test bugs
+-- related to the reuse of BulkInsertState across partitions (only done when
+-- not using bulk insert).  Switching between partitions often makes it more
+-- likely to encounter these bugs, so we just switch on roughly every insert
+-- by having an even/odd number partition and inserting evenly distributed
+-- data.
+--
+CREATE TABLE parted_si (
+  id int not null,
+  data text not null,
+  -- prevent use of bulk insert by having a volatile function
+  rand float8 not null default random()
+)
+PARTITION BY LIST((id % 2));
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+
+CREATE TABLE parted_si_p_even PARTITION OF parted_si FOR VALUES IN (0);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+CREATE TABLE parted_si_p_odd PARTITION OF parted_si FOR VALUES IN (1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PARTITION"
+
+-----------
+QUERY:
+
+
+-- Test that bulk relation extension handles reusing a single BulkInsertState
+-- across partitions.  Without the fix applied, this reliably reproduces
+-- #18130 unless shared_buffers is extremely small (preventing any use use of
+-- bulk relation extension). See
+-- https://postgr.es/m/18130-7a86a7356a75209d%40postgresql.org
+-- https://postgr.es/m/257696.1695670946%40sss.pgh.pa.us
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/desc.data'
+COPY parted_si(id, data) FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/desc.data';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_si does not exist!
+Did you mean "copytest"?
+
+-----------
+QUERY:
+
+
+-- An earlier bug (see commit b1ecb9b3fcf) could end up using a buffer from
+-- the wrong partition. This test is *not* guaranteed to trigger that bug, but
+-- does so when shared_buffers is small enough.  To test if we encountered the
+-- bug, check that the partition condition isn/* REPLACED */''t violated.
+SELECT tableoid::regclass, id % 2 = 0 is_even, count(*) from parted_si GROUP BY 1, 2 ORDER BY 1;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_si does not exist!
+Did you mean "copytest"?
+
+-----------
+QUERY:
+
+
+DROP TABLE parted_si;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_si does not exist!
+Did you mean "copytest"?

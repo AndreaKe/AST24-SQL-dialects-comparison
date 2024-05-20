@@ -1,0 +1,59 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+-- Check that stack depth detection mechanism works and
+-- max_stack_depth is not set too high.
+
+create function infinite_recurse() returns int as
+'select infinite_recurse()' language sql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Unfortunately, up till mid 2020 the Linux kernel had a bug in PPC64
+-- signal handling that would cause this test to crash if it happened
+-- to receive an sinval catchup interrupt while the stack is deep:
+-- https://bugzilla.kernel.org/show_bug.cgi?id=205183
+-- It is likely to be many years before that bug disappears from all
+-- production kernels, so disable this test on such platforms.
+-- (We still create the function, so as not to have a cross-platform
+-- difference in the end state of the regression database.)
+
+SELECT version() ~ 'powerpc64[^,]*-linux-gnu'
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+-- The full error report is not very stable, so we show only SQLSTATE
+-- and primary error message.
+
+-- \set VERBOSITY sqlstate
+
+select infinite_recurse();
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+\echo :LAST_ERROR_MESSAGE
+
+RESULT: [duckdb: SAME, mySQL: SAME]
+=========================================
+Summary for test case infinite_recurse/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 2 queries, which is 66.67%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 1 queries, which is 33.33%
+
+=================
+Results for mySQL
+SAME: 2 queries, which is 66.67%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 1 queries, which is 33.33%

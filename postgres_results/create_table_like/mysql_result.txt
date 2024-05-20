@@ -1,0 +1,1050 @@
+
+-----------
+QUERY:
+/* Test inheritance of structure (LIKE) */
+CREATE TABLE inhx (xx text DEFAULT 'text');
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'xx' can't have a default value")
+
+-----------
+QUERY:
+
+
+/*
+ * Test double inheritance
+ *
+ * Ensure that defaults are NOT included unless
+ * INCLUDING DEFAULTS is specified
+ */
+CREATE TABLE ctla (aa TEXT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ctlb (bb TEXT) INHERITS (ctla);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (ctla)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE foo (LIKE nonexistent);
+RESULT:
+	ERROR - (1146, "Table 'test.nonexistent' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE inhe (ee text, LIKE inhx) inherits (ctlb);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIKE inhx) inherits (ctlb)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO inhe VALUES ('ee-col1', 'ee-col2', DEFAULT, 'ee-col4');
+RESULT:
+	ERROR - (1146, "Table 'test.inhe' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM inhe;
+RESULT:
+	ERROR - (1146, "Table 'test.inhe' doesn't exist")
+
+-----------
+QUERY:
+ /* Columns aa, bb, xx value NULL, ee */
+SELECT * FROM inhx;
+RESULT:
+	ERROR - (1146, "Table 'test.inhx' doesn't exist")
+
+-----------
+QUERY:
+ /* Empty set since LIKE inherits structure only */
+SELECT * FROM ctlb;
+RESULT:
+	ERROR - (1146, "Table 'test.ctlb' doesn't exist")
+
+-----------
+QUERY:
+ /* Has ee entry */
+SELECT * FROM ctla;
+RESULT:
+	()
+
+-----------
+QUERY:
+ /* Has ee entry */
+
+CREATE TABLE inhf (LIKE inhx, LIKE inhx);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', LIKE inhx)' at line 3")
+
+-----------
+QUERY:
+ /* Throw error */
+
+CREATE TABLE inhf (LIKE inhx INCLUDING DEFAULTS INCLUDING CONSTRAINTS);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING DEFAULTS INCLUDING CONSTRAINTS)' at line 3")
+
+-----------
+QUERY:
+
+INSERT INTO inhf DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM inhf;
+RESULT:
+	ERROR - (1146, "Table 'test.inhf' doesn't exist")
+
+-----------
+QUERY:
+ /* Single entry with value 'text' */
+
+ALTER TABLE inhx add constraint foo CHECK (xx = 'text');
+RESULT:
+	ERROR - (1146, "Table 'test.inhx' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER TABLE inhx ADD PRIMARY KEY (xx);
+RESULT:
+	ERROR - (1146, "Table 'test.inhx' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE TABLE inhg (LIKE inhx);
+RESULT:
+	ERROR - (1146, "Table 'test.inhx' doesn't exist")
+
+-----------
+QUERY:
+ /* Doesn't copy constraint */
+INSERT INTO inhg VALUES ('foo');
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE inhg;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inhg'")
+
+-----------
+QUERY:
+
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING CONSTRAINTS, y text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIKE inhx INCLUDING CONSTRAINTS, y text)' at line 1")
+
+-----------
+QUERY:
+ /* Copies constraints */
+INSERT INTO inhg VALUES ('x', 'text', 'y');
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+ /* Succeeds */
+INSERT INTO inhg VALUES ('x', 'text', 'y');
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+ /* Succeeds -- Unique constraints not copied */
+INSERT INTO inhg VALUES ('x', 'foo',  'y');
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+  /* fails due to constraint */
+SELECT * FROM inhg;
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+ /* Two records with three columns in order x=x, xx=text, y=y */
+DROP TABLE inhg;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inhg'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_like_id_1 (a bigint GENERATED ALWAYS AS IDENTITY, b text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IDENTITY, b text)' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_like_id_1
+INSERT INTO test_like_id_1 (b) VALUES ('b1');
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_id_1;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_1' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_id_2 (LIKE test_like_id_1);
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_1' doesn't exist")
+
+-----------
+QUERY:
+
+-- \d test_like_id_2
+INSERT INTO test_like_id_2 (b) VALUES ('b2');
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_id_2;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_2' doesn't exist")
+
+-----------
+QUERY:
+  -- identity was not copied
+CREATE TABLE test_like_id_3 (LIKE test_like_id_1 INCLUDING IDENTITY);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING IDENTITY)' at line 2")
+
+-----------
+QUERY:
+
+-- \d test_like_id_3
+INSERT INTO test_like_id_3 (b) VALUES ('b3');
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_id_3;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_id_3' doesn't exist")
+
+-----------
+QUERY:
+  -- identity was copied and applied
+DROP TABLE test_like_id_1, test_like_id_2, test_like_id_3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_like_id_1,test.test_like_id_2,test.test_like_id_3'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_like_gen_1 (a int, b int GENERATED ALWAYS AS (a * 2) STORED);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d test_like_gen_1
+INSERT INTO test_like_gen_1 (a) VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_gen_1;
+RESULT:
+	((1, 2),)
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_gen_2 (LIKE test_like_gen_1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d test_like_gen_2
+INSERT INTO test_like_gen_2 (a) VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_gen_2;
+RESULT:
+	((1, 2),)
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_gen_3 (LIKE test_like_gen_1 INCLUDING GENERATED);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING GENERATED)' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_like_gen_3
+INSERT INTO test_like_gen_3 (a) VALUES (1);
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_gen_3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM test_like_gen_3;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_gen_3' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE test_like_gen_1, test_like_gen_2, test_like_gen_3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_like_gen_3'")
+
+-----------
+QUERY:
+
+
+-- also test generated column with a /* REPLACED */''forward/* REPLACED */'' reference (bug #16342)
+CREATE TABLE test_like_4 (b int DEFAULT 42,
+  c int GENERATED ALWAYS AS (a * 2) STORED,
+  a int CHECK (a > 0));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d test_like_4
+CREATE TABLE test_like_4a (LIKE test_like_4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_4b (LIKE test_like_4 INCLUDING DEFAULTS);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING DEFAULTS)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_4c (LIKE test_like_4 INCLUDING GENERATED);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING GENERATED)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_4d (LIKE test_like_4 INCLUDING DEFAULTS INCLUDING GENERATED);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING DEFAULTS INCLUDING GENERATED)' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_like_4a
+INSERT INTO test_like_4a (a) VALUES(11);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4a;
+RESULT:
+	((11, 42, 22),)
+
+-----------
+QUERY:
+
+-- \d test_like_4b
+INSERT INTO test_like_4b (a) VALUES(11);
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_4b' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4b;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_4b' doesn't exist")
+
+-----------
+QUERY:
+
+-- \d test_like_4c
+INSERT INTO test_like_4c (a) VALUES(11);
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_4c' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4c;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_4c' doesn't exist")
+
+-----------
+QUERY:
+
+-- \d test_like_4d
+INSERT INTO test_like_4d (a) VALUES(11);
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_4d' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b, c FROM test_like_4d;
+RESULT:
+	ERROR - (1146, "Table 'test.test_like_4d' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test renumbering of Vars when combining LIKE with inheritance
+CREATE TABLE test_like_5 (x point, y point, z point);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_5x (p int CHECK (p > 0),
+   q int GENERATED ALWAYS AS (p * 2) STORED);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE test_like_5c (LIKE test_like_4 INCLUDING ALL)
+  INHERITS (test_like_5, test_like_5x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING ALL)\n  INHERITS (test_like_5, test_like_5x)' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_like_5c
+
+DROP TABLE test_like_4, test_like_4a, test_like_4b, test_like_4c, test_like_4d;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_like_4b,test.test_like_4c,test.test_like_4d'")
+
+-----------
+QUERY:
+
+DROP TABLE test_like_5, test_like_5x, test_like_5c;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_like_5c'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, y text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIKE inhx INCLUDING INDEXES, y text)' at line 1")
+
+-----------
+QUERY:
+ /* copies indexes */
+INSERT INTO inhg VALUES (5, 10);
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO inhg VALUES (20, 10);
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+ -- should fail
+DROP TABLE inhg;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inhg'")
+
+-----------
+QUERY:
+
+/* Multiple primary keys creation should fail */
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, PRIMARY KEY(x));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIKE inhx INCLUDING INDEXES, PRIMARY KEY(x))' at line 2")
+
+-----------
+QUERY:
+ /* fails */
+CREATE TABLE inhz (xx text DEFAULT 'text', yy int UNIQUE);
+RESULT:
+	ERROR - (1101, "BLOB, TEXT, GEOMETRY or JSON column 'xx' can't have a default value")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX inhz_xx_idx on inhz (xx) WHERE xx <> 'test';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WHERE xx <> 'test'' at line 1")
+
+-----------
+QUERY:
+
+/* Ok to create multiple unique indexes */
+CREATE TABLE inhg (x text UNIQUE, LIKE inhz INCLUDING INDEXES);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIKE inhz INCLUDING INDEXES)' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO inhg (xx, yy, x) VALUES ('test', 5, 10);
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO inhg (xx, yy, x) VALUES ('test', 10, 15);
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO inhg (xx, yy, x) VALUES ('foo', 10, 15);
+RESULT:
+	ERROR - (1146, "Table 'test.inhg' doesn't exist")
+
+-----------
+QUERY:
+ -- should fail
+DROP TABLE inhg;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inhg'")
+
+-----------
+QUERY:
+
+DROP TABLE inhz;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inhz'")
+
+-----------
+QUERY:
+
+
+/* Use primary key imported by LIKE for self-referential FK constraint */
+CREATE TABLE inhz (x text REFERENCES inhz, LIKE inhx INCLUDING INDEXES);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIKE inhx INCLUDING INDEXES)' at line 2")
+
+-----------
+QUERY:
+
+-- \d inhz
+DROP TABLE inhz;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.inhz'")
+
+-----------
+QUERY:
+
+
+-- including storage and comments
+CREATE TABLE ctlt1 (a text CHECK (length(a) > 2) PRIMARY KEY, b text);
+RESULT:
+	ERROR - (1170, "BLOB/TEXT column 'a' used in key specification without a key length")
+
+-----------
+QUERY:
+
+CREATE INDEX ctlt1_b_key ON ctlt1 (b);
+RESULT:
+	ERROR - (1146, "Table 'test.ctlt1' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE INDEX ctlt1_fnidx ON ctlt1 ((a || b));
+RESULT:
+	ERROR - (1146, "Table 'test.ctlt1' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE STATISTICS ctlt1_a_b_stat ON a,b FROM ctlt1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STATISTICS ctlt1_a_b_stat ON a,b FROM ctlt1' at line 1")
+
+-----------
+QUERY:
+
+CREATE STATISTICS ctlt1_expr_stat ON (a || b) FROM ctlt1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STATISTICS ctlt1_expr_stat ON (a || b) FROM ctlt1' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON STATISTICS ctlt1_a_b_stat IS 'ab stats';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON STATISTICS ctlt1_a_b_stat IS 'ab stats'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON STATISTICS ctlt1_expr_stat IS 'ab expr stats';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON STATISTICS ctlt1_expr_stat IS 'ab expr stats'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt1.a IS 'A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLUMN ctlt1.a IS 'A'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt1.b IS 'B';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLUMN ctlt1.b IS 'B'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT ctlt1_a_check ON ctlt1 IS 't1_a_check';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON CONSTRAINT ctlt1_a_check ON ctlt1 IS 't1_a_check'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON INDEX ctlt1_pkey IS 'index pkey';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON INDEX ctlt1_pkey IS 'index pkey'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON INDEX ctlt1_b_key IS 'index b_key';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON INDEX ctlt1_b_key IS 'index b_key'' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt1 ALTER COLUMN a SET STORAGE MAIN;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE MAIN' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt2 (c text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt2 ALTER COLUMN c SET STORAGE EXTERNAL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE EXTERNAL' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt2.c IS 'C';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLUMN ctlt2.c IS 'C'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt3 (a text CHECK (length(a) < 5), c text CHECK (length(c) < 7));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt3 ALTER COLUMN c SET STORAGE EXTERNAL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE EXTERNAL' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt3 ALTER COLUMN a SET STORAGE MAIN;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE MAIN' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX ctlt3_fnidx ON ctlt3 ((a || c));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt3.a IS 'A3';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLUMN ctlt3.a IS 'A3'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN ctlt3.c IS 'C';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLUMN ctlt3.c IS 'C'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT ctlt3_a_check ON ctlt3 IS 't3_a_check';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON CONSTRAINT ctlt3_a_check ON ctlt3 IS 't3_a_check'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt4 (a text, c text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ctlt4 ALTER COLUMN c SET STORAGE EXTERNAL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE EXTERNAL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt12_storage (LIKE ctlt1 INCLUDING STORAGE, LIKE ctlt2 INCLUDING STORAGE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING STORAGE, LIKE ctlt2 INCLUDING STORAGE)' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ ctlt12_storage
+CREATE TABLE ctlt12_comments (LIKE ctlt1 INCLUDING COMMENTS, LIKE ctlt2 INCLUDING COMMENTS);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING COMMENTS, LIKE ctlt2 INCLUDING COMMENTS)' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ ctlt12_comments
+CREATE TABLE ctlt1_inh (LIKE ctlt1 INCLUDING CONSTRAINTS INCLUDING COMMENTS) INHERITS (ctlt1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING CONSTRAINTS INCLUDING COMMENTS) INHERITS (ctlt1)' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ ctlt1_inh
+SELECT description FROM pg_description, pg_constraint c WHERE classoid = 'pg_constraint'::regclass AND objoid = c.oid AND c.conrelid = 'ctlt1_inh'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND objoid = c.oid AND c.conrelid = 'ctlt1_inh'::regclass' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt13_inh () INHERITS (ctlt1, ctlt3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') INHERITS (ctlt1, ctlt3)' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ ctlt13_inh
+CREATE TABLE ctlt13_like (LIKE ctlt3 INCLUDING CONSTRAINTS INCLUDING INDEXES INCLUDING COMMENTS INCLUDING STORAGE) INHERITS (ctlt1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING CONSTRAINTS INCLUDING INDEXES INCLUDING COMMENTS INCLUDING STORAGE) IN' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ ctlt13_like
+SELECT description FROM pg_description, pg_constraint c WHERE classoid = 'pg_constraint'::regclass AND objoid = c.oid AND c.conrelid = 'ctlt13_like'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND objoid = c.oid AND c.conrelid = 'ctlt13_like'::regclass' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ctlt_all (LIKE ctlt1 INCLUDING ALL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING ALL)' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ ctlt_all
+SELECT c.relname, objsubid, description FROM pg_description, pg_index i, pg_class c WHERE classoid = 'pg_class'::regclass AND objoid = i.indexrelid AND c.oid = i.indexrelid AND i.indrelid = 'ctlt_all'::regclass ORDER BY c.relname, objsubid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND objoid = i.indexrelid AND c.oid = i.indexrelid AND i.indrelid = '' at line 2")
+
+-----------
+QUERY:
+
+SELECT s.stxname, objsubid, description FROM pg_description, pg_statistic_ext s WHERE classoid = 'pg_statistic_ext'::regclass AND objoid = s.oid AND s.stxrelid = 'ctlt_all'::regclass ORDER BY s.stxname, objsubid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND objoid = s.oid AND s.stxrelid = 'ctlt_all'::regclass ORDER BY s.s' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE inh_error1 () INHERITS (ctlt1, ctlt4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') INHERITS (ctlt1, ctlt4)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE inh_error2 (LIKE ctlt4 INCLUDING STORAGE) INHERITS (ctlt1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING STORAGE) INHERITS (ctlt1)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check that LIKE isn/* REPLACED */''t confused by a system catalog of the same name
+CREATE TABLE pg_attrdef (LIKE ctlt1 INCLUDING ALL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING ALL)' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ public.pg_attrdef
+DROP TABLE public.pg_attrdef;
+RESULT:
+	ERROR - (1051, "Unknown table 'public.pg_attrdef'")
+
+-----------
+QUERY:
+
+
+-- Check that LIKE isn/* REPLACED */''t confused when new table masks the old, either
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SCHEMA ctl_schema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL search_path = ctl_schema, public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt1 (LIKE ctlt1 INCLUDING ALL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING ALL)' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ ctlt1
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE ctlt1, ctlt2, ctlt3, ctlt4, ctlt12_storage, ctlt12_comments, ctlt1_inh, ctlt13_inh, ctlt13_like, ctlt_all, ctla, ctlb CASCADE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ctlt1,test.ctlt12_storage,test.ctlt12_comments,test.ctlt1_inh,test.ctlt13_inh,test.ctlt13_like,test.ctlt_all,test.ctlb'")
+
+-----------
+QUERY:
+
+
+-- LIKE must respect NO INHERIT property of constraints
+CREATE TABLE noinh_con_copy (a int CHECK (a > 0) NO INHERIT);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NO INHERIT)' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE noinh_con_copy1 (LIKE noinh_con_copy INCLUDING CONSTRAINTS);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING CONSTRAINTS)' at line 1")
+
+-----------
+QUERY:
+
+-- \d noinh_con_copy1
+
+-- fail, as partitioned tables don/* REPLACED */''t allow NO INHERIT constraints
+CREATE TABLE noinh_con_copy1_parted (LIKE noinh_con_copy INCLUDING ALL)
+  PARTITION BY LIST (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING ALL)\n  PARTITION BY LIST (a)' at line 4")
+
+-----------
+QUERY:
+
+
+DROP TABLE noinh_con_copy, noinh_con_copy1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.noinh_con_copy,test.noinh_con_copy1'")
+
+-----------
+QUERY:
+
+
+
+/* LIKE with other relation kinds */
+
+CREATE TABLE ctlt4 (a int, b text);
+RESULT:
+	ERROR - (1050, "Table 'ctlt4' already exists")
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE ctlseq1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE ctlseq1' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt10 (LIKE ctlseq1);
+RESULT:
+	ERROR - (1146, "Table 'test.ctlseq1' doesn't exist")
+
+-----------
+QUERY:
+  -- fail
+
+CREATE VIEW ctlv1 AS SELECT * FROM ctlt4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt11 (LIKE ctlv1);
+RESULT:
+	ERROR - (1347, "'test.ctlv1' is not BASE TABLE")
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt11a (LIKE ctlv1 INCLUDING ALL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING ALL)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TYPE ctlty1 AS (a int, b text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE ctlty1 AS (a int, b text)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ctlt12 (LIKE ctlty1);
+RESULT:
+	ERROR - (1146, "Table 'test.ctlty1' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP SEQUENCE ctlseq1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE ctlseq1' at line 1")
+
+-----------
+QUERY:
+
+DROP TYPE ctlty1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE ctlty1' at line 1")
+
+-----------
+QUERY:
+
+DROP VIEW ctlv1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE IF EXISTS ctlt4, ctlt10, ctlt11, ctlt11a, ctlt12;
+RESULT:
+	[]

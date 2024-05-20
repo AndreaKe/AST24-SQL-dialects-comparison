@@ -1,0 +1,2004 @@
+
+-----------
+QUERY:
+--
+-- VACUUM
+--
+
+CREATE TABLE vactst (i INT);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst VALUES (0);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT count(*) FROM vactst;
+RESULT:
+	postgres: [(2049,)]
+
+-----------
+QUERY:
+
+DELETE FROM vactst WHERE i != 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM vactst;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+VACUUM FULL vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+UPDATE vactst SET i = i + 1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT * FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst VALUES (0);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT count(*) FROM vactst;
+RESULT:
+	postgres: [(2049,)]
+
+-----------
+QUERY:
+
+DELETE FROM vactst WHERE i != 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FULL) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DELETE FROM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM vactst;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+VACUUM (FULL, FREEZE) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE, FULL) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE vaccluster (i INT PRIMARY KEY);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE vaccluster CLUSTER ON vaccluster_pkey;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CLUSTER vaccluster;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION do_analyze() RETURNS VOID VOLATILE LANGUAGE SQL
+	AS 'ANALYZE pg_am';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE FUNCTION wrap_do_analyze(c INT) RETURNS INT IMMUTABLE LANGUAGE SQL
+	AS 'SELECT $1 FROM public.do_analyze()';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX ON vaccluster(wrap_do_analyze(i));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vaccluster VALUES (1), (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vaccluster;
+RESULT:
+	postgres: ERROR - ANALYZE cannot be executed from VACUUM or ANALYZE
+CONTEXT:  SQL function "do_analyze" statement 1
+SQL function "wrap_do_analyze" statement 1
+
+
+-----------
+QUERY:
+
+
+-- Test ANALYZE in transaction, where the transaction surrounding
+-- analyze performed modifications. This tests for the bug at
+-- https://postgr.es/m/c7988239-d42c-ddc4-41db-171b23b35e4f%40ssinger.info
+-- (which hopefully is unlikely to be reintroduced), but also seems
+-- independently worthwhile to cover.
+INSERT INTO vactst SELECT generate_series(1, 300);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DELETE FROM vactst WHERE i % 7 = 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- delete a few rows outside
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vactst SELECT generate_series(301, 400);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DELETE FROM vactst WHERE i % 5 <> 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- delete a few rows inside
+ANALYZE vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+VACUUM FULL pg_am;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM FULL pg_class;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM FULL pg_database;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM FULL vaccluster;
+RESULT:
+	postgres: ERROR - ANALYZE cannot be executed from VACUUM or ANALYZE
+CONTEXT:  SQL function "do_analyze" statement 1
+SQL function "wrap_do_analyze" statement 1
+
+
+-----------
+QUERY:
+
+VACUUM FULL vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+VACUUM (DISABLE_PAGE_SKIPPING) vaccluster;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- PARALLEL option
+CREATE TABLE pvactst (i INT, a INT[], p POINT) with (autovacuum_enabled = off);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO pvactst SELECT i, array[1,2,3], point(i, i+1) FROM generate_series(1,1000) i;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX btree_pvactst ON pvactst USING btree (i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX hash_pvactst ON pvactst USING hash (i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX brin_pvactst ON pvactst USING brin (i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX gin_pvactst ON pvactst USING gin (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX gist_pvactst ON pvactst USING gist (p);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX spgist_pvactst ON pvactst USING spgist (p);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- VACUUM invokes parallel index cleanup
+SET min_parallel_index_scan_size to 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (PARALLEL 2) pvactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- VACUUM invokes parallel bulk-deletion
+UPDATE pvactst SET i = i WHERE i < 1000;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (PARALLEL 2) pvactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+UPDATE pvactst SET i = i WHERE i < 1000;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (PARALLEL 0) pvactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- disable parallel vacuum
+
+VACUUM (PARALLEL -1) pvactst;
+RESULT:
+	postgres: ERROR - parallel workers for vacuum must be between 0 and 1024
+LINE 3: VACUUM (PARALLEL -1) pvactst;
+                ^
+
+
+-----------
+QUERY:
+ -- error
+VACUUM (PARALLEL 2, INDEX_CLEANUP FALSE) pvactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (PARALLEL 2, FULL TRUE) pvactst;
+RESULT:
+	postgres: ERROR - VACUUM FULL cannot be performed in parallel
+
+
+-----------
+QUERY:
+ -- error, cannot use both PARALLEL and FULL
+VACUUM (PARALLEL) pvactst;
+RESULT:
+	postgres: ERROR - parallel option requires a value between 0 and 1024
+LINE 2: VACUUM (PARALLEL) pvactst;
+                ^
+
+
+-----------
+QUERY:
+ -- error, cannot use PARALLEL option without parallel degree
+
+-- Test different combinations of parallel and full options for temporary tables
+CREATE TEMPORARY TABLE tmp (a int PRIMARY KEY);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX tmp_idx1 ON tmp (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (PARALLEL 1, FULL FALSE) tmp;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- parallel vacuum disabled for temp tables
+VACUUM (PARALLEL 0, FULL TRUE) tmp;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- can specify parallel disabled (even though that/* REPLACED */''s implied by FULL)
+RESET min_parallel_index_scan_size;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE pvactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- INDEX_CLEANUP option
+CREATE TABLE no_index_cleanup (i INT PRIMARY KEY, t TEXT);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Use uncompressed data stored in toast.
+CREATE INDEX no_index_cleanup_idx ON no_index_cleanup(t);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE no_index_cleanup ALTER COLUMN t SET STORAGE EXTERNAL;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO no_index_cleanup(i, t) VALUES (generate_series(1,30),
+    repeat('1234567890',269));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- index cleanup option is ignored if VACUUM FULL
+VACUUM (INDEX_CLEANUP TRUE, FULL TRUE) no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FULL TRUE) no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Toast inherits the value from its parent table.
+ALTER TABLE no_index_cleanup SET (vacuum_index_cleanup = false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DELETE FROM no_index_cleanup WHERE i < 15;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Nothing is cleaned up.
+VACUUM no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Both parent relation and toast are cleaned up.
+ALTER TABLE no_index_cleanup SET (vacuum_index_cleanup = true);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE no_index_cleanup SET (vacuum_index_cleanup = auto);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Parameter is set for both the parent table and its toast relation.
+INSERT INTO no_index_cleanup(i, t) VALUES (generate_series(31,60),
+    repeat('1234567890',269));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DELETE FROM no_index_cleanup WHERE i < 45;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Only toast index is cleaned up.
+ALTER TABLE no_index_cleanup SET (vacuum_index_cleanup = off,
+    toast.vacuum_index_cleanup = yes);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Only parent is cleaned up.
+ALTER TABLE no_index_cleanup SET (vacuum_index_cleanup = true,
+    toast.vacuum_index_cleanup = false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Test some extra relations.
+VACUUM (INDEX_CLEANUP FALSE) vaccluster;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (INDEX_CLEANUP AUTO) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- index cleanup option is ignored if no indexes
+VACUUM (INDEX_CLEANUP FALSE, FREEZE TRUE) vaccluster;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- TRUNCATE option
+CREATE TEMP TABLE vac_truncate_test(i INT NOT NULL, j text)
+	WITH (vacuum_truncate=true, autovacuum_enabled=false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vac_truncate_test VALUES (1, NULL), (NULL, NULL);
+RESULT:
+	postgres: ERROR - null value in column "i" of relation "vac_truncate_test" violates not-null constraint
+DETAIL:  Failing row contains (null, null).
+
+
+-----------
+QUERY:
+
+VACUUM (TRUNCATE FALSE, DISABLE_PAGE_SKIPPING) vac_truncate_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT pg_relation_size('vac_truncate_test') > 0;
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+VACUUM (DISABLE_PAGE_SKIPPING) vac_truncate_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT pg_relation_size('vac_truncate_test') = 0;
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+VACUUM (TRUNCATE FALSE, FULL TRUE) vac_truncate_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vac_truncate_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- partitioned table
+CREATE TABLE vacparted (a int, b char) PARTITION BY LIST (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE vacparted1 PARTITION OF vacparted FOR VALUES IN (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vacparted VALUES (1, 'a');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+UPDATE vacparted SET b = 'b';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FULL) vacparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FREEZE) vacparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- check behavior with duplicate column mentions
+VACUUM ANALYZE vacparted(a,b,a);
+RESULT:
+	postgres: ERROR - column "a" of relation "vacparted" appears more than once
+
+
+-----------
+QUERY:
+
+ANALYZE vacparted(a,b,b);
+RESULT:
+	postgres: ERROR - column "b" of relation "vacparted" appears more than once
+
+
+-----------
+QUERY:
+
+
+-- partitioned table with index
+CREATE TABLE vacparted_i (a int primary key, b varchar(100))
+  PARTITION BY HASH (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE vacparted_i1 PARTITION OF vacparted_i
+  FOR VALUES WITH (MODULUS 2, REMAINDER 0);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE vacparted_i2 PARTITION OF vacparted_i
+  FOR VALUES WITH (MODULUS 2, REMAINDER 1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vacparted_i SELECT i, 'test_'|| i from generate_series(1,10) i;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacparted_i;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FULL) vacparted_i;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FREEZE) vacparted_i;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT relname, relhasindex FROM pg_class
+  WHERE relname LIKE 'vacparted_i%' AND relkind IN ('p','r')
+  ORDER BY relname;
+RESULT:
+	postgres: [('vacparted_i', True), ('vacparted_i1', True), ('vacparted_i2', True)]
+
+-----------
+QUERY:
+
+DROP TABLE vacparted_i;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- multiple tables specified
+VACUUM vaccluster, vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacparted, does_not_exist;
+RESULT:
+	postgres: ERROR - relation "does_not_exist" does not exist
+
+
+-----------
+QUERY:
+
+VACUUM (FREEZE) vacparted, vaccluster, vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (FREEZE) does_not_exist, vaccluster;
+RESULT:
+	postgres: ERROR - relation "does_not_exist" does not exist
+
+
+-----------
+QUERY:
+
+VACUUM ANALYZE vactst, vacparted (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM ANALYZE vactst (does_not_exist), vacparted (b);
+RESULT:
+	postgres: ERROR - column "does_not_exist" of relation "vactst" does not exist
+
+
+-----------
+QUERY:
+
+VACUUM FULL vacparted, vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM FULL vactst, vacparted (a, b), vaccluster (i);
+RESULT:
+	postgres: ERROR - ANALYZE option must be specified when a column list is provided
+
+
+-----------
+QUERY:
+
+ANALYZE vactst, vacparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacparted (b), vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vactst, does_not_exist, vacparted;
+RESULT:
+	postgres: ERROR - relation "does_not_exist" does not exist
+
+
+-----------
+QUERY:
+
+ANALYZE vactst (i), vacparted (does_not_exist);
+RESULT:
+	postgres: ERROR - column "does_not_exist" of relation "vacparted" does not exist
+
+
+-----------
+QUERY:
+
+ANALYZE vactst, vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- ANALYZE behaves differently inside a transaction block
+ANALYZE vactst, vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- parenthesized syntax for ANALYZE
+ANALYZE (VERBOSE) does_not_exist;
+RESULT:
+	postgres: ERROR - relation "does_not_exist" does not exist
+
+
+-----------
+QUERY:
+
+ANALYZE (nonexistent-arg) does_not_exist;
+RESULT:
+	postgres: ERROR - syntax error at or near "arg"
+LINE 2: ANALYZE (nonexistent-arg) does_not_exist;
+                             ^
+
+
+-----------
+QUERY:
+
+ANALYZE (nonexistentarg) does_not_exit;
+RESULT:
+	postgres: ERROR - unrecognized ANALYZE option "nonexistentarg"
+LINE 2: ANALYZE (nonexistentarg) does_not_exit;
+                 ^
+
+
+-----------
+QUERY:
+
+
+-- ensure argument order independence, and that SKIP_LOCKED on non-existing
+-- relation still errors out.  Suppress WARNING messages caused by concurrent
+-- autovacuums.
+SET client_min_messages TO 'ERROR';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE (SKIP_LOCKED, VERBOSE) does_not_exist;
+RESULT:
+	postgres: ERROR - relation "does_not_exist" does not exist
+
+
+-----------
+QUERY:
+
+ANALYZE (VERBOSE, SKIP_LOCKED) does_not_exist;
+RESULT:
+	postgres: ERROR - relation "does_not_exist" does not exist
+
+
+-----------
+QUERY:
+
+
+-- SKIP_LOCKED option
+VACUUM (SKIP_LOCKED) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (SKIP_LOCKED, FULL) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE (SKIP_LOCKED) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET client_min_messages;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- ensure VACUUM and ANALYZE don/* REPLACED */''t have a problem with serializable
+SET default_transaction_isolation = serializable;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET default_transaction_isolation;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- PROCESS_TOAST option
+CREATE TABLE vac_option_tab (a INT, t TEXT);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vac_option_tab SELECT a, 't' || a FROM generate_series(1, 10) AS a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE vac_option_tab ALTER COLUMN t SET STORAGE EXTERNAL;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Check the number of vacuums done on table vac_option_tab and on its
+-- toast relation, to check that PROCESS_TOAST and PROCESS_MAIN work on
+-- what they should.
+CREATE VIEW vac_option_tab_counts AS
+  SELECT CASE WHEN c.relname IS NULL
+    THEN 'main' ELSE 'toast' END as rel,
+  s.vacuum_count
+  FROM pg_stat_all_tables s
+  LEFT JOIN pg_class c ON s.relid = c.reltoastrelid
+  WHERE c.relname = 'vac_option_tab' OR s.relname = 'vac_option_tab'
+  ORDER BY rel;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (PROCESS_TOAST TRUE) vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM vac_option_tab_counts;
+RESULT:
+	postgres: [('main', 1), ('toast', 1)]
+
+-----------
+QUERY:
+
+VACUUM (PROCESS_TOAST FALSE) vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM vac_option_tab_counts;
+RESULT:
+	postgres: [('main', 2), ('toast', 1)]
+
+-----------
+QUERY:
+
+VACUUM (PROCESS_TOAST FALSE, FULL) vac_option_tab;
+RESULT:
+	postgres: ERROR - PROCESS_TOAST required with VACUUM FULL
+
+
+-----------
+QUERY:
+ -- error
+
+-- PROCESS_MAIN option
+-- Only the toast table is processed.
+VACUUM (PROCESS_MAIN FALSE) vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM vac_option_tab_counts;
+RESULT:
+	postgres: [('main', 2), ('toast', 2)]
+
+-----------
+QUERY:
+
+-- Nothing is processed.
+VACUUM (PROCESS_MAIN FALSE, PROCESS_TOAST FALSE) vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM vac_option_tab_counts;
+RESULT:
+	postgres: [('main', 2), ('toast', 2)]
+
+-----------
+QUERY:
+
+-- Check if the filenodes nodes have been updated as wanted after FULL.
+SELECT relfilenode AS main_filenode FROM pg_class
+  WHERE relname = 'vac_option_tab' \gset
+SELECT t.relfilenode AS toast_filenode FROM pg_class c, pg_class t
+  WHERE c.reltoastrelid = t.oid AND c.relname = 'vac_option_tab' \gset
+-- Only the toast relation is processed.
+VACUUM (PROCESS_MAIN FALSE, FULL) vac_option_tab;
+RESULT:
+	postgres: ERROR - syntax error at or near "\"
+LINE 4:   WHERE relname = 'vac_option_tab' \gset
+                                           ^
+
+
+-----------
+QUERY:
+
+SELECT relfilenode = :main_filenode AS is_same_main_filenode
+  FROM pg_class WHERE relname = 'vac_option_tab';
+RESULT:
+	postgres: ERROR - syntax error at or near ":"
+LINE 2: SELECT relfilenode = :main_filenode AS is_same_main_filenode
+                             ^
+
+
+-----------
+QUERY:
+
+SELECT t.relfilenode = :toast_filenode AS is_same_toast_filenode
+  FROM pg_class c, pg_class t
+  WHERE c.reltoastrelid = t.oid AND c.relname = 'vac_option_tab';
+RESULT:
+	postgres: ERROR - syntax error at or near ":"
+LINE 2: SELECT t.relfilenode = :toast_filenode AS is_same_toast_file...
+                               ^
+
+
+-----------
+QUERY:
+
+
+-- BUFFER_USAGE_LIMIT option
+VACUUM (BUFFER_USAGE_LIMIT '512 kB') vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE (BUFFER_USAGE_LIMIT '512 kB') vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- try disabling the buffer usage limit
+VACUUM (BUFFER_USAGE_LIMIT 0) vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE (BUFFER_USAGE_LIMIT 0) vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- value exceeds max size error
+VACUUM (BUFFER_USAGE_LIMIT 16777220) vac_option_tab;
+RESULT:
+	postgres: ERROR - BUFFER_USAGE_LIMIT option must be 0 or between 128 kB and 16777216 kB
+
+
+-----------
+QUERY:
+
+-- value is less than min size error
+VACUUM (BUFFER_USAGE_LIMIT 120) vac_option_tab;
+RESULT:
+	postgres: ERROR - BUFFER_USAGE_LIMIT option must be 0 or between 128 kB and 16777216 kB
+
+
+-----------
+QUERY:
+
+-- integer overflow error
+VACUUM (BUFFER_USAGE_LIMIT 10000000000) vac_option_tab;
+RESULT:
+	postgres: ERROR - BUFFER_USAGE_LIMIT option must be 0 or between 128 kB and 16777216 kB
+HINT:  Value exceeds integer range.
+
+
+-----------
+QUERY:
+
+-- incompatible with VACUUM FULL error
+VACUUM (BUFFER_USAGE_LIMIT '512 kB', FULL) vac_option_tab;
+RESULT:
+	postgres: ERROR - BUFFER_USAGE_LIMIT cannot be specified for VACUUM FULL
+
+
+-----------
+QUERY:
+
+
+-- SKIP_DATABASE_STATS option
+VACUUM (SKIP_DATABASE_STATS) vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- ONLY_DATABASE_STATS option
+VACUUM (ONLY_DATABASE_STATS);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ONLY_DATABASE_STATS) vactst;
+RESULT:
+	postgres: ERROR - ONLY_DATABASE_STATS cannot be specified with a list of tables
+
+
+-----------
+QUERY:
+  -- error
+
+DROP VIEW vac_option_tab_counts;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vac_option_tab;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vaccluster;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vactst;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vacparted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE no_index_cleanup;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- relation ownership, WARNING logs generated as all are skipped.
+CREATE TABLE vacowned (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE vacowned_parted (a int) PARTITION BY LIST (a);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE vacowned_part1 PARTITION OF vacowned_parted FOR VALUES IN (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE vacowned_part2 PARTITION OF vacowned_parted FOR VALUES IN (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE ROLE regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET ROLE regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Simple table
+VACUUM vacowned;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Catalog
+VACUUM pg_catalog.pg_class;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE pg_catalog.pg_class;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) pg_catalog.pg_class;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Shared catalog
+VACUUM pg_catalog.pg_authid;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE pg_catalog.pg_authid;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) pg_catalog.pg_authid;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Partitioned table and its partitions, nothing owned by other user.
+-- Relations are not listed in a single command to test ownership
+-- independently.
+VACUUM vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Partitioned table and one partition owned by other user.
+ALTER TABLE vacowned_parted OWNER TO regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE vacowned_part1 OWNER TO regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET ROLE regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Only one partition owned by other user.
+ALTER TABLE vacowned_parted OWNER TO CURRENT_USER;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET ROLE regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Only partitioned table owned by other user.
+ALTER TABLE vacowned_parted OWNER TO regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE vacowned_part1 OWNER TO CURRENT_USER;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET ROLE regress_vacuum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM (ANALYZE) vacowned_part2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vacowned;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE vacowned_parted;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP ROLE regress_vacuum;
+RESULT:
+	postgres: None

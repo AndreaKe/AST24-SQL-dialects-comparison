@@ -1,0 +1,1389 @@
+
+-----------
+QUERY:
+-- create a table to use as a basis for views and materialized views in various combinations
+CREATE TABLE mvtest_t (id int NOT NULL PRIMARY KEY, type text NOT NULL, amt numeric NOT NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO mvtest_t VALUES
+  (1, 'x', 2),
+  (2, 'x', 3),
+  (3, 'y', 5),
+  (4, 'y', 7),
+  (5, 'z', 11);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- we want a view based on the table, too, since views present additional challenges
+CREATE VIEW mvtest_tv AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tv ORDER BY type;
+RESULT:
+	(('x', Decimal('5')), ('y', Decimal('12')), ('z', Decimal('11')))
+
+-----------
+QUERY:
+
+
+-- create a materialized view with no data, and confirm correct behavior
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS tota' at line 2")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GRO' at line 1")
+
+-----------
+QUERY:
+
+SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tm ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tm' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_tm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_tm' at line 1")
+
+-----------
+QUERY:
+
+SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX mvtest_tm_type ON mvtest_tm (type);
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tm ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tm' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- create various views
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDE' at line 2")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvm' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_tmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_tmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tm' at line 1")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_tvmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tvm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_tvmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tvm' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX mvtest_tvmm_expr ON mvtest_tvmm ((grandtot > 0));
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvmm' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX mvtest_tvmm_pred ON mvtest_tvmm (grandtot) WHERE grandtot < 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WHERE grandtot < 0' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW mvtest_tvv AS SELECT sum(totamt) AS grandtot FROM mvtest_tv;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+  CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv' at line 1")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW mvtest_tvvmv AS SELECT * FROM mvtest_tvvm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvvm' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_bb AS SELECT * FROM mvtest_tvvmv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_bb AS SELECT * FROM mvtest_tvvmv' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX mvtest_aa ON mvtest_bb (grandtot);
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_bb' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- check that plans seem reasonable
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvvm
+-- \d+ mvtest_bb
+
+-- test schema behavior
+CREATE SCHEMA mvtest_mvschema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER MATERIALIZED VIEW mvtest_tvm SET SCHEMA mvtest_mvschema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_tvm SET SCHEMA mvtest_mvschema' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ mvtest_tvm
+-- \d+ mvtest_tvmm
+SET search_path = mvtest_mvschema, public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 3")
+
+-----------
+QUERY:
+
+-- \d+ mvtest_tvm
+
+-- modify the underlying table data
+INSERT INTO mvtest_t VALUES (6, 'z', 13);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- confirm pre- and post-refresh contents of fairly simple materialized views
+SELECT * FROM mvtest_tm ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvm ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvm' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tm' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_tvm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_tvm' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tm ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvm ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvm' doesn't exist")
+
+-----------
+QUERY:
+
+RESET search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+
+-- confirm pre- and post-refresh contents of nested materialized views
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM mvtest_tmm' at line 2")
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM mvtest_tvmm' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvvm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM mvtest_tvvm' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tmm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tmm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvmm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvmm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvvm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvvm' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_tmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_tmm' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_tvmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_tvmm' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_tvvm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_tvvm' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM mvtest_tmm' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvmm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM mvtest_tvmm' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+  SELECT * FROM mvtest_tvvm;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM mvtest_tvvm' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tmm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tmm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvmm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvmm' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_tvvm;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvvm' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test diemv when the mv does not exist
+DROP MATERIALIZED VIEW IF EXISTS no_such_mv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW IF EXISTS no_such_mv' at line 2")
+
+-----------
+QUERY:
+
+
+-- make sure invalid combination of options is prohibited
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm WITH NO DATA' at line 2")
+
+-----------
+QUERY:
+
+
+-- no tuple locks on materialized views
+SELECT * FROM mvtest_tvvm FOR SHARE;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tvvm' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test join of mv and view
+SELECT type, m.totamt AS mtot, v.totamt AS vtot FROM mvtest_tm m LEFT JOIN mvtest_tv v USING (type) ORDER BY type;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_tm' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- make sure that dependencies are reported properly when they block the drop
+DROP TABLE mvtest_t;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- make sure dependencies are dropped and reported
+-- and make sure that transactional behavior is correct on rollback
+-- incidentally leaving some interesting materialized views for pg_dump testing
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE mvtest_t CASCADE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mvtest_t'")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- some additional tests not using base tables
+CREATE VIEW mvtest_vt1 AS SELECT 1 moo;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW mvtest_vt2 AS SELECT moo, 2*moo FROM mvtest_vt1 UNION ALL SELECT moo, 3*moo FROM mvtest_vt1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ mvtest_vt2
+CREATE MATERIALIZED VIEW mv_test2 AS SELECT moo, 2*moo FROM mvtest_vt2 UNION ALL SELECT moo, 3*moo FROM mvtest_vt2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mv_test2 AS SELECT moo, 2*moo FROM mvtest_vt2 UNION ALL SELECT' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ mv_test2
+CREATE MATERIALIZED VIEW mv_test3 AS SELECT * FROM mv_test2 WHERE moo = 12345;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mv_test3 AS SELECT * FROM mv_test2 WHERE moo = 12345' at line 2")
+
+-----------
+QUERY:
+
+SELECT relispopulated FROM pg_class WHERE oid = 'mv_test3'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+
+DROP VIEW mvtest_vt1 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test that duplicate values on unique index prevent refresh
+CREATE TABLE mvtest_foo(a, b) AS VALUES(1, 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', b) AS VALUES(1, 10)' at line 2")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX ON mvtest_mv(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON mvtest_mv(a)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO mvtest_foo SELECT * FROM mvtest_foo;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_foo' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE mvtest_foo CASCADE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mvtest_foo'")
+
+-----------
+QUERY:
+
+
+-- make sure that all columns covered by unique indexes works
+CREATE TABLE mvtest_foo(a, b, c) AS VALUES(1, 2, 3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', b, c) AS VALUES(1, 2, 3)' at line 2")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX ON mvtest_mv (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON mvtest_mv (a)' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX ON mvtest_mv (b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON mvtest_mv (b)' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX on mvtest_mv (c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'on mvtest_mv (c)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO mvtest_foo VALUES(2, 3, 4);
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_foo' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO mvtest_foo VALUES(3, 4, 5);
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_foo' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE mvtest_foo CASCADE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mvtest_foo'")
+
+-----------
+QUERY:
+
+
+-- allow subquery to reference unpopulated matview if WITH NO DATA is specified
+CREATE MATERIALIZED VIEW mvtest_mv1 AS SELECT 1 AS col1 WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv1 AS SELECT 1 AS col1 WITH NO DATA' at line 2")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv2 AS SELECT * FROM mvtest_mv1
+  WHERE col1 = (SELECT LEAST(col1) FROM mvtest_mv1) WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv2 AS SELECT * FROM mvtest_mv1\n  WHERE col1 = (SELECT ' at line 1")
+
+-----------
+QUERY:
+
+DROP MATERIALIZED VIEW mvtest_mv1 CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv1 CASCADE' at line 1")
+
+-----------
+QUERY:
+
+
+-- make sure that types with unusual equality tests work
+CREATE TABLE mvtest_boxes (id serial primary key, b box);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'box)' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO mvtest_boxes (b) VALUES
+  ('(32,32),(31,31)'),
+  ('(2.0000004,2.0000004),(1,1)'),
+  ('(1.9999996,1.9999996),(1,1)');
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_boxes' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_boxmv AS SELECT * FROM mvtest_boxes;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_boxmv AS SELECT * FROM mvtest_boxes' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX mvtest_boxmv_id ON mvtest_boxmv (id);
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_boxmv' doesn't exist")
+
+-----------
+QUERY:
+
+UPDATE mvtest_boxes SET b = '(2,2),(1,1)' WHERE id = 2;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_boxes' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_boxmv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_boxmv' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_boxmv ORDER BY id;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_boxmv' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE mvtest_boxes CASCADE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mvtest_boxes'")
+
+-----------
+QUERY:
+
+
+-- make sure that column names are handled correctly
+CREATE TABLE mvtest_v (i int, j int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj, kk) AS SELECT i, j FROM mvtest_v;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v (ii, jj, kk) AS SELECT i, j FROM mvtest_v' at line 1")
+
+-----------
+QUERY:
+ -- error
+CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj) AS SELECT i, j FROM mvtest_v;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v (ii, jj) AS SELECT i, j FROM mvtest_v' at line 2")
+
+-----------
+QUERY:
+ -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_2 (ii) AS SELECT i, j FROM mvtest_v;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v_2 (ii) AS SELECT i, j FROM mvtest_v' at line 2")
+
+-----------
+QUERY:
+ -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj, kk) AS SELECT i, j FROM mvtest_v WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj, kk) AS SELECT i, j FROM mvtest_v WITH N' at line 2")
+
+-----------
+QUERY:
+ -- error
+CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj) AS SELECT i, j FROM mvtest_v WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj) AS SELECT i, j FROM mvtest_v WITH NO DA' at line 2")
+
+-----------
+QUERY:
+ -- ok
+CREATE MATERIALIZED VIEW mvtest_mv_v_4 (ii) AS SELECT i, j FROM mvtest_v WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v_4 (ii) AS SELECT i, j FROM mvtest_v WITH NO DATA' at line 2")
+
+-----------
+QUERY:
+ -- ok
+ALTER TABLE mvtest_v RENAME COLUMN i TO x;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO mvtest_v values (1, 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX mvtest_mv_v_ii ON mvtest_mv_v (ii);
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_mv_v' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv_v' at line 1")
+
+-----------
+QUERY:
+
+UPDATE mvtest_v SET j = 3 WHERE x = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_v;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_v' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v_2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv_v_2' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v_3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv_v_3' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv_v_4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv_v_4' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_v;
+RESULT:
+	((1, 3),)
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_mv_v;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_mv_v' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_mv_v_2;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_mv_v_2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_mv_v_3;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_mv_v_3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_mv_v_4;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_mv_v_4' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE mvtest_v CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Check that unknown literals are converted to /* REPLACED */''text/* REPLACED */'' in CREATE MATVIEW,
+-- so that we don/* REPLACED */''t end up with unknown-type columns.
+CREATE MATERIALIZED VIEW mv_unspecified_types AS
+  SELECT 42 as i, 42.5 as num, 'foo' as u, 'foo'::unknown as u2, null as n;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mv_unspecified_types AS\n  SELECT 42 as i, 42.5 as num, 'foo' a' at line 3")
+
+-----------
+QUERY:
+
+-- \d+ mv_unspecified_types
+SELECT * FROM mv_unspecified_types;
+RESULT:
+	ERROR - (1146, "Table 'test.mv_unspecified_types' doesn't exist")
+
+-----------
+QUERY:
+
+DROP MATERIALIZED VIEW mv_unspecified_types;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mv_unspecified_types' at line 1")
+
+-----------
+QUERY:
+
+
+-- make sure that create WITH NO DATA does not plan the query (bug #13907)
+create materialized view mvtest_error as select 1/0 as x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'materialized view mvtest_error as select 1/0 as x' at line 2")
+
+-----------
+QUERY:
+  -- fail
+create materialized view mvtest_error as select 1/0 as x with no data;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'materialized view mvtest_error as select 1/0 as x with no data' at line 2")
+
+-----------
+QUERY:
+
+refresh materialized view mvtest_error;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'refresh materialized view mvtest_error' at line 1")
+
+-----------
+QUERY:
+  -- fail here
+drop materialized view mvtest_error;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'materialized view mvtest_error' at line 2")
+
+-----------
+QUERY:
+
+
+-- make sure that matview rows can be referenced as source rows (bug #9398)
+CREATE TABLE mvtest_v AS SELECT generate_series(1,10) AS a;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.generate_series does not exist')
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv_v AS SELECT a FROM mvtest_v WHERE a <= 5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_v AS SELECT a FROM mvtest_v WHERE a <= 5' at line 1")
+
+-----------
+QUERY:
+
+DELETE FROM mvtest_v WHERE EXISTS ( SELECT * FROM mvtest_mv_v WHERE mvtest_mv_v.a = mvtest_v.a );
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_v' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_v;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_v' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest_mv_v;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest_mv_v' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE mvtest_v CASCADE;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mvtest_v'")
+
+-----------
+QUERY:
+
+
+-- make sure running as superuser works when MV owned by another role (bug #11208)
+CREATE ROLE regress_user_mvtest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET ROLE regress_user_mvtest;
+RESULT:
+	ERROR - (3530, '`regress_user_mvtest`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- this test case also checks for ambiguity in the queries issued by
+-- refresh_by_match_merge(), by choosing column names that intentionally
+-- duplicate all the aliases used in those queries
+CREATE TABLE mvtest_foo_data AS SELECT i,
+  i+1 AS tid,
+  fipshash(random()::text) AS mv,
+  fipshash(random()::text) AS newdata,
+  fipshash(random()::text) AS newdata2,
+  fipshash(random()::text) AS diff
+  FROM generate_series(1, 10) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()::text) AS mv,\n  fipshash(random()::text) AS newdata,\n  fipshash(random()::tex' at line 6")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data' at line 1")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data' at line 1")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS mvtest_mv_foo AS SELECT * FROM mvtest_foo_data;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW IF NOT EXISTS mvtest_mv_foo AS SELECT * FROM mvtest_foo_data' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX ON mvtest_mv_foo (i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON mvtest_mv_foo (i)' at line 1")
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW mvtest_mv_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW mvtest_mv_foo' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_foo' at line 1")
+
+-----------
+QUERY:
+
+DROP OWNED BY regress_user_mvtest CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OWNED BY regress_user_mvtest CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DROP ROLE regress_user_mvtest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Concurrent refresh requires a unique index on the materialized
+-- view. Test what happens if it/* REPLACED */''s dropped during the refresh.
+SET search_path = mvtest_mvschema, public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 3")
+
+-----------
+QUERY:
+
+CREATE OR REPLACE FUNCTION mvtest_drop_the_index()
+  RETURNS bool AS $$
+BEGIN
+  EXECUTE 'DROP INDEX IF EXISTS mvtest_mvschema.mvtest_drop_idx';
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION mvtest_drop_the_index()\n  RETURNS bool AS $$\nBEGIN\n  EXECUTE 'DROP INDE' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE MATERIALIZED VIEW drop_idx_matview AS
+  SELECT 1 as i WHERE mvtest_drop_the_index();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW drop_idx_matview AS\n  SELECT 1 as i WHERE mvtest_drop_the_inde' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE UNIQUE INDEX mvtest_drop_idx ON drop_idx_matview (i);
+RESULT:
+	ERROR - (1146, "Table 'test.drop_idx_matview' doesn't exist")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY drop_idx_matview;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW CONCURRENTLY drop_idx_matview' at line 1")
+
+-----------
+QUERY:
+
+DROP MATERIALIZED VIEW drop_idx_matview;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW drop_idx_matview' at line 1")
+
+-----------
+QUERY:
+ -- clean up
+RESET search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 2")
+
+-----------
+QUERY:
+
+
+-- make sure that create WITH NO DATA works via SPI
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE FUNCTION mvtest_func()
+  RETURNS void AS $$
+BEGIN
+  CREATE MATERIALIZED VIEW mvtest1 AS SELECT 1 AS x;
+  CREATE MATERIALIZED VIEW mvtest2 AS SELECT 1 AS x WITH NO DATA;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'void AS $$\nBEGIN\n  CREATE MATERIALIZED VIEW mvtest1 AS SELECT 1 AS x;\n  CREATE M' at line 2")
+
+-----------
+QUERY:
+
+SELECT mvtest_func();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.mvtest_func does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest1;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM mvtest2;
+RESULT:
+	ERROR - (1146, "Table 'test.mvtest2' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- INSERT privileges if relation owner is not allowed to insert.
+CREATE SCHEMA matview_schema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE USER regress_matview_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
+  REVOKE INSERT ON TABLES FROM regress_matview_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT PRIVILEGES FOR ROLE regress_matview_user\n  REVOKE INSERT ON TABLES FROM ' at line 1")
+
+-----------
+QUERY:
+
+GRANT ALL ON SCHEMA matview_schema TO public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SCHEMA matview_schema TO public' at line 1")
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_matview_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_matview_user' at line 1")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW matview_schema.mv_withdata1 (a) AS
+  SELECT generate_series(1, 10) WITH DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW matview_schema.mv_withdata1 (a) AS\n  SELECT generate_series(1,' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_schema.mv_withdata2 (a) AS
+  SELECT generate_series(1, 10) WITH DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)\n  CREATE MATERIALIZED VIEW matview_' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW matview_schema.mv_withdata2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW matview_schema.mv_withdata2' at line 1")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW matview_schema.mv_nodata1 (a) AS
+  SELECT generate_series(1, 10) WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW matview_schema.mv_nodata1 (a) AS\n  SELECT generate_series(1, 1' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_schema.mv_nodata2 (a) AS
+  SELECT generate_series(1, 10) WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)\n  CREATE MATERIALIZED VIEW matview_' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW matview_schema.mv_nodata2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW matview_schema.mv_nodata2' at line 1")
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
+  GRANT INSERT ON TABLES TO regress_matview_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT PRIVILEGES FOR ROLE regress_matview_user\n  GRANT INSERT ON TABLES TO reg' at line 1")
+
+-----------
+QUERY:
+
+
+DROP SCHEMA matview_schema CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DROP USER regress_matview_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- CREATE MATERIALIZED VIEW ... IF NOT EXISTS
+CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW matview_ine_tab AS SELECT 1' at line 2")
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1 / 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW matview_ine_tab AS SELECT 1 / 0' at line 1")
+
+-----------
+QUERY:
+ -- error
+CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+  SELECT 1 / 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS\n  SELECT 1 / 0' at line 2")
+
+-----------
+QUERY:
+ -- ok
+CREATE MATERIALIZED VIEW matview_ine_tab AS
+  SELECT 1 / 0 WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW matview_ine_tab AS\n  SELECT 1 / 0 WITH NO DATA' at line 2")
+
+-----------
+QUERY:
+ -- error
+CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+  SELECT 1 / 0 WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS\n  SELECT 1 / 0 WITH NO DATA' at line 2")
+
+-----------
+QUERY:
+ -- ok
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_ine_tab AS
+    SELECT 1 / 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)\n  CREATE MATERIALIZED VIEW matview_' at line 2")
+
+-----------
+QUERY:
+ -- error
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+    SELECT 1 / 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)\n  CREATE MATERIALIZED VIEW IF NOT E' at line 2")
+
+-----------
+QUERY:
+ -- ok
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW matview_ine_tab AS
+    SELECT 1 / 0 WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)\n  CREATE MATERIALIZED VIEW matview_' at line 2")
+
+-----------
+QUERY:
+ -- error
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+  CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
+    SELECT 1 / 0 WITH NO DATA;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)\n  CREATE MATERIALIZED VIEW IF NOT E' at line 2")
+
+-----------
+QUERY:
+ -- ok
+DROP MATERIALIZED VIEW matview_ine_tab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW matview_ine_tab' at line 2")

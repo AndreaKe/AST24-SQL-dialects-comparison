@@ -1,0 +1,636 @@
+
+-----------
+QUERY:
+--
+-- expression evaluation tests that don/* REPLACED */''t fit into a more specific file
+--
+
+--
+-- Tests for SQLValueFunction
+--
+
+
+-- current_date  (always matches because of transactional behaviour)
+SELECT date(now())::text = current_date::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text = current_date::text' at line 11")
+
+-----------
+QUERY:
+
+
+
+-- current_time / localtime
+SELECT now()::timetz::text = current_time::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::timetz::text = current_time::text' at line 2")
+
+-----------
+QUERY:
+
+SELECT now()::timetz(4)::text = current_time(4)::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::timetz(4)::text = current_time(4)::text' at line 1")
+
+-----------
+QUERY:
+
+SELECT now()::time::text = localtime::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time::text = localtime::text' at line 1")
+
+-----------
+QUERY:
+
+SELECT now()::time(3)::text = localtime(3)::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time(3)::text = localtime(3)::text' at line 1")
+
+-----------
+QUERY:
+
+
+-- current_time[stamp]/ localtime[stamp] (always matches because of transactional behaviour)
+SELECT current_timestamp = NOW();
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+-- precision
+SELECT length(current_timestamp::text) >= length(current_timestamp(0)::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text) >= length(current_timestamp(0)::text)' at line 2")
+
+-----------
+QUERY:
+
+-- localtimestamp
+SELECT now()::timestamp::text = localtimestamp::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::timestamp::text = localtimestamp::text' at line 2")
+
+-----------
+QUERY:
+
+-- precision overflow
+SELECT current_time = current_time(7);
+RESULT:
+	ERROR - (1426, "Too-big precision 7 specified for 'curtime'. Maximum is 6.")
+
+-----------
+QUERY:
+
+SELECT current_timestamp = current_timestamp(7);
+RESULT:
+	ERROR - (1426, "Too-big precision 7 specified for 'now'. Maximum is 6.")
+
+-----------
+QUERY:
+
+SELECT localtime = localtime(7);
+RESULT:
+	ERROR - (1426, "Too-big precision 7 specified for 'now'. Maximum is 6.")
+
+-----------
+QUERY:
+
+SELECT localtimestamp = localtimestamp(7);
+RESULT:
+	ERROR - (1426, "Too-big precision 7 specified for 'now'. Maximum is 6.")
+
+-----------
+QUERY:
+
+
+-- current_role/user/user is tested in rolenames.sql
+
+-- current database / catalog
+SELECT current_catalog = current_database();
+RESULT:
+	ERROR - (1054, "Unknown column 'current_catalog' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- current_schema
+SELECT current_schema;
+RESULT:
+	ERROR - (1054, "Unknown column 'current_schema' in 'field list'")
+
+-----------
+QUERY:
+
+SET search_path = 'notme';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+SELECT current_schema;
+RESULT:
+	ERROR - (1054, "Unknown column 'current_schema' in 'field list'")
+
+-----------
+QUERY:
+
+SET search_path = 'pg_catalog';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+SELECT current_schema;
+RESULT:
+	ERROR - (1054, "Unknown column 'current_schema' in 'field list'")
+
+-----------
+QUERY:
+
+RESET search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+
+
+--
+-- Test parsing of a no-op cast to a type with unspecified typmod
+--
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create table numeric_tbl (f1 numeric(18,3), f2 numeric);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create view numeric_view as
+  select
+    f1, f1::numeric(16,4) as f1164, f1::numeric as f1n,
+    f2, f2::numeric(16,4) as f2164, f2::numeric as f2n
+  from numeric_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::numeric(16,4) as f1164, f1::numeric as f1n,\n    f2, f2::numeric(16,4) as f2164' at line 3")
+
+-----------
+QUERY:
+
+
+-- \d+ numeric_view
+
+explain (verbose, costs off) select * from numeric_view;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off) select * from numeric_view' at line 3")
+
+-----------
+QUERY:
+
+
+-- bpchar, lacking planner support for its length coercion function,
+-- could behave differently
+
+create table bpchar_tbl (f1 character(16) unique, f2 bpchar);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'bpchar)' at line 4")
+
+-----------
+QUERY:
+
+
+create view bpchar_view as
+  select
+    f1, f1::character(14) as f114, f1::bpchar as f1n,
+    f2, f2::character(14) as f214, f2::bpchar as f2n
+  from bpchar_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::character(14) as f114, f1::bpchar as f1n,\n    f2, f2::character(14) as f214, f' at line 3")
+
+-----------
+QUERY:
+
+
+-- \d+ bpchar_view
+
+explain (verbose, costs off) select * from bpchar_view
+  where f1::bpchar = 'foo';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off) select * from bpchar_view\n  where f1::bpchar = 'foo'' at line 3")
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+--
+-- Ordinarily, IN/NOT IN can be converted to a ScalarArrayOpExpr
+-- with a suitably-chosen array type.
+--
+explain (verbose, costs off)
+select random() IN (1, 4, 8.0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect random() IN (1, 4, 8.0)' at line 5")
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+select random()::int IN (1, 4, 8.0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect random()::int IN (1, 4, 8.0)' at line 1")
+
+-----------
+QUERY:
+
+-- However, if there/* REPLACED */''s not a common supertype for the IN elements,
+-- we should instead try to produce /* REPLACED */''x = v1 OR x = v2 OR .../* REPLACED */''.
+-- In most cases that/* REPLACED */''ll fail for lack of all the requisite = operators,
+-- but it can succeed sometimes.  So this should complain about lack of
+-- an = operator, not about cast failure.
+select '(0,0)'::point in ('(0,0,0,0)'::box, point(0,0));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::point in ('(0,0,0,0)'::box, point(0,0))' at line 6")
+
+-----------
+QUERY:
+
+
+
+--
+-- Tests for ScalarArrayOpExpr with a hashfn
+--
+
+-- create a stable function so that the tests below are not
+-- evaluated using the planner/* REPLACED */''s constant folding.
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function return_int_input(int) returns int as $$
+begin
+	return $1;
+end;
+$$ language plpgsql stable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) returns int as $$\nbegin\n\treturn $1;\nend;\n$$ language plpgsql stable' at line 1")
+
+-----------
+QUERY:
+
+
+create function return_text_input(text) returns text as $$
+begin
+	return $1;
+end;
+$$ language plpgsql stable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') returns text as $$\nbegin\n\treturn $1;\nend;\n$$ language plpgsql stable' at line 1")
+
+-----------
+QUERY:
+
+
+select return_int_input(1) in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) in (10, 9, 2, 8, 3, 7, 4, 6, 5, null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) in (null, null, null, null, null, null, null, null, null, null, null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1, null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(null::int) in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int) in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1)' at line 1")
+
+-----------
+QUERY:
+
+select return_int_input(null::int) in (10, 9, 2, 8, 3, 7, 4, 6, 5, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int) in (10, 9, 2, 8, 3, 7, 4, 6, 5, null)' at line 1")
+
+-----------
+QUERY:
+
+select return_text_input('a') in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_text_input does not exist')
+
+-----------
+QUERY:
+
+-- NOT IN
+select return_int_input(1) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, 0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, 2, null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1, null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(1) not in (null, null, null, null, null, null, null, null, null, null, null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_int_input does not exist')
+
+-----------
+QUERY:
+
+select return_int_input(null::int) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, 1)' at line 1")
+
+-----------
+QUERY:
+
+select return_int_input(null::int) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int) not in (10, 9, 2, 8, 3, 7, 4, 6, 5, null)' at line 1")
+
+-----------
+QUERY:
+
+select return_text_input('a') not in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.return_text_input does not exist')
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test with non-strict equality function.
+-- We need to create our own type for this.
+
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create type myint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type myint' at line 1")
+
+-----------
+QUERY:
+
+create function myintin(cstring) returns myint strict immutable language
+  internal as 'int4in';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') returns myint strict immutable language\n  internal as 'int4in'' at line 1")
+
+-----------
+QUERY:
+
+create function myintout(myint) returns cstring strict immutable language
+  internal as 'int4out';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') returns cstring strict immutable language\n  internal as 'int4out'' at line 1")
+
+-----------
+QUERY:
+
+create function myinthash(myint) returns integer strict immutable language
+  internal as 'hashint4';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') returns integer strict immutable language\n  internal as 'hashint4'' at line 1")
+
+-----------
+QUERY:
+
+
+create type myint (input = myintin, output = myintout, like = int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type myint (input = myintin, output = myintout, like = int4)' at line 1")
+
+-----------
+QUERY:
+
+
+create cast (int4 as myint) without function;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cast (int4 as myint) without function' at line 1")
+
+-----------
+QUERY:
+
+create cast (myint as int4) without function;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cast (myint as int4) without function' at line 1")
+
+-----------
+QUERY:
+
+
+create function myinteq(myint, myint) returns bool as $$
+begin
+  if $1 is null and $2 is null then
+    return true;
+  else
+    return $1::int = $2::int;
+  end if;
+end;
+$$ language plpgsql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', myint) returns bool as $$\nbegin\n  if $1 is null and $2 is null then\n    return' at line 1")
+
+-----------
+QUERY:
+
+
+create function myintne(myint, myint) returns bool as $$
+begin
+  return not myinteq($1, $2);
+end;
+$$ language plpgsql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', myint) returns bool as $$\nbegin\n  return not myinteq($1, $2);\nend;\n$$ language' at line 1")
+
+-----------
+QUERY:
+
+
+create operator = (
+  leftarg    = myint,
+  rightarg   = myint,
+  commutator = =,
+  negator    = <>,
+  procedure  = myinteq,
+  restrict   = eqsel,
+  join       = eqjoinsel,
+  merges
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator = (\n  leftarg    = myint,\n  rightarg   = myint,\n  commutator = =,\n  neg' at line 1")
+
+-----------
+QUERY:
+
+
+create operator <> (
+  leftarg    = myint,
+  rightarg   = myint,
+  commutator = <>,
+  negator    = =,
+  procedure  = myintne,
+  restrict   = eqsel,
+  join       = eqjoinsel,
+  merges
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator <> (\n  leftarg    = myint,\n  rightarg   = myint,\n  commutator = <>,\n  n' at line 1")
+
+-----------
+QUERY:
+
+
+create operator class myint_ops
+default for type myint using hash as
+  operator    1   =  (myint, myint),
+  function    1   myinthash(myint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator class myint_ops\ndefault for type myint using hash as\n  operator    1   ' at line 1")
+
+-----------
+QUERY:
+
+
+create table inttest (a myint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myint)' at line 1")
+
+-----------
+QUERY:
+
+insert into inttest values(1::myint),(null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint),(null)' at line 1")
+
+-----------
+QUERY:
+
+
+-- try an array with enough elements to cause hashing
+select * from inttest where a in (1::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint,' at line 2")
+
+-----------
+QUERY:
+
+select * from inttest where a not in (1::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint,' at line 1")
+
+-----------
+QUERY:
+
+select * from inttest where a not in (0::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint,' at line 1")
+
+-----------
+QUERY:
+
+-- ensure the result matched with the non-hashed version.  We simply remove
+-- some array elements so that we don/* REPLACED */''t reach the hashing threshold.
+select * from inttest where a in (1::myint,2::myint,3::myint,4::myint,5::myint, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint,2::myint,3::myint,4::myint,5::myint, null)' at line 3")
+
+-----------
+QUERY:
+
+select * from inttest where a not in (1::myint,2::myint,3::myint,4::myint,5::myint, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint,2::myint,3::myint,4::myint,5::myint, null)' at line 1")
+
+-----------
+QUERY:
+
+select * from inttest where a not in (0::myint,2::myint,3::myint,4::myint,5::myint, null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::myint,2::myint,3::myint,4::myint,5::myint, null)' at line 1")
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	[]

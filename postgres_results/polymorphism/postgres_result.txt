@@ -1,0 +1,4031 @@
+
+-----------
+QUERY:
+--
+-- Tests for polymorphic SQL functions and aggregates based on them.
+-- Tests for other features related to function-calling have snuck in, too.
+--
+
+create function polyf(x anyelement) returns anyelement as $$
+  select x + 1
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(42) as int, polyf(4.5) as num;
+RESULT:
+	[(43, Decimal('5.5'))]
+
+-----------
+QUERY:
+
+select polyf(point(3,4));
+RESULT:
+	ERROR - operator does not exist: point + integer
+LINE 2:   select x + 1
+                   ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  
+  select x + 1
+
+CONTEXT:  SQL function "polyf" during inlining
+
+
+-----------
+QUERY:
+  -- fail for lack of + operator
+
+drop function polyf(x anyelement);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(x anyelement) returns anyarray as $$
+  select array[x + 1, x + 2]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(42) as int, polyf(4.5) as num;
+RESULT:
+	[([43, 44], [Decimal('5.5'), Decimal('6.5')])]
+
+-----------
+QUERY:
+
+
+drop function polyf(x anyelement);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(x anyarray) returns anyelement as $$
+  select x[1]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(array[2,4]) as int, polyf(array[4.5, 7.7]) as num;
+RESULT:
+	[(2, Decimal('4.5'))]
+
+-----------
+QUERY:
+
+
+select polyf(stavalues1) from pg_statistic;
+RESULT:
+	ERROR - cannot determine element type of "anyarray" argument
+
+
+-----------
+QUERY:
+  -- fail, can/* REPLACED */''t infer element type
+
+drop function polyf(x anyarray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(x anyarray) returns anyarray as $$
+  select x
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(array[2,4]) as int, polyf(array[4.5, 7.7]) as num;
+RESULT:
+	[([2, 4], [Decimal('4.5'), Decimal('7.7')])]
+
+-----------
+QUERY:
+
+
+select polyf(stavalues1) from pg_statistic;
+RESULT:
+	ERROR - return type anyarray is not supported for SQL functions
+CONTEXT:  SQL function "polyf" during inlining
+
+
+-----------
+QUERY:
+  -- fail, can/* REPLACED */''t infer element type
+
+drop function polyf(x anyarray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail, can/* REPLACED */''t infer type:
+create function polyf(x anyelement) returns anyrange as $$
+  select array[x + 1, x + 2]
+$$ language sql;
+RESULT:
+	ERROR - cannot determine result data type
+DETAIL:  A result of type anyrange requires at least one input of type anyrange or anymultirange.
+
+
+-----------
+QUERY:
+
+
+create function polyf(x anyrange) returns anyarray as $$
+  select array[lower(x), upper(x)]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(int4range(42, 49)) as int, polyf(float8range(4.5, 7.8)) as num;
+RESULT:
+	[([42, 49], [4.5, 7.8])]
+
+-----------
+QUERY:
+
+
+drop function polyf(x anyrange);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(x anycompatible, y anycompatible) returns anycompatiblearray as $$
+  select array[x, y]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(2, 4) as int, polyf(2, 4.5) as num;
+RESULT:
+	[([2, 4], [Decimal('2'), Decimal('4.5')])]
+
+-----------
+QUERY:
+
+
+drop function polyf(x anycompatible, y anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(x anycompatiblerange, y anycompatible, z anycompatible) returns anycompatiblearray as $$
+  select array[lower(x), upper(x), y, z]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(int4range(42, 49), 11, 2::smallint) as int, polyf(float8range(4.5, 7.8), 7.8, 11::real) as num;
+RESULT:
+	[([42, 49, 11, 2], [4.5, 7.8, 7.8, 11.0])]
+
+-----------
+QUERY:
+
+
+select polyf(int4range(42, 49), 11, 4.5) as fail;
+RESULT:
+	ERROR - function polyf(int4range, integer, numeric) does not exist
+LINE 3: select polyf(int4range(42, 49), 11, 4.5) as fail;
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- range type doesn/* REPLACED */''t fit
+
+drop function polyf(x anycompatiblerange, y anycompatible, z anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(x anycompatiblemultirange, y anycompatible, z anycompatible) returns anycompatiblearray as $$
+  select array[lower(x), upper(x), y, z]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(multirange(int4range(42, 49)), 11, 2::smallint) as int, polyf(multirange(float8range(4.5, 7.8)), 7.8, 11::real) as num;
+RESULT:
+	[([42, 49, 11, 2], [4.5, 7.8, 7.8, 11.0])]
+
+-----------
+QUERY:
+
+
+select polyf(multirange(int4range(42, 49)), 11, 4.5) as fail;
+RESULT:
+	ERROR - function polyf(int4multirange, integer, numeric) does not exist
+LINE 3: select polyf(multirange(int4range(42, 49)), 11, 4.5) as fail...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- range type doesn/* REPLACED */''t fit
+
+drop function polyf(x anycompatiblemultirange, y anycompatible, z anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail, can/* REPLACED */''t infer type:
+create function polyf(x anycompatible) returns anycompatiblerange as $$
+  select array[x + 1, x + 2]
+$$ language sql;
+RESULT:
+	ERROR - cannot determine result data type
+DETAIL:  A result of type anycompatiblerange requires at least one input of type anycompatiblerange or anycompatiblemultirange.
+
+
+-----------
+QUERY:
+
+
+create function polyf(x anycompatiblerange, y anycompatiblearray) returns anycompatiblerange as $$
+  select x
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(int4range(42, 49), array[11]) as int, polyf(float8range(4.5, 7.8), array[7]) as num;
+RESULT:
+	[(NumericRange(42, 49, '[)'), '[4.5,7.8)')]
+
+-----------
+QUERY:
+
+
+drop function polyf(x anycompatiblerange, y anycompatiblearray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail, can/* REPLACED */''t infer type:
+create function polyf(x anycompatible) returns anycompatiblemultirange as $$
+  select array[x + 1, x + 2]
+$$ language sql;
+RESULT:
+	ERROR - cannot determine result data type
+DETAIL:  A result of type anycompatiblemultirange requires at least one input of type anycompatiblerange or anycompatiblemultirange.
+
+
+-----------
+QUERY:
+
+
+create function polyf(x anycompatiblemultirange, y anycompatiblearray) returns anycompatiblemultirange as $$
+  select x
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select polyf(multirange(int4range(42, 49)), array[11]) as int, polyf(multirange(float8range(4.5, 7.8)), array[7]) as num;
+RESULT:
+	[('{[42,49)}', '{[4.5,7.8)}')]
+
+-----------
+QUERY:
+
+
+drop function polyf(x anycompatiblemultirange, y anycompatiblearray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(a anyelement, b anyarray,
+                      c anycompatible, d anycompatible,
+                      OUT x anyarray, OUT y anycompatiblearray)
+as $$
+  select a || b, array[c, d]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from polyf(11, array[1, 2], 42, 34.5);
+RESULT:
+	[([11, 1, 2], 'integer[]', [Decimal('42'), Decimal('34.5')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from polyf(11, array[1, 2], point(1,2), point(3,4));
+RESULT:
+	[([11, 1, 2], 'integer[]', '{"(1,2)","(3,4)"}', 'point[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from polyf(11, '{1,2}', point(1,2), '(3,4)');
+RESULT:
+	[([11, 1, 2], 'integer[]', '{"(1,2)","(3,4)"}', 'point[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from polyf(11, array[1, 2.2], 42, 34.5);
+RESULT:
+	ERROR - function polyf(integer, numeric[], integer, numeric) does not exist
+LINE 3:   from polyf(11, array[1, 2.2], 42, 34.5);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function polyf(a anyelement, b anyarray,
+                    c anycompatible, d anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function polyf(anyrange) returns anymultirange
+as 'select multirange($1);
+RESULT:
+	ERROR - unterminated quoted string at or near "'select multirange($1);"
+LINE 4: as 'select multirange($1);
+           ^
+
+
+-----------
+QUERY:
+' language sql;
+RESULT:
+	ERROR - unterminated quoted string at or near "' language sql;"
+LINE 1: ' language sql;
+        ^
+
+
+-----------
+QUERY:
+
+
+select polyf(int4range(1,10));
+RESULT:
+	ERROR - function polyf(int4range) does not exist
+LINE 3: select polyf(int4range(1,10));
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+select polyf(null);
+RESULT:
+	ERROR - function polyf(unknown) does not exist
+LINE 2: select polyf(null);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+drop function polyf(anyrange);
+RESULT:
+	ERROR - function polyf(anyrange) does not exist
+
+
+-----------
+QUERY:
+
+
+create function polyf(anymultirange) returns anyelement
+as 'select lower($1);
+RESULT:
+	ERROR - unterminated quoted string at or near "'select lower($1);"
+LINE 4: as 'select lower($1);
+           ^
+
+
+-----------
+QUERY:
+' language sql;
+RESULT:
+	ERROR - unterminated quoted string at or near "' language sql;"
+LINE 1: ' language sql;
+        ^
+
+
+-----------
+QUERY:
+
+
+select polyf(int4multirange(int4range(1,10), int4range(20,30)));
+RESULT:
+	ERROR - function polyf(int4multirange) does not exist
+LINE 3: select polyf(int4multirange(int4range(1,10), int4range(20,30...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+select polyf(null);
+RESULT:
+	ERROR - function polyf(unknown) does not exist
+LINE 2: select polyf(null);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+drop function polyf(anymultirange);
+RESULT:
+	ERROR - function polyf(anymultirange) does not exist
+
+
+-----------
+QUERY:
+
+
+create function polyf(anycompatiblerange) returns anycompatiblemultirange
+as 'select multirange($1);
+RESULT:
+	ERROR - unterminated quoted string at or near "'select multirange($1);"
+LINE 4: as 'select multirange($1);
+           ^
+
+
+-----------
+QUERY:
+' language sql;
+RESULT:
+	ERROR - unterminated quoted string at or near "' language sql;"
+LINE 1: ' language sql;
+        ^
+
+
+-----------
+QUERY:
+
+
+select polyf(int4range(1,10));
+RESULT:
+	ERROR - function polyf(int4range) does not exist
+LINE 3: select polyf(int4range(1,10));
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+select polyf(null);
+RESULT:
+	ERROR - function polyf(unknown) does not exist
+LINE 2: select polyf(null);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+drop function polyf(anycompatiblerange);
+RESULT:
+	ERROR - function polyf(anycompatiblerange) does not exist
+
+
+-----------
+QUERY:
+
+
+create function polyf(anymultirange) returns anyrange
+as 'select range_merge($1);
+RESULT:
+	ERROR - unterminated quoted string at or near "'select range_merge($1);"
+LINE 4: as 'select range_merge($1);
+           ^
+
+
+-----------
+QUERY:
+' language sql;
+RESULT:
+	ERROR - unterminated quoted string at or near "' language sql;"
+LINE 1: ' language sql;
+        ^
+
+
+-----------
+QUERY:
+
+
+select polyf(int4multirange(int4range(1,10), int4range(20,30)));
+RESULT:
+	ERROR - function polyf(int4multirange) does not exist
+LINE 3: select polyf(int4multirange(int4range(1,10), int4range(20,30...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+select polyf(null);
+RESULT:
+	ERROR - function polyf(unknown) does not exist
+LINE 2: select polyf(null);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+drop function polyf(anymultirange);
+RESULT:
+	ERROR - function polyf(anymultirange) does not exist
+
+
+-----------
+QUERY:
+
+
+create function polyf(anycompatiblemultirange) returns anycompatiblerange
+as 'select range_merge($1);
+RESULT:
+	ERROR - unterminated quoted string at or near "'select range_merge($1);"
+LINE 4: as 'select range_merge($1);
+           ^
+
+
+-----------
+QUERY:
+' language sql;
+RESULT:
+	ERROR - unterminated quoted string at or near "' language sql;"
+LINE 1: ' language sql;
+        ^
+
+
+-----------
+QUERY:
+
+
+select polyf(int4multirange(int4range(1,10), int4range(20,30)));
+RESULT:
+	ERROR - function polyf(int4multirange) does not exist
+LINE 3: select polyf(int4multirange(int4range(1,10), int4range(20,30...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+select polyf(null);
+RESULT:
+	ERROR - function polyf(unknown) does not exist
+LINE 2: select polyf(null);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+drop function polyf(anycompatiblemultirange);
+RESULT:
+	ERROR - function polyf(anycompatiblemultirange) does not exist
+
+
+-----------
+QUERY:
+
+
+create function polyf(anycompatiblemultirange) returns anycompatible
+as 'select lower($1);
+RESULT:
+	ERROR - unterminated quoted string at or near "'select lower($1);"
+LINE 4: as 'select lower($1);
+           ^
+
+
+-----------
+QUERY:
+' language sql;
+RESULT:
+	ERROR - unterminated quoted string at or near "' language sql;"
+LINE 1: ' language sql;
+        ^
+
+
+-----------
+QUERY:
+
+
+select polyf(int4multirange(int4range(1,10), int4range(20,30)));
+RESULT:
+	ERROR - function polyf(int4multirange) does not exist
+LINE 3: select polyf(int4multirange(int4range(1,10), int4range(20,30...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+select polyf(null);
+RESULT:
+	ERROR - function polyf(unknown) does not exist
+LINE 2: select polyf(null);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+drop function polyf(anycompatiblemultirange);
+RESULT:
+	ERROR - function polyf(anycompatiblemultirange) does not exist
+
+
+-----------
+QUERY:
+
+
+
+--
+-- Polymorphic aggregate tests
+--
+-- Legend:
+-----------
+-- A = type is ANY
+-- P = type is polymorphic
+-- N = type is non-polymorphic
+-- B = aggregate base type
+-- S = aggregate state type
+-- R = aggregate return type
+-- 1 = arg1 of a function
+-- 2 = arg2 of a function
+-- ag = aggregate
+-- tf = trans (state) function
+-- ff = final function
+-- rt = return type of a function
+-- -> = implies
+-- => = allowed
+-- !> = not allowed
+-- E  = exists
+-- NE = not-exists
+--
+-- Possible states:
+-- ----------------
+-- B = (A || P || N)
+--   when (B = A) -> (tf2 = NE)
+-- S = (P || N)
+-- ff = (E || NE)
+-- tf1 = (P || N)
+-- tf2 = (NE || P || N)
+-- R = (P || N)
+
+-- create functions for use as tf and ff with the needed combinations of
+-- argument polymorphism, but within the constraints of valid aggregate
+-- functions, i.e. tf arg1 and tf return type must match
+
+-- polymorphic single arg transfn
+CREATE FUNCTION stfp(anyarray) RETURNS anyarray AS
+'select $1' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- non-polymorphic single arg transfn
+CREATE FUNCTION stfnp(int[]) RETURNS int[] AS
+'select $1' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- dual polymorphic transfn
+CREATE FUNCTION tfp(anyarray,anyelement) RETURNS anyarray AS
+'select $1 || $2' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- dual non-polymorphic transfn
+CREATE FUNCTION tfnp(int[],int) RETURNS int[] AS
+'select $1 || $2' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- arg1 only polymorphic transfn
+CREATE FUNCTION tf1p(anyarray,int) RETURNS anyarray AS
+'select $1' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- arg2 only polymorphic transfn
+CREATE FUNCTION tf2p(int[],anyelement) RETURNS int[] AS
+'select $1' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- multi-arg polymorphic
+CREATE FUNCTION sum3(anyelement,anyelement,anyelement) returns anyelement AS
+'select $1+$2+$3' language sql strict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- finalfn polymorphic
+CREATE FUNCTION ffp(anyarray) RETURNS anyarray AS
+'select $1' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- finalfn non-polymorphic
+CREATE FUNCTION ffnp(int[]) returns int[] as
+'select $1' LANGUAGE SQL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Try to cover all the possible states:
+--
+-- Note: in Cases 1 & 2, we are trying to return P. Therefore, if the transfn
+-- is stfnp, tfnp, or tf2p, we must use ffp as finalfn, because stfnp, tfnp,
+-- and tf2p do not return P. Conversely, in Cases 3 & 4, we are trying to
+-- return N. Therefore, if the transfn is stfp, tfp, or tf1p, we must use ffnp
+-- as finalfn, because stfp, tfp, and tf1p do not return N.
+--
+--     Case1 (R = P) && (B = A)
+--     ------------------------
+--     S    tf1
+--     -------
+--     N    N
+-- should CREATE
+CREATE AGGREGATE myaggp01a(*) (SFUNC = stfnp, STYPE = int4[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--     P    N
+-- should ERROR: stfnp(anyarray) not matched by stfnp(int[])
+CREATE AGGREGATE myaggp02a(*) (SFUNC = stfnp, STYPE = anyarray,
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--     N    P
+-- should CREATE
+CREATE AGGREGATE myaggp03a(*) (SFUNC = stfp, STYPE = int4[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp03b(*) (SFUNC = stfp, STYPE = int4[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--     P    P
+-- should ERROR: we have no way to resolve S
+CREATE AGGREGATE myaggp04a(*) (SFUNC = stfp, STYPE = anyarray,
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp04b(*) (SFUNC = stfp, STYPE = anyarray,
+  INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+
+--    Case2 (R = P) && ((B = P) || (B = N))
+--    -------------------------------------
+--    S    tf1      B    tf2
+--    -----------------------
+--    N    N        N    N
+-- should CREATE
+CREATE AGGREGATE myaggp05a(BASETYPE = int, SFUNC = tfnp, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    N        N    P
+-- should CREATE
+CREATE AGGREGATE myaggp06a(BASETYPE = int, SFUNC = tf2p, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    N        P    N
+-- should ERROR: tfnp(int[], anyelement) not matched by tfnp(int[], int)
+CREATE AGGREGATE myaggp07a(BASETYPE = anyelement, SFUNC = tfnp, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - function tfnp(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    N    N        P    P
+-- should CREATE
+CREATE AGGREGATE myaggp08a(BASETYPE = anyelement, SFUNC = tf2p, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    P        N    N
+-- should CREATE
+CREATE AGGREGATE myaggp09a(BASETYPE = int, SFUNC = tf1p, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp09b(BASETYPE = int, SFUNC = tf1p, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    P        N    P
+-- should CREATE
+CREATE AGGREGATE myaggp10a(BASETYPE = int, SFUNC = tfp, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp10b(BASETYPE = int, SFUNC = tfp, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    P        P    N
+-- should ERROR: tf1p(int[],anyelement) not matched by tf1p(anyarray,int)
+CREATE AGGREGATE myaggp11a(BASETYPE = anyelement, SFUNC = tf1p, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - function tf1p(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp11b(BASETYPE = anyelement, SFUNC = tf1p, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	ERROR - function tf1p(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    N    P        P    P
+-- should ERROR: tfp(int[],anyelement) not matched by tfp(anyarray,anyelement)
+CREATE AGGREGATE myaggp12a(BASETYPE = anyelement, SFUNC = tfp, STYPE = int[],
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - function tfp(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp12b(BASETYPE = anyelement, SFUNC = tfp, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	ERROR - function tfp(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    N        N    N
+-- should ERROR: tfnp(anyarray, int) not matched by tfnp(int[],int)
+CREATE AGGREGATE myaggp13a(BASETYPE = int, SFUNC = tfnp, STYPE = anyarray,
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    N        N    P
+-- should ERROR: tf2p(anyarray, int) not matched by tf2p(int[],anyelement)
+CREATE AGGREGATE myaggp14a(BASETYPE = int, SFUNC = tf2p, STYPE = anyarray,
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    N        P    N
+-- should ERROR: tfnp(anyarray, anyelement) not matched by tfnp(int[],int)
+CREATE AGGREGATE myaggp15a(BASETYPE = anyelement, SFUNC = tfnp,
+  STYPE = anyarray, FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - function tfnp(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    N        P    P
+-- should ERROR: tf2p(anyarray, anyelement) not matched by tf2p(int[],anyelement)
+CREATE AGGREGATE myaggp16a(BASETYPE = anyelement, SFUNC = tf2p,
+  STYPE = anyarray, FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - function tf2p(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    P        N    N
+-- should ERROR: we have no way to resolve S
+CREATE AGGREGATE myaggp17a(BASETYPE = int, SFUNC = tf1p, STYPE = anyarray,
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp17b(BASETYPE = int, SFUNC = tf1p, STYPE = anyarray,
+  INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    P        N    P
+-- should ERROR: tfp(anyarray, int) not matched by tfp(anyarray, anyelement)
+CREATE AGGREGATE myaggp18a(BASETYPE = int, SFUNC = tfp, STYPE = anyarray,
+  FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp18b(BASETYPE = int, SFUNC = tfp, STYPE = anyarray,
+  INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    P        P    N
+-- should ERROR: tf1p(anyarray, anyelement) not matched by tf1p(anyarray, int)
+CREATE AGGREGATE myaggp19a(BASETYPE = anyelement, SFUNC = tf1p,
+  STYPE = anyarray, FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	ERROR - function tf1p(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp19b(BASETYPE = anyelement, SFUNC = tf1p,
+  STYPE = anyarray, INITCOND = '{}');
+RESULT:
+	ERROR - function tf1p(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    P        P    P
+-- should CREATE
+CREATE AGGREGATE myaggp20a(BASETYPE = anyelement, SFUNC = tfp,
+  STYPE = anyarray, FINALFUNC = ffp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggp20b(BASETYPE = anyelement, SFUNC = tfp,
+  STYPE = anyarray, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--     Case3 (R = N) && (B = A)
+--     ------------------------
+--     S    tf1
+--     -------
+--     N    N
+-- should CREATE
+CREATE AGGREGATE myaggn01a(*) (SFUNC = stfnp, STYPE = int4[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn01b(*) (SFUNC = stfnp, STYPE = int4[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--     P    N
+-- should ERROR: stfnp(anyarray) not matched by stfnp(int[])
+CREATE AGGREGATE myaggn02a(*) (SFUNC = stfnp, STYPE = anyarray,
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn02b(*) (SFUNC = stfnp, STYPE = anyarray,
+  INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--     N    P
+-- should CREATE
+CREATE AGGREGATE myaggn03a(*) (SFUNC = stfp, STYPE = int4[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--     P    P
+-- should ERROR: ffnp(anyarray) not matched by ffnp(int[])
+CREATE AGGREGATE myaggn04a(*) (SFUNC = stfp, STYPE = anyarray,
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+
+--    Case4 (R = N) && ((B = P) || (B = N))
+--    -------------------------------------
+--    S    tf1      B    tf2
+--    -----------------------
+--    N    N        N    N
+-- should CREATE
+CREATE AGGREGATE myaggn05a(BASETYPE = int, SFUNC = tfnp, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn05b(BASETYPE = int, SFUNC = tfnp, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    N        N    P
+-- should CREATE
+CREATE AGGREGATE myaggn06a(BASETYPE = int, SFUNC = tf2p, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn06b(BASETYPE = int, SFUNC = tf2p, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    N        P    N
+-- should ERROR: tfnp(int[], anyelement) not matched by tfnp(int[], int)
+CREATE AGGREGATE myaggn07a(BASETYPE = anyelement, SFUNC = tfnp, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function tfnp(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn07b(BASETYPE = anyelement, SFUNC = tfnp, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	ERROR - function tfnp(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    N    N        P    P
+-- should CREATE
+CREATE AGGREGATE myaggn08a(BASETYPE = anyelement, SFUNC = tf2p, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn08b(BASETYPE = anyelement, SFUNC = tf2p, STYPE = int[],
+  INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    P        N    N
+-- should CREATE
+CREATE AGGREGATE myaggn09a(BASETYPE = int, SFUNC = tf1p, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    P        N    P
+-- should CREATE
+CREATE AGGREGATE myaggn10a(BASETYPE = int, SFUNC = tfp, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--    N    P        P    N
+-- should ERROR: tf1p(int[],anyelement) not matched by tf1p(anyarray,int)
+CREATE AGGREGATE myaggn11a(BASETYPE = anyelement, SFUNC = tf1p, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function tf1p(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    N    P        P    P
+-- should ERROR: tfp(int[],anyelement) not matched by tfp(anyarray,anyelement)
+CREATE AGGREGATE myaggn12a(BASETYPE = anyelement, SFUNC = tfp, STYPE = int[],
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function tfp(integer[], anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    N        N    N
+-- should ERROR: tfnp(anyarray, int) not matched by tfnp(int[],int)
+CREATE AGGREGATE myaggn13a(BASETYPE = int, SFUNC = tfnp, STYPE = anyarray,
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn13b(BASETYPE = int, SFUNC = tfnp, STYPE = anyarray,
+  INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    N        N    P
+-- should ERROR: tf2p(anyarray, int) not matched by tf2p(int[],anyelement)
+CREATE AGGREGATE myaggn14a(BASETYPE = int, SFUNC = tf2p, STYPE = anyarray,
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn14b(BASETYPE = int, SFUNC = tf2p, STYPE = anyarray,
+  INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    N        P    N
+-- should ERROR: tfnp(anyarray, anyelement) not matched by tfnp(int[],int)
+CREATE AGGREGATE myaggn15a(BASETYPE = anyelement, SFUNC = tfnp,
+  STYPE = anyarray, FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function tfnp(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn15b(BASETYPE = anyelement, SFUNC = tfnp,
+  STYPE = anyarray, INITCOND = '{}');
+RESULT:
+	ERROR - function tfnp(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    N        P    P
+-- should ERROR: tf2p(anyarray, anyelement) not matched by tf2p(int[],anyelement)
+CREATE AGGREGATE myaggn16a(BASETYPE = anyelement, SFUNC = tf2p,
+  STYPE = anyarray, FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function tf2p(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+CREATE AGGREGATE myaggn16b(BASETYPE = anyelement, SFUNC = tf2p,
+  STYPE = anyarray, INITCOND = '{}');
+RESULT:
+	ERROR - function tf2p(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    P        N    N
+-- should ERROR: ffnp(anyarray) not matched by ffnp(int[])
+CREATE AGGREGATE myaggn17a(BASETYPE = int, SFUNC = tf1p, STYPE = anyarray,
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    P        N    P
+-- should ERROR: tfp(anyarray, int) not matched by tfp(anyarray, anyelement)
+CREATE AGGREGATE myaggn18a(BASETYPE = int, SFUNC = tfp, STYPE = anyarray,
+  FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - cannot determine transition data type
+DETAIL:  A result of type anyarray requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
+
+
+-----------
+QUERY:
+
+
+--    P    P        P    N
+-- should ERROR: tf1p(anyarray, anyelement) not matched by tf1p(anyarray, int)
+CREATE AGGREGATE myaggn19a(BASETYPE = anyelement, SFUNC = tf1p,
+  STYPE = anyarray, FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function tf1p(anyarray, anyelement) does not exist
+
+
+-----------
+QUERY:
+
+
+--    P    P        P    P
+-- should ERROR: ffnp(anyarray) not matched by ffnp(int[])
+CREATE AGGREGATE myaggn20a(BASETYPE = anyelement, SFUNC = tfp,
+  STYPE = anyarray, FINALFUNC = ffnp, INITCOND = '{}');
+RESULT:
+	ERROR - function ffnp(anyarray) does not exist
+
+
+-----------
+QUERY:
+
+
+-- multi-arg polymorphic
+CREATE AGGREGATE mysum2(anyelement,anyelement) (SFUNC = sum3,
+  STYPE = anyelement, INITCOND = '0');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- create test data for polymorphic aggregates
+create temp table t(f1 int, f2 int[], f3 text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(1,array[1],'a');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(1,array[11],'b');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(1,array[111],'c');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(2,array[2],'a');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(2,array[22],'b');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(2,array[222],'c');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(3,array[3],'a');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into t values(3,array[3],'b');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test the successfully created polymorphic aggregates
+select f3, myaggp01a(*) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp03a(*) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp03b(*) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp05a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggp06a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp08a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp09a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp09b(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggp10a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggp10b(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggp20a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggp20b(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggn01a(*) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn01b(*) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn03a(*) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn05a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggn05b(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select f3, myaggn06a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn06b(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn08a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn08b(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn09a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', []), ('b', []), ('c', [])]
+
+-----------
+QUERY:
+
+select f3, myaggn10a(f1) from t group by f3 order by f3;
+RESULT:
+	[('a', [1, 2, 3]), ('b', [1, 2, 3]), ('c', [1, 2])]
+
+-----------
+QUERY:
+
+select mysum2(f1, f1 + 1) from t;
+RESULT:
+	[(38,)]
+
+-----------
+QUERY:
+
+
+-- test inlining of polymorphic SQL functions
+create function bleat(int) returns int as $$
+begin
+  raise notice 'bleat %', $1;
+  return $1;
+end$$ language plpgsql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function sql_if(bool, anyelement, anyelement) returns anyelement as $$
+select case when $1 then $2 else $3 end $$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Note this would fail with integer overflow, never mind wrong bleat() output,
+-- if the CASE expression were not successfully inlined
+select f1, sql_if(f1 > 0, bleat(f1), bleat(f1 + 1)) from int4_tbl;
+RESULT:
+	[(0, 1), (123456, 123456), (-123456, -123455), (2147483647, 2147483647), (-2147483647, -2147483646)]
+
+-----------
+QUERY:
+
+
+select q2, sql_if(q2 > 0, q2, q2 + 1) from int8_tbl;
+RESULT:
+	[(456, 456), (4567890123456789, 4567890123456789), (123, 123), (4567890123456789, 4567890123456789), (-4567890123456789, -4567890123456788)]
+
+-----------
+QUERY:
+
+
+-- another sort of polymorphic aggregate
+
+CREATE AGGREGATE array_larger_accum (anyarray)
+(
+    sfunc = array_larger,
+    stype = anyarray,
+    initcond = '{}'
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT array_larger_accum(i)
+FROM (VALUES (ARRAY[1,2]), (ARRAY[3,4])) as t(i);
+RESULT:
+	[([3, 4],)]
+
+-----------
+QUERY:
+
+
+SELECT array_larger_accum(i)
+FROM (VALUES (ARRAY[row(1,2),row(3,4)]), (ARRAY[row(5,6),row(7,8)])) as t(i);
+RESULT:
+	[('{"(5,6)","(7,8)"}',)]
+
+-----------
+QUERY:
+
+
+-- another kind of polymorphic aggregate
+
+create function add_group(grp anyarray, ad anyelement, size integer)
+  returns anyarray
+  as $$
+begin
+  if grp is null then
+    return array[ad];
+  end if;
+  if array_upper(grp, 1) < size then
+    return grp || ad;
+  end if;
+  return grp;
+end;
+$$
+  language plpgsql immutable;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create aggregate build_group(anyelement, integer) (
+  SFUNC = add_group,
+  STYPE = anyarray
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select build_group(q1,3) from int8_tbl;
+RESULT:
+	[([123, 123, 4567890123456789],)]
+
+-----------
+QUERY:
+
+
+-- this should fail because stype isn/* REPLACED */''t compatible with arg
+create aggregate build_group(int8, integer) (
+  SFUNC = add_group,
+  STYPE = int2[]
+);
+RESULT:
+	ERROR - function add_group(smallint[], bigint, integer) does not exist
+
+
+-----------
+QUERY:
+
+
+-- but we can make a non-poly agg from a poly sfunc if types are OK
+create aggregate build_group(int8, integer) (
+  SFUNC = add_group,
+  STYPE = int8[]
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check proper resolution of data types for polymorphic transfn/finalfn
+
+create function first_el_transfn(anyarray, anyelement) returns anyarray as
+'select $1 || $2' language sql immutable;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function first_el(anyarray) returns anyelement as
+'select $1[1]' language sql strict immutable;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create aggregate first_el_agg_f8(float8) (
+  SFUNC = array_append,
+  STYPE = float8[],
+  FINALFUNC = first_el
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create aggregate first_el_agg_any(anyelement) (
+  SFUNC = first_el_transfn,
+  STYPE = anyarray,
+  FINALFUNC = first_el
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select first_el_agg_f8(x::float8) from generate_series(1,10) x;
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+select first_el_agg_any(x) from generate_series(1,10) x;
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select first_el_agg_f8(x::float8) over(order by x) from generate_series(1,10) x;
+RESULT:
+	[(1.0,), (1.0,), (1.0,), (1.0,), (1.0,), (1.0,), (1.0,), (1.0,), (1.0,), (1.0,)]
+
+-----------
+QUERY:
+
+select first_el_agg_any(x) over(order by x) from generate_series(1,10) x;
+RESULT:
+	[(1,), (1,), (1,), (1,), (1,), (1,), (1,), (1,), (1,), (1,)]
+
+-----------
+QUERY:
+
+
+-- check that we can apply functions taking ANYARRAY to pg_stats
+select distinct array_ndims(histogram_bounds) from pg_stats
+where histogram_bounds is not null;
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+
+-- such functions must protect themselves if varying element type isn/* REPLACED */''t OK
+-- (WHERE clause here is to avoid possibly getting a collation error instead)
+select max(histogram_bounds) from pg_stats where tablename = 'pg_am';
+RESULT:
+	ERROR - cannot compare arrays of different element types
+
+
+-----------
+QUERY:
+
+
+-- another corner case is the input functions for polymorphic pseudotypes
+select array_in('{1,2,3}','int4'::regtype,-1);
+RESULT:
+	[('{1,2,3}',)]
+
+-----------
+QUERY:
+  -- this has historically worked
+select * from array_in('{1,2,3}','int4'::regtype,-1);
+RESULT:
+	ERROR - function "array_in" in FROM has unsupported return type anyarray
+LINE 2: select * from array_in('{1,2,3}','int4'::regtype,-1);
+                      ^
+
+
+-----------
+QUERY:
+  -- this not
+select anyrange_in('[10,20)','int4range'::regtype,-1);
+RESULT:
+	ERROR - cannot accept a value of type anyrange
+
+
+-----------
+QUERY:
+
+
+-- test variadic polymorphic functions
+
+create function myleast(variadic anyarray) returns anyelement as $$
+  select min($1[i]) from generate_subscripts($1,1) g(i)
+$$ language sql immutable strict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select myleast(10, 1, 20, 33);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select myleast(1.1, 0.22, 0.55);
+RESULT:
+	[(Decimal('0.22'),)]
+
+-----------
+QUERY:
+
+select myleast('z'::text);
+RESULT:
+	[('z',)]
+
+-----------
+QUERY:
+
+select myleast();
+RESULT:
+	ERROR - function myleast() does not exist
+LINE 2: select myleast();
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail
+
+-- test with variadic call parameter
+select myleast(variadic array[1,2,3,4,-1]);
+RESULT:
+	[(-1,)]
+
+-----------
+QUERY:
+
+select myleast(variadic array[1.1, -5.5]);
+RESULT:
+	[(Decimal('-5.5'),)]
+
+-----------
+QUERY:
+
+
+--test with empty variadic call parameter
+select myleast(variadic array[]::int[]);
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+-- an example with some ordinary arguments too
+create function concat(text, variadic anyarray) returns text as $$
+  select array_to_string($2, $1);
+$$ language sql immutable strict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select concat('%', 1, 2, 3, 4, 5);
+RESULT:
+	[('1%2%3%4%5',)]
+
+-----------
+QUERY:
+
+select concat('|', 'a'::text, 'b', 'c');
+RESULT:
+	[('a|b|c',)]
+
+-----------
+QUERY:
+
+select concat('|', variadic array[1,2,33]);
+RESULT:
+	[('1|2|33',)]
+
+-----------
+QUERY:
+
+select concat('|', variadic array[]::int[]);
+RESULT:
+	[('',)]
+
+-----------
+QUERY:
+
+
+drop function concat(text, anyarray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- mix variadic with anyelement
+create function formarray(anyelement, variadic anyarray) returns anyarray as $$
+  select array_prepend($1, $2);
+$$ language sql immutable strict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select formarray(1,2,3,4,5);
+RESULT:
+	[([1, 2, 3, 4, 5],)]
+
+-----------
+QUERY:
+
+select formarray(1.1, variadic array[1.2,55.5]);
+RESULT:
+	[([Decimal('1.1'), Decimal('1.2'), Decimal('55.5')],)]
+
+-----------
+QUERY:
+
+select formarray(1.1, array[1.2,55.5]);
+RESULT:
+	ERROR - function formarray(numeric, numeric[]) does not exist
+LINE 2: select formarray(1.1, array[1.2,55.5]);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail without variadic
+select formarray(1, 'x'::text);
+RESULT:
+	ERROR - function formarray(integer, text) does not exist
+LINE 2: select formarray(1, 'x'::text);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail, type mismatch
+select formarray(1, variadic array['x'::text]);
+RESULT:
+	ERROR - function formarray(integer, text[]) does not exist
+LINE 2: select formarray(1, variadic array['x'::text]);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail, type mismatch
+
+drop function formarray(anyelement, variadic anyarray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test pg_typeof() function
+select pg_typeof(null);
+RESULT:
+	[('unknown',)]
+
+-----------
+QUERY:
+           -- unknown
+select pg_typeof(0);
+RESULT:
+	[('integer',)]
+
+-----------
+QUERY:
+              -- integer
+select pg_typeof(0.0);
+RESULT:
+	[('numeric',)]
+
+-----------
+QUERY:
+            -- numeric
+select pg_typeof(1+1 = 2);
+RESULT:
+	[('boolean',)]
+
+-----------
+QUERY:
+        -- boolean
+select pg_typeof('x');
+RESULT:
+	[('unknown',)]
+
+-----------
+QUERY:
+            -- unknown
+select pg_typeof('' || '');
+RESULT:
+	[('text',)]
+
+-----------
+QUERY:
+       -- text
+select pg_typeof(pg_typeof(0));
+RESULT:
+	[('regtype',)]
+
+-----------
+QUERY:
+   -- regtype
+select pg_typeof(array[1.2,55.5]);
+RESULT:
+	[('numeric[]',)]
+
+-----------
+QUERY:
+ -- numeric[]
+select pg_typeof(myleast(10, 1, 20, 33));
+RESULT:
+	[('integer',)]
+
+-----------
+QUERY:
+  -- polymorphic input
+
+-- test functions with default parameters
+
+-- test basic functionality
+create function dfunc(a int = 1, int = 2) returns int as $$
+  select $1 + $2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc();
+RESULT:
+	[(3,)]
+
+-----------
+QUERY:
+
+select dfunc(10);
+RESULT:
+	[(12,)]
+
+-----------
+QUERY:
+
+select dfunc(10, 20);
+RESULT:
+	[(30,)]
+
+-----------
+QUERY:
+
+select dfunc(10, 20, 30);
+RESULT:
+	ERROR - function dfunc(integer, integer, integer) does not exist
+LINE 2: select dfunc(10, 20, 30);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function dfunc();
+RESULT:
+	ERROR - function dfunc() does not exist
+
+
+-----------
+QUERY:
+  -- fail
+drop function dfunc(int);
+RESULT:
+	ERROR - function dfunc(integer) does not exist
+
+
+-----------
+QUERY:
+  -- fail
+drop function dfunc(int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- ok
+
+-- fail: defaults must be at end of argument list
+create function dfunc(a int = 1, b int) returns int as $$
+  select $1 + $2;
+$$ language sql;
+RESULT:
+	ERROR - input parameters after one with a default value must also have defaults
+
+
+-----------
+QUERY:
+
+
+-- however, this should work:
+create function dfunc(a int = 1, out sum int, b int = 2) as $$
+  select $1 + $2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc();
+RESULT:
+	[(3,)]
+
+-----------
+QUERY:
+
+
+-- verify it lists properly
+-- \df dfunc
+
+drop function dfunc(int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check implicit coercion
+create function dfunc(a int DEFAULT 1.0, int DEFAULT '-1') returns int as $$
+  select $1 + $2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select dfunc();
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+
+create function dfunc(a text DEFAULT 'Hello', b text DEFAULT 'World') returns text as $$
+  select $1 || ', ' || $2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc();
+RESULT:
+	ERROR - function dfunc() is not unique
+LINE 3: select dfunc();
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail: which dfunc should be called? int or text
+select dfunc('Hi');
+RESULT:
+	[('Hi, World',)]
+
+-----------
+QUERY:
+  -- ok
+select dfunc('Hi', 'City');
+RESULT:
+	[('Hi, City',)]
+
+-----------
+QUERY:
+  -- ok
+select dfunc(0);
+RESULT:
+	[(-1,)]
+
+-----------
+QUERY:
+  -- ok
+select dfunc(10, 20);
+RESULT:
+	[(30,)]
+
+-----------
+QUERY:
+  -- ok
+
+drop function dfunc(int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop function dfunc(text, text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function dfunc(int = 1, int = 2) returns int as $$
+  select 2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function dfunc(int = 1, int = 2, int = 3, int = 4) returns int as $$
+  select 4;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Now, dfunc(nargs = 2) and dfunc(nargs = 4) are ambiguous when called
+-- with 0 to 2 arguments.
+
+select dfunc();
+RESULT:
+	ERROR - function dfunc() is not unique
+LINE 6: select dfunc();
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select dfunc(1);
+RESULT:
+	ERROR - function dfunc(integer) is not unique
+LINE 2: select dfunc(1);
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select dfunc(1, 2);
+RESULT:
+	ERROR - function dfunc(integer, integer) is not unique
+LINE 2: select dfunc(1, 2);
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select dfunc(1, 2, 3);
+RESULT:
+	[(4,)]
+
+-----------
+QUERY:
+  -- ok
+select dfunc(1, 2, 3, 4);
+RESULT:
+	[(4,)]
+
+-----------
+QUERY:
+  -- ok
+
+drop function dfunc(int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop function dfunc(int, int, int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- default values are not allowed for output parameters
+create function dfunc(out int = 20) returns int as $$
+  select 1;
+$$ language sql;
+RESULT:
+	ERROR - only input parameters can have default values
+
+
+-----------
+QUERY:
+
+
+-- polymorphic parameter test
+create function dfunc(anyelement = 'World'::text) returns text as $$
+  select 'Hello, ' || $1::text;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc();
+RESULT:
+	[('Hello, World',)]
+
+-----------
+QUERY:
+
+select dfunc(0);
+RESULT:
+	[('Hello, 0',)]
+
+-----------
+QUERY:
+
+select dfunc(to_date('20081215','YYYYMMDD'));
+RESULT:
+	[('Hello, 2008-12-15',)]
+
+-----------
+QUERY:
+
+select dfunc('City'::text);
+RESULT:
+	[('Hello, City',)]
+
+-----------
+QUERY:
+
+
+drop function dfunc(anyelement);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check defaults for variadics
+
+create function dfunc(a variadic int[]) returns int as
+$$ select array_upper($1, 1) $$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc();
+RESULT:
+	ERROR - function dfunc() does not exist
+LINE 3: select dfunc();
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select dfunc(10);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc(10,20);
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+
+create or replace function dfunc(a variadic int[] default array[]::int[]) returns int as
+$$ select array_upper($1, 1) $$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc();
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+  -- now ok
+select dfunc(10);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc(10,20);
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t remove the default once it exists
+create or replace function dfunc(a variadic int[]) returns int as
+$$ select array_upper($1, 1) $$ language sql;
+RESULT:
+	ERROR - cannot remove parameter defaults from existing function
+HINT:  Use DROP FUNCTION dfunc(integer[]) first.
+
+
+-----------
+QUERY:
+
+
+-- \df dfunc
+
+drop function dfunc(a variadic int[]);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Ambiguity should be reported only if there/* REPLACED */''s not a better match available
+
+create function dfunc(int = 1, int = 2, int = 3) returns int as $$
+  select 3;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function dfunc(int = 1, int = 2) returns int as $$
+  select 2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function dfunc(text) returns text as $$
+  select $1;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- dfunc(narg=2) and dfunc(narg=3) are ambiguous
+select dfunc(1);
+RESULT:
+	ERROR - function dfunc(integer) is not unique
+LINE 4: select dfunc(1);
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+-- but this works since the ambiguous functions aren/* REPLACED */''t preferred anyway
+select dfunc('Hi');
+RESULT:
+	[('Hi',)]
+
+-----------
+QUERY:
+
+
+drop function dfunc(int, int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop function dfunc(int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop function dfunc(text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Tests for named- and mixed-notation function calling
+--
+
+create function dfunc(a int, b int, c int = 0, d int = 0)
+  returns table (a int, b int, c int, d int) as $$
+  select $1, $2, $3, $4;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select (dfunc(10,20,30)).*;
+RESULT:
+	[(10, 20, 30, 0)]
+
+-----------
+QUERY:
+
+select (dfunc(a := 10, b := 20, c := 30)).*;
+RESULT:
+	[(10, 20, 30, 0)]
+
+-----------
+QUERY:
+
+select * from dfunc(a := 10, b := 20);
+RESULT:
+	[(10, 20, 0, 0)]
+
+-----------
+QUERY:
+
+select * from dfunc(b := 10, a := 20);
+RESULT:
+	[(20, 10, 0, 0)]
+
+-----------
+QUERY:
+
+select * from dfunc(0);
+RESULT:
+	ERROR - function dfunc(integer) does not exist
+LINE 2: select * from dfunc(0);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select * from dfunc(1,2);
+RESULT:
+	[(1, 2, 0, 0)]
+
+-----------
+QUERY:
+
+select * from dfunc(1,2,c := 3);
+RESULT:
+	[(1, 2, 3, 0)]
+
+-----------
+QUERY:
+
+select * from dfunc(1,2,d := 3);
+RESULT:
+	[(1, 2, 0, 3)]
+
+-----------
+QUERY:
+
+
+select * from dfunc(x := 20, b := 10, x := 30);
+RESULT:
+	ERROR - argument name "x" used more than once
+LINE 3: select * from dfunc(x := 20, b := 10, x := 30);
+                                              ^
+
+
+-----------
+QUERY:
+  -- fail, duplicate name
+select * from dfunc(10, b := 20, 30);
+RESULT:
+	ERROR - positional argument cannot follow named argument
+LINE 2: select * from dfunc(10, b := 20, 30);
+                                         ^
+
+
+-----------
+QUERY:
+  -- fail, named args must be last
+select * from dfunc(x := 10, b := 20, c := 30);
+RESULT:
+	ERROR - function dfunc(x => integer, b => integer, c => integer) does not exist
+LINE 2: select * from dfunc(x := 10, b := 20, c := 30);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail, unknown param
+select * from dfunc(10, 10, a := 20);
+RESULT:
+	ERROR - function dfunc(integer, integer, a => integer) does not exist
+LINE 2: select * from dfunc(10, 10, a := 20);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail, a overlaps positional parameter
+select * from dfunc(1,c := 2,d := 3);
+RESULT:
+	ERROR - function dfunc(integer, c => integer, d => integer) does not exist
+LINE 2: select * from dfunc(1,c := 2,d := 3);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail, no value for b
+
+drop function dfunc(int, int, int, int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test with different parameter types
+create function dfunc(a varchar, b numeric, c date = current_date)
+  returns table (a varchar, b numeric, c date) as $$
+  select $1, $2, $3;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select (dfunc('Hello World', 20, '2009-07-25'::date)).*;
+RESULT:
+	[('Hello World', Decimal('20'), datetime.date(2009, 7, 25))]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello World', 20, '2009-07-25'::date);
+RESULT:
+	[('Hello World', Decimal('20'), datetime.date(2009, 7, 25))]
+
+-----------
+QUERY:
+
+select * from dfunc(c := '2009-07-25'::date, a := 'Hello World', b := 20);
+RESULT:
+	[('Hello World', Decimal('20'), datetime.date(2009, 7, 25))]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello World', b := 20, c := '2009-07-25'::date);
+RESULT:
+	[('Hello World', Decimal('20'), datetime.date(2009, 7, 25))]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello World', c := '2009-07-25'::date, b := 20);
+RESULT:
+	[('Hello World', Decimal('20'), datetime.date(2009, 7, 25))]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello World', c := 20, b := '2009-07-25'::date);
+RESULT:
+	ERROR - function dfunc(unknown, c => integer, b => date) does not exist
+LINE 2: select * from dfunc('Hello World', c := 20, b := '2009-07-25...
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function dfunc(varchar, numeric, date);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test out parameters with named params
+create function dfunc(a varchar = 'def a', out _a varchar, c numeric = NULL, out _c numeric)
+returns record as $$
+  select $1, $2;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select (dfunc()).*;
+RESULT:
+	[('def a', None)]
+
+-----------
+QUERY:
+
+select * from dfunc();
+RESULT:
+	[('def a', None)]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello', 100);
+RESULT:
+	[('Hello', Decimal('100'))]
+
+-----------
+QUERY:
+
+select * from dfunc(a := 'Hello', c := 100);
+RESULT:
+	[('Hello', Decimal('100'))]
+
+-----------
+QUERY:
+
+select * from dfunc(c := 100, a := 'Hello');
+RESULT:
+	[('Hello', Decimal('100'))]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello');
+RESULT:
+	[('Hello', None)]
+
+-----------
+QUERY:
+
+select * from dfunc('Hello', c := 100);
+RESULT:
+	[('Hello', Decimal('100'))]
+
+-----------
+QUERY:
+
+select * from dfunc(c := 100);
+RESULT:
+	[('def a', Decimal('100'))]
+
+-----------
+QUERY:
+
+
+-- fail, can no longer change an input parameter/* REPLACED */''s name
+create or replace function dfunc(a varchar = 'def a', out _a varchar, x numeric = NULL, out _c numeric)
+returns record as $$
+  select $1, $2;
+$$ language sql;
+RESULT:
+	ERROR - cannot change name of input parameter "c"
+HINT:  Use DROP FUNCTION dfunc(character varying,numeric) first.
+
+
+-----------
+QUERY:
+
+
+create or replace function dfunc(a varchar = 'def a', out _a varchar, numeric = NULL, out _c numeric)
+returns record as $$
+  select $1, $2;
+$$ language sql;
+RESULT:
+	ERROR - cannot change name of input parameter "c"
+HINT:  Use DROP FUNCTION dfunc(character varying,numeric) first.
+
+
+-----------
+QUERY:
+
+
+drop function dfunc(varchar, numeric);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--fail, named parameters are not unique
+create function testpolym(a int, a int) returns int as $$ select 1;$$ language sql;
+RESULT:
+	ERROR - parameter name "a" used more than once
+
+
+-----------
+QUERY:
+
+create function testpolym(int, out a int, out a int) returns int as $$ select 1;$$ language sql;
+RESULT:
+	ERROR - parameter name "a" used more than once
+
+
+-----------
+QUERY:
+
+create function testpolym(out a int, inout a int) returns int as $$ select 1;$$ language sql;
+RESULT:
+	ERROR - parameter name "a" used more than once
+
+
+-----------
+QUERY:
+
+create function testpolym(a int, inout a int) returns int as $$ select 1;$$ language sql;
+RESULT:
+	ERROR - parameter name "a" used more than once
+
+
+-----------
+QUERY:
+
+
+-- valid
+create function testpolym(a int, out a int) returns int as $$ select $1;$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select testpolym(37);
+RESULT:
+	[(37,)]
+
+-----------
+QUERY:
+
+drop function testpolym(int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create function testpolym(a int) returns table(a int) as $$ select $1;$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select * from testpolym(37);
+RESULT:
+	[(37,)]
+
+-----------
+QUERY:
+
+drop function testpolym(int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test polymorphic params and defaults
+create function dfunc(a anyelement, b anyelement = null, flag bool = true)
+returns anyelement as $$
+  select case when $3 then $1 else $2 end;
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select dfunc(1,2);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc('a'::text, 'b');
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- positional notation with default
+
+select dfunc(a := 1, b := 2);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc(a := 'a'::text, b := 'b');
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+
+select dfunc(a := 'a'::text, b := 'b', flag := false);
+RESULT:
+	[('b',)]
+
+-----------
+QUERY:
+ -- named notation
+
+select dfunc(b := 'b'::text, a := 'a');
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- named notation with default
+select dfunc(a := 'a'::text, flag := true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- named notation with default
+select dfunc(a := 'a'::text, flag := false);
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+ -- named notation with default
+select dfunc(b := 'b'::text, a := 'a', flag := true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- named notation
+
+select dfunc('a'::text, 'b', false);
+RESULT:
+	[('b',)]
+
+-----------
+QUERY:
+ -- full positional notation
+select dfunc('a'::text, 'b', flag := false);
+RESULT:
+	[('b',)]
+
+-----------
+QUERY:
+ -- mixed notation
+select dfunc('a'::text, 'b', true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- full positional notation
+select dfunc('a'::text, 'b', flag := true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- mixed notation
+
+-- ansi/sql syntax
+select dfunc(a => 1, b => 2);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc(a => 'a'::text, b => 'b');
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+
+select dfunc(a => 'a'::text, b => 'b', flag => false);
+RESULT:
+	[('b',)]
+
+-----------
+QUERY:
+ -- named notation
+
+select dfunc(b => 'b'::text, a => 'a');
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- named notation with default
+select dfunc(a => 'a'::text, flag => true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- named notation with default
+select dfunc(a => 'a'::text, flag => false);
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+ -- named notation with default
+select dfunc(b => 'b'::text, a => 'a', flag => true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- named notation
+
+select dfunc('a'::text, 'b', false);
+RESULT:
+	[('b',)]
+
+-----------
+QUERY:
+ -- full positional notation
+select dfunc('a'::text, 'b', flag => false);
+RESULT:
+	[('b',)]
+
+-----------
+QUERY:
+ -- mixed notation
+select dfunc('a'::text, 'b', true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- full positional notation
+select dfunc('a'::text, 'b', flag => true);
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+ -- mixed notation
+
+-- this tests lexer edge cases around =>
+select dfunc(a =>-1);
+RESULT:
+	[(-1,)]
+
+-----------
+QUERY:
+
+select dfunc(a =>+1);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc(a =>/**/1);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+select dfunc(a =>--comment to be removed by psql
+  1);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+-- need DO to protect the -- from psql
+do $$
+  declare r integer;
+  begin
+    select dfunc(a=>-- comment
+      1) into r;
+    raise info 'r = %', r;
+  end;
+$$;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check reverse-listing of named-arg calls
+CREATE VIEW dfview AS
+   SELECT q1, q2,
+     dfunc(q1,q2, flag := q1>q2) as c3,
+     dfunc(q1, flag := q1<q2, b := q2) as c4
+     FROM int8_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select * from dfview;
+RESULT:
+	[(123, 456, 456, 123), (123, 4567890123456789, 4567890123456789, 123), (4567890123456789, 123, 4567890123456789, 123), (4567890123456789, 4567890123456789, 4567890123456789, 4567890123456789), (4567890123456789, -4567890123456789, 4567890123456789, -4567890123456789)]
+
+-----------
+QUERY:
+
+
+-- \d+ dfview
+
+drop view dfview;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop function dfunc(anyelement, anyelement, bool);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Tests for ANYCOMPATIBLE polymorphism family
+--
+
+create function anyctest(anycompatible, anycompatible)
+returns anycompatible as $$
+  select greatest($1, $2)
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	[(12, 'integer')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, 12.3) x;
+RESULT:
+	[(Decimal('12.3'), 'numeric')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, point(1,2)) x;
+RESULT:
+	ERROR - function anyctest(integer, point) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, point(1,2)) x;
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest('11', '12.3') x;
+RESULT:
+	[('12.3', 'text')]
+
+-----------
+QUERY:
+  -- defaults to text
+
+drop function anyctest(anycompatible, anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatible, anycompatible)
+returns anycompatiblearray as $$
+  select array[$1, $2]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	[([11, 12], 'integer[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, 12.3) x;
+RESULT:
+	[([Decimal('11'), Decimal('12.3')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, array[1,2]) x;
+RESULT:
+	ERROR - function anyctest(integer, integer[]) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, array[1,2]) x;
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function anyctest(anycompatible, anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatible, anycompatiblearray)
+returns anycompatiblearray as $$
+  select array[$1] || $2
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, array[12]) x;
+RESULT:
+	[([11, 12], 'integer[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, array[12.3]) x;
+RESULT:
+	[([Decimal('11'), Decimal('12.3')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(12.3, array[13]) x;
+RESULT:
+	[([Decimal('12.3'), Decimal('13')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(12.3, '{13,14.4}') x;
+RESULT:
+	[([Decimal('12.3'), Decimal('13'), Decimal('14.4')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, array[point(1,2)]) x;
+RESULT:
+	ERROR - function anyctest(integer, point[]) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, array[point(1,2)]) ...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	ERROR - function anyctest(integer, integer) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, 12) x;
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function anyctest(anycompatible, anycompatiblearray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatible, anycompatiblerange)
+returns anycompatiblerange as $$
+  select $2
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, int4range(4,7)) x;
+RESULT:
+	[(NumericRange(4, 7, '[)'), 'int4range')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, numrange(4,7)) x;
+RESULT:
+	[(NumericRange(Decimal('4'), Decimal('7'), '[)'), 'numrange')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	ERROR - function anyctest(integer, integer) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, 12) x;
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest(11.2, int4range(4,7)) x;
+RESULT:
+	ERROR - function anyctest(numeric, int4range) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11.2, int4range(4,7)) x...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest(11.2, '[4,7)') x;
+RESULT:
+	ERROR - could not determine polymorphic type anycompatiblerange because input has type unknown
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function anyctest(anycompatible, anycompatiblerange);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatiblerange, anycompatiblerange)
+returns anycompatible as $$
+  select lower($1) + upper($2)
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(int4range(11,12), int4range(4,7)) x;
+RESULT:
+	[(18, 'integer')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(int4range(11,12), numrange(4,7)) x;
+RESULT:
+	ERROR - function anyctest(int4range, numrange) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(int4range(11,12), numra...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail
+
+drop function anyctest(anycompatiblerange, anycompatiblerange);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail, can/* REPLACED */''t infer result type:
+create function anyctest(anycompatible)
+returns anycompatiblerange as $$
+  select $1
+$$ language sql;
+RESULT:
+	ERROR - cannot determine result data type
+DETAIL:  A result of type anycompatiblerange requires at least one input of type anycompatiblerange or anycompatiblemultirange.
+
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatible, anycompatiblemultirange)
+returns anycompatiblemultirange as $$
+  select $2
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, multirange(int4range(4,7))) x;
+RESULT:
+	[('{[4,7)}', 'int4multirange')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, multirange(numrange(4,7))) x;
+RESULT:
+	[('{[4,7)}', 'nummultirange')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	ERROR - function anyctest(integer, integer) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, 12) x;
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest(11.2, multirange(int4range(4,7))) x;
+RESULT:
+	ERROR - function anyctest(numeric, int4multirange) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11.2, multirange(int4ra...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest(11.2, '{[4,7)}') x;
+RESULT:
+	ERROR - could not determine polymorphic type anycompatiblemultirange because input has type unknown
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function anyctest(anycompatible, anycompatiblemultirange);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatiblemultirange, anycompatiblemultirange)
+returns anycompatible as $$
+  select lower($1) + upper($2)
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(multirange(int4range(11,12)), multirange(int4range(4,7))) x;
+RESULT:
+	[(18, 'integer')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(multirange(int4range(11,12)), multirange(numrange(4,7))) x;
+RESULT:
+	ERROR - function anyctest(int4multirange, nummultirange) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(multirange(int4range(11...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+ -- fail
+
+drop function anyctest(anycompatiblemultirange, anycompatiblemultirange);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail, can/* REPLACED */''t infer result type:
+create function anyctest(anycompatible)
+returns anycompatiblemultirange as $$
+  select $1
+$$ language sql;
+RESULT:
+	ERROR - cannot determine result data type
+DETAIL:  A result of type anycompatiblemultirange requires at least one input of type anycompatiblerange or anycompatiblemultirange.
+
+
+-----------
+QUERY:
+
+
+create function anyctest(anycompatiblenonarray, anycompatiblenonarray)
+returns anycompatiblearray as $$
+  select array[$1, $2]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	[([11, 12], 'integer[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, 12.3) x;
+RESULT:
+	[([Decimal('11'), Decimal('12.3')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(array[11], array[1,2]) x;
+RESULT:
+	ERROR - function anyctest(integer[], integer[]) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(array[11], array[1,2]) ...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function anyctest(anycompatiblenonarray, anycompatiblenonarray);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(a anyelement, b anyarray,
+                         c anycompatible, d anycompatible)
+returns anycompatiblearray as $$
+  select array[c, d]
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, array[1, 2], 42, 34.5) x;
+RESULT:
+	[([Decimal('42'), Decimal('34.5')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, array[1, 2], point(1,2), point(3,4)) x;
+RESULT:
+	[('{"(1,2)","(3,4)"}', 'point[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, '{1,2}', point(1,2), '(3,4)') x;
+RESULT:
+	[('{"(1,2)","(3,4)"}', 'point[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, array[1, 2.2], 42, 34.5) x;
+RESULT:
+	ERROR - function anyctest(integer, numeric[], integer, numeric) does not exist
+LINE 2: select x, pg_typeof(x) from anyctest(11, array[1, 2.2], 42, ...
+                                    ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+  -- fail
+
+drop function anyctest(a anyelement, b anyarray,
+                       c anycompatible, d anycompatible);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create function anyctest(variadic anycompatiblearray)
+returns anycompatiblearray as $$
+  select $1
+$$ language sql;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+select x, pg_typeof(x) from anyctest(11, 12) x;
+RESULT:
+	[([11, 12], 'integer[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, 12.2) x;
+RESULT:
+	[([Decimal('11'), Decimal('12.2')], 'numeric[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, '12') x;
+RESULT:
+	[([11, 12], 'integer[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(11, '12.2') x;
+RESULT:
+	ERROR - invalid input syntax for type integer: "12.2"
+LINE 2: select x, pg_typeof(x) from anyctest(11, '12.2') x;
+                                                 ^
+
+
+-----------
+QUERY:
+  -- fail
+select x, pg_typeof(x) from anyctest(variadic array[11, 12]) x;
+RESULT:
+	[([11, 12], 'integer[]')]
+
+-----------
+QUERY:
+
+select x, pg_typeof(x) from anyctest(variadic array[11, 12.2]) x;
+RESULT:
+	[([Decimal('11'), Decimal('12.2')], 'numeric[]')]
+
+-----------
+QUERY:
+
+
+drop function anyctest(variadic anycompatiblearray);
+RESULT:
+	[]

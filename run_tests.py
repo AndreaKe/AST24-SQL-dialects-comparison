@@ -3,14 +3,13 @@ import sys, logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import duckdb
-# import pymysql
+import pymysql
 from enum import Enum
 import itertools
 import re
+import math
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
-
-
 
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
 PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
@@ -29,6 +28,7 @@ RESULT_PATH = PG_ABS_BUILDDIR
 COMPARE_TO_EXPECTED_RESULT = False
 GENERATE_EXPECTED = False
 PURGE_TESTS = False
+FLOAT_TOLERANCE=0.001
 
 arguments = sys.argv[1:]
 arg_idx = 0
@@ -42,6 +42,9 @@ while arg_idx < len(arguments):
     elif arguments[arg_idx] in ("--result", "-r") and arg_idx < len(arguments)-1:
         RESULT_PATH = str(arguments[arg_idx+1])
         result_path_set = True
+        arg_idx = arg_idx+1
+    elif arguments[arg_idx] in ("--tol") and arg_idx < len(arguments)-1:
+        FLOAT_TOLERANCE = float(arguments[arg_idx+1])
         arg_idx = arg_idx+1
     elif arguments[arg_idx] in ("--purge", "-p"):
         PURGE_TESTS = True
@@ -87,6 +90,9 @@ class TestResult(object):
 
     def __str__(self):
         return f"{self.test} on {self.dbms} resulted in {self.compatibility.name}"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class QueryResult(object):
@@ -99,31 +105,23 @@ class QueryResult(object):
         self.dbms = dbms
         self.status = status
         self.result = result
-        self.error = error
+        self.error = error   
 
-    def is_result_identical(self, other):
-        # TODO: ignore minor accuracy difference, check ordering for order by queries, handle dict comparison correctly
-        logging.debug("is_result_identical")
-        if self.result == None or other.result == None:
-            return self.result == None and other.result == None
-        if len(self.result) > 0:
-            logging.debug(self.result)
-            if isinstance(self.result[0], dict): # TODO: does not work yet
-                logging.debug("comparing dictionaries")
-                self_list = [[(key, value) for key, value in row.items()]for row in self.result]
-                other_list = [[(key, value) for key, value in row.items()]for row in other.result]
-            else:
-                self_list = self.result
-                other_list = other.result
-            return sorted(self_list, key=lambda x: [(val is None, val) for val in x]) == sorted(other_list, key=lambda x: [(val is None, val) for val in x])
+    def short_str(self):
+        if self.status == QueryStatus.PASS:
+            return f"{self.result}"
         else:
-            return len(other.result) == 0
+            return f"ERROR - {self.error}"     
     
     def __str__(self):
         if self.status == QueryStatus.PASS:
             return f"{self.dbms}: {self.result}"
         else:
             return f"{self.dbms}: ERROR - {self.error}"
+    
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class CompatibilityCaseWrapper(object):
@@ -135,6 +133,9 @@ class CompatibilityCaseWrapper(object):
         self.result = result
 
     def __str__(self):
+        return f"{self.dbms}: {self.result.name}"
+
+    def __repr__(self) -> str:
         return f"{self.dbms}: {self.result.name}"
 
 
@@ -173,7 +174,7 @@ class SQLDialectWrapper(object):
         return QueryResult(self.name, status, result, error)
     
     def create_empty_query_result(self):
-        return self.create_query_result(QueryStatus.PASS, None, None)
+        return self.create_query_result(QueryStatus.PASS, [], None)
     
     def create_error_query_result(self, e):
         return self.create_query_result(QueryStatus.ERROR, None, e)
@@ -297,7 +298,7 @@ class PostgreSQL(SQLDialectWrapper):
         
 
 class MySQL(SQLDialectWrapper):
-    name = "mySQL"
+    name = "mysql"
     db_conn = None
     db_cursor = None
     result_file = None
@@ -313,9 +314,11 @@ class MySQL(SQLDialectWrapper):
 
     def setup_clean_db(self):
         logging.debug("MYSQL: Setup clean database {} with user {} at {}:{}".format(self.DATABASE_NAME, self.DATABASE_USER, self.HOST, self.PORT))
-        con = pymysql.connect(user=self.DATABASE_USER, password="", host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
+        con = pymysql.connect(user=self.DATABASE_USER, password="sao", host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
         # con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        self.db_conn = con
         cur = con.cursor()
+        self.db_cursor = cur
         cur.execute("SHOW DATABASES;")
         db_names = [db[0] for db in cur.fetchall() if db[0] not in ['sys', 'mysql', 'information_schema', 'performance_schema']];
         for db in db_names:
@@ -328,9 +331,11 @@ class MySQL(SQLDialectWrapper):
 
     def setup_connection(self):
         logging.info("MYSQL: Connecting to database {} at {}:{}".format(self.DATABASE_NAME, self.HOST, self.PORT))
-        con = pymysql.connect(user=self.DATABASE_USER, password="", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
+        con = pymysql.connect(user=self.DATABASE_USER, password="sao", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
         #con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        self.db_conn = con
         cur = con.cursor()
+        self.db_cursor = cur
         cur.execute(f"use {self.DATABASE_NAME};")
         return con
 
@@ -373,13 +378,48 @@ def is_guest_dbms(dbms: SQLDialectWrapper, guest_dbms):
     return dbms.name == guest_dbms
 
 
-def compare_single_result(guest_result: QueryResult, host_result: QueryResult):
+def compare_elements(elem1, elem2, tolerance=FLOAT_TOLERANCE):
+    if isinstance(elem1, (int, float)) and isinstance(elem2, (int, float)):
+        if math.isnan(elem1) and math.isnan(elem2):
+            return True
+        return math.isclose(elem1, elem2, abs_tol=tolerance)
+    elif isinstance(elem1, (list, tuple)) and isinstance(elem2, (list, tuple)):
+        if len(elem1) != len(elem2):
+            return False
+        return all(compare_elements(a, b, tolerance) for a, b in zip(elem1, elem2))
+    elif isinstance(elem1, dict) and isinstance(elem2, dict):
+        if elem1.keys() != elem2.keys():
+            return False
+        return all(compare_elements(elem1[key], elem2[key], tolerance) for key in elem1)
+    else:
+        return elem1 == elem2
+    
+def is_result_identical(guest_result, host_result, is_ordered)-> bool:
+    logging.debug("is_result_identical")
+    if guest_result == None or host_result == None:
+        return guest_result == None and host_result == None
+    elif len(guest_result) == 0 or len(host_result) == 0:
+        return len(guest_result) == 0 and len(host_result) == 0
+    elif is_ordered:
+        return compare_elements(guest_result, host_result)
+    else:
+        logging.debug(guest_result)
+        if isinstance(guest_result[0], dict):
+            logging.debug("comparing dictionaries")
+            self_list = [[(key, value) for key, value in row.items()]for row in guest_result]
+            other_list = [[(key, value) for key, value in row.items()]for row in host_result]
+        else:
+            self_list = guest_result
+            other_list = host_result
+        return compare_elements(sorted(self_list, key=lambda x: [(val is None, val) for val in x]), sorted(other_list, key=lambda x: [(val is None, val) for val in x]))
+
+def compare_single_result(guest_result: QueryResult, host_result: QueryResult, is_ordered=False):
     try:
         if guest_result.status !=  host_result.status:
             return CompatibilityCase.ERROR
         elif guest_result.status == CompatibilityCase.ERROR:
             return CompatibilityCase.SAME
-        elif guest_result.is_result_identical(host_result): # TODO: what if the order matters?
+        elif is_result_identical(guest_result.result, host_result.result, is_ordered):
             return CompatibilityCase.SAME
         else:
             return CompatibilityCase.DIFFERENT
@@ -387,8 +427,11 @@ def compare_single_result(guest_result: QueryResult, host_result: QueryResult):
         logging.error(f"Could not compare results. {e}")
         return CompatibilityCase.ERROR
 
+def is_ordered(query: str)-> bool:
+    pattern = re.compile(r'[\s\(;\[\)\]]{}[\s\(;\[\)\]]'.format(re.escape("order by"), re.IGNORECASE))
+    return re.search(pattern, query) is not None
 
-def compare_results(results, guest_dbms):
+def compare_results(results, guest_dbms, is_ordered):
     guest_results = [r for r in results if r.dbms == guest_dbms]
     hosts_results = [r for r in results if r.dbms != guest_dbms]
 
@@ -401,7 +444,7 @@ def compare_results(results, guest_dbms):
     comp_cases = []
 
     for h in hosts_results:
-        cc = compare_single_result(guest_result, h)
+        cc = compare_single_result(guest_result, h, is_ordered)
         comp_cases.append(CompatibilityCaseWrapper(h.dbms, cc))
     return comp_cases
 
@@ -473,11 +516,11 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
                 logging.debug(f"\nExecuting query:  {query}")
                 curr_results = []
                 for dialect in sql_dialects:
-                    result = dialect.exec_query(query)
+                    result = dialect.exec_query(transform_to_executable_query(query))
                     curr_results.append(result)
                     logging.debug(f"RESULT: {result}")
 
-                compare_results(curr_results, guest_dbms)
+                compare_results(curr_results, guest_dbms, is_ordered(query))
 
         except StopIteration:
             break
@@ -519,16 +562,15 @@ def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
                 curr_results = []
                 for dialect in sql_dialects:
                     dialect.write_to_result_file(query_string)
-                    result = dialect.exec_query(query)
-                    result_string = f"RESULT:\n\t{result}\n"
-                    logging.debug(result_string)
-                    dialect.write_to_result_file(result_string)
+                    result = dialect.exec_query(transform_to_executable_query(query))
+                    logging.debug(f"RESULT:\n\t{result}\n")
+                    dialect.write_to_result_file(f"RESULT:\n\t{result.short_str()}\n")
                     curr_results.append(result)
-
-                comp_cases = compare_results(curr_results, guest_dbms)
+                # print(f"curr result: {pprint.pformat(curr_results)}")
+                comp_cases = compare_results(curr_results, guest_dbms, is_ordered(query))
                 all_results.append(comp_cases)
-                logging.info("COMPATIBILITY: {}\n".format([str(cc) for cc in comp_cases]))
-                write_to_summary_file(summary_file, "RESULT: {}\n".format([str(cc) for cc in comp_cases]))
+                logging.info("COMPATIBILITY: {}\n".format(comp_cases))
+                write_to_summary_file(summary_file, "RESULT: {}\n".format(comp_cases))
         except StopIteration:
             break
 
@@ -592,12 +634,6 @@ def get_query_string(query_iter):
         except StopIteration as e:
             logging.error(f"Index out of bounds. Query: {query}")
             raise e
-        
-    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
-                query = query.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
-                query = query.replace('PG_LIBDIR', PG_LIBDIR)
-                query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
-                query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
 
     try:
         peek = next(query_iter)
@@ -606,6 +642,13 @@ def get_query_string(query_iter):
     except StopIteration:
         return f"{query}", query_iter # no semicolon here
 
+def transform_to_executable_query(query: str) -> str:
+    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
+                query = query.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
+                query = query.replace('PG_LIBDIR', PG_LIBDIR)
+                query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
+                query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
+    return query
 
 def execute_single_test(test_folder, result_folder):
     if not os.path.exists(result_folder):
@@ -619,11 +662,6 @@ def execute_single_test(test_folder, result_folder):
     logging.debug(f"Dialects: {dialects}\n")
 
     execute_setup_sql(dialects, test_folder + "/setup.sql", result_folder, False) 
-
-    for dialect in dialects:
-        if dialect.name == "postgres":
-            dialect.db_cursor.execute("SELECT pg_catalog.set_config('search_path', 'public', false);")
-        # TODO check if we have to do something for other dialects
 
     test_result = execute_test_sql(dialects, test_folder + "/test.sql", result_folder)
 
@@ -704,7 +742,7 @@ def purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove):
                 continue
 
             if query.strip() != '':
-                result = dialect.exec_query(query)
+                result = dialect.exec_query(transform_to_executable_query(query))
                 logging.debug(f"Query: {query}\n Result: {result}")
                 if result.status != QueryStatus.ERROR:
                     test_file_stream.write(query)
@@ -753,7 +791,7 @@ def purge_test_sql(dialect, sql_file, expected_file):
                         e_line_idx = e_line_idx + 1
                     e_line_idx = e_line_idx + 1
 
-                result = dialect.exec_query(query)
+                result = dialect.exec_query(transform_to_executable_query(query))
 
                 result_string = f"RESULT:\n\t{result}\n"
 
@@ -813,7 +851,7 @@ def purge_single_test(test_folder):
     unused_names = extract_unused_names(setup_file, test_file)
     unused_names_idx = 0
     names_to_remove = []
-    remove_all = False
+    remove_all = True
 
     # in the first pass we remove readonly and errenous queries
     # in the second pass we try to remove all unused names + all errenous queries
@@ -849,8 +887,10 @@ def purge_single_test(test_folder):
             if len(names_to_remove) == 0:
                 break # base case failed, stop
             elif remove_all: # removing all unused names failed. So, we proceed one by one
-                names_to_remove = [unused_names[unused_names_idx]]
-                unused_names_idx = 1
+                logging.warning("Removing all names failed. Proceed one by one.")
+                names_to_remove = []
+                unused_names_idx = 0
+                remove_all = False
             else:
                 names_to_remove.pop(-1) # removing last name failed, so we do not remove it from now on and continue
         else:
@@ -865,8 +905,8 @@ def purge_single_test(test_folder):
                 os.remove(os.path.join(test_folder, dialect.result_file_name))
             dialect.teardown_connection()
 
-        if len(names_to_remove) == 0: # first try to remove all unused names, if it fails then remove one by one
-            remove_all = True
+        if len(names_to_remove) == 0 and remove_all: # first try to remove all unused names, if it fails then remove one by one
+            print("Try to remove all unused names")
             names_to_remove = [n for n in unused_names]
             unused_names_idx = len(unused_names)
         elif unused_names_idx < len(unused_names):
@@ -882,7 +922,9 @@ def purge_single_test(test_folder):
 def execute_tests_in_folder_rec(test_folder, result_folder):
     logging.info(f"Execute ALL tests in {test_folder} (and all subfolders) and storing results in {result_folder}")
     all_results = []
-    for fname in os.listdir(test_folder):
+    items = os.listdir(test_folder)
+    items.sort()
+    for fname in items:
 
         single_test_path = os.path.join(test_folder, fname)
         logging.debug(f"single test path = {single_test_path}")
@@ -905,9 +947,9 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
 
 def init_dialects(guest_dbms):
     if GENERATE_EXPECTED:
-        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB()] # TODO other SQL dialects here
+        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB(), MySQL()] # TODO other SQL dialects here
         return [d for d in all_dbms if d.name == guest_dbms]
-    return [PostgreSQL('regression', None, None), DuckDB()] 
+    return [PostgreSQL('regression', None, None), DuckDB(), MySQL()] 
 
 
 def compute_overall_summary(all_results, result_folder):

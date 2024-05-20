@@ -1,0 +1,1308 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+-- Test basic TRUNCATE functionality.
+CREATE TABLE truncate_a (col1 integer primary key);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (2);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+-- Roll truncate back
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: SAME, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+-- Commit the truncate this time
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test foreign-key checks
+CREATE TABLE trunc_b (a int REFERENCES truncate_a);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_c (a serial PRIMARY KEY);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_d (a int REFERENCES trunc_c);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_e (a int REFERENCES truncate_a, b int REFERENCES trunc_c);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE truncate_a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE truncate_a,trunc_b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE truncate_a,trunc_b,trunc_e;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+	-- ok
+TRUNCATE TABLE truncate_a,trunc_e;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c,trunc_d;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+	-- ok
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+	-- fail
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a,trunc_b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+	-- ok
+
+TRUNCATE TABLE truncate_a RESTRICT;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- fail
+TRUNCATE TABLE truncate_a CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+
+-- circular references
+ALTER TABLE truncate_a ADD FOREIGN KEY (col1) REFERENCES trunc_c;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Add some data to verify that truncating actually works ...
+INSERT INTO trunc_c VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_b VALUES (1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_d VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_e VALUES (1,1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e,trunc_b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Verify that truncating did actually work
+SELECT * FROM truncate_a
+   UNION ALL
+ SELECT * FROM trunc_c
+   UNION ALL
+ SELECT * FROM trunc_b
+   UNION ALL
+ SELECT * FROM trunc_d;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_e;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+-- Add data again to test TRUNCATE ... CASCADE
+INSERT INTO trunc_c VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_b VALUES (1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_d VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_e VALUES (1,1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_c CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+
+SELECT * FROM truncate_a
+   UNION ALL
+ SELECT * FROM trunc_c
+   UNION ALL
+ SELECT * FROM trunc_b
+   UNION ALL
+ SELECT * FROM trunc_d;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_e;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE truncate_a,trunc_c,trunc_b,trunc_d,trunc_e CASCADE;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test TRUNCATE with inheritance
+
+CREATE TABLE trunc_f (col1 integer primary key);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_f VALUES (1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_f VALUES (2);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_fa (col2a text) INHERITS (trunc_f);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_fa VALUES (3, 'three');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_fb (col2b int) INHERITS (trunc_f);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_fb VALUES (4, 444);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_faa (col3 text) INHERITS (trunc_fa);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_faa VALUES (5, 'five', 'FIVE');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+TRUNCATE trunc_f;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_f;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_fb, ONLY trunc_fa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_fb, trunc_fa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT: [duckdb: SAME, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_f CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test ON TRUNCATE triggers
+
+CREATE TABLE trunc_trigger_test (f1 int, f2 text, f3 text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_trigger_log (tgop text, tglevel text, tgwhen text,
+        tgargv text, tgtable name, rowcount bigint);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION trunctrigger() RETURNS trigger as $$
+declare c bigint;
+begin
+    execute 'select count(*) from ' || quote_ident(tg_table_name) into c;
+    insert into trunc_trigger_log values
+      (TG_OP, TG_LEVEL, TG_WHEN, TG_ARGV[0], tg_table_name, c);
+    return null;
+end;
+$$ LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- basic before trigger
+INSERT INTO trunc_trigger_test VALUES(1, 'foo', 'bar'), (2, 'baz', 'quux');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER t
+BEFORE TRUNCATE ON trunc_trigger_test
+FOR EACH STATEMENT
+EXECUTE PROCEDURE trunctrigger('before trigger truncate');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+TRUNCATE trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TRIGGER t ON trunc_trigger_test;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+truncate trunc_trigger_log;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- same test with an after trigger
+INSERT INTO trunc_trigger_test VALUES(1, 'foo', 'bar'), (2, 'baz', 'quux');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER tt
+AFTER TRUNCATE ON trunc_trigger_test
+FOR EACH STATEMENT
+EXECUTE PROCEDURE trunctrigger('after trigger truncate');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+TRUNCATE trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_trigger_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE trunc_trigger_log;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP FUNCTION trunctrigger();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- test TRUNCATE ... RESTART IDENTITY
+CREATE SEQUENCE truncate_a_id1 START WITH 33;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE truncate_a (id serial,
+                         id1 integer default nextval('truncate_a_id1'));
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER SEQUENCE truncate_a_id1 OWNED BY truncate_a.id1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_a RESTART IDENTITY;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE truncate_b (id int GENERATED ALWAYS AS IDENTITY (START WITH 44));
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_b RESTART IDENTITY;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- check rollback of a RESTART IDENTITY operation
+BEGIN;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a RESTART IDENTITY;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE truncate_a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT nextval('truncate_a_id1');
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- fail, seq should have been dropped
+
+-- partitioned table
+CREATE TABLE truncparted (a int, b char) PARTITION BY LIST (a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- error, can/* REPLACED */''t truncate a partitioned table
+TRUNCATE ONLY truncparted;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE truncparted1 PARTITION OF truncparted FOR VALUES IN (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO truncparted VALUES (1, 'a');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- error, must truncate partitions
+TRUNCATE ONLY truncparted;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+TRUNCATE truncparted;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE truncparted;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- foreign key on partitioned table: partition key is referencing column.
+-- Make sure truncate did execute on all tables
+CREATE FUNCTION tp_ins_data() RETURNS void LANGUAGE plpgsql AS $$
+  BEGIN
+	INSERT INTO truncprim VALUES (1), (100), (150);
+	INSERT INTO truncpart VALUES (1), (100), (150);
+  END
+$$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION tp_chk_data(OUT pktb regclass, OUT pkval int, OUT fktb regclass, OUT fkval int)
+  RETURNS SETOF record LANGUAGE plpgsql AS $$
+  BEGIN
+    RETURN QUERY SELECT
+      pk.tableoid::regclass, pk.a, fk.tableoid::regclass, fk.a
+    FROM truncprim pk FULL JOIN truncpart fk USING (a)
+    ORDER BY 2, 4;
+  END
+$$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE truncprim (a int PRIMARY KEY);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart (a int REFERENCES truncprim)
+  PARTITION BY RANGE (a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_1 PARTITION OF truncpart FOR VALUES FROM (0) TO (100);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2 PARTITION OF truncpart FOR VALUES FROM (100) TO (200)
+  PARTITION BY RANGE (a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2_1 PARTITION OF truncpart_2 FOR VALUES FROM (100) TO (150);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2_d PARTITION OF truncpart_2 DEFAULT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE truncprim;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+	-- should fail
+
+select tp_ins_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- should truncate everything
+TRUNCATE TABLE truncprim, truncpart;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from tp_chk_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+select tp_ins_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- should truncate everything
+TRUNCATE TABLE truncprim CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM tp_chk_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT tp_ins_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- should truncate all partitions
+TRUNCATE TABLE truncpart;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM tp_chk_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE truncprim, truncpart;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION tp_ins_data(), tp_chk_data();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- test cascade when referencing a partitioned table
+CREATE TABLE trunc_a (a INT PRIMARY KEY) PARTITION BY RANGE (a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a1 PARTITION OF trunc_a FOR VALUES FROM (0) TO (10);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a2 PARTITION OF trunc_a FOR VALUES FROM (10) TO (20)
+  PARTITION BY RANGE (a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a21 PARTITION OF trunc_a2 FOR VALUES FROM (10) TO (12);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a22 PARTITION OF trunc_a2 FOR VALUES FROM (12) TO (16);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a2d PARTITION OF trunc_a2 DEFAULT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a3 PARTITION OF trunc_a FOR VALUES FROM (20) TO (30);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO trunc_a VALUES (0), (5), (10), (15), (20), (25);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- truncate a partition cascading to a table
+CREATE TABLE ref_b (
+    b INT PRIMARY KEY,
+    a INT REFERENCES trunc_a(a) ON DELETE CASCADE
+);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO ref_b VALUES (10, 0), (50, 5), (100, 10), (150, 15);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_a1 CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT a FROM ref_b;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE ref_b;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- truncate a partition cascading to a partitioned table
+CREATE TABLE ref_c (
+    c INT PRIMARY KEY,
+    a INT REFERENCES trunc_a(a) ON DELETE CASCADE
+) PARTITION BY RANGE (c);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE ref_c1 PARTITION OF ref_c FOR VALUES FROM (100) TO (200);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE ref_c2 PARTITION OF ref_c FOR VALUES FROM (200) TO (300);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO ref_c VALUES (100, 10), (150, 15), (200, 20), (250, 25);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_a21 CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT a as "from table ref_c" FROM ref_c;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT a as "from table trunc_a" FROM trunc_a ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_a, ref_c;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+=========================================
+Summary for test case truncate/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 59 queries, which is 30.57%
+DIFFERENT: 10 queries, which is 5.18%
+ERROR: 124 queries, which is 64.25%
+
+=================
+Results for mySQL
+SAME: 66 queries, which is 34.20%
+DIFFERENT: 13 queries, which is 6.74%
+ERROR: 114 queries, which is 59.07%

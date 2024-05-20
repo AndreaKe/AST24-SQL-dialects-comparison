@@ -1,0 +1,732 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- CREATE_OPERATOR
+--
+
+CREATE OPERATOR ## (
+   leftarg = path,
+   rightarg = path,
+   function = path_inter,
+   commutator = ##
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE OPERATOR @#@ (
+   rightarg = int8,		-- prefix
+   procedure = factorial
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE OPERATOR #%# (
+   leftarg = int8,		-- fail, postfix is no longer supported
+   procedure = factorial
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test operator created above
+SELECT @#@ 24;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+-- Test comments
+COMMENT ON OPERATOR ###### (NONE, int4) IS 'bad prefix';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+COMMENT ON OPERATOR ###### (int4, NONE) IS 'bad postfix';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+COMMENT ON OPERATOR ###### (int4, int8) IS 'bad infix';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Check that DROP on a nonexistent op behaves sanely, too
+DROP OPERATOR ###### (NONE, int4);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP OPERATOR ###### (int4, NONE);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP OPERATOR ###### (int4, int8);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- => is disallowed as an operator name now
+CREATE OPERATOR => (
+   rightarg = int8,
+   procedure = factorial
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- lexing of <=, >=, <>, != has a number of edge cases
+-- (=> is tested elsewhere)
+
+-- this is legal because ! is not allowed in sql ops
+CREATE OPERATOR !=- (
+   rightarg = int8,
+   procedure = factorial
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT !=- 10;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- postfix operators don/* REPLACED */''t work anymore
+SELECT 10 !=-;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+-- make sure lexer returns != as <> even in edge cases
+SELECT 2 !=/**/ 1, 2 !=/**/ 2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT 2 !=-- comment to be removed by psql
+  1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DO $$ -- use DO to protect -- from psql
+  declare r boolean;
+  begin
+    execute $e$ select 2 !=-- comment
+      1 $e$ into r;
+    raise info 'r = %', r;
+  end;
+$$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- check that <= etc. followed by more operator characters are returned
+-- as the correct token with correct precedence
+SELECT true<>-1 BETWEEN 1 AND 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- BETWEEN has prec. above <> but below Op
+SELECT false<>/**/1 BETWEEN 1 AND 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT false<=-1 BETWEEN 1 AND 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT false>=-1 BETWEEN 1 AND 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT 2<=/**/3, 3>=/**/2, 2<>/**/3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT 3<=/**/2, 2>=/**/3, 2<>/**/2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on SCHEMA
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE SCHEMA schema_op1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT USAGE ON SCHEMA schema_op1 TO PUBLIC;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON SCHEMA schema_op1 FROM regress_rol_op1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SET ROLE regress_rol_op1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR schema_op1.#*# (
+   rightarg = int8,
+   procedure = factorial
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+
+-- Should fail. SETOF type functions not allowed as argument (testing leftarg)
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = SETOF int8,
+   procedure = factorial
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+
+-- Should fail. SETOF type functions not allowed as argument (testing rightarg)
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   rightarg = SETOF int8,
+   procedure = factorial
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+
+-- Should work. Sample text-book case
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OR REPLACE FUNCTION fn_op2(boolean, boolean)
+RETURNS boolean AS $$
+    SELECT NULL::BOOLEAN;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR === (
+    LEFTARG = boolean,
+    RIGHTARG = boolean,
+    PROCEDURE = fn_op2,
+    COMMUTATOR = ===,
+    NEGATOR = !==,
+    RESTRICT = contsel,
+    JOIN = contjoinsel,
+    SORT1, SORT2, LTCMP, GTCMP, HASHES, MERGES
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. Invalid attribute
+CREATE OPERATOR #@%# (
+   rightarg = int8,
+   procedure = factorial,
+   invalid_att = int8
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Should fail. At least rightarg should be mandatorily specified
+CREATE OPERATOR #@%# (
+   procedure = factorial
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. Procedure should be mandatorily specified
+CREATE OPERATOR #@%# (
+   rightarg = int8
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on TYPE
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op3 AS ENUM ('new', 'open', 'closed');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op3(type_op3, int8)
+RETURNS int8 AS $$
+    SELECT NULL::int8;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op3 FROM regress_rol_op3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op3 FROM PUBLIC;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- Need to do this so that regress_rol_op3 is not allowed USAGE via PUBLIC
+SET ROLE regress_rol_op3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = type_op3,
+   rightarg = int8,
+   procedure = fn_op3
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on TYPE (need to check separately for rightarg)
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op4;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op4 AS ENUM ('new', 'open', 'closed');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op4(int8, type_op4)
+RETURNS int8 AS $$
+    SELECT NULL::int8;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op4 FROM regress_rol_op4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op4 FROM PUBLIC;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- Need to do this so that regress_rol_op3 is not allowed USAGE via PUBLIC
+SET ROLE regress_rol_op4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = int8,
+   rightarg = type_op4,
+   procedure = fn_op4
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires EXECUTE on function
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op5;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op5 AS ENUM ('new', 'open', 'closed');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op5(int8, int8)
+RETURNS int8 AS $$
+    SELECT NULL::int8;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE EXECUTE ON FUNCTION fn_op5(int8, int8) FROM regress_rol_op5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE EXECUTE ON FUNCTION fn_op5(int8, int8) FROM PUBLIC;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+-- Need to do this so that regress_rol_op3 is not allowed EXECUTE via PUBLIC
+SET ROLE regress_rol_op5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = int8,
+   rightarg = int8,
+   procedure = fn_op5
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on return TYPE
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op6;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op6 AS ENUM ('new', 'open', 'closed');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op6(int8, int8)
+RETURNS type_op6 AS $$
+    SELECT NULL::type_op6;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op6 FROM regress_rol_op6;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op6 FROM PUBLIC;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- Need to do this so that regress_rol_op3 is not allowed USAGE via PUBLIC
+SET ROLE regress_rol_op6;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = int8,
+   rightarg = int8,
+   procedure = fn_op6
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. An operator cannot be its own negator.
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    negator = ===
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Should fail. An operator cannot be its own negator. Here we check that
+-- this error is detected when replacing a shell operator.
+BEGIN TRANSACTION;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- create a shell operator for ===!!! by referencing it as a commutator
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    commutator = ===!!!
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OPERATOR ===!!! (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4ne,
+    negator = ===!!!
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- test that we can/* REPLACED */''t use part of an existing commutator or negator pair
+-- as a commutator or negator
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    commutator = =
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    negator = <>
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- invalid: non-lowercase quoted identifiers
+CREATE OPERATOR ===
+(
+	"Leftarg" = box,
+	"Rightarg" = box,
+	"Procedure" = area_equal_function,
+	"Commutator" = ===,
+	"Negator" = !==,
+	"Restrict" = area_restriction_function,
+	"Join" = area_join_function,
+	"Hashes",
+	"Merges"
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+=========================================
+Summary for test case create_operator/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 56 queries, which is 62.22%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 34 queries, which is 37.78%
+
+=================
+Results for mySQL
+SAME: 47 queries, which is 52.22%
+DIFFERENT: 1 queries, which is 1.11%
+ERROR: 42 queries, which is 46.67%

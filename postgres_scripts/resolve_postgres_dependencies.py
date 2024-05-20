@@ -18,7 +18,7 @@ PG_ABS_BUILDDIR = "'" + os.environ.get('PG_ABS_BUILDDIR') + "'"
 # print("PG_DLSUFFIX=", PG_DLSUFFIX)
 # print("PG_ABS_BUILDDIR=", PG_ABS_BUILDDIR)
 
-HARDCODE_PATHS = True
+HARDCODE_PATHS = False
 
 for fname in os.listdir(TEST_PATH):
 

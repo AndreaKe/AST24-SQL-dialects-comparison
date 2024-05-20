@@ -1,0 +1,2120 @@
+
+-----------
+QUERY:
+CREATE TABLE brintest_multi (
+	int8col bigint,
+	int2col smallint,
+	int4col integer,
+	oidcol oid,
+	tidcol tid,
+	float4col real,
+	float8col double precision,
+	macaddrcol macaddr,
+	macaddr8col macaddr8,
+	inetcol inet,
+	cidrcol cidr,
+	datecol date,
+	timecol time without time zone,
+	timestampcol timestamp without time zone,
+	timestamptzcol timestamp with time zone,
+	intervalcol interval,
+	timetzcol time with time zone,
+	numericcol numeric,
+	uuidcol uuid,
+	lsncol pg_lsn
+) WITH (fillfactor=10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brintest_multi SELECT
+	142857 * tenthous,
+	thousand,
+	twothousand,
+	unique1::oid,
+	format('(%s,%s)', tenthous, twenty)::tid,
+	(four + 1.0)/(hundred+1),
+	odd::float8 / (tenthous + 1),
+	format('%s:00:%s:00:%s:00', to_hex(odd), to_hex(even), to_hex(hundred))::macaddr,
+	substr(fipshash(unique1::text), 1, 16)::macaddr8,
+	inet '10.2.3.4/24' + tenthous,
+	cidr '10.2.3/24' + tenthous,
+	date '1995-08-15' + tenthous,
+	time '01:20:30' + thousand * interval '18.5 second',
+	timestamp '1942-07-23 03:05:09' + tenthous * interval '36.38 hours',
+	timestamptz '1972-10-10 03:00' + thousand * interval '1 hour',
+	justify_days(justify_hours(tenthous * interval '12 minutes')),
+	timetz '01:30:20+02' + hundred * interval '15 seconds',
+	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
+	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
+	format('%s/%s%s', odd, even, tenthous)::pg_lsn
+FROM tenk1 ORDER BY unique2 LIMIT 100;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- throw in some NULL/* REPLACED */''s and different values
+INSERT INTO brintest_multi (inetcol, cidrcol) SELECT
+	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
+	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
+FROM tenk1 ORDER BY thousand, tenthous LIMIT 25;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test minmax-multi specific index options
+-- number of values must be >= 16
+CREATE INDEX brinidx_multi ON brintest_multi USING brin (
+	int8col int8_minmax_multi_ops(values_per_range = 7)
+);
+RESULT:
+	postgres: ERROR - value 7 out of bounds for option "values_per_range"
+DETAIL:  Valid values are between "8" and "256".
+
+
+-----------
+QUERY:
+
+-- number of values must be <= 256
+CREATE INDEX brinidx_multi ON brintest_multi USING brin (
+	int8col int8_minmax_multi_ops(values_per_range = 257)
+);
+RESULT:
+	postgres: ERROR - value 257 out of bounds for option "values_per_range"
+DETAIL:  Valid values are between "8" and "256".
+
+
+-----------
+QUERY:
+
+
+-- first create an index with a single page range, to force compaction
+-- due to exceeding the number of values per summary
+CREATE INDEX brinidx_multi ON brintest_multi USING brin (
+	int8col int8_minmax_multi_ops,
+	int2col int2_minmax_multi_ops,
+	int4col int4_minmax_multi_ops,
+	oidcol oid_minmax_multi_ops,
+	tidcol tid_minmax_multi_ops,
+	float4col float4_minmax_multi_ops,
+	float8col float8_minmax_multi_ops,
+	macaddrcol macaddr_minmax_multi_ops,
+	macaddr8col macaddr8_minmax_multi_ops,
+	inetcol inet_minmax_multi_ops,
+	cidrcol inet_minmax_multi_ops,
+	datecol date_minmax_multi_ops,
+	timecol time_minmax_multi_ops,
+	timestampcol timestamp_minmax_multi_ops,
+	timestamptzcol timestamptz_minmax_multi_ops,
+	intervalcol interval_minmax_multi_ops,
+	timetzcol timetz_minmax_multi_ops,
+	numericcol numeric_minmax_multi_ops,
+	uuidcol uuid_minmax_multi_ops,
+	lsncol pg_lsn_minmax_multi_ops
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP INDEX brinidx_multi;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX brinidx_multi ON brintest_multi USING brin (
+	int8col int8_minmax_multi_ops,
+	int2col int2_minmax_multi_ops,
+	int4col int4_minmax_multi_ops,
+	oidcol oid_minmax_multi_ops,
+	tidcol tid_minmax_multi_ops,
+	float4col float4_minmax_multi_ops,
+	float8col float8_minmax_multi_ops,
+	macaddrcol macaddr_minmax_multi_ops,
+	macaddr8col macaddr8_minmax_multi_ops,
+	inetcol inet_minmax_multi_ops,
+	cidrcol inet_minmax_multi_ops,
+	datecol date_minmax_multi_ops,
+	timecol time_minmax_multi_ops,
+	timestampcol timestamp_minmax_multi_ops,
+	timestamptzcol timestamptz_minmax_multi_ops,
+	intervalcol interval_minmax_multi_ops,
+	timetzcol timetz_minmax_multi_ops,
+	numericcol numeric_minmax_multi_ops,
+	uuidcol uuid_minmax_multi_ops,
+	lsncol pg_lsn_minmax_multi_ops
+) with (pages_per_range = 1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE brinopers_multi (colname name, typ text,
+	op text[], value text[], matches int[],
+	check (cardinality(op) = cardinality(value)),
+	check (cardinality(op) = cardinality(matches)));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brinopers_multi VALUES
+	('int2col', 'int2',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 800, 999, 999}',
+	 '{100, 100, 1, 100, 100}'),
+	('int2col', 'int4',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 800, 999, 1999}',
+	 '{100, 100, 1, 100, 100}'),
+	('int2col', 'int8',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 800, 999, 1428427143}',
+	 '{100, 100, 1, 100, 100}'),
+	('int4col', 'int2',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 800, 1999, 1999}',
+	 '{100, 100, 1, 100, 100}'),
+	('int4col', 'int4',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 800, 1999, 1999}',
+	 '{100, 100, 1, 100, 100}'),
+	('int4col', 'int8',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 800, 1999, 1428427143}',
+	 '{100, 100, 1, 100, 100}'),
+	('int8col', 'int2',
+	 '{>, >=}',
+	 '{0, 0}',
+	 '{100, 100}'),
+	('int8col', 'int4',
+	 '{>, >=}',
+	 '{0, 0}',
+	 '{100, 100}'),
+	('int8col', 'int8',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 1257141600, 1428427143, 1428427143}',
+	 '{100, 100, 1, 100, 100}'),
+	('oidcol', 'oid',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 8800, 9999, 9999}',
+	 '{100, 100, 1, 100, 100}'),
+	('tidcol', 'tid',
+	 '{>, >=, =, <=, <}',
+	 '{"(0,0)", "(0,0)", "(8800,0)", "(9999,19)", "(9999,19)"}',
+	 '{100, 100, 1, 100, 100}'),
+	('float4col', 'float4',
+	 '{>, >=, =, <=, <}',
+	 '{0.0103093, 0.0103093, 1, 1, 1}',
+	 '{100, 100, 4, 100, 96}'),
+	('float4col', 'float8',
+	 '{>, >=, =, <=, <}',
+	 '{0.0103093, 0.0103093, 1, 1, 1}',
+	 '{100, 100, 4, 100, 96}'),
+	('float8col', 'float4',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 0, 1.98, 1.98}',
+	 '{99, 100, 1, 100, 100}'),
+	('float8col', 'float8',
+	 '{>, >=, =, <=, <}',
+	 '{0, 0, 0, 1.98, 1.98}',
+	 '{99, 100, 1, 100, 100}'),
+	('macaddrcol', 'macaddr',
+	 '{>, >=, =, <=, <}',
+	 '{00:00:01:00:00:00, 00:00:01:00:00:00, 2c:00:2d:00:16:00, ff:fe:00:00:00:00, ff:fe:00:00:00:00}',
+	 '{99, 100, 2, 100, 100}'),
+	('macaddr8col', 'macaddr8',
+	 '{>, >=, =, <=, <}',
+	 '{b1:d1:0e:7b:af:a4:42:12, d9:35:91:bd:f7:86:0e:1e, 72:8f:20:6c:2a:01:bf:57, 23:e8:46:63:86:07:ad:cb, 13:16:8e:6a:2e:6c:84:b4}',
+	 '{31, 17, 1, 11, 4}'),
+	('inetcol', 'inet',
+	 '{=, <, <=, >, >=}',
+	 '{10.2.14.231/24, 255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
+	 '{1, 100, 100, 125, 125}'),
+	('inetcol', 'cidr',
+	 '{<, <=, >, >=}',
+	 '{255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
+	 '{100, 100, 125, 125}'),
+	('cidrcol', 'inet',
+	 '{=, <, <=, >, >=}',
+	 '{10.2.14/24, 255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
+	 '{2, 100, 100, 125, 125}'),
+	('cidrcol', 'cidr',
+	 '{=, <, <=, >, >=}',
+	 '{10.2.14/24, 255.255.255.255, 255.255.255.255, 0.0.0.0, 0.0.0.0}',
+	 '{2, 100, 100, 125, 125}'),
+	('datecol', 'date',
+	 '{>, >=, =, <=, <}',
+	 '{1995-08-15, 1995-08-15, 2009-12-01, 2022-12-30, 2022-12-30}',
+	 '{100, 100, 1, 100, 100}'),
+	('timecol', 'time',
+	 '{>, >=, =, <=, <}',
+	 '{01:20:30, 01:20:30, 02:28:57, 06:28:31.5, 06:28:31.5}',
+	 '{100, 100, 1, 100, 100}'),
+	('timestampcol', 'timestamp',
+	 '{>, >=, =, <=, <}',
+	 '{1942-07-23 03:05:09, 1942-07-23 03:05:09, 1964-03-24 19:26:45, 1984-01-20 22:42:21, 1984-01-20 22:42:21}',
+	 '{100, 100, 1, 100, 100}'),
+	('timestampcol', 'timestamptz',
+	 '{>, >=, =, <=, <}',
+	 '{1942-07-23 03:05:09, 1942-07-23 03:05:09, 1964-03-24 19:26:45, 1984-01-20 22:42:21, 1984-01-20 22:42:21}',
+	 '{100, 100, 1, 100, 100}'),
+	('timestamptzcol', 'timestamptz',
+	 '{>, >=, =, <=, <}',
+	 '{1972-10-10 03:00:00-04, 1972-10-10 03:00:00-04, 1972-10-19 09:00:00-07, 1972-11-20 19:00:00-03, 1972-11-20 19:00:00-03}',
+	 '{100, 100, 1, 100, 100}'),
+	('intervalcol', 'interval',
+	 '{>, >=, =, <=, <}',
+	 '{00:00:00, 00:00:00, 1 mons 13 days 12:24, 2 mons 23 days 07:48:00, 1 year}',
+	 '{100, 100, 1, 100, 100}'),
+	('timetzcol', 'timetz',
+	 '{>, >=, =, <=, <}',
+	 '{01:30:20+02, 01:30:20+02, 01:35:50+02, 23:55:05+02, 23:55:05+02}',
+	 '{99, 100, 2, 100, 100}'),
+	('numericcol', 'numeric',
+	 '{>, >=, =, <=, <}',
+	 '{0.00, 0.01, 2268164.347826086956521739130434782609, 99470151.9, 99470151.9}',
+	 '{100, 100, 1, 100, 100}'),
+	('uuidcol', 'uuid',
+	 '{>, >=, =, <=, <}',
+	 '{00040004-0004-0004-0004-000400040004, 00040004-0004-0004-0004-000400040004, 52225222-5222-5222-5222-522252225222, 99989998-9998-9998-9998-999899989998, 99989998-9998-9998-9998-999899989998}',
+	 '{100, 100, 1, 100, 100}'),
+	('lsncol', 'pg_lsn',
+	 '{>, >=, =, <=, <, IS, IS NOT}',
+	 '{0/1200, 0/1200, 44/455222, 198/1999799, 198/1999799, NULL, NULL}',
+	 '{100, 100, 1, 100, 100, 25, 100}');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DO $x$
+DECLARE
+	r record;
+RESULT:
+	postgres: ERROR - unterminated dollar-quoted string at or near "$x$
+DECLARE
+	r record;"
+LINE 3: DO $x$
+           ^
+
+
+-----------
+QUERY:
+
+	r2 record;
+RESULT:
+	postgres: ERROR - syntax error at or near "r2"
+LINE 2:  r2 record;
+         ^
+
+
+-----------
+QUERY:
+
+	cond text;
+RESULT:
+	postgres: ERROR - syntax error at or near "cond"
+LINE 2:  cond text;
+         ^
+
+
+-----------
+QUERY:
+
+	idx_ctids tid[];
+RESULT:
+	postgres: ERROR - syntax error at or near "idx_ctids"
+LINE 2:  idx_ctids tid[];
+         ^
+
+
+-----------
+QUERY:
+
+	ss_ctids tid[];
+RESULT:
+	postgres: ERROR - syntax error at or near "ss_ctids"
+LINE 2:  ss_ctids tid[];
+         ^
+
+
+-----------
+QUERY:
+
+	count int;
+RESULT:
+	postgres: ERROR - syntax error at or near "count"
+LINE 2:  count int;
+         ^
+
+
+-----------
+QUERY:
+
+	plan_ok bool;
+RESULT:
+	postgres: ERROR - syntax error at or near "plan_ok"
+LINE 2:  plan_ok bool;
+         ^
+
+
+-----------
+QUERY:
+
+	plan_line text;
+RESULT:
+	postgres: ERROR - syntax error at or near "plan_line"
+LINE 2:  plan_line text;
+         ^
+
+
+-----------
+QUERY:
+
+BEGIN
+	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_multi, unnest(op) WITH ORDINALITY AS oper LOOP
+
+		-- prepare the condition
+		IF r.value IS NULL THEN
+			cond := format('%I %s %L', r.colname, r.oper, r.value);
+RESULT:
+	postgres: ERROR - syntax error at or near "FOR"
+LINE 3:  FOR r IN SELECT colname, oper, typ, value[ordinality], matc...
+         ^
+
+
+-----------
+QUERY:
+
+		ELSE
+			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ);
+RESULT:
+	postgres: ERROR - syntax error at or near "ELSE"
+LINE 2:   ELSE
+          ^
+
+
+-----------
+QUERY:
+
+		END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
+              ^
+
+
+-----------
+QUERY:
+
+
+		-- run the query using the brin index
+		SET enable_seqscan = 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SET enable_bitmapscan = 1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+		plan_ok := false;
+RESULT:
+	postgres: ERROR - syntax error at or near "plan_ok"
+LINE 3:   plan_ok := false;
+          ^
+
+
+-----------
+QUERY:
+
+		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
+			IF plan_line LIKE '%Bitmap Heap Scan on brintest_multi%' THEN
+				plan_ok := true;
+RESULT:
+	postgres: ERROR - syntax error at or near "FOR"
+LINE 2:   FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_ag...
+          ^
+
+
+-----------
+QUERY:
+
+			END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:    END IF;
+               ^
+
+
+-----------
+QUERY:
+
+		END LOOP;
+RESULT:
+	postgres: ERROR - syntax error at or near "LOOP"
+LINE 2:   END LOOP;
+              ^
+
+
+-----------
+QUERY:
+
+		IF NOT plan_ok THEN
+			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:   IF NOT plan_ok THEN
+          ^
+
+
+-----------
+QUERY:
+
+		END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
+              ^
+
+
+-----------
+QUERY:
+
+
+		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
+			INTO idx_ctids;
+RESULT:
+	postgres: ERROR - syntax error at or near "INTO"
+LINE 4:    INTO idx_ctids;
+           ^
+
+
+-----------
+QUERY:
+
+
+		-- run the query using a seqscan
+		SET enable_seqscan = 1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SET enable_bitmapscan = 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+		plan_ok := false;
+RESULT:
+	postgres: ERROR - syntax error at or near "plan_ok"
+LINE 3:   plan_ok := false;
+          ^
+
+
+-----------
+QUERY:
+
+		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
+			IF plan_line LIKE '%Seq Scan on brintest_multi%' THEN
+				plan_ok := true;
+RESULT:
+	postgres: ERROR - syntax error at or near "FOR"
+LINE 2:   FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_ag...
+          ^
+
+
+-----------
+QUERY:
+
+			END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:    END IF;
+               ^
+
+
+-----------
+QUERY:
+
+		END LOOP;
+RESULT:
+	postgres: ERROR - syntax error at or near "LOOP"
+LINE 2:   END LOOP;
+              ^
+
+
+-----------
+QUERY:
+
+		IF NOT plan_ok THEN
+			RAISE WARNING 'did not get seqscan plan for %', r;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:   IF NOT plan_ok THEN
+          ^
+
+
+-----------
+QUERY:
+
+		END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
+              ^
+
+
+-----------
+QUERY:
+
+
+		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
+			INTO ss_ctids;
+RESULT:
+	postgres: ERROR - syntax error at or near "INTO"
+LINE 4:    INTO ss_ctids;
+           ^
+
+
+-----------
+QUERY:
+
+
+		-- make sure both return the same results
+		count := array_length(idx_ctids, 1);
+RESULT:
+	postgres: ERROR - syntax error at or near "count"
+LINE 4:   count := array_length(idx_ctids, 1);
+          ^
+
+
+-----------
+QUERY:
+
+
+		IF NOT (count = array_length(ss_ctids, 1) AND
+				idx_ctids @> ss_ctids AND
+				idx_ctids <@ ss_ctids) THEN
+			-- report the results of each scan to make the differences obvious
+			RAISE WARNING 'something not right in %: count %', r, count;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 3:   IF NOT (count = array_length(ss_ctids, 1) AND
+          ^
+
+
+-----------
+QUERY:
+
+			SET enable_seqscan = 1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
+				RAISE NOTICE 'seqscan: %', r2;
+RESULT:
+	postgres: ERROR - syntax error at or near "FOR"
+LINE 2:    FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brinte...
+           ^
+
+
+-----------
+QUERY:
+
+			END LOOP;
+RESULT:
+	postgres: ERROR - syntax error at or near "LOOP"
+LINE 2:    END LOOP;
+               ^
+
+
+-----------
+QUERY:
+
+
+			SET enable_seqscan = 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
+				RAISE NOTICE 'bitmapscan: %', r2;
+RESULT:
+	postgres: ERROR - syntax error at or near "FOR"
+LINE 2:    FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brinte...
+           ^
+
+
+-----------
+QUERY:
+
+			END LOOP;
+RESULT:
+	postgres: ERROR - syntax error at or near "LOOP"
+LINE 2:    END LOOP;
+               ^
+
+
+-----------
+QUERY:
+
+		END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
+              ^
+
+
+-----------
+QUERY:
+
+
+		-- make sure we found expected number of matches
+		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 4:   IF count != r.matches THEN RAISE WARNING 'unexpected numbe...
+          ^
+
+
+-----------
+QUERY:
+ END IF;
+RESULT:
+	postgres: ERROR - syntax error at or near "IF"
+LINE 1:  END IF;
+             ^
+
+
+-----------
+QUERY:
+
+	END LOOP;
+RESULT:
+	postgres: ERROR - syntax error at or near "LOOP"
+LINE 2:  END LOOP;
+             ^
+
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+$x$;
+RESULT:
+	postgres: ERROR - unterminated dollar-quoted string at or near "$x$;"
+LINE 2: $x$;
+        ^
+
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brintest_multi SELECT
+	142857 * tenthous,
+	thousand,
+	twothousand,
+	unique1::oid,
+	format('(%s,%s)', tenthous, twenty)::tid,
+	(four + 1.0)/(hundred+1),
+	odd::float8 / (tenthous + 1),
+	format('%s:00:%s:00:%s:00', to_hex(odd), to_hex(even), to_hex(hundred))::macaddr,
+	substr(fipshash(unique1::text), 1, 16)::macaddr8,
+	inet '10.2.3.4' + tenthous,
+	cidr '10.2.3/24' + tenthous,
+	date '1995-08-15' + tenthous,
+	time '01:20:30' + thousand * interval '18.5 second',
+	timestamp '1942-07-23 03:05:09' + tenthous * interval '36.38 hours',
+	timestamptz '1972-10-10 03:00' + thousand * interval '1 hour',
+	justify_days(justify_hours(tenthous * interval '12 minutes')),
+	timetz '01:30:20' + hundred * interval '15 seconds',
+	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
+	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
+	format('%s/%s%s', odd, even, tenthous)::pg_lsn
+FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+VACUUM brintest_multi;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- force a summarization cycle in brinidx
+
+-- Try inserting a values with NaN, to test distance calculation.
+insert into public.brintest_multi (float4col) values (real 'nan');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into public.brintest_multi (float8col) values (real 'nan');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+UPDATE brintest_multi SET int8col = int8col * int4col;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Test handling of inet netmasks with inet_minmax_multi_ops
+CREATE TABLE brin_test_inet (a inet);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX ON brin_test_inet USING brin (a inet_minmax_multi_ops);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_inet VALUES ('127.0.0.1/0');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_inet VALUES ('0.0.0.0/12');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE brin_test_inet;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Tests for brin_summarize_new_values
+SELECT brin_summarize_new_values('brintest_multi');
+RESULT:
+	postgres: ERROR - "brintest_multi" is not an index
+
+
+-----------
+QUERY:
+ -- error, not an index
+SELECT brin_summarize_new_values('tenk1_unique1');
+RESULT:
+	postgres: ERROR - "tenk1_unique1" is not a BRIN index
+
+
+-----------
+QUERY:
+ -- error, not a BRIN index
+SELECT brin_summarize_new_values('brinidx_multi');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+ -- ok, no change expected
+
+-- Tests for brin_desummarize_range
+SELECT brin_desummarize_range('brinidx_multi', -1);
+RESULT:
+	postgres: ERROR - block number out of range: -1
+
+
+-----------
+QUERY:
+ -- error, invalid range
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+SELECT brin_desummarize_range('brinidx_multi', 100000000);
+RESULT:
+	postgres: [('',)]
+
+-----------
+QUERY:
+
+
+-- test building an index with many values, to force compaction of the buffer
+CREATE TABLE brin_large_range (a int4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_large_range SELECT i FROM generate_series(1,10000) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX brin_large_range_idx ON brin_large_range USING brin (a int4_minmax_multi_ops);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE brin_large_range;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Test brin_summarize_range
+CREATE TABLE brin_summarize_multi (
+    value int
+) WITH (fillfactor=10, autovacuum_enabled=false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX brin_summarize_multi_idx ON brin_summarize_multi USING brin (value) WITH (pages_per_range=2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Fill a few pages
+DO $$
+DECLARE curtid tid;
+BEGIN
+  LOOP
+    INSERT INTO brin_summarize_multi VALUES (1) RETURNING ctid INTO curtid;
+    EXIT WHEN curtid > tid '(2, 0)';
+  END LOOP;
+END;
+$$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- summarize one range
+SELECT brin_summarize_range('brin_summarize_multi_idx', 0);
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+-- nothing: already summarized
+SELECT brin_summarize_range('brin_summarize_multi_idx', 1);
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+-- summarize one range
+SELECT brin_summarize_range('brin_summarize_multi_idx', 2);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+-- nothing: page doesn/* REPLACED */''t exist in table
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295);
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+-- invalid block number values
+SELECT brin_summarize_range('brin_summarize_multi_idx', -1);
+RESULT:
+	postgres: ERROR - block number out of range: -1
+
+
+-----------
+QUERY:
+
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296);
+RESULT:
+	postgres: ERROR - block number out of range: 4294967296
+
+
+-----------
+QUERY:
+
+
+
+-- test brin cost estimates behave sanely based on correlation of values
+CREATE TABLE brin_test_multi (a INT, b INT);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_multi SELECT x/100,x%100 FROM generate_series(1,10000) x(x);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX brin_test_multi_a_idx ON brin_test_multi USING brin (a) WITH (pages_per_range = 2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX brin_test_multi_b_idx ON brin_test_multi USING brin (b) WITH (pages_per_range = 2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM ANALYZE brin_test_multi;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Ensure brin index is used when columns are perfectly correlated
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_test_multi',), ('  Recheck Cond: (a = 1)',), ('  ->  Bitmap Index Scan on brin_test_multi_a_idx',), ('        Index Cond: (a = 1)',)]
+
+-----------
+QUERY:
+
+-- Ensure brin index is not used when values are not correlated
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1;
+RESULT:
+	postgres: [('Seq Scan on brin_test_multi',), ('  Filter: (b = 1)',)]
+
+-----------
+QUERY:
+
+
+
+-- do some inequality tests
+CREATE TABLE brin_test_multi_1 (a INT, b BIGINT) WITH (fillfactor=10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_multi_1
+SELECT i/5 + mod(911 * i + 483, 25),
+       i/10 + mod(751 * i + 221, 41)
+  FROM generate_series(1,1000) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX brin_test_multi_1_idx_1 ON brin_test_multi_1 USING brin (a int4_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX brin_test_multi_1_idx_2 ON brin_test_multi_1 USING brin (b int8_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan=off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- int: less than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37;
+RESULT:
+	postgres: [(124,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113;
+RESULT:
+	postgres: [(504,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177;
+RESULT:
+	postgres: [(829,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25;
+RESULT:
+	postgres: [(69,)]
+
+-----------
+QUERY:
+
+
+-- int: greater than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120;
+RESULT:
+	postgres: [(456,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180;
+RESULT:
+	postgres: [(161,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71;
+RESULT:
+	postgres: [(701,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63;
+RESULT:
+	postgres: [(746,)]
+
+-----------
+QUERY:
+
+
+-- int: equals
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207;
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+
+-- bigint: less than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73;
+RESULT:
+	postgres: [(529,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47;
+RESULT:
+	postgres: [(279,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199;
+RESULT:
+	postgres: [(1000,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150;
+RESULT:
+	postgres: [(1000,)]
+
+-----------
+QUERY:
+
+
+-- bigint: greater than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93;
+RESULT:
+	postgres: [(261,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37;
+RESULT:
+	postgres: [(821,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+-- bigint: equals
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
+RESULT:
+	postgres: [(9,)]
+
+-----------
+QUERY:
+
+
+-- now do the same, but insert the rows with the indexes already created
+-- so that we don/* REPLACED */''t use the /* REPLACED */''build callback/* REPLACED */'' and instead use the regular
+-- approach of adding rows into existing ranges
+TRUNCATE brin_test_multi_1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brin_test_multi_1
+SELECT i/5 + mod(911 * i + 483, 25),
+       i/10 + mod(751 * i + 221, 41)
+  FROM generate_series(1,1000) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- int: less than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37;
+RESULT:
+	postgres: [(124,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113;
+RESULT:
+	postgres: [(504,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177;
+RESULT:
+	postgres: [(829,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25;
+RESULT:
+	postgres: [(69,)]
+
+-----------
+QUERY:
+
+
+-- int: greater than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120;
+RESULT:
+	postgres: [(456,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180;
+RESULT:
+	postgres: [(161,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71;
+RESULT:
+	postgres: [(701,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63;
+RESULT:
+	postgres: [(746,)]
+
+-----------
+QUERY:
+
+
+-- int: equals
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207;
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+
+-- bigint: less than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73;
+RESULT:
+	postgres: [(529,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47;
+RESULT:
+	postgres: [(279,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199;
+RESULT:
+	postgres: [(1000,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150;
+RESULT:
+	postgres: [(1000,)]
+
+-----------
+QUERY:
+
+
+-- bigint: greater than
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93;
+RESULT:
+	postgres: [(261,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37;
+RESULT:
+	postgres: [(821,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+-- bigint: equals
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
+RESULT:
+	postgres: [(9,)]
+
+-----------
+QUERY:
+
+
+
+DROP TABLE brin_test_multi_1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- do some inequality tests for varlena data types
+CREATE TABLE brin_test_multi_2 (a UUID) WITH (fillfactor=10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_multi_2
+SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX brin_test_multi_2_idx ON brin_test_multi_2 USING brin (a uuid_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan=off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
+	postgres: [(195,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
+	postgres: [(792,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea';
+RESULT:
+	postgres: [(961,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d';
+RESULT:
+	postgres: [(273,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79';
+RESULT:
+	postgres: [(12,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6';
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+
+
+-- now do the same, but insert the rows with the indexes already created
+-- so that we don/* REPLACED */''t use the /* REPLACED */''build callback/* REPLACED */'' and instead use the regular
+-- approach of adding rows into existing ranges
+
+TRUNCATE brin_test_multi_2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_multi_2
+SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
+	postgres: [(195,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
+	postgres: [(792,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea';
+RESULT:
+	postgres: [(961,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d';
+RESULT:
+	postgres: [(273,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79';
+RESULT:
+	postgres: [(12,)]
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6';
+RESULT:
+	postgres: [(13,)]
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_test_multi_2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test overflows during CREATE INDEX with extreme timestamp values
+CREATE TABLE brin_timestamp_test(a TIMESTAMPTZ);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET datestyle TO iso;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- values close to timestamp minimum
+INSERT INTO brin_timestamp_test
+SELECT '4713-01-01 00:00:01 BC'::timestamptz + (i || ' seconds')::interval
+  FROM generate_series(1,30) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- values close to timestamp maximum
+INSERT INTO brin_timestamp_test
+SELECT '294276-12-01 00:00:01'::timestamptz + (i || ' seconds')::interval
+  FROM generate_series(1,30) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON brin_timestamp_test USING brin (a timestamptz_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE brin_timestamp_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test overflows during CREATE INDEX with extreme date values
+CREATE TABLE brin_date_test(a DATE);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- insert values close to date minimum
+INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- insert values close to date minimum
+INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan = off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- make sure the ranges were built correctly and 2023-01-01 eliminates all
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_date_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '2023-01-01'::date)",), ('  ->  Bitmap Index Scan on brin_date_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '2023-01-01'::date)",)]
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_date_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test handling of infinite timestamp values
+CREATE TABLE brin_timestamp_test(a TIMESTAMP);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brin_timestamp_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_timestamp_test
+SELECT i FROM generate_series('2000-01-01'::timestamp, '2000-02-09'::timestamp, '1 day'::interval) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON brin_timestamp_test USING brin (a timestamp_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan = off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_timestamp_test WHERE a = '2023-01-01'::timestamp;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_timestamp_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '2023-01-01 00:00:00'::timestamp without time zone)",), ('  ->  Bitmap Index Scan on brin_timestamp_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '2023-01-01 00:00:00'::timestamp without time zone)",)]
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_timestamp_test WHERE a = '1900-01-01'::timestamp;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_timestamp_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '1900-01-01 00:00:00'::timestamp without time zone)",), ('  ->  Bitmap Index Scan on brin_timestamp_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '1900-01-01 00:00:00'::timestamp without time zone)",)]
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_timestamp_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test handling of infinite date values
+CREATE TABLE brin_date_test(a DATE);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brin_date_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan = off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_date_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '2023-01-01'::date)",), ('  ->  Bitmap Index Scan on brin_date_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '2023-01-01'::date)",)]
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_date_test WHERE a = '1900-01-01'::date;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_date_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '1900-01-01'::date)",), ('  ->  Bitmap Index Scan on brin_date_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '1900-01-01'::date)",)]
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_date_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET datestyle;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test handling of overflow for interval values
+CREATE TABLE brin_interval_test(a INTERVAL);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series(-178000000, -177999980) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series( 177999980,  178000000) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan = off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '-30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '-30 years'::interval)",)]
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '30 years'::interval;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '30 years'::interval)",)]
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_interval_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- test handling of infinite interval values
+CREATE TABLE brin_interval_test(a INTERVAL);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO brin_interval_test SELECT (i || ' days')::interval FROM generate_series(100, 140) s(i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET enable_seqscan = off;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '-30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '-30 years'::interval)",)]
+
+-----------
+QUERY:
+
+
+EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
+SELECT * FROM brin_interval_test WHERE a = '30 years'::interval;
+RESULT:
+	postgres: [('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '30 years'::interval)",)]
+
+-----------
+QUERY:
+
+
+DROP TABLE brin_interval_test;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET datestyle;
+RESULT:
+	postgres: None

@@ -1,3 +1,6 @@
+
+-----------
+QUERY:
 --
 -- Test GIN indexes.
 --
@@ -5,173 +8,210 @@
 -- GIN itself.
 
 -- Create and populate a test table with a GIN index.
-create table gin_test_tbl(i int4[]) with (autovacuum_enabled = off)
+create table gin_test_tbl(i int4[]) with (autovacuum_enabled = off);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 create index gin_test_idx on gin_test_tbl using gin (i)
-  with (fastupdate = on, gin_pending_list_limit = 4096)
-ERROR: 
-create index gin_test_idx on gin_test_tbl using gin (i)
-  with (fastupdate = on, gin_pending_list_limit = 4096)
+  with (fastupdate = on, gin_pending_list_limit = 4096);
+RESULT:
+	ERROR - Binder Error: Unknown index type: GIN
 
-Binder Error: Unknown index type: GIN
+-----------
+QUERY:
 
-insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 20000) g
-ERROR: 
-insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 20000) g
-
-Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
-LINE 2: ...rt into gin_test_tbl select array[1, 2, g] from generate_series(1, 20000) g
+insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 20000) g;
+RESULT:
+	ERROR - Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
+LINE 2: ...rt into gin_test_tbl select array[1, 2, g] from generate_series(1, 20000) g;
                                                   ^
 
-insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g
-ERROR: 
-insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g
+-----------
+QUERY:
 
-Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
-LINE 2: ...rt into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g
+insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
+RESULT:
+	ERROR - Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
+LINE 2: ...rt into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
                                                   ^
 
+-----------
+QUERY:
 
-select gin_clean_pending_list('gin_test_idx')>10 as many
-ERROR: 
 
-select gin_clean_pending_list('gin_test_idx')>10 as many
-
-Catalog Error: Scalar Function with name gin_clean_pending_list does not exist!
+select gin_clean_pending_list('gin_test_idx')>10 as many;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name gin_clean_pending_list does not exist!
 Did you mean "cardinality"?
+
+-----------
+QUERY:
  -- flush the fastupdate buffers
 
-insert into gin_test_tbl select array[3, 1, g] from generate_series(1, 1000) g
-ERROR:  -- flush the fastupdate buffers
-
-insert into gin_test_tbl select array[3, 1, g] from generate_series(1, 1000) g
-
-Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
+insert into gin_test_tbl select array[3, 1, g] from generate_series(1, 1000) g;
+RESULT:
+	ERROR - Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
 LINE 3: ...lush the fastupdate buffers
 
-insert into gin_test_tbl select array[3, 1, g] from generate_series(1, 1000) g
+insert into gin_test_tbl select array[3, 1, g] from generate_series(1, 1000) g;
                                                   ^
 
+-----------
+QUERY:
 
-vacuum gin_test_tbl
+
+vacuum gin_test_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
  -- flush the fastupdate buffers
 
-select gin_clean_pending_list('gin_test_idx')
-ERROR:  -- flush the fastupdate buffers
-
-select gin_clean_pending_list('gin_test_idx')
-
-Catalog Error: Scalar Function with name gin_clean_pending_list does not exist!
+select gin_clean_pending_list('gin_test_idx');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name gin_clean_pending_list does not exist!
 Did you mean "cardinality"?
+
+-----------
+QUERY:
  -- nothing to flush
 
 -- Test vacuuming
-delete from gin_test_tbl where i @> array[2]
+delete from gin_test_tbl where i @> array[2];
+RESULT:
+	[]
 
-vacuum gin_test_tbl
+-----------
+QUERY:
+
+vacuum gin_test_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Disable fastupdate, and do more insertions. With fastupdate enabled, most
 -- insertions (by flushing the list pages) cause page splits. Without
 -- fastupdate, we get more churn in the GIN data leaf pages, and exercise the
 -- recompression codepaths.
-alter index gin_test_idx set (fastupdate = off)
-ERROR: 
+alter index gin_test_idx set (fastupdate = off);
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
 
--- Disable fastupdate, and do more insertions. With fastupdate enabled, most
--- insertions (by flushing the list pages) cause page splits. Without
--- fastupdate, we get more churn in the GIN data leaf pages, and exercise the
--- recompression codepaths.
-alter index gin_test_idx set (fastupdate = off)
-
-Not implemented Error: No support for that ALTER TABLE option yet!
+-----------
+QUERY:
 
 
-insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 1000) g
-ERROR: 
-
-insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 1000) g
-
-Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
-LINE 3: ...ert into gin_test_tbl select array[1, 2, g] from generate_series(1, 1000) g
+insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 1000) g;
+RESULT:
+	ERROR - Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
+LINE 3: ...ert into gin_test_tbl select array[1, 2, g] from generate_series(1, 1000) g;
                                                   ^
 
-insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g
-ERROR: 
-insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g
+-----------
+QUERY:
 
-Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
-LINE 2: ...rt into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g
+insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
+RESULT:
+	ERROR - Binder Error: Cannot create a list of types INTEGER and STRUCT(generate_series BIGINT) - an explicit cast is required
+LINE 2: ...rt into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
                                                   ^
 
-
-delete from gin_test_tbl where i @> array[2]
-
-vacuum gin_test_tbl
+-----------
+QUERY:
 
 
--- Test for ''rare && frequent'' searches
+delete from gin_test_tbl where i @> array[2];
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+vacuum gin_test_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test for /* REPLACED */''rare && frequent/* REPLACED */'' searches
 explain (costs off)
-select count(*) from gin_test_tbl where i @> array[1, 999]
-ERROR: 
+select count(*) from gin_test_tbl where i @> array[1, 999];
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
--- Test for ''rare && frequent'' searches
-explain (costs off)
-select count(*) from gin_test_tbl where i @> array[1, 999]
-
-Not implemented Error: Unimplemented explain type: costs
+-----------
+QUERY:
 
 
-select count(*) from gin_test_tbl where i @> array[1, 999]
-RESULT: 
+select count(*) from gin_test_tbl where i @> array[1, 999];
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
+
 
 -- Very weak test for gin_fuzzy_search_limit
-set gin_fuzzy_search_limit = 1000
-ERROR: 
-
--- Very weak test for gin_fuzzy_search_limit
-set gin_fuzzy_search_limit = 1000
-
-Catalog Error: unrecognized configuration parameter "gin_fuzzy_search_limit"
+set gin_fuzzy_search_limit = 1000;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "gin_fuzzy_search_limit"
 
 Did you mean: "search_path"
 
+-----------
+QUERY:
+
 
 explain (costs off)
-select count(*) > 0 as ok from gin_test_tbl where i @> array[1]
-ERROR: 
+select count(*) > 0 as ok from gin_test_tbl where i @> array[1];
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
-explain (costs off)
-select count(*) > 0 as ok from gin_test_tbl where i @> array[1]
-
-Not implemented Error: Unimplemented explain type: costs
+-----------
+QUERY:
 
 
-select count(*) > 0 as ok from gin_test_tbl where i @> array[1]
-RESULT: 
+select count(*) > 0 as ok from gin_test_tbl where i @> array[1];
+RESULT:
 	[(False,)]
 
+-----------
+QUERY:
 
-reset gin_fuzzy_search_limit
-ERROR: 
 
-reset gin_fuzzy_search_limit
-
-Catalog Error: unrecognized configuration parameter "gin_fuzzy_search_limit"
+reset gin_fuzzy_search_limit;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "gin_fuzzy_search_limit"
 
 Did you mean: "search_path"
+
+-----------
+QUERY:
 
 
 -- Test optimization of empty queries
-create temp table t_gin_test_tbl(i int4[], j int4[])
+create temp table t_gin_test_tbl(i int4[], j int4[]);
+RESULT:
+	[]
 
-create index on t_gin_test_tbl using gin (i, j)
-ERROR: 
-create index on t_gin_test_tbl using gin (i, j)
+-----------
+QUERY:
 
-Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+create index on t_gin_test_tbl using gin (i, j);
+RESULT:
+	ERROR - Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
 
 insert into t_gin_test_tbl
 values
@@ -184,72 +224,66 @@ values
   ('{1,2}', '{10}'),
   ('{2}',   '{10}'),
   ('{1,3}', '{}'),
-  ('{1,1}', '{10}')
-ERROR: 
-insert into t_gin_test_tbl
-values
-  (null,    null),
-  ('{}',    null),
-  ('{1}',   null),
-  ('{1,2}', null),
-  (null,    '{}'),
-  (null,    '{10}'),
-  ('{1,2}', '{10}'),
-  ('{2}',   '{10}'),
-  ('{1,3}', '{}'),
-  ('{1,1}', '{10}')
-
-Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
+  ('{1,1}', '{10}');
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
 LINE 5:   ('{}',    null),
            ^
 
+-----------
+QUERY:
 
-set enable_seqscan = off
-ERROR: 
 
-set enable_seqscan = off
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+set enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-explain (costs off)
-select * from t_gin_test_tbl where array[0] <@ i
-ERROR: 
-explain (costs off)
-select * from t_gin_test_tbl where array[0] <@ i
+-----------
+QUERY:
 
-Not implemented Error: Unimplemented explain type: costs
+explain (costs off)
+select * from t_gin_test_tbl where array[0] <@ i;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
-select * from t_gin_test_tbl where array[0] <@ i
-RESULT: 
+-----------
+QUERY:
+
+select * from t_gin_test_tbl where array[0] <@ i;
+RESULT:
 	[]
 
-select * from t_gin_test_tbl where array[0] <@ i and '{}'::int4[] <@ j
-ERROR: 
-select * from t_gin_test_tbl where array[0] <@ i and '{}'::int4[] <@ j
+-----------
+QUERY:
 
-Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+select * from t_gin_test_tbl where array[0] <@ i and '{}'::int4[] <@ j;
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
 Error: Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
 
+-----------
+QUERY:
+
 
 explain (costs off)
-select * from t_gin_test_tbl where i @> '{}'
-ERROR: 
+select * from t_gin_test_tbl where i @> '{}';
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
-explain (costs off)
-select * from t_gin_test_tbl where i @> '{}'
+-----------
+QUERY:
 
-Not implemented Error: Unimplemented explain type: costs
-
-select * from t_gin_test_tbl where i @> '{}'
-ERROR: 
-select * from t_gin_test_tbl where i @> '{}'
-
-Binder Error: failed to bind function, either: Invalid LIST argument during lambda function binding!
+select * from t_gin_test_tbl where i @> '{}';
+RESULT:
+	ERROR - Binder Error: failed to bind function, either: Invalid LIST argument during lambda function binding!
  or: Referenced column "variable_has_all" not found in FROM clause!
 Candidate bindings: "t_gin_test_tbl.i"
 
+-----------
+QUERY:
+
 
 create function explain_query_json(query_sql text)
 returns table (explain_line json)
@@ -260,21 +294,12 @@ begin
   set enable_bitmapscan = on;
   return query execute 'EXPLAIN (ANALYZE, FORMAT json) ' || query_sql;
 end;
-$$
-ERROR: 
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "text"
 
-create function explain_query_json(query_sql text)
-returns table (explain_line json)
-language plpgsql as
-$$
-begin
-  set enable_seqscan = off;
-  set enable_bitmapscan = on;
-  return query execute 'EXPLAIN (ANALYZE, FORMAT json) ' || query_sql;
-end;
-$$
-
-Parser Error: syntax error at or near "text"
+-----------
+QUERY:
 
 
 create function execute_text_query_index(query_sql text)
@@ -287,22 +312,12 @@ begin
   set enable_bitmapscan = on;
   return query execute query_sql;
 end;
-$$
-ERROR: 
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "text"
 
-create function execute_text_query_index(query_sql text)
-returns setof text
-language plpgsql
-as
-$$
-begin
-  set enable_seqscan = off;
-  set enable_bitmapscan = on;
-  return query execute query_sql;
-end;
-$$
-
-Parser Error: syntax error at or near "text"
+-----------
+QUERY:
 
 
 create function execute_text_query_heap(query_sql text)
@@ -315,22 +330,12 @@ begin
   set enable_bitmapscan = off;
   return query execute query_sql;
 end;
-$$
-ERROR: 
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "text"
 
-create function execute_text_query_heap(query_sql text)
-returns setof text
-language plpgsql
-as
-$$
-begin
-  set enable_seqscan = on;
-  set enable_bitmapscan = off;
-  return query execute query_sql;
-end;
-$$
-
-Parser Error: syntax error at or near "text"
+-----------
+QUERY:
 
 
 -- check number of rows returned by index and removed by recheck
@@ -354,64 +359,39 @@ from
   ) q(query),
   lateral explain_query_json($$select * from t_gin_test_tbl where $$ || query) js,
   lateral execute_text_query_index($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_index,
-  lateral execute_text_query_heap($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_heap
-ERROR: 
-
--- check number of rows returned by index and removed by recheck
-select
-  query,
-  js->0->'Plan'->'Plans'->0->'Actual Rows' as "return by index",
-  js->0->'Plan'->'Rows Removed by Index Recheck' as "removed by recheck",
-  (res_index = res_heap) as "match"
-from
-  (values
-    ($$ i @> '{}' $$),
-    ($$ j @> '{}' $$),
-    ($$ i @> '{}' and j @> '{}' $$),
-    ($$ i @> '{1}' $$),
-    ($$ i @> '{1}' and j @> '{}' $$),
-    ($$ i @> '{1}' and i @> '{}' and j @> '{}' $$),
-    ($$ j @> '{10}' $$),
-    ($$ j @> '{10}' and i @> '{}' $$),
-    ($$ j @> '{10}' and j @> '{}' and i @> '{}' $$),
-    ($$ i @> '{1}' and j @> '{10}' $$)
-  ) q(query),
-  lateral explain_query_json($$select * from t_gin_test_tbl where $$ || query) js,
-  lateral execute_text_query_index($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_index,
-  lateral execute_text_query_heap($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_heap
-
-Catalog Error: Table Function with name explain_query_json does not exist!
+  lateral execute_text_query_heap($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_heap;
+RESULT:
+	ERROR - Catalog Error: Table Function with name explain_query_json does not exist!
 Did you mean "read_json"?
 
+-----------
+QUERY:
 
-reset enable_seqscan
-ERROR: 
 
-reset enable_seqscan
+reset enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+reset enable_bitmapscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
-reset enable_bitmapscan
-ERROR: 
-reset enable_bitmapscan
-
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
 -- re-purpose t_gin_test_tbl to test scans involving posting trees
 insert into t_gin_test_tbl select array[1, g, g/10], array[2, g, g/10]
-  from generate_series(1, 20000) g
-ERROR: 
-
--- re-purpose t_gin_test_tbl to test scans involving posting trees
-insert into t_gin_test_tbl select array[1, g, g/10], array[2, g, g/10]
-  from generate_series(1, 20000) g
-
-Binder Error: No function matches the given name and argument types '/(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+  from generate_series(1, 20000) g;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '/(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	/(FLOAT, FLOAT) -> FLOAT
 	/(DOUBLE, DOUBLE) -> DOUBLE
@@ -421,144 +401,185 @@ LINE 4: ...purpose t_gin_test_tbl to test scans involving posting trees
 insert into t_gin_test_tbl select array[1, g, g/10], array[2, g, g/10]
                                                   ^
 
+-----------
+QUERY:
 
-select gin_clean_pending_list('t_gin_test_tbl_i_j_idx') is not null
-ERROR: 
 
-select gin_clean_pending_list('t_gin_test_tbl_i_j_idx') is not null
-
-Catalog Error: Scalar Function with name gin_clean_pending_list does not exist!
+select gin_clean_pending_list('t_gin_test_tbl_i_j_idx') is not null;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name gin_clean_pending_list does not exist!
 Did you mean "cardinality"?
 
+-----------
+QUERY:
 
-analyze t_gin_test_tbl
+
+analyze t_gin_test_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-set enable_seqscan = off
-ERROR: 
-
-set enable_seqscan = off
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+set enable_seqscan = off;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-set enable_bitmapscan = on
-ERROR: 
-set enable_bitmapscan = on
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "on"
+set enable_bitmapscan = on;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "on"
+
+-----------
+QUERY:
 
 
 explain (costs off)
-select count(*) from t_gin_test_tbl where j @> array[50]
-ERROR: 
+select count(*) from t_gin_test_tbl where j @> array[50];
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
-explain (costs off)
-select count(*) from t_gin_test_tbl where j @> array[50]
+-----------
+QUERY:
 
-Not implemented Error: Unimplemented explain type: costs
-
-select count(*) from t_gin_test_tbl where j @> array[50]
-RESULT: 
+select count(*) from t_gin_test_tbl where j @> array[50];
+RESULT:
 	[(0,)]
 
-explain (costs off)
-select count(*) from t_gin_test_tbl where j @> array[2]
-ERROR: 
-explain (costs off)
-select count(*) from t_gin_test_tbl where j @> array[2]
+-----------
+QUERY:
 
-Not implemented Error: Unimplemented explain type: costs
+explain (costs off)
+select count(*) from t_gin_test_tbl where j @> array[2];
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
-select count(*) from t_gin_test_tbl where j @> array[2]
-RESULT: 
+-----------
+QUERY:
+
+select count(*) from t_gin_test_tbl where j @> array[2];
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
+
 explain (costs off)
-select count(*) from t_gin_test_tbl where j @> '{}'::int[]
-ERROR: 
-explain (costs off)
-select count(*) from t_gin_test_tbl where j @> '{}'::int[]
+select count(*) from t_gin_test_tbl where j @> '{}'::int[];
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
 
-Not implemented Error: Unimplemented explain type: costs
+-----------
+QUERY:
 
-select count(*) from t_gin_test_tbl where j @> '{}'::int[]
-ERROR: 
-select count(*) from t_gin_test_tbl where j @> '{}'::int[]
-
-Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+select count(*) from t_gin_test_tbl where j @> '{}'::int[];
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
 Error: Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
+
+-----------
+QUERY:
 
 
 -- test vacuuming of posting trees
-delete from t_gin_test_tbl where j @> array[2]
+delete from t_gin_test_tbl where j @> array[2];
+RESULT:
+	[]
 
-vacuum t_gin_test_tbl
+-----------
+QUERY:
+
+vacuum t_gin_test_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-select count(*) from t_gin_test_tbl where j @> array[50]
-RESULT: 
+select count(*) from t_gin_test_tbl where j @> array[50];
+RESULT:
 	[(0,)]
 
-select count(*) from t_gin_test_tbl where j @> array[2]
-RESULT: 
+-----------
+QUERY:
+
+select count(*) from t_gin_test_tbl where j @> array[2];
+RESULT:
 	[(0,)]
 
-select count(*) from t_gin_test_tbl where j @> '{}'::int[]
-ERROR: 
-select count(*) from t_gin_test_tbl where j @> '{}'::int[]
+-----------
+QUERY:
 
-Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+select count(*) from t_gin_test_tbl where j @> '{}'::int[];
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
 Error: Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
 
+-----------
+QUERY:
 
-reset enable_seqscan
-ERROR: 
 
-reset enable_seqscan
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
-
-Did you mean: "enable_object_cache"
-
-reset enable_bitmapscan
-ERROR: 
-reset enable_bitmapscan
-
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+reset enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
 
-drop table t_gin_test_tbl
+reset enable_bitmapscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+
+drop table t_gin_test_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test an unlogged table, mostly to get coverage of ginbuildempty
-create unlogged table t_gin_test_tbl(i int4[], j int4[])
+create unlogged table t_gin_test_tbl(i int4[], j int4[]);
+RESULT:
+	[]
 
-create index on t_gin_test_tbl using gin (i, j)
-ERROR: 
-create index on t_gin_test_tbl using gin (i, j)
+-----------
+QUERY:
 
-Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+create index on t_gin_test_tbl using gin (i, j);
+RESULT:
+	ERROR - Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
 
 insert into t_gin_test_tbl
 values
   (null,    null),
   ('{}',    null),
-  ('{1}',   '{2,3}')
-ERROR: 
-insert into t_gin_test_tbl
-values
-  (null,    null),
-  ('{}',    null),
-  ('{1}',   '{2,3}')
-
-Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
+  ('{1}',   '{2,3}');
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{}' can't be cast to the destination type LIST
 LINE 5:   ('{}',    null),
            ^
 
-drop table t_gin_test_tbl
+-----------
+QUERY:
 
-
+drop table t_gin_test_tbl;
+RESULT:
+	[]

@@ -1,0 +1,365 @@
+
+-----------
+QUERY:
+--
+-- Regression tests for schemas (namespaces)
+--
+
+-- set the whitespace-only search_path to test that the
+-- GUC list syntax is preserved during a schema creation
+SELECT pg_catalog.set_config('search_path', ' ', false);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name set_config does not exist!
+Did you mean "main.second"?
+
+-----------
+QUERY:
+
+
+CREATE SCHEMA test_ns_schema_1
+       CREATE UNIQUE INDEX abc_a_idx ON abc (a)
+
+       CREATE VIEW abc_view AS
+              SELECT a+1 AS a, b+1 AS b FROM abc
+
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+RESULT:
+	ERROR - Not implemented Error: Schema element not supported yet!
+
+-----------
+QUERY:
+
+
+-- verify that the correct search_path restored on abort
+SET search_path to public;
+RESULT:
+	ERROR - Catalog Error: SET search_path: No catalog + schema named "public" found.
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path to public, test_ns_schema_1;
+RESULT:
+	ERROR - Parser Error: SET needs a single scalar value parameter
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_ns_schema_2
+       CREATE VIEW abc_view AS SELECT c FROM abc;
+RESULT:
+	ERROR - Not implemented Error: Schema element not supported yet!
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	ERROR - Catalog Error: Table with name search_path does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+-----------
+QUERY:
+
+
+-- verify that the correct search_path preserved
+-- after creating the schema and on commit
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path to public, test_ns_schema_1;
+RESULT:
+	ERROR - Parser Error: SET needs a single scalar value parameter
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_ns_schema_2
+       CREATE VIEW abc_view AS SELECT a FROM abc;
+RESULT:
+	ERROR - Not implemented Error: Schema element not supported yet!
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	ERROR - Catalog Error: Table with name search_path does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	ERROR - Catalog Error: Table with name search_path does not exist!
+Did you mean "temp.information_schema.schemata"?
+
+-----------
+QUERY:
+
+DROP SCHEMA test_ns_schema_2 CASCADE;
+RESULT:
+	ERROR - Catalog Error: Schema with name test_ns_schema_2 does not exist!
+
+-----------
+QUERY:
+
+
+-- verify that the objects were created
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_1');
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	ERROR - Catalog Error: Table with name abc does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	ERROR - Catalog Error: Table with name abc does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	ERROR - Catalog Error: Table with name abc does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+SELECT * FROM test_ns_schema_1.abc;
+RESULT:
+	ERROR - Catalog Error: Table with name abc does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+SELECT * FROM test_ns_schema_1.abc_view;
+RESULT:
+	ERROR - Catalog Error: Table with name abc_view does not exist!
+Did you mean "temp.pg_catalog.pg_views"?
+
+-----------
+QUERY:
+
+
+ALTER SCHEMA test_ns_schema_1 RENAME TO test_ns_schema_renamed;
+RESULT:
+	ERROR - Not implemented Error: Altering schemas is not yet supported
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_1');
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+
+-- test IF NOT EXISTS cases
+CREATE SCHEMA test_ns_schema_renamed;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fail, already exists
+CREATE SCHEMA IF NOT EXISTS test_ns_schema_renamed;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- ok with notice
+CREATE SCHEMA IF NOT EXISTS test_ns_schema_renamed -- fail, disallowed
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+RESULT:
+	ERROR - Parser Error: CREATE SCHEMA IF NOT EXISTS cannot include schema elements
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_ns_schema_renamed CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- verify that the objects were dropped
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_renamed');
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+
+--
+-- Verify that search_path is set to a safe value during maintenance
+-- commands.
+--
+
+CREATE SCHEMA test_maint_search_path;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path = test_maint_search_path;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION fn(INT) RETURNS INT IMMUTABLE LANGUAGE plpgsql AS $$
+  BEGIN
+    RAISE NOTICE 'current search_path: %', current_setting('search_path');
+    RETURN $1;
+  END;
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_maint(i INT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO test_maint VALUES (1), (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW test_maint_mv AS SELECT fn(i) FROM test_maint;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "MATERIALIZED"
+
+-----------
+QUERY:
+
+
+-- the following commands should see search_path as pg_catalog, pg_temp
+
+CREATE INDEX test_maint_idx ON test_maint_search_path.test_maint (fn(i));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name fn does not exist!
+Did you mean "ln"?
+LINE 5: ... should see search_path as pg_catalog, pg_temp
+
+CREATE INDEX test_maint_idx ON test_maint_search_path.test_maint (fn(i));
+                                                  ^
+
+-----------
+QUERY:
+
+REINDEX TABLE test_maint_search_path.test_maint;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "REINDEX"
+
+-----------
+QUERY:
+
+ANALYZE test_maint_search_path.test_maint;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+VACUUM FULL test_maint_search_path.test_maint;
+RESULT:
+	ERROR - Not implemented Error: Full vacuum option
+
+-----------
+QUERY:
+
+CLUSTER test_maint_search_path.test_maint USING test_maint_idx;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "CLUSTER"
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW test_maint_search_path.test_maint_mv;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "REFRESH"
+
+-----------
+QUERY:
+
+
+RESET search_path;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_maint_search_path CASCADE;
+RESULT:
+	[]

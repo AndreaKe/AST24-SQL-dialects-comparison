@@ -1,0 +1,677 @@
+
+-----------
+QUERY:
+--
+-- PREPARED TRANSACTIONS (two-phase commit)
+--
+-- We can/* REPLACED */''t readily test persistence of prepared xacts within the
+-- regression script framework, unfortunately.  Note that a crash
+-- isn/* REPLACED */''t really needed ... stopping and starting the postmaster would
+-- be enough, but we can/* REPLACED */''t even do that here.
+
+
+-- create a simple table that we/* REPLACED */''ll use in the tests
+CREATE TABLE pxtest1 (foobar VARCHAR(10));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO pxtest1 VALUES ('aaa');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Test PREPARE TRANSACTION
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+UPDATE pxtest1 SET foobar = 'bbb' WHERE foobar = 'aaa';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',)]
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'foo1';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo1'"
+
+-----------
+QUERY:
+
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',)]
+
+-----------
+QUERY:
+
+
+-- Test pg_prepared_xacts system view
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- Test ROLLBACK PREPARED
+ROLLBACK PREPARED 'foo1';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PREPARED"
+
+-----------
+QUERY:
+
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',)]
+
+-----------
+QUERY:
+
+
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+
+-- Test COMMIT PREPARED
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+INSERT INTO pxtest1 VALUES ('ddd');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('ddd',)]
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'foo2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo2'"
+
+-----------
+QUERY:
+
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('ddd',)]
+
+-----------
+QUERY:
+
+
+COMMIT PREPARED 'foo2';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PREPARED"
+
+-----------
+QUERY:
+
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('ddd',)]
+
+-----------
+QUERY:
+
+
+-- Test duplicate gids
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+UPDATE pxtest1 SET foobar = 'eee' WHERE foobar = 'ddd';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('eee',)]
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'foo3';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo3'"
+
+-----------
+QUERY:
+
+
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+INSERT INTO pxtest1 VALUES ('fff');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- This should fail, because the gid foo3 is already in use
+PREPARE TRANSACTION 'foo3';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo3'"
+
+-----------
+QUERY:
+
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('eee',), ('fff',)]
+
+-----------
+QUERY:
+
+
+ROLLBACK PREPARED 'foo3';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PREPARED"
+
+-----------
+QUERY:
+
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('eee',), ('fff',)]
+
+-----------
+QUERY:
+
+
+-- Test serialization failure (SSI)
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+UPDATE pxtest1 SET foobar = 'eee' WHERE foobar = 'ddd';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('eee',), ('fff',)]
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'foo4';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo4'"
+
+-----------
+QUERY:
+
+
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+SELECT * FROM pxtest1;
+RESULT:
+	[('bbb',), ('eee',), ('fff',)]
+
+-----------
+QUERY:
+
+
+-- This should fail, because the two transactions have a write-skew anomaly
+INSERT INTO pxtest1 VALUES ('fff');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'foo5';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo5'"
+
+-----------
+QUERY:
+
+
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+ROLLBACK PREPARED 'foo4';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PREPARED"
+
+-----------
+QUERY:
+
+
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- Clean up
+DROP TABLE pxtest1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test detection of session-level and xact-level locks on same object
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_advisory_lock(1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_advisory_lock does not exist!
+Did you mean "pg_has_role"?
+
+-----------
+QUERY:
+
+SELECT pg_advisory_xact_lock_shared(1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_advisory_xact_lock_shared does not exist!
+Did you mean "get_block_size"?
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'foo6';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'foo6'"
+
+-----------
+QUERY:
+  -- fails
+
+-- Test subtransactions
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+  CREATE TABLE pxtest2 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  INSERT INTO pxtest2 VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  SAVEPOINT a;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+    INSERT INTO pxtest2 VALUES (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  ROLLBACK TO a;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
+
+  SAVEPOINT b;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+  INSERT INTO pxtest2 VALUES (3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'regress-one';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'regress-one'"
+
+-----------
+QUERY:
+
+
+CREATE TABLE pxtest3(fff int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test shared invalidation
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ISOLATION"
+
+-----------
+QUERY:
+
+  DROP TABLE pxtest3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  CREATE TABLE pxtest4 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  INSERT INTO pxtest4 VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  INSERT INTO pxtest4 VALUES (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+  DECLARE foo CURSOR FOR SELECT * FROM pxtest4;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DECLARE"
+
+-----------
+QUERY:
+
+  -- Fetch 1 tuple, keeping the cursor open
+  FETCH 1 FROM foo;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FETCH"
+
+-----------
+QUERY:
+
+PREPARE TRANSACTION 'regress-two';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'regress-two'"
+
+-----------
+QUERY:
+
+
+-- No such cursor
+FETCH 1 FROM foo;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FETCH"
+
+-----------
+QUERY:
+
+
+-- Table doesn/* REPLACED */''t exist, the creation hasn/* REPLACED */''t been committed yet
+SELECT * FROM pxtest2;
+RESULT:
+	[(1,), (2,), (3,)]
+
+-----------
+QUERY:
+
+
+-- There should be two prepared transactions
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- pxtest3 should be locked because of the pending DROP
+begin;
+RESULT:
+	ERROR - TransactionContext Error: cannot start a transaction within a transaction
+
+-----------
+QUERY:
+
+lock table pxtest3 in access share mode nowait;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "lock"
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Disconnect, we will continue testing in a different backend
+\c -
+
+-- There should still be two prepared transactions
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+
+-- pxtest3 should still be locked because of the pending DROP
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+lock table pxtest3 in access share mode nowait;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "lock"
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Commit table creation
+COMMIT PREPARED 'regress-one';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PREPARED"
+
+-----------
+QUERY:
+
+-- \d pxtest2
+SELECT * FROM pxtest2;
+RESULT:
+	ERROR - Catalog Error: Table with name pxtest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- There should be one prepared transaction
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- Commit table drop
+COMMIT PREPARED 'regress-two';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "PREPARED"
+
+-----------
+QUERY:
+
+SELECT * FROM pxtest3;
+RESULT:
+	ERROR - Catalog Error: Table with name pxtest3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- There should be no prepared transactions
+SELECT gid FROM pg_prepared_xacts;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_prepared_xacts does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- Clean up
+DROP TABLE pxtest2;
+RESULT:
+	ERROR - Catalog Error: Table with name pxtest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+DROP TABLE pxtest3;
+RESULT:
+	ERROR - Catalog Error: Table with name pxtest3 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+  -- will still be there if prepared xacts are disabled
+DROP TABLE pxtest4;
+RESULT:
+	ERROR - Catalog Error: Table with name pxtest4 does not exist!
+Did you mean "temp.information_schema.tables"?

@@ -1,0 +1,3563 @@
+
+-----------
+QUERY:
+--
+-- Test domains.
+--
+
+-- Test Comment / Drop
+create domain domaindroptest int4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domaindroptest int4' at line 6")
+
+-----------
+QUERY:
+
+comment on domain domaindroptest is 'About to drop this..';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'comment on domain domaindroptest is 'About to drop this..'' at line 1")
+
+-----------
+QUERY:
+
+
+create domain dependenttypetest domaindroptest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dependenttypetest domaindroptest' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail because of dependent type
+drop domain domaindroptest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domaindroptest' at line 2")
+
+-----------
+QUERY:
+
+
+drop domain domaindroptest cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domaindroptest cascade' at line 1")
+
+-----------
+QUERY:
+
+
+-- this should fail because already gone
+drop domain domaindroptest cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domaindroptest cascade' at line 2")
+
+-----------
+QUERY:
+
+
+
+-- Test domain input.
+
+-- Note: the point of checking both INSERT and COPY FROM is that INSERT
+-- exercises CoerceToDomain while COPY exercises domain_in.
+
+create domain domainvarchar varchar(5);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainvarchar varchar(5)' at line 6")
+
+-----------
+QUERY:
+
+create domain domainnumeric numeric(8,2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainnumeric numeric(8,2)' at line 1")
+
+-----------
+QUERY:
+
+create domain domainint4 int4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainint4 int4' at line 1")
+
+-----------
+QUERY:
+
+create domain domaintext text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domaintext text' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test explicit coercions --- these should succeed (and truncate)
+SELECT cast('123456' as domainvarchar);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domainvarchar)' at line 2")
+
+-----------
+QUERY:
+
+SELECT cast('12345' as domainvarchar);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domainvarchar)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test tables using domains
+create table basictest
+           ( testint4 domainint4
+           , testtext domaintext
+           , testvarchar domainvarchar
+           , testnumeric domainnumeric
+           );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domainint4\n           , testtext domaintext\n           , testvarchar domainvarch' at line 3")
+
+-----------
+QUERY:
+
+
+INSERT INTO basictest values ('88', 'haha', 'short', '123.12');
+RESULT:
+	ERROR - (1146, "Table 'test.basictest' doesn't exist")
+
+-----------
+QUERY:
+      -- Good
+INSERT INTO basictest values ('88', 'haha', 'short text', '123.12');
+RESULT:
+	ERROR - (1146, "Table 'test.basictest' doesn't exist")
+
+-----------
+QUERY:
+ -- Bad varchar
+INSERT INTO basictest values ('88', 'haha', 'short', '123.1212');
+RESULT:
+	ERROR - (1146, "Table 'test.basictest' doesn't exist")
+
+-----------
+QUERY:
+    -- Truncate numeric
+
+-- Test copy
+COPY basictest (testvarchar) FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY basictest (testvarchar) FROM stdin' at line 4")
+
+-----------
+QUERY:
+ -- fail
+notsoshorttext
+\.
+
+COPY basictest (testvarchar) FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'notsoshorttext\n\\.\n\nCOPY basictest (testvarchar) FROM stdin' at line 2")
+
+-----------
+QUERY:
+
+short
+\.
+
+select * from basictest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'short\n\\.\n\nselect * from basictest' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that domains inherit operations from base types
+select testtext || testvarchar as concat, testnumeric + 42 as sum
+from basictest;
+RESULT:
+	ERROR - (1146, "Table 'test.basictest' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- check that union/case/coalesce type resolution handles domains properly
+select pg_typeof(coalesce(4::domainint4, 7));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::domainint4, 7))' at line 2")
+
+-----------
+QUERY:
+
+select pg_typeof(coalesce(4::domainint4, 7::domainint4));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::domainint4, 7::domainint4))' at line 1")
+
+-----------
+QUERY:
+
+
+drop table basictest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.basictest'")
+
+-----------
+QUERY:
+
+drop domain domainvarchar restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainvarchar restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain domainnumeric restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainnumeric restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain domainint4 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainint4 restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain domaintext;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domaintext' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Test non-error-throwing input
+
+create domain positiveint int4 check(value > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain positiveint int4 check(value > 0)' at line 3")
+
+-----------
+QUERY:
+
+create domain weirdfloat float8 check((1 / value) < 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain weirdfloat float8 check((1 / value) < 10)' at line 1")
+
+-----------
+QUERY:
+
+
+select pg_input_is_valid('1', 'positiveint');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+select pg_input_is_valid('junk', 'positiveint');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+select pg_input_is_valid('-1', 'positiveint');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('junk', 'positiveint');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('junk', 'positiveint')' at line 1")
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('-1', 'positiveint');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('-1', 'positiveint')' at line 1")
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('junk', 'weirdfloat');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('junk', 'weirdfloat')' at line 1")
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('0.01', 'weirdfloat');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('0.01', 'weirdfloat')' at line 1")
+
+-----------
+QUERY:
+
+-- We currently can/* REPLACED */''t trap errors raised in the CHECK expression itself
+select * from pg_input_error_info('0', 'weirdfloat');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('0', 'weirdfloat')' at line 2")
+
+-----------
+QUERY:
+
+
+drop domain positiveint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain positiveint' at line 1")
+
+-----------
+QUERY:
+
+drop domain weirdfloat;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain weirdfloat' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Test domains over array types
+
+create domain domainint4arr int4[1];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainint4arr int4[1]' at line 3")
+
+-----------
+QUERY:
+
+create domain domainchar4arr varchar(4)[2][3];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainchar4arr varchar(4)[2][3]' at line 1")
+
+-----------
+QUERY:
+
+
+create table domarrtest
+           ( testint4arr domainint4arr
+           , testchar4arr domainchar4arr
+            );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domainint4arr\n           , testchar4arr domainchar4arr\n            )' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"}}');
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{{2,2},{2,2}}', '{{"a","b"}}');
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"},{"e","f"}}');
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{2,2}', '{{"a"},{"c"}}');
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values (NULL, '{{"a","b","c"},{"d","e","f"}}');
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values (NULL, '{{"toolong","b","c"},{"d","e","f"}}');
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest (testint4arr[1], testint4arr[3]) values (11,22);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], testint4arr[3]) values (11,22)' at line 1")
+
+-----------
+QUERY:
+
+select * from domarrtest;
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+select testint4arr[1], testchar4arr[2:2] from domarrtest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], testchar4arr[2:2] from domarrtest' at line 1")
+
+-----------
+QUERY:
+
+select array_dims(testint4arr), array_dims(testchar4arr) from domarrtest;
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+
+COPY domarrtest FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY domarrtest FROM stdin' at line 1")
+
+-----------
+QUERY:
+
+{3,4}	{q,w,e}
+\N	\N
+\.
+
+COPY domarrtest FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{3,4}\t{q,w,e}\n\\N\t\\N\n\\.\n\nCOPY domarrtest FROM stdin' at line 1")
+
+-----------
+QUERY:
+	-- fail
+{3,4}	{qwerty,w,e}
+\.
+
+select * from domarrtest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{3,4}\t{qwerty,w,e}\n\\.\n\nselect * from domarrtest' at line 2")
+
+-----------
+QUERY:
+
+
+update domarrtest set
+  testint4arr[1] = testint4arr[1] + 1,
+  testint4arr[3] = testint4arr[3] - 1
+where testchar4arr is null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1] = testint4arr[1] + 1,\n  testint4arr[3] = testint4arr[3] - 1\nwhere testchar4a' at line 2")
+
+-----------
+QUERY:
+
+
+select * from domarrtest where testchar4arr is null;
+RESULT:
+	ERROR - (1146, "Table 'test.domarrtest' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table domarrtest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.domarrtest'")
+
+-----------
+QUERY:
+
+drop domain domainint4arr restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainint4arr restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain domainchar4arr restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain domainchar4arr restrict' at line 1")
+
+-----------
+QUERY:
+
+
+create domain dia as int[];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dia as int[]' at line 1")
+
+-----------
+QUERY:
+
+select '{1,2,3}'::dia;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dia' at line 1")
+
+-----------
+QUERY:
+
+select array_dims('{1,2,3}'::dia);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dia)' at line 1")
+
+-----------
+QUERY:
+
+select pg_typeof('{1,2,3}'::dia);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dia)' at line 1")
+
+-----------
+QUERY:
+
+select pg_typeof('{1,2,3}'::dia || 42);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dia || 42)' at line 1")
+
+-----------
+QUERY:
+ -- should be int[] not dia
+drop domain dia;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dia' at line 2")
+
+-----------
+QUERY:
+
+
+
+-- Test domains over composites
+
+create type comptype as (r float8, i float8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype as (r float8, i float8)' at line 3")
+
+-----------
+QUERY:
+
+create domain dcomptype as comptype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype as comptype' at line 1")
+
+-----------
+QUERY:
+
+create table dcomptable (d1 dcomptype unique);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dcomptype unique)' at line 1")
+
+-----------
+QUERY:
+
+
+insert into dcomptable values (row(1,2)::dcomptype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dcomptype)' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable values (row(3,4)::comptype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::comptype)' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable values (row(1,2)::dcomptype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dcomptype)' at line 1")
+
+-----------
+QUERY:
+  -- fail on uniqueness
+insert into dcomptable (d1.r) values(11);
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+select (d1).r, (d1).i, (d1).* from dcomptable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.r, (d1).i, (d1).* from dcomptable' at line 1")
+
+-----------
+QUERY:
+
+update dcomptable set d1.r = (d1).r + 1 where (d1).i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.r + 1 where (d1).i > 0' at line 1")
+
+-----------
+QUERY:
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain dcomptype add constraint c1 check ((value).r <= (value).i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype add constraint c1 check ((value).r <= (value).i)' at line 1")
+
+-----------
+QUERY:
+
+alter domain dcomptype add constraint c2 check ((value).r > (value).i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype add constraint c2 check ((value).r > (value).i)' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+select row(2,1)::dcomptype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dcomptype' at line 3")
+
+-----------
+QUERY:
+  -- fail
+insert into dcomptable values (row(1,2)::comptype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::comptype)' at line 2")
+
+-----------
+QUERY:
+
+insert into dcomptable values (row(2,1)::comptype);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::comptype)' at line 1")
+
+-----------
+QUERY:
+  -- fail
+insert into dcomptable (d1.r) values(99);
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+insert into dcomptable (d1.r, d1.i) values(99, 100);
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+insert into dcomptable (d1.r, d1.i) values(100, 99);
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set d1.r = (d1).r + 1 where (d1).i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.r + 1 where (d1).i > 0' at line 2")
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.r - 1, d1.i = (d1).i + 1 where (d1).i > 0' at line 2")
+
+-----------
+QUERY:
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+  update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\n  update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1' at line 1")
+
+-----------
+QUERY:
+
+create rule silly as on delete to dcomptable do instead
+  update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule silly as on delete to dcomptable do instead\n  update dcomptable set d1.r = ' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ dcomptable
+
+create function makedcomp(r float8, i float8) returns dcomptype
+as 'select row(r, i)' language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dcomptype\nas 'select row(r, i)' language sql' at line 3")
+
+-----------
+QUERY:
+
+
+select makedcomp(1,2);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.makedcomp does not exist')
+
+-----------
+QUERY:
+
+select makedcomp(2,1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.makedcomp does not exist')
+
+-----------
+QUERY:
+  -- fail
+select * from makedcomp(1,2) m;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,2) m' at line 2")
+
+-----------
+QUERY:
+
+select m, m is not null from makedcomp(1,2) m;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,2) m' at line 1")
+
+-----------
+QUERY:
+
+
+drop function makedcomp(float8, float8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(float8, float8)' at line 1")
+
+-----------
+QUERY:
+
+drop table dcomptable;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.dcomptable'")
+
+-----------
+QUERY:
+
+drop type comptype cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype cascade' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- check altering and dropping columns used by domain constraints
+create type comptype as (r float8, i float8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype as (r float8, i float8)' at line 2")
+
+-----------
+QUERY:
+
+create domain dcomptype as comptype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype as comptype' at line 1")
+
+-----------
+QUERY:
+
+alter domain dcomptype add constraint c1 check ((value).r > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype add constraint c1 check ((value).r > 0)' at line 1")
+
+-----------
+QUERY:
+
+comment on constraint c1 on domain dcomptype is 'random commentary';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'comment on constraint c1 on domain dcomptype is 'random commentary'' at line 1")
+
+-----------
+QUERY:
+
+
+select row(0,1)::dcomptype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dcomptype' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+alter type comptype alter attribute r type varchar;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype alter attribute r type varchar' at line 3")
+
+-----------
+QUERY:
+  -- fail
+alter type comptype alter attribute r type bigint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype alter attribute r type bigint' at line 2")
+
+-----------
+QUERY:
+
+
+alter type comptype drop attribute r;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype drop attribute r' at line 1")
+
+-----------
+QUERY:
+  -- fail
+alter type comptype drop attribute i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype drop attribute i' at line 2")
+
+-----------
+QUERY:
+
+
+select conname, obj_description(oid, 'pg_constraint') from pg_constraint
+  where contypid = 'dcomptype'::regtype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype' at line 2")
+
+-----------
+QUERY:
+  -- check comment is still there
+
+drop type comptype cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype cascade' at line 3")
+
+-----------
+QUERY:
+
+
+
+-- Test domains over arrays of composite
+
+create type comptype as (r float8, i float8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype as (r float8, i float8)' at line 3")
+
+-----------
+QUERY:
+
+create domain dcomptypea as comptype[];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptypea as comptype[]' at line 1")
+
+-----------
+QUERY:
+
+create table dcomptable (d1 dcomptypea unique);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dcomptypea unique)' at line 1")
+
+-----------
+QUERY:
+
+
+insert into dcomptable values (array[row(1,2)]::dcomptypea);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(1,2)]::dcomptypea)' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable values (array[row(3,4), row(5,6)]::comptype[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(3,4), row(5,6)]::comptype[])' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable values (array[row(7,8)::comptype, row(9,10)::comptype]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(7,8)::comptype, row(9,10)::comptype])' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable values (array[row(1,2)]::dcomptypea);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(1,2)]::dcomptypea)' at line 1")
+
+-----------
+QUERY:
+  -- fail on uniqueness
+insert into dcomptable (d1[1]) values(row(9,10));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1]) values(row(9,10))' at line 2")
+
+-----------
+QUERY:
+
+insert into dcomptable (d1[1].r) values(11);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r) values(11)' at line 1")
+
+-----------
+QUERY:
+
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+select d1[2], d1[1].r, d1[1].i from dcomptable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2], d1[1].r, d1[1].i from dcomptable' at line 1")
+
+-----------
+QUERY:
+
+update dcomptable set d1[2] = row(d1[2].i, d1[2].r);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2] = row(d1[2].i, d1[2].r)' at line 1")
+
+-----------
+QUERY:
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+update dcomptable set d1[1].r = d1[1].r + 1 where d1[1].i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r = d1[1].r + 1 where d1[1].i > 0' at line 1")
+
+-----------
+QUERY:
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain dcomptypea add constraint c1 check (value[1].r <= value[1].i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptypea add constraint c1 check (value[1].r <= value[1].i)' at line 1")
+
+-----------
+QUERY:
+
+alter domain dcomptypea add constraint c2 check (value[1].r > value[1].i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptypea add constraint c2 check (value[1].r > value[1].i)' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+select array[row(2,1)]::dcomptypea;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(2,1)]::dcomptypea' at line 3")
+
+-----------
+QUERY:
+  -- fail
+insert into dcomptable values (array[row(1,2)]::comptype[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(1,2)]::comptype[])' at line 2")
+
+-----------
+QUERY:
+
+insert into dcomptable values (array[row(2,1)]::comptype[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[row(2,1)]::comptype[])' at line 1")
+
+-----------
+QUERY:
+  -- fail
+insert into dcomptable (d1[1].r) values(99);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r) values(99)' at line 2")
+
+-----------
+QUERY:
+
+insert into dcomptable (d1[1].r, d1[1].i) values(99, 100);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r, d1[1].i) values(99, 100)' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable (d1[1].r, d1[1].i) values(100, 99);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r, d1[1].i) values(100, 99)' at line 1")
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set d1[1].r = d1[1].r + 1 where d1[1].i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r = d1[1].r + 1 where d1[1].i > 0' at line 2")
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
+  where d1[1].i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1\n  where d1[1].i > 0' at line 2")
+
+-----------
+QUERY:
+
+select * from dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+  update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
+    where d1[1].i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\n  update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[' at line 1")
+
+-----------
+QUERY:
+
+create rule silly as on delete to dcomptable do instead
+  update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
+    where d1[1].i > 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule silly as on delete to dcomptable do instead\n  update dcomptable set d1[1].r' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ dcomptable
+
+drop table dcomptable;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.dcomptable'")
+
+-----------
+QUERY:
+
+drop type comptype cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype cascade' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Test arrays over domains
+
+create domain posint as int check (value > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint as int check (value > 0)' at line 3")
+
+-----------
+QUERY:
+
+
+create table pitable (f1 posint[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'posint[])' at line 1")
+
+-----------
+QUERY:
+
+insert into pitable values(array[42]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[42])' at line 1")
+
+-----------
+QUERY:
+
+insert into pitable values(array[-1]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[-1])' at line 1")
+
+-----------
+QUERY:
+  -- fail
+insert into pitable values('{0}');
+RESULT:
+	ERROR - (1146, "Table 'test.pitable' doesn't exist")
+
+-----------
+QUERY:
+  -- fail
+update pitable set f1[1] = f1[1] + 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1] = f1[1] + 1' at line 2")
+
+-----------
+QUERY:
+
+update pitable set f1[1] = 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1] = 0' at line 1")
+
+-----------
+QUERY:
+  -- fail
+select * from pitable;
+RESULT:
+	ERROR - (1146, "Table 'test.pitable' doesn't exist")
+
+-----------
+QUERY:
+
+drop table pitable;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.pitable'")
+
+-----------
+QUERY:
+
+
+create domain vc4 as varchar(4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain vc4 as varchar(4)' at line 1")
+
+-----------
+QUERY:
+
+create table vc4table (f1 vc4[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'vc4[])' at line 1")
+
+-----------
+QUERY:
+
+insert into vc4table values(array['too long']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['too long'])' at line 1")
+
+-----------
+QUERY:
+  -- fail
+insert into vc4table values(array['too long']::vc4[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['too long']::vc4[])' at line 2")
+
+-----------
+QUERY:
+  -- cast truncates
+select * from vc4table;
+RESULT:
+	ERROR - (1146, "Table 'test.vc4table' doesn't exist")
+
+-----------
+QUERY:
+
+drop table vc4table;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vc4table'")
+
+-----------
+QUERY:
+
+drop type vc4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type vc4' at line 1")
+
+-----------
+QUERY:
+
+
+-- You can sort of fake arrays-of-arrays by putting a domain in between
+create domain dposinta as posint[];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dposinta as posint[]' at line 2")
+
+-----------
+QUERY:
+
+create table dposintatable (f1 dposinta[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dposinta[])' at line 1")
+
+-----------
+QUERY:
+
+insert into dposintatable values(array[array[42]]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[array[42]])' at line 1")
+
+-----------
+QUERY:
+  -- fail
+insert into dposintatable values(array[array[42]::posint[]]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[array[42]::posint[]])' at line 2")
+
+-----------
+QUERY:
+ -- still fail
+insert into dposintatable values(array[array[42]::dposinta]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[array[42]::dposinta])' at line 2")
+
+-----------
+QUERY:
+ -- but this works
+select f1, f1[1], (f1[1])[1] from dposintatable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], (f1[1])[1] from dposintatable' at line 2")
+
+-----------
+QUERY:
+
+select pg_typeof(f1) from dposintatable;
+RESULT:
+	ERROR - (1146, "Table 'test.dposintatable' doesn't exist")
+
+-----------
+QUERY:
+
+select pg_typeof(f1[1]) from dposintatable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1]) from dposintatable' at line 1")
+
+-----------
+QUERY:
+
+select pg_typeof(f1[1][1]) from dposintatable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1][1]) from dposintatable' at line 1")
+
+-----------
+QUERY:
+
+select pg_typeof((f1[1])[1]) from dposintatable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1])[1]) from dposintatable' at line 1")
+
+-----------
+QUERY:
+
+update dposintatable set f1[2] = array[99];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2] = array[99]' at line 1")
+
+-----------
+QUERY:
+
+select f1, f1[1], (f1[2])[1] from dposintatable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1], (f1[2])[1] from dposintatable' at line 1")
+
+-----------
+QUERY:
+
+-- it/* REPLACED */''d be nice if you could do something like this, but for now you can/* REPLACED */''t:
+update dposintatable set f1[2][1] = array[97];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2][1] = array[97]' at line 2")
+
+-----------
+QUERY:
+
+-- maybe someday we can make this syntax work:
+update dposintatable set (f1[2])[1] = array[98];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(f1[2])[1] = array[98]' at line 2")
+
+-----------
+QUERY:
+
+
+drop table dposintatable;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.dposintatable'")
+
+-----------
+QUERY:
+
+drop domain posint cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint cascade' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Test arrays over domains of composite
+
+create type comptype as (cf1 int, cf2 int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype as (cf1 int, cf2 int)' at line 3")
+
+-----------
+QUERY:
+
+create domain dcomptype as comptype check ((value).cf1 > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype as comptype check ((value).cf1 > 0)' at line 1")
+
+-----------
+QUERY:
+
+
+create table dcomptable (f1 dcomptype[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dcomptype[])' at line 1")
+
+-----------
+QUERY:
+
+insert into dcomptable values (null);
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+update dcomptable set f1[1].cf2 = 5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].cf2 = 5' at line 1")
+
+-----------
+QUERY:
+
+table dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+update dcomptable set f1[1].cf1 = -1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].cf1 = -1' at line 1")
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set f1[1].cf1 = 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].cf1 = 1' at line 2")
+
+-----------
+QUERY:
+
+table dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+-- if there/* REPLACED */''s no constraints, a different code path is taken:
+alter domain dcomptype drop constraint dcomptype_check;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcomptype drop constraint dcomptype_check' at line 2")
+
+-----------
+QUERY:
+
+update dcomptable set f1[1].cf1 = -1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1].cf1 = -1' at line 1")
+
+-----------
+QUERY:
+  -- now ok
+table dcomptable;
+RESULT:
+	ERROR - (1146, "Table 'test.dcomptable' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table dcomptable;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.dcomptable'")
+
+-----------
+QUERY:
+
+drop type comptype cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type comptype cascade' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Test not-null restrictions
+
+create domain dnotnull varchar(15) NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnull varchar(15) NOT NULL' at line 3")
+
+-----------
+QUERY:
+
+create domain dnull    varchar(15);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnull    varchar(15)' at line 1")
+
+-----------
+QUERY:
+
+create domain dcheck   varchar(15) NOT NULL CHECK (VALUE = 'a' OR VALUE = 'c' OR VALUE = 'd');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcheck   varchar(15) NOT NULL CHECK (VALUE = 'a' OR VALUE = 'c' OR VALUE ' at line 1")
+
+-----------
+QUERY:
+
+
+create table nulltest
+           ( col1 dnotnull
+           , col2 dnotnull NULL  -- NOT NULL in the domain cannot be overridden
+           , col3 dnull    NOT NULL
+           , col4 dnull
+           , col5 dcheck CHECK (col5 IN ('c', 'd'))
+           );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dnotnull\n           , col2 dnotnull NULL  -- NOT NULL in the domain cannot be ov' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO nulltest DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO nulltest values ('a', 'b', 'c', 'd', 'c');
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+  -- Good
+insert into nulltest values ('a', 'b', 'c', 'd', NULL);
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into nulltest values ('a', 'b', 'c', 'd', 'a');
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO nulltest values (NULL, 'b', 'c', 'd', 'd');
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO nulltest values ('a', NULL, 'c', 'd', 'c');
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO nulltest values ('a', 'b', NULL, 'd', 'c');
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO nulltest values ('a', 'b', 'c', NULL, 'd');
+RESULT:
+	ERROR - (1146, "Table 'test.nulltest' doesn't exist")
+
+-----------
+QUERY:
+ -- Good
+
+-- Test copy
+COPY nulltest FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY nulltest FROM stdin' at line 4")
+
+-----------
+QUERY:
+ --fail
+a	b	\N	d	d
+\.
+
+COPY nulltest FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--fail\na\tb\t\\N\td\td\n\\.\n\nCOPY nulltest FROM stdin' at line 1")
+
+-----------
+QUERY:
+ --fail
+a	b	c	d	\N
+\.
+
+-- Last row is bad
+COPY nulltest FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--fail\na\tb\tc\td\t\\N\n\\.\n\n-- Last row is bad\nCOPY nulltest FROM stdin' at line 1")
+
+-----------
+QUERY:
+
+a	b	c	\N	c
+a	b	c	\N	d
+a	b	c	\N	a
+\.
+
+select * from nulltest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a\tb\tc\t\\N\tc\na\tb\tc\t\\N\td\na\tb\tc\t\\N\ta\n\\.\n\nselect * from nulltest' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test out coerced (casted) constraints
+SELECT cast('1' as dnotnull);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dnotnull)' at line 2")
+
+-----------
+QUERY:
+
+SELECT cast(NULL as dnotnull);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dnotnull)' at line 1")
+
+-----------
+QUERY:
+ -- fail
+SELECT cast(cast(NULL as dnull) as dnotnull);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dnull) as dnotnull)' at line 2")
+
+-----------
+QUERY:
+ -- fail
+SELECT cast(col4 as dnotnull) from nulltest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dnotnull) from nulltest' at line 2")
+
+-----------
+QUERY:
+ -- fail
+
+-- cleanup
+drop table nulltest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.nulltest'")
+
+-----------
+QUERY:
+
+drop domain dnotnull restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnull restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain dnull restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnull restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain dcheck restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dcheck restrict' at line 1")
+
+-----------
+QUERY:
+
+
+
+create domain ddef1 int4 DEFAULT 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef1 int4 DEFAULT 3' at line 1")
+
+-----------
+QUERY:
+
+create domain ddef2 oid DEFAULT '12';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef2 oid DEFAULT '12'' at line 1")
+
+-----------
+QUERY:
+
+-- Type mixing, function returns int8
+create domain ddef3 text DEFAULT 5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef3 text DEFAULT 5' at line 2")
+
+-----------
+QUERY:
+
+create sequence ddef4_seq;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sequence ddef4_seq' at line 1")
+
+-----------
+QUERY:
+
+create domain ddef4 int4 DEFAULT nextval('ddef4_seq');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef4 int4 DEFAULT nextval('ddef4_seq')' at line 1")
+
+-----------
+QUERY:
+
+create domain ddef5 numeric(8,2) NOT NULL DEFAULT '12.12';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef5 numeric(8,2) NOT NULL DEFAULT '12.12'' at line 1")
+
+-----------
+QUERY:
+
+
+create table defaulttest
+            ( col1 ddef1
+            , col2 ddef2
+            , col3 ddef3
+            , col4 ddef4 PRIMARY KEY
+            , col5 ddef1 NOT NULL DEFAULT NULL
+            , col6 ddef2 DEFAULT '88'
+            , col7 ddef4 DEFAULT 8000
+            , col8 ddef5
+            );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ddef1\n            , col2 ddef2\n            , col3 ddef3\n            , col4 ddef4' at line 2")
+
+-----------
+QUERY:
+
+insert into defaulttest(col4) values(0);
+RESULT:
+	ERROR - (1146, "Table 'test.defaulttest' doesn't exist")
+
+-----------
+QUERY:
+ -- fails, col5 defaults to null
+alter table defaulttest alter column col5 drop default;
+RESULT:
+	ERROR - (1146, "Table 'test.defaulttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into defaulttest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+ -- succeeds, inserts domain default
+-- We used to treat SET DEFAULT NULL as equivalent to DROP DEFAULT /* REPLACED */, wrong
+alter table defaulttest alter column col5 set default null;
+RESULT:
+	ERROR - (1146, "Table 'test.defaulttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into defaulttest(col4) values(0);
+RESULT:
+	ERROR - (1146, "Table 'test.defaulttest' doesn't exist")
+
+-----------
+QUERY:
+ -- fails
+alter table defaulttest alter column col5 drop default;
+RESULT:
+	ERROR - (1146, "Table 'test.defaulttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into defaulttest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+insert into defaulttest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test defaults with copy
+COPY defaulttest(col5) FROM stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY defaulttest(col5) FROM stdin' at line 2")
+
+-----------
+QUERY:
+
+42
+\.
+
+select * from defaulttest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '42\n\\.\n\nselect * from defaulttest' at line 1")
+
+-----------
+QUERY:
+
+
+drop table defaulttest cascade;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.defaulttest'")
+
+-----------
+QUERY:
+
+
+-- Test ALTER DOMAIN .. NOT NULL
+create domain dnotnulltest integer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnulltest integer' at line 2")
+
+-----------
+QUERY:
+
+create table domnotnull
+( col1 dnotnulltest
+, col2 dnotnulltest
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dnotnulltest\n, col2 dnotnulltest\n)' at line 2")
+
+-----------
+QUERY:
+
+
+insert into domnotnull default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+alter domain dnotnulltest set not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnulltest set not null' at line 1")
+
+-----------
+QUERY:
+ -- fails
+
+update domnotnull set col1 = 5;
+RESULT:
+	ERROR - (1146, "Table 'test.domnotnull' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain dnotnulltest set not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnulltest set not null' at line 1")
+
+-----------
+QUERY:
+ -- fails
+
+update domnotnull set col2 = 6;
+RESULT:
+	ERROR - (1146, "Table 'test.domnotnull' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain dnotnulltest set not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnulltest set not null' at line 1")
+
+-----------
+QUERY:
+
+
+update domnotnull set col1 = null;
+RESULT:
+	ERROR - (1146, "Table 'test.domnotnull' doesn't exist")
+
+-----------
+QUERY:
+ -- fails
+
+alter domain dnotnulltest drop not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnulltest drop not null' at line 3")
+
+-----------
+QUERY:
+
+
+update domnotnull set col1 = null;
+RESULT:
+	ERROR - (1146, "Table 'test.domnotnull' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop domain dnotnulltest cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dnotnulltest cascade' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test ALTER DOMAIN .. DEFAULT ..
+create table domdeftest (col1 ddef1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ddef1)' at line 2")
+
+-----------
+QUERY:
+
+
+insert into domdeftest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+select * from domdeftest;
+RESULT:
+	ERROR - (1146, "Table 'test.domdeftest' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain ddef1 set default '42';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef1 set default '42'' at line 1")
+
+-----------
+QUERY:
+
+insert into domdeftest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+select * from domdeftest;
+RESULT:
+	ERROR - (1146, "Table 'test.domdeftest' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain ddef1 drop default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef1 drop default' at line 1")
+
+-----------
+QUERY:
+
+insert into domdeftest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+select * from domdeftest;
+RESULT:
+	ERROR - (1146, "Table 'test.domdeftest' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table domdeftest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.domdeftest'")
+
+-----------
+QUERY:
+
+
+-- Test ALTER DOMAIN .. CONSTRAINT ..
+create domain con as integer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con as integer' at line 2")
+
+-----------
+QUERY:
+
+create table domcontest (col1 con);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'con)' at line 1")
+
+-----------
+QUERY:
+
+
+insert into domcontest values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.domcontest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into domcontest values (2);
+RESULT:
+	ERROR - (1146, "Table 'test.domcontest' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain con add constraint t check (VALUE < 1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con add constraint t check (VALUE < 1)' at line 1")
+
+-----------
+QUERY:
+ -- fails
+
+alter domain con add constraint t check (VALUE < 34);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con add constraint t check (VALUE < 34)' at line 3")
+
+-----------
+QUERY:
+
+alter domain con add check (VALUE > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con add check (VALUE > 0)' at line 1")
+
+-----------
+QUERY:
+
+
+insert into domcontest values (-5);
+RESULT:
+	ERROR - (1146, "Table 'test.domcontest' doesn't exist")
+
+-----------
+QUERY:
+ -- fails
+insert into domcontest values (42);
+RESULT:
+	ERROR - (1146, "Table 'test.domcontest' doesn't exist")
+
+-----------
+QUERY:
+ -- fails
+insert into domcontest values (5);
+RESULT:
+	ERROR - (1146, "Table 'test.domcontest' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain con drop constraint t;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con drop constraint t' at line 1")
+
+-----------
+QUERY:
+
+insert into domcontest values (-5);
+RESULT:
+	ERROR - (1146, "Table 'test.domcontest' doesn't exist")
+
+-----------
+QUERY:
+ --fails
+insert into domcontest values (42);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--fails\ninsert into domcontest values (42)' at line 1")
+
+-----------
+QUERY:
+
+
+alter domain con drop constraint nonexistent;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con drop constraint nonexistent' at line 1")
+
+-----------
+QUERY:
+
+alter domain con drop constraint if exists nonexistent;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain con drop constraint if exists nonexistent' at line 1")
+
+-----------
+QUERY:
+
+
+-- not-null constraints
+create domain connotnull integer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull integer' at line 2")
+
+-----------
+QUERY:
+
+create table domconnotnulltest
+( col1 connotnull
+, col2 connotnull
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'connotnull\n, col2 connotnull\n)' at line 2")
+
+-----------
+QUERY:
+
+
+insert into domconnotnulltest default values;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default values' at line 1")
+
+-----------
+QUERY:
+
+alter domain connotnull add not null value;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull add not null value' at line 1")
+
+-----------
+QUERY:
+ -- fails
+
+update domconnotnulltest set col1 = 5;
+RESULT:
+	ERROR - (1146, "Table 'test.domconnotnulltest' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain connotnull add not null value;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull add not null value' at line 1")
+
+-----------
+QUERY:
+ -- fails
+
+update domconnotnulltest set col2 = 6;
+RESULT:
+	ERROR - (1146, "Table 'test.domconnotnulltest' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain connotnull add constraint constr1 not null value;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull add constraint constr1 not null value' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from pg_constraint where contypid = 'connotnull'::regtype and contype = 'n';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype and contype = 'n'' at line 1")
+
+-----------
+QUERY:
+
+alter domain connotnull add constraint constr1bis not null value;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull add constraint constr1bis not null value' at line 1")
+
+-----------
+QUERY:
+  -- redundant
+select count(*) from pg_constraint where contypid = 'connotnull'::regtype and contype = 'n';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype and contype = 'n'' at line 2")
+
+-----------
+QUERY:
+
+
+update domconnotnulltest set col1 = null;
+RESULT:
+	ERROR - (1146, "Table 'test.domconnotnulltest' doesn't exist")
+
+-----------
+QUERY:
+ -- fails
+
+alter domain connotnull drop constraint constr1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull drop constraint constr1' at line 3")
+
+-----------
+QUERY:
+
+
+update domconnotnulltest set col1 = null;
+RESULT:
+	ERROR - (1146, "Table 'test.domconnotnulltest' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop domain connotnull cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain connotnull cascade' at line 1")
+
+-----------
+QUERY:
+
+drop table domconnotnulltest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.domconnotnulltest'")
+
+-----------
+QUERY:
+
+
+-- Test ALTER DOMAIN .. CONSTRAINT .. NOT VALID
+create domain things AS INT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain things AS INT' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE thethings (stuff things);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'things)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO thethings (stuff) VALUES (55);
+RESULT:
+	ERROR - (1146, "Table 'test.thethings' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER DOMAIN things ADD CONSTRAINT meow CHECK (VALUE < 11);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN things ADD CONSTRAINT meow CHECK (VALUE < 11)' at line 1")
+
+-----------
+QUERY:
+
+ALTER DOMAIN things ADD CONSTRAINT meow CHECK (VALUE < 11) NOT VALID;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN things ADD CONSTRAINT meow CHECK (VALUE < 11) NOT VALID' at line 1")
+
+-----------
+QUERY:
+
+ALTER DOMAIN things VALIDATE CONSTRAINT meow;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN things VALIDATE CONSTRAINT meow' at line 1")
+
+-----------
+QUERY:
+
+UPDATE thethings SET stuff = 10;
+RESULT:
+	ERROR - (1146, "Table 'test.thethings' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER DOMAIN things VALIDATE CONSTRAINT meow;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN things VALIDATE CONSTRAINT meow' at line 1")
+
+-----------
+QUERY:
+
+
+-- Confirm ALTER DOMAIN with RULES.
+create table domtab (col1 integer);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create domain dom as integer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dom as integer' at line 1")
+
+-----------
+QUERY:
+
+create view domview as select cast(col1 as dom) from domtab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dom) from domtab' at line 1")
+
+-----------
+QUERY:
+
+insert into domtab (col1) values (null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into domtab (col1) values (5);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select * from domview;
+RESULT:
+	ERROR - (1146, "Table 'test.domview' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain dom set not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dom set not null' at line 1")
+
+-----------
+QUERY:
+
+select * from domview;
+RESULT:
+	ERROR - (1146, "Table 'test.domview' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+
+alter domain dom drop not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dom drop not null' at line 3")
+
+-----------
+QUERY:
+
+select * from domview;
+RESULT:
+	ERROR - (1146, "Table 'test.domview' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain dom add constraint domchkgt6 check(value > 6);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dom add constraint domchkgt6 check(value > 6)' at line 1")
+
+-----------
+QUERY:
+
+select * from domview;
+RESULT:
+	ERROR - (1146, "Table 'test.domview' doesn't exist")
+
+-----------
+QUERY:
+ --fail
+
+alter domain dom drop constraint domchkgt6 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--fail\n\nalter domain dom drop constraint domchkgt6 restrict' at line 1")
+
+-----------
+QUERY:
+
+select * from domview;
+RESULT:
+	ERROR - (1146, "Table 'test.domview' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- cleanup
+drop domain ddef1 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef1 restrict' at line 2")
+
+-----------
+QUERY:
+
+drop domain ddef2 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef2 restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain ddef3 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef3 restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain ddef4 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef4 restrict' at line 1")
+
+-----------
+QUERY:
+
+drop domain ddef5 restrict;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddef5 restrict' at line 1")
+
+-----------
+QUERY:
+
+drop sequence ddef4_seq;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sequence ddef4_seq' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test domains over domains
+create domain vchar4 varchar(4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain vchar4 varchar(4)' at line 2")
+
+-----------
+QUERY:
+
+create domain dinter vchar4 check (substring(VALUE, 1, 1) = 'x');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dinter vchar4 check (substring(VALUE, 1, 1) = 'x')' at line 1")
+
+-----------
+QUERY:
+
+create domain dtop dinter check (substring(VALUE, 2, 1) = '1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain dtop dinter check (substring(VALUE, 2, 1) = '1')' at line 1")
+
+-----------
+QUERY:
+
+
+select 'x123'::dtop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dtop' at line 1")
+
+-----------
+QUERY:
+
+select 'x1234'::dtop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dtop' at line 1")
+
+-----------
+QUERY:
+ -- explicit coercion should truncate
+select 'y1234'::dtop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dtop' at line 2")
+
+-----------
+QUERY:
+ -- fail
+select 'y123'::dtop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dtop' at line 2")
+
+-----------
+QUERY:
+ -- fail
+select 'yz23'::dtop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dtop' at line 2")
+
+-----------
+QUERY:
+ -- fail
+select 'xz23'::dtop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::dtop' at line 2")
+
+-----------
+QUERY:
+ -- fail
+
+create temp table dtest(f1 dtop);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table dtest(f1 dtop)' at line 3")
+
+-----------
+QUERY:
+
+
+insert into dtest values('x123');
+RESULT:
+	ERROR - (1146, "Table 'test.dtest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into dtest values('x1234');
+RESULT:
+	ERROR - (1146, "Table 'test.dtest' doesn't exist")
+
+-----------
+QUERY:
+ -- fail, implicit coercion
+insert into dtest values('y1234');
+RESULT:
+	ERROR - (1146, "Table 'test.dtest' doesn't exist")
+
+-----------
+QUERY:
+ -- fail, implicit coercion
+insert into dtest values('y123');
+RESULT:
+	ERROR - (1146, "Table 'test.dtest' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+insert into dtest values('yz23');
+RESULT:
+	ERROR - (1146, "Table 'test.dtest' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+insert into dtest values('xz23');
+RESULT:
+	ERROR - (1146, "Table 'test.dtest' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+
+drop table dtest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.dtest'")
+
+-----------
+QUERY:
+
+drop domain vchar4 cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain vchar4 cascade' at line 1")
+
+-----------
+QUERY:
+
+
+-- Make sure that constraints of newly-added domain columns are
+-- enforced correctly, even if there/* REPLACED */''s no default value for the new
+-- column. Per bug #1433
+create domain str_domain as text not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain str_domain as text not null' at line 4")
+
+-----------
+QUERY:
+
+
+create table domain_test (a int, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+insert into domain_test values (1, 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into domain_test values (1, 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- should fail
+alter table domain_test add column c str_domain;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'str_domain' at line 2")
+
+-----------
+QUERY:
+
+
+create domain str_domain2 as text check (value <> 'foo') default 'foo';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain str_domain2 as text check (value <> 'foo') default 'foo'' at line 1")
+
+-----------
+QUERY:
+
+
+-- should fail
+alter table domain_test add column d str_domain2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'str_domain2' at line 2")
+
+-----------
+QUERY:
+
+
+-- Check that domain constraints on prepared statement parameters of
+-- unknown type are enforced correctly.
+create domain pos_int as int4 check (value > 0) not null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain pos_int as int4 check (value > 0) not null' at line 3")
+
+-----------
+QUERY:
+
+prepare s1 as select $1::pos_int = 10 as "is_ten";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'as select $1::pos_int = 10 as "is_ten"\' at line 1')
+
+-----------
+QUERY:
+
+
+execute s1(10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(10)' at line 1")
+
+-----------
+QUERY:
+
+execute s1(0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0)' at line 1")
+
+-----------
+QUERY:
+ -- should fail
+execute s1(NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(NULL)' at line 2")
+
+-----------
+QUERY:
+ -- should fail
+
+-- Check that domain constraints on plpgsql function parameters, results,
+-- and local variables are enforced correctly.
+
+create function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int;
+begin
+    return p1;
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pos_int) returns pos_int as $$\ndeclare v pos_int;\nbegin\n    return p1;\nend$$ lan' at line 6")
+
+-----------
+QUERY:
+
+
+select doubledecrement(3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- fail because of implicit null assignment
+
+create or replace function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int := 0;
+begin
+    return p1;
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function doubledecrement(p1 pos_int) returns pos_int as $$\ndeclare v pos_int := ' at line 3")
+
+-----------
+QUERY:
+
+
+select doubledecrement(3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- fail at initialization assignment
+
+create or replace function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int := 1;
+begin
+    v := p1 - 1;
+    return v - 1;
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function doubledecrement(p1 pos_int) returns pos_int as $$\ndeclare v pos_int := ' at line 3")
+
+-----------
+QUERY:
+
+
+select doubledecrement(null);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- fail before call
+select doubledecrement(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- fail before call
+select doubledecrement(1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- fail at assignment to v
+select doubledecrement(2);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- fail at return
+select doubledecrement(3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.doubledecrement does not exist')
+
+-----------
+QUERY:
+ -- good
+
+-- Check that ALTER DOMAIN tests columns of derived types
+
+create domain posint as int4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint as int4' at line 5")
+
+-----------
+QUERY:
+
+
+-- Currently, this doesn/* REPLACED */''t work for composite types, but verify it complains
+create type ddtest1 as (f1 posint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type ddtest1 as (f1 posint)' at line 2")
+
+-----------
+QUERY:
+
+create table ddtest2(f1 ddtest1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ddtest1)' at line 1")
+
+-----------
+QUERY:
+
+insert into ddtest2 values(row(-1));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '))' at line 1")
+
+-----------
+QUERY:
+
+alter domain posint add constraint c1 check(value >= 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c1 check(value >= 0)' at line 1")
+
+-----------
+QUERY:
+
+drop table ddtest2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ddtest2'")
+
+-----------
+QUERY:
+
+
+-- Likewise for domains within arrays of composite
+create table ddtest2(f1 ddtest1[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ddtest1[])' at line 2")
+
+-----------
+QUERY:
+
+insert into ddtest2 values('{(-1)}');
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain posint add constraint c1 check(value >= 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c1 check(value >= 0)' at line 1")
+
+-----------
+QUERY:
+
+drop table ddtest2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ddtest2'")
+
+-----------
+QUERY:
+
+
+-- Likewise for domains within domains over composite
+create domain ddtest1d as ddtest1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddtest1d as ddtest1' at line 2")
+
+-----------
+QUERY:
+
+create table ddtest2(f1 ddtest1d);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ddtest1d)' at line 1")
+
+-----------
+QUERY:
+
+insert into ddtest2 values('(-1)');
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain posint add constraint c1 check(value >= 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c1 check(value >= 0)' at line 1")
+
+-----------
+QUERY:
+
+drop table ddtest2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ddtest2'")
+
+-----------
+QUERY:
+
+drop domain ddtest1d;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddtest1d' at line 1")
+
+-----------
+QUERY:
+
+
+-- Likewise for domains within domains over array of composite
+create domain ddtest1d as ddtest1[];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddtest1d as ddtest1[]' at line 2")
+
+-----------
+QUERY:
+
+create table ddtest2(f1 ddtest1d);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ddtest1d)' at line 1")
+
+-----------
+QUERY:
+
+insert into ddtest2 values('{(-1)}');
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain posint add constraint c1 check(value >= 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c1 check(value >= 0)' at line 1")
+
+-----------
+QUERY:
+
+drop table ddtest2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ddtest2'")
+
+-----------
+QUERY:
+
+drop domain ddtest1d;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain ddtest1d' at line 1")
+
+-----------
+QUERY:
+
+
+-- Doesn/* REPLACED */''t work for ranges, either
+create type rposint as range (subtype = posint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rposint as range (subtype = posint)' at line 2")
+
+-----------
+QUERY:
+
+create table ddtest2(f1 rposint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rposint)' at line 1")
+
+-----------
+QUERY:
+
+insert into ddtest2 values('(-1,3]');
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+
+alter domain posint add constraint c1 check(value >= 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c1 check(value >= 0)' at line 1")
+
+-----------
+QUERY:
+
+drop table ddtest2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ddtest2'")
+
+-----------
+QUERY:
+
+drop type rposint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rposint' at line 1")
+
+-----------
+QUERY:
+
+
+alter domain posint add constraint c1 check(value >= 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c1 check(value >= 0)' at line 1")
+
+-----------
+QUERY:
+
+
+create domain posint2 as posint check (value % 2 = 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint2 as posint check (value % 2 = 0)' at line 1")
+
+-----------
+QUERY:
+
+create table ddtest2(f1 posint2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'posint2)' at line 1")
+
+-----------
+QUERY:
+
+insert into ddtest2 values(11);
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+insert into ddtest2 values(-2);
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+insert into ddtest2 values(2);
+RESULT:
+	ERROR - (1146, "Table 'test.ddtest2' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter domain posint add constraint c2 check(value >= 10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c2 check(value >= 10)' at line 1")
+
+-----------
+QUERY:
+ -- fail
+alter domain posint add constraint c2 check(value > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint add constraint c2 check(value > 0)' at line 2")
+
+-----------
+QUERY:
+ -- OK
+
+drop table ddtest2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.ddtest2'")
+
+-----------
+QUERY:
+
+drop type ddtest1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type ddtest1' at line 1")
+
+-----------
+QUERY:
+
+drop domain posint cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain posint cascade' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Check enforcement of domain-related typmod in plpgsql (bug #5717)
+--
+
+create or replace function array_elem_check(numeric) returns numeric as $$
+declare
+  x numeric(4,2)[1];
+begin
+  x[1] := $1;
+  return x[1];
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function array_elem_check(numeric) returns numeric as $$\ndeclare\n  x numeric(4,2' at line 5")
+
+-----------
+QUERY:
+
+
+select array_elem_check(121.00);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+select array_elem_check(1.23456);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+
+create domain mynums as numeric(4,2)[1];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain mynums as numeric(4,2)[1]' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function array_elem_check(numeric) returns numeric as $$
+declare
+  x mynums;
+begin
+  x[1] := $1;
+  return x[1];
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function array_elem_check(numeric) returns numeric as $$\ndeclare\n  x mynums;\nbeg' at line 1")
+
+-----------
+QUERY:
+
+
+select array_elem_check(121.00);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+select array_elem_check(1.23456);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+
+create domain mynums2 as mynums;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain mynums2 as mynums' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function array_elem_check(numeric) returns numeric as $$
+declare
+  x mynums2;
+begin
+  x[1] := $1;
+  return x[1];
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function array_elem_check(numeric) returns numeric as $$\ndeclare\n  x mynums2;\nbe' at line 1")
+
+-----------
+QUERY:
+
+
+select array_elem_check(121.00);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+select array_elem_check(1.23456);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+
+drop function array_elem_check(numeric);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(numeric)' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Check enforcement of array-level domain constraints
+--
+
+create domain orderedpair as int[2] check (value[1] < value[2]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain orderedpair as int[2] check (value[1] < value[2])' at line 5")
+
+-----------
+QUERY:
+
+
+select array[1,2]::orderedpair;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1,2]::orderedpair' at line 1")
+
+-----------
+QUERY:
+
+select array[2,1]::orderedpair;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2,1]::orderedpair' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+create temp table op (f1 orderedpair);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table op (f1 orderedpair)' at line 3")
+
+-----------
+QUERY:
+
+insert into op values (array[1,2]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[1,2])' at line 1")
+
+-----------
+QUERY:
+
+insert into op values (array[2,1]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2,1])' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+update op set f1[2] = 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2] = 3' at line 3")
+
+-----------
+QUERY:
+
+update op set f1[2] = 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[2] = 0' at line 1")
+
+-----------
+QUERY:
+  -- fail
+select * from op;
+RESULT:
+	ERROR - (1146, "Table 'test.op' doesn't exist")
+
+-----------
+QUERY:
+
+
+create or replace function array_elem_check(int) returns int as $$
+declare
+  x orderedpair := '{1,2}';
+begin
+  x[2] := $1;
+  return x[2];
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function array_elem_check(int) returns int as $$\ndeclare\n  x orderedpair := '{1,' at line 1")
+
+-----------
+QUERY:
+
+
+select array_elem_check(3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+select array_elem_check(-1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.array_elem_check does not exist')
+
+-----------
+QUERY:
+
+
+drop function array_elem_check(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Check enforcement of changing constraints in plpgsql
+--
+
+create domain di as int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain di as int' at line 5")
+
+-----------
+QUERY:
+
+
+create function dom_check(int) returns di as $$
+declare d di;
+begin
+  d := $1::di;
+  return d;
+end
+$$ language plpgsql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) returns di as $$\ndeclare d di;\nbegin\n  d := $1::di;\n  return d;\nend\n$$ lang' at line 1")
+
+-----------
+QUERY:
+
+
+select dom_check(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dom_check does not exist')
+
+-----------
+QUERY:
+
+
+alter domain di add constraint pos check (value > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain di add constraint pos check (value > 0)' at line 1")
+
+-----------
+QUERY:
+
+
+select dom_check(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dom_check does not exist')
+
+-----------
+QUERY:
+ -- fail
+
+alter domain di drop constraint pos;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain di drop constraint pos' at line 3")
+
+-----------
+QUERY:
+
+
+select dom_check(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dom_check does not exist')
+
+-----------
+QUERY:
+
+
+-- implicit cast during assignment is a separate code path, test that too
+
+create or replace function dom_check(int) returns di as $$
+declare d di;
+begin
+  d := $1;
+  return d;
+end
+$$ language plpgsql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function dom_check(int) returns di as $$\ndeclare d di;\nbegin\n  d := $1;\n  return' at line 3")
+
+-----------
+QUERY:
+
+
+select dom_check(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dom_check does not exist')
+
+-----------
+QUERY:
+
+
+alter domain di add constraint pos check (value > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain di add constraint pos check (value > 0)' at line 1")
+
+-----------
+QUERY:
+
+
+select dom_check(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dom_check does not exist')
+
+-----------
+QUERY:
+ -- fail
+
+alter domain di drop constraint pos;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain di drop constraint pos' at line 3")
+
+-----------
+QUERY:
+
+
+select dom_check(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dom_check does not exist')
+
+-----------
+QUERY:
+
+
+drop function dom_check(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+
+drop domain di;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain di' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Check use of a (non-inline-able) SQL function in a domain constraint /* REPLACED */,
+-- this has caused issues in the past
+--
+
+create function sql_is_distinct_from(anyelement, anyelement)
+returns boolean language sql
+as 'select $1 is distinct from $2 limit 1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', anyelement)\nreturns boolean language sql\nas 'select $1 is distinct from $2 lim' at line 6")
+
+-----------
+QUERY:
+
+
+create domain inotnull int
+  check (sql_is_distinct_from(value, null));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain inotnull int\n  check (sql_is_distinct_from(value, null))' at line 1")
+
+-----------
+QUERY:
+
+
+select 1::inotnull;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::inotnull' at line 1")
+
+-----------
+QUERY:
+
+select null::inotnull;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::inotnull' at line 1")
+
+-----------
+QUERY:
+
+
+create table dom_table (x inotnull);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'inotnull)' at line 1")
+
+-----------
+QUERY:
+
+insert into dom_table values ('1');
+RESULT:
+	ERROR - (1146, "Table 'test.dom_table' doesn't exist")
+
+-----------
+QUERY:
+
+insert into dom_table values (1);
+RESULT:
+	ERROR - (1146, "Table 'test.dom_table' doesn't exist")
+
+-----------
+QUERY:
+
+insert into dom_table values (null);
+RESULT:
+	ERROR - (1146, "Table 'test.dom_table' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table dom_table;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.dom_table'")
+
+-----------
+QUERY:
+
+drop domain inotnull;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain inotnull' at line 1")
+
+-----------
+QUERY:
+
+drop function sql_is_distinct_from(anyelement, anyelement);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(anyelement, anyelement)' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Renaming
+--
+
+create domain testdomain1 as int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain1 as int' at line 5")
+
+-----------
+QUERY:
+
+alter domain testdomain1 rename to testdomain2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain1 rename to testdomain2' at line 1")
+
+-----------
+QUERY:
+
+alter type testdomain2 rename to testdomain3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type testdomain2 rename to testdomain3' at line 1")
+
+-----------
+QUERY:
+  -- alter type also works
+drop domain testdomain3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain3' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- Renaming domain constraints
+--
+
+create domain testdomain1 as int constraint unsigned check (value > 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain1 as int constraint unsigned check (value > 0)' at line 5")
+
+-----------
+QUERY:
+
+alter domain testdomain1 rename constraint unsigned to unsigned_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain1 rename constraint unsigned to unsigned_foo' at line 1")
+
+-----------
+QUERY:
+
+alter domain testdomain1 drop constraint unsigned_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain1 drop constraint unsigned_foo' at line 1")
+
+-----------
+QUERY:
+
+drop domain testdomain1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'domain testdomain1' at line 1")
+
+-----------
+QUERY:
+
+
+
+--
+-- Information schema
+--
+
+SELECT * FROM information_schema.column_domain_usage
+  WHERE domain_name IN ('con', 'dom', 'pos_int', 'things')
+  ORDER BY domain_name;
+RESULT:
+	ERROR - (1109, "Unknown table 'COLUMN_DOMAIN_USAGE' in information_schema")
+
+-----------
+QUERY:
+
+
+SELECT * FROM information_schema.domain_constraints
+  WHERE domain_name IN ('con', 'dom', 'pos_int', 'things')
+  ORDER BY constraint_name;
+RESULT:
+	ERROR - (1109, "Unknown table 'DOMAIN_CONSTRAINTS' in information_schema")
+
+-----------
+QUERY:
+
+
+SELECT * FROM information_schema.domains
+  WHERE domain_name IN ('con', 'dom', 'pos_int', 'things')
+  ORDER BY domain_name;
+RESULT:
+	ERROR - (1109, "Unknown table 'DOMAINS' in information_schema")
+
+-----------
+QUERY:
+
+
+SELECT * FROM information_schema.check_constraints
+  WHERE (constraint_schema, constraint_name)
+        IN (SELECT constraint_schema, constraint_name
+            FROM information_schema.domain_constraints
+            WHERE domain_name IN ('con', 'dom', 'pos_int', 'things'))
+  ORDER BY constraint_name;
+RESULT:
+	ERROR - (1109, "Unknown table 'DOMAIN_CONSTRAINTS' in information_schema")

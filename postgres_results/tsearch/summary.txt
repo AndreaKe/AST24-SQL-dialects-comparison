@@ -1,0 +1,2646 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+-- directory paths are passed to us in environment variables
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+
+--
+-- Sanity checks for text search catalogs
+--
+-- NB: we assume the oidjoins test will have caught any dangling links,
+-- that is OID or REGPROC fields that are not zero and do not match some
+-- row in the linked-to table.  However, if we want to enforce that a link
+-- field can/* REPLACED */''t be 0, we have to check it here.
+
+-- Find unexpected zero link entries
+
+SELECT oid, prsname
+FROM pg_ts_parser
+WHERE prsnamespace = 0 OR prsstart = 0 OR prstoken = 0 OR prsend = 0 OR
+      -- prsheadline is optional
+      prslextype = 0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT oid, dictname
+FROM pg_ts_dict
+WHERE dictnamespace = 0 OR dictowner = 0 OR dicttemplate = 0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT oid, tmplname
+FROM pg_ts_template
+WHERE tmplnamespace = 0 OR tmpllexize = 0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- tmplinit is optional
+
+SELECT oid, cfgname
+FROM pg_ts_config
+WHERE cfgnamespace = 0 OR cfgowner = 0 OR cfgparser = 0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT mapcfg, maptokentype, mapseqno
+FROM pg_ts_config_map
+WHERE mapcfg = 0 OR mapdict = 0
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Look for pg_ts_config_map entries that aren/* REPLACED */''t one of parser/* REPLACED */''s token types
+SELECT * FROM
+  ( SELECT oid AS cfgid, (ts_token_type(cfgparser)).tokid AS tokid
+    FROM pg_ts_config ) AS tt
+RIGHT JOIN pg_ts_config_map AS m
+    ON (tt.cfgid=m.mapcfg AND tt.tokid=m.maptokentype)
+WHERE
+    tt.cfgid IS NULL OR tt.tokid IS NULL
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Load some test data
+CREATE TABLE test_tsvector(
+	t text,
+	a tsvector
+)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tsearch.data'
+COPY test_tsvector FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tsearch.data'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+ANALYZE test_tsvector
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- test basic text search behavior without indexes, then with
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create index wowidx on test_tsvector using gist (a)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET enable_seqscan=OFF
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET enable_indexscan=ON
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET enable_bitmapscan=OFF
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET enable_indexscan=OFF
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET enable_bitmapscan=ON
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test siglen parameter of GiST tsvector_ops
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(foo=1))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=0))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=2048))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100,foo='bar'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100, siglen = 200))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX wowidx2 ON test_tsvector USING gist (a tsvector_ops(siglen=1))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_tsvector
+
+DROP INDEX wowidx
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+DROP INDEX wowidx2
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE INDEX wowidx ON test_tsvector USING gist (a tsvector_ops(siglen=484))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- \d test_tsvector
+
+EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+RESET enable_seqscan
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+RESET enable_indexscan
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+RESET enable_bitmapscan
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+DROP INDEX wowidx
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE INDEX wowidx ON test_tsvector USING gin (a)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET enable_seqscan=OFF
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- GIN only supports bitmapscan, so no need to test plain indexscan
+
+explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test optimization of non-empty GIN_SEARCH_MODE_ALL queries
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+RESET enable_seqscan
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+INSERT INTO test_tsvector VALUES ('???', 'DFG:1A,2B,6C,10 FGH')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM ts_stat('SELECT a FROM test_tsvector') ORDER BY ndoc DESC, nentry DESC, word LIMIT 10
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM ts_stat('SELECT a FROM test_tsvector', 'AB') ORDER BY ndoc DESC, nentry DESC, word
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--dictionaries and to_tsvector
+
+SELECT ts_lexize('english_stem', 'skies')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_lexize('english_stem', 'identity')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM ts_token_type('default')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * FROM ts_parse('default', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1aew.werc.ewr/?ad=qwe&dw 2aew.werc.ewr http://3aew.werc.ewr/?ad=qwe&dw http://4aew.werc.ewr http://5aew.werc.ewr:8100/?  ad=qwe&dw 6aew.werc.ewr:8100/?ad=qwe&dw 7aew.werc.ewr:8100/?ad=qwe&dw=%20%32 +4.0e-10 qwe qwe qwqwe 234.435 455 5.005 teodor@stack.net teodor@123-stack.net 123_teodor@stack.net 123-teodor@stack.net qwe-wer asdf <fr>qwer jf sdjk<we hjwer <werrwe> ewr1> ewri2 <a href="qwe<qwe>">
+/usr/local/fff /awdf/dwqe/4325 rewt/ewr wefjn /wqe-324/ewr gist.h gist.h.c gist.c. readline 4.2 4.2. 4.2, readline-4.2 readline-4.2. 234
+<i <b> wow  < jqw <> qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsvector('english', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1aew.werc.ewr/?ad=qwe&dw 2aew.werc.ewr http://3aew.werc.ewr/?ad=qwe&dw http://4aew.werc.ewr http://5aew.werc.ewr:8100/?  ad=qwe&dw 6aew.werc.ewr:8100/?ad=qwe&dw 7aew.werc.ewr:8100/?ad=qwe&dw=%20%32 +4.0e-10 qwe qwe qwqwe 234.435 455 5.005 teodor@stack.net teodor@123-stack.net 123_teodor@stack.net 123-teodor@stack.net qwe-wer asdf <fr>qwer jf sdjk<we hjwer <werrwe> ewr1> ewri2 <a href="qwe<qwe>">
+/usr/local/fff /awdf/dwqe/4325 rewt/ewr wefjn /wqe-324/ewr gist.h gist.h.c gist.c. readline 4.2 4.2. 4.2, readline-4.2 readline-4.2. 234
+<i <b> wow  < jqw <> qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT length(to_tsvector('english', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1aew.werc.ewr/?ad=qwe&dw 2aew.werc.ewr http://3aew.werc.ewr/?ad=qwe&dw http://4aew.werc.ewr http://5aew.werc.ewr:8100/?  ad=qwe&dw 6aew.werc.ewr:8100/?ad=qwe&dw 7aew.werc.ewr:8100/?ad=qwe&dw=%20%32 +4.0e-10 qwe qwe qwqwe 234.435 455 5.005 teodor@stack.net teodor@123-stack.net 123_teodor@stack.net 123-teodor@stack.net qwe-wer asdf <fr>qwer jf sdjk<we hjwer <werrwe> ewr1> ewri2 <a href="qwe<qwe>">
+/usr/local/fff /awdf/dwqe/4325 rewt/ewr wefjn /wqe-324/ewr gist.h gist.h.c gist.c. readline 4.2 4.2. 4.2, readline-4.2 readline-4.2. 234
+<i <b> wow  < jqw <> qwerty'))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- ts_debug
+
+SELECT * from ts_debug('english', '<myns:foo-bar_baz.blurfl>abc&nm1
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+def&#xa9
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ghi&#245
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+jkl</myns:foo-bar_baz.blurfl>')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- check parsing of URLs
+SELECT * from ts_debug('english', 'http://www.harewoodsolutions.co.uk/press.aspx</span>')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * from ts_debug('english', 'http://aew.wer0c.ewr/id?ad=qwe&dw<span>')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * from ts_debug('english', 'http://5aew.werc.ewr:8100/?')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT * from ts_debug('english', '5aew.werc.ewr:8100/?xx')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT token, alias,
+  dictionaries, dictionaries is null as dnull, array_dims(dictionaries) as ddims,
+  lexemes, lexemes is null as lnull, array_dims(lexemes) as ldims
+from ts_debug('english', 'a title')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- to_tsquery
+
+SELECT to_tsquery('english', 'qwe & sKies ')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('simple', 'qwe & sKies ')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '''the wether'':dc & ''           sKies '':BC ')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 'asd&(and|fghj)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(asd&and)|fghj')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(asd&!and)|fghj')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(the|and&(i&1))&fghj')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('english', 'the and z 1))& fghj')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('english', 'foo bar') && plainto_tsquery('english', 'asd')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('english', 'foo bar') || plainto_tsquery('english', 'asd fg')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('english', 'foo bar') || !!plainto_tsquery('english', 'asd fg')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('english', 'foo bar') && 'asd | fg'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Check stop word deletion, a and s are stop-words
+SELECT to_tsquery('english', '!(a & !b) & c')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '!(a & !b)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(1 <-> 2) <-> a')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(1 <-> a) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(a <-> 1) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 'a <-> (1 <-> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '1 <-> (a <-> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '1 <-> (2 <-> a)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(1 <-> 2) <3> a')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(1 <-> a) <3> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(a <-> 1) <3> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 'a <3> (1 <-> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '1 <3> (a <-> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '1 <3> (2 <-> a)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(1 <3> 2) <-> a')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(1 <3> a) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(a <3> 1) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 'a <-> (1 <3> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '1 <-> (a <3> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '1 <-> (2 <3> a)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '((a <-> 1) <-> 2) <-> s')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(2 <-> (a <-> 1)) <-> s')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '((1 <-> a) <-> 2) <-> s')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(2 <-> (1 <-> a)) <-> s')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 's <-> ((a <-> 1) <-> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 's <-> (2 <-> (a <-> 1))')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 's <-> ((1 <-> a) <-> 2)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 's <-> (2 <-> (1 <-> a))')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '((a <-> 1) <-> s) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(s <-> (a <-> 1)) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '((1 <-> a) <-> s) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '(s <-> (1 <-> a)) <-> 2')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '2 <-> ((a <-> 1) <-> s)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '2 <-> (s <-> (a <-> 1))')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '2 <-> ((1 <-> a) <-> s)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '2 <-> (s <-> (1 <-> a))')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 'foo <-> (a <-> (the <-> bar))')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', '((foo <-> a) <-> the) <-> bar')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('english', 'foo <-> a <-> the <-> bar')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT phraseto_tsquery('english', 'PostgreSQL can be extended by the user in many ways')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'paint&water'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'breath&motion&water'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'ocean'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'painted <-> Ship'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rank_cd(strip(to_tsvector('both stripped')),
+                  to_tsquery('both & stripped'))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_rank_cd(to_tsvector('unstripped') || strip(to_tsvector('stripped')),
+                  to_tsquery('unstripped & stripped'))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--headline tests
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'paint&water'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'breath&motion&water'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'ocean'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'day & drink'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'day | drink'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'day | !drink'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'painted <-> Ship & drink'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'painted <-> Ship | drink'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'painted <-> Ship | !drink'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', phraseto_tsquery('english', 'painted Ocean'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', phraseto_tsquery('english', 'idle as a painted Ship'))
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('english',
+'Lorem ipsum urna.  Nullam nullam ullamcorper urna.',
+to_tsquery('english','Lorem') && phraseto_tsquery('english','ullamcorper urna'),
+'MaxWords=100, MinWords=1')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_headline('english',
+'Lorem ipsum urna.  Nullam nullam ullamcorper urna.',
+phraseto_tsquery('english','ullamcorper urna'),
+'MaxWords=100, MinWords=5')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_headline('english', '
+<html>
+<!-- some comment -->
+<body>
+Sea view wow <u>foo bar</u> <i>qq</i>
+<a href="http://www.google.com/foo.bar.html" target="_blank">YES &nbsp
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+</a>
+ff-bg
+<script>
+       document.write(15)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+</script>
+</body>
+</html>',
+to_tsquery('english', 'sea&foo'), 'HighlightAll=true')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_headline('simple', '1 2 3 1 3'::text, '1 <-> 3', 'MaxWords=2, MinWords=1')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_headline('simple', '1 2 3 1 3'::text, '1 & 3', 'MaxWords=4, MinWords=1')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_headline('simple', '1 2 3 1 3'::text, '1 <-> 3', 'MaxWords=4, MinWords=1')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--Check if headline fragments work
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'ocean'), 'MaxFragments=1')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+--Check if more than one fragments are displayed
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'Coleridge & stuck'), 'MaxFragments=2')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+--Fragments when there all query words are not in the document
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'ocean & seahorse'), 'MaxFragments=1')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+--FragmentDelimiter option
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'Coleridge & stuck'), 'MaxFragments=2,FragmentDelimiter=***')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+--Fragments with phrase search
+SELECT ts_headline('english',
+'Lorem ipsum urna.  Nullam nullam ullamcorper urna.',
+to_tsquery('english','Lorem') && phraseto_tsquery('english','ullamcorper urna'),
+'MaxFragments=100, MaxWords=100, MinWords=1')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Edge cases with empty query
+SELECT ts_headline('english',
+'', to_tsquery('english', ''))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_headline('english',
+'foo bar', to_tsquery('english', ''))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--Rewrite sub system
+
+CREATE TABLE test_tsquery (txtkeyword TEXT, txtsample TEXT)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- \set ECHO none
+\copy test_tsquery from stdin
+'New York'	new <-> york | big <-> apple | nyc
+Moscow	moskva | moscow
+'Sanct Peter'	Peterburg | peter | 'Sanct Peterburg'
+foo & bar & qq	foo & (bar | qq) & city
+1 & (2 <-> 3)	2 <-> 4
+5 <-> 6	5 <-> 7
+\.
+-- \set ECHO all
+
+ALTER TABLE test_tsquery ADD COLUMN keyword tsquery
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+UPDATE test_tsquery SET keyword = to_tsquery('english', txtkeyword)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+ALTER TABLE test_tsquery ADD COLUMN sample tsquery
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+UPDATE test_tsquery SET sample = to_tsquery('english', txtsample::text)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <  'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <= 'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword = 'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >= 'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >  'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX bt_tsq ON test_tsquery (keyword)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SET enable_seqscan=OFF
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <  'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <= 'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword = 'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >= 'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >  'new <-> york'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+RESET enable_seqscan
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_rewrite('foo & bar & qq & new & york',  'new & york'::tsquery, 'big & apple | nyc | new & york & city')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_rewrite(ts_rewrite('new & !york ', 'york', '!jersey'),
+                  'jersey', 'mexico')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_rewrite('moscow', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite('moscow & hotel', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite('bar & qq & foo & (new <-> york)', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( 'moscow', 'SELECT keyword, sample FROM test_tsquery')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( 'moscow & hotel', 'SELECT keyword, sample FROM test_tsquery')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( 'bar & qq & foo & (new <-> york)', 'SELECT keyword, sample FROM test_tsquery')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite('1 & (2 <-> 3)', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite('1 & (2 <2> 3)', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite('5 <-> (1 & (2 <-> 3))', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite('5 <-> (6 | 8)', 'SELECT keyword, sample FROM test_tsquery'::text )
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- Check empty substitution
+SELECT ts_rewrite(to_tsquery('5 & (6 | 5)'), to_tsquery('5'), to_tsquery(''))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT ts_rewrite(to_tsquery('!5'), to_tsquery('5'), to_tsquery(''))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword @> 'new'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword @> 'moscow'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'new'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'moscow'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+CREATE INDEX qq ON test_tsquery USING gist (keyword tsquery_ops)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SET enable_seqscan=OFF
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword @> 'new'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword @> 'moscow'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'new'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'moscow'
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsvector('foo bar') @@
+  ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsvector('bar baz') @@
+  ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+RESET enable_seqscan
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--test GUC
+SET default_text_search_config=simple
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsvector('SKIES My booKs')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('SKIES My booKs')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('SKIES & My | booKs')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SET default_text_search_config=english
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsvector('SKIES My booKs')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT plainto_tsquery('SKIES My booKs')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT to_tsquery('SKIES & My | booKs')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--trigger
+CREATE TRIGGER tsvectorupdate
+BEFORE UPDATE OR INSERT ON test_tsvector
+FOR EACH ROW EXECUTE PROCEDURE tsvector_update_trigger(a, 'pg_catalog.english', t)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+INSERT INTO test_tsvector (t) VALUES ('345 qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+UPDATE test_tsvector SET t = null WHERE t = '345 qwerty'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+INSERT INTO test_tsvector (t) VALUES ('345 qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test inlining of immutable constant functions
+
+-- to_tsquery(text) is not immutable, so it won/* REPLACED */''t be inlined
+explain (costs off)
+select * from test_tsquery, to_tsquery('new') q where txtsample @@ q
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- to_tsquery(regconfig, text) is an immutable function.
+-- That allows us to get rid of using function scan and join at all.
+explain (costs off)
+select * from test_tsquery, to_tsquery('english', 'new') q where txtsample @@ q
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- test finding items in GIN/* REPLACED */''s pending list
+create temp table pendtest (ts tsvector)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create index pendtest_idx on pendtest using gin(ts)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into pendtest values (to_tsvector('Lore ipsam'))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into pendtest values (to_tsvector('Lore ipsum'))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from pendtest where 'ipsu:*'::tsquery @@ ts
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from pendtest where 'ipsa:*'::tsquery @@ ts
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from pendtest where 'ips:*'::tsquery @@ ts
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from pendtest where 'ipt:*'::tsquery @@ ts
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from pendtest where 'ipi:*'::tsquery @@ ts
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+--check OP_PHRASE on index
+create temp table phrase_index_test(fts tsvector)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into phrase_index_test values ('A fat cat has just eaten a rat.')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+insert into phrase_index_test values (to_tsvector('english', 'A fat cat has just eaten a rat.'))
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create index phrase_index_test_idx on phrase_index_test using gin(fts)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+set enable_seqscan = off
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from phrase_index_test where fts @@ phraseto_tsquery('english', 'fat cat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+set enable_seqscan = on
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- test websearch_to_tsquery function
+select websearch_to_tsquery('simple', 'I have a fat:*ABCD cat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'orange:**AABBCCDD')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat:A!cat:B|rat:C<')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat:A : cat:B')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat*rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat-rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat_rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- weights are completely ignored
+select websearch_to_tsquery('simple', 'abc : def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc:def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'a:::b')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc:d')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', ':')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- these operators are ignored
+select websearch_to_tsquery('simple', 'abc & def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc | def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc <-> def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc (pg or class)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- NOT is ignored in quotes
+select websearch_to_tsquery('english', 'My brand new smartphone')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'My brand "new smartphone"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'My brand "new -smartphone"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- test OR operator
+select websearch_to_tsquery('simple', 'cat or rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'cat OR rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'cat "OR" rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'cat OR')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'OR rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', '"fat cat OR rat"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat (cat OR rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'or OR or')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- OR is an operator here ...
+select websearch_to_tsquery('simple', '"fat cat"or"fat rat"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or(rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or)rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or&rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or|rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or!rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or<rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or>rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'fat or ')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- ... but not here
+select websearch_to_tsquery('simple', 'abc orange')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc OR1234')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc or-abc')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('simple', 'abc OR_abc')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- test quotes
+select websearch_to_tsquery('english', '"pg_class pg')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'pg_class pg"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"pg_class pg"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"pg_class : pg"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'abc "pg_class pg"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"pg_class pg" def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'abc "pg pg_class pg" def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', ' or "pg pg_class pg" or ')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '""pg pg_class pg""')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'abc """"" def')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'cat -"fat rat"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'cat -"fat rat" cheese')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'abc "def -"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'abc "def :"')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"A fat cat" has just eaten a -rat.')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"A fat cat" has just eaten OR !rat.')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"A fat cat" has just (+eaten OR -rat)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'this is ----fine')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '(()) )))) this ||| is && -fine, "dear friend" OR good')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', 'an old <-> cat " is fine &&& too')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"A the" OR just on')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('english', '"a fat cat" ate a rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select to_tsvector('english', 'A fat cat ate a rat') @@
+	websearch_to_tsquery('english', '"a fat cat" ate a rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select to_tsvector('english', 'A fat grey cat ate a rat') @@
+	websearch_to_tsquery('english', '"a fat cat" ate a rat')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- cases handled by gettoken_tsvector()
+select websearch_to_tsquery('''')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('''abc''''def''')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('\abc')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select websearch_to_tsquery('\')
+RESULT: ['duckdb: ERROR']
+=========================================
+Summary for test case tsearch/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 95 queries, which is 20.43%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 370 queries, which is 79.57%
+Guest results are identical to expected results

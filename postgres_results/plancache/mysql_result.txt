@@ -1,0 +1,806 @@
+
+-----------
+QUERY:
+--
+-- Tests to exercise the plan caching/invalidation mechanism
+--
+
+CREATE TEMP TABLE pcachetest AS SELECT * FROM int8_tbl;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE pcachetest AS SELECT * FROM int8_tbl' at line 5")
+
+-----------
+QUERY:
+
+
+-- create and use a cached plan
+PREPARE prepstmt AS SELECT * FROM pcachetest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS SELECT * FROM pcachetest' at line 2")
+
+-----------
+QUERY:
+
+
+EXECUTE prepstmt;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (prepstmt) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+-- and one with parameters
+PREPARE prepstmt2(bigint) AS SELECT * FROM pcachetest WHERE q1 = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(bigint) AS SELECT * FROM pcachetest WHERE q1 = $1' at line 2")
+
+-----------
+QUERY:
+
+
+EXECUTE prepstmt2(123);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(123)' at line 1")
+
+-----------
+QUERY:
+
+
+-- invalidate the plans and see what happens
+DROP TABLE pcachetest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.pcachetest'")
+
+-----------
+QUERY:
+
+
+EXECUTE prepstmt;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (prepstmt) given to EXECUTE')
+
+-----------
+QUERY:
+
+EXECUTE prepstmt2(123);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(123)' at line 1")
+
+-----------
+QUERY:
+
+
+-- recreate the temp table (this demonstrates that the raw plan is
+-- purely textual and doesn/* REPLACED */''t depend on OIDs, for instance)
+CREATE TEMP TABLE pcachetest AS SELECT * FROM int8_tbl ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE pcachetest AS SELECT * FROM int8_tbl ORDER BY 2' at line 3")
+
+-----------
+QUERY:
+
+
+EXECUTE prepstmt;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (prepstmt) given to EXECUTE')
+
+-----------
+QUERY:
+
+EXECUTE prepstmt2(123);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(123)' at line 1")
+
+-----------
+QUERY:
+
+
+-- prepared statements should prevent change in output tupdesc,
+-- since clients probably aren/* REPLACED */''t expecting that to change on the fly
+ALTER TABLE pcachetest ADD COLUMN q3 bigint;
+RESULT:
+	ERROR - (1146, "Table 'test.pcachetest' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXECUTE prepstmt;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (prepstmt) given to EXECUTE')
+
+-----------
+QUERY:
+
+EXECUTE prepstmt2(123);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(123)' at line 1")
+
+-----------
+QUERY:
+
+
+-- but we/* REPLACED */''re nice guys and will let you undo your mistake
+ALTER TABLE pcachetest DROP COLUMN q3;
+RESULT:
+	ERROR - (1146, "Table 'test.pcachetest' doesn't exist")
+
+-----------
+QUERY:
+
+
+EXECUTE prepstmt;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (prepstmt) given to EXECUTE')
+
+-----------
+QUERY:
+
+EXECUTE prepstmt2(123);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(123)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Try it with a view, which isn/* REPLACED */''t directly used in the resulting plan
+-- but should trigger invalidation anyway
+CREATE TEMP VIEW pcacheview AS
+  SELECT * FROM pcachetest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW pcacheview AS\n  SELECT * FROM pcachetest' at line 3")
+
+-----------
+QUERY:
+
+
+PREPARE vprep AS SELECT * FROM pcacheview;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS SELECT * FROM pcacheview' at line 1")
+
+-----------
+QUERY:
+
+
+EXECUTE vprep;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (vprep) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE TEMP VIEW pcacheview AS
+  SELECT q1, q2/2 AS q2 FROM pcachetest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW pcacheview AS\n  SELECT q1, q2/2 AS q2 FROM pcachetest' at line 1")
+
+-----------
+QUERY:
+
+
+EXECUTE vprep;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (vprep) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+-- Check basic SPI plan invalidation
+
+create function cache_test(int) returns int as $$
+declare total int;
+begin
+	create temp table t1(f1 int);
+	insert into t1 values($1);
+	insert into t1 values(11);
+	insert into t1 values(12);
+	insert into t1 values(13);
+	select sum(f1) into total from t1;
+	drop table t1;
+	return total;
+end
+$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) returns int as $$\ndeclare total int;\nbegin\n\tcreate temp table t1(f1 int);\n\t' at line 3")
+
+-----------
+QUERY:
+
+
+select cache_test(1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cache_test does not exist')
+
+-----------
+QUERY:
+
+select cache_test(2);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cache_test does not exist')
+
+-----------
+QUERY:
+
+select cache_test(3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cache_test does not exist')
+
+-----------
+QUERY:
+
+
+-- Check invalidation of plpgsql /* REPLACED */''simple expression/* REPLACED */''
+
+create temp view v1 as
+  select 2+2 as f1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp view v1 as\n  select 2+2 as f1' at line 3")
+
+-----------
+QUERY:
+
+
+create function cache_test_2() returns int as $$
+begin
+	return f1 from v1;
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as $$\nbegin\n\treturn f1 from v1;\nend$$ language plpgsql' at line 1")
+
+-----------
+QUERY:
+
+
+select cache_test_2();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cache_test_2 does not exist')
+
+-----------
+QUERY:
+
+
+create or replace temp view v1 as
+  select 2+2+4 as f1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp view v1 as\n  select 2+2+4 as f1' at line 1")
+
+-----------
+QUERY:
+
+select cache_test_2();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cache_test_2 does not exist')
+
+-----------
+QUERY:
+
+
+create or replace temp view v1 as
+  select 2+2+4+(select max(unique1) from tenk1) as f1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp view v1 as\n  select 2+2+4+(select max(unique1) from tenk1) as f1' at line 1")
+
+-----------
+QUERY:
+
+select cache_test_2();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cache_test_2 does not exist')
+
+-----------
+QUERY:
+
+
+--- Check that change of search_path is honored when re-using cached plan
+
+create schema s1
+  create table abc (f1 int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--- Check that change of search_path is honored when re-using cached plan\n\ncreat' at line 1")
+
+-----------
+QUERY:
+
+
+create schema s2
+  create table abc (f1 int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'create table abc (f1 int)' at line 2")
+
+-----------
+QUERY:
+
+
+insert into s1.abc values(123);
+RESULT:
+	ERROR - (1049, "Unknown database 's1'")
+
+-----------
+QUERY:
+
+insert into s2.abc values(456);
+RESULT:
+	ERROR - (1049, "Unknown database 's2'")
+
+-----------
+QUERY:
+
+
+set search_path = s1;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+
+prepare p1 as select f1 from abc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as select f1 from abc' at line 1")
+
+-----------
+QUERY:
+
+
+execute p1;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (p1) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+set search_path = s2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+
+select f1 from abc;
+RESULT:
+	ERROR - (1146, "Table 'test.abc' doesn't exist")
+
+-----------
+QUERY:
+
+
+execute p1;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (p1) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+alter table s1.abc add column f2 float8;
+RESULT:
+	ERROR - (1049, "Unknown database 's1'")
+
+-----------
+QUERY:
+   -- force replan
+
+execute p1;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (p1) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+drop schema s1 cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cascade' at line 1")
+
+-----------
+QUERY:
+
+drop schema s2 cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cascade' at line 1")
+
+-----------
+QUERY:
+
+
+reset search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check that invalidation deals with regclass constants
+
+create temp sequence seq;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp sequence seq' at line 3")
+
+-----------
+QUERY:
+
+
+prepare p2 as select nextval('seq');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as select nextval('seq')' at line 1")
+
+-----------
+QUERY:
+
+
+execute p2;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (p2) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+drop sequence seq;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sequence seq' at line 1")
+
+-----------
+QUERY:
+
+
+create temp sequence seq;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp sequence seq' at line 1")
+
+-----------
+QUERY:
+
+
+execute p2;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (p2) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+-- Check DDL via SPI, immediately followed by SPI plan re-use
+-- (bug in original coding)
+
+create function cachebug() returns void as $$
+declare r int;
+begin
+  drop table if exists temptable cascade;
+  create temp table temptable as select * from generate_series(1,3) as f1;
+  create temp view vv as select * from temptable;
+  for r in select * from vv loop
+    raise notice '%', r;
+  end loop;
+end$$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'void as $$\ndeclare r int;\nbegin\n  drop table if exists temptable cascade;\n  crea' at line 4")
+
+-----------
+QUERY:
+
+
+select cachebug();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cachebug does not exist')
+
+-----------
+QUERY:
+
+select cachebug();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.cachebug does not exist')
+
+-----------
+QUERY:
+
+
+-- Check that addition or removal of any partition is correctly dealt with by
+-- default partition table when it is being used in prepared statement.
+create table pc_list_parted (a int) partition by list(a);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table pc_list_part_null partition of pc_list_parted for values in (null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of pc_list_parted for values in (null)' at line 1")
+
+-----------
+QUERY:
+
+create table pc_list_part_1 partition of pc_list_parted for values in (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of pc_list_parted for values in (1)' at line 1")
+
+-----------
+QUERY:
+
+create table pc_list_part_def partition of pc_list_parted default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of pc_list_parted default' at line 1")
+
+-----------
+QUERY:
+
+prepare pstmt_def_insert (int) as insert into pc_list_part_def values($1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) as insert into pc_list_part_def values($1)' at line 1")
+
+-----------
+QUERY:
+
+-- should fail
+execute pstmt_def_insert(null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(null)' at line 2")
+
+-----------
+QUERY:
+
+execute pstmt_def_insert(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+create table pc_list_part_2 partition of pc_list_parted for values in (2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of pc_list_parted for values in (2)' at line 1")
+
+-----------
+QUERY:
+
+execute pstmt_def_insert(2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(2)' at line 1")
+
+-----------
+QUERY:
+
+alter table pc_list_parted detach partition pc_list_part_null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'detach partition pc_list_part_null' at line 1")
+
+-----------
+QUERY:
+
+-- should be ok
+execute pstmt_def_insert(null);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(null)' at line 2")
+
+-----------
+QUERY:
+
+drop table pc_list_part_1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.pc_list_part_1'")
+
+-----------
+QUERY:
+
+-- should be ok
+execute pstmt_def_insert(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 2")
+
+-----------
+QUERY:
+
+drop table pc_list_parted, pc_list_part_null;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.pc_list_parted,test.pc_list_part_null'")
+
+-----------
+QUERY:
+
+deallocate pstmt_def_insert;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'pstmt_def_insert' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test plan_cache_mode
+
+create table test_mode (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into test_mode select 1 from generate_series(1,1000) union all select 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,1000) union all select 2' at line 1")
+
+-----------
+QUERY:
+
+create index on test_mode (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'on test_mode (a)' at line 1")
+
+-----------
+QUERY:
+
+analyze test_mode;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_mode' at line 1")
+
+-----------
+QUERY:
+
+
+prepare test_mode_pp (int) as select count(*) from test_mode where a = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) as select count(*) from test_mode where a = $1' at line 1")
+
+-----------
+QUERY:
+
+select name, generic_plans, custom_plans from pg_prepared_statements
+  where  name = 'test_mode_pp';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- up to 5 executions, custom plan is used
+set plan_cache_mode to auto;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to auto' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off) execute test_mode_pp(2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) execute test_mode_pp(2)' at line 1")
+
+-----------
+QUERY:
+
+select name, generic_plans, custom_plans from pg_prepared_statements
+  where  name = 'test_mode_pp';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- force generic plan
+set plan_cache_mode to force_generic_plan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to force_generic_plan' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off) execute test_mode_pp(2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) execute test_mode_pp(2)' at line 1")
+
+-----------
+QUERY:
+
+select name, generic_plans, custom_plans from pg_prepared_statements
+  where  name = 'test_mode_pp';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- get to generic plan by 5 executions
+set plan_cache_mode to auto;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to auto' at line 2")
+
+-----------
+QUERY:
+
+execute test_mode_pp(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+ -- 1x
+execute test_mode_pp(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 2")
+
+-----------
+QUERY:
+ -- 2x
+execute test_mode_pp(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 2")
+
+-----------
+QUERY:
+ -- 3x
+execute test_mode_pp(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 2")
+
+-----------
+QUERY:
+ -- 4x
+select name, generic_plans, custom_plans from pg_prepared_statements
+  where  name = 'test_mode_pp';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+execute test_mode_pp(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+ -- 5x
+select name, generic_plans, custom_plans from pg_prepared_statements
+  where  name = 'test_mode_pp';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- we should now get a really bad plan
+explain (costs off) execute test_mode_pp(2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) execute test_mode_pp(2)' at line 2")
+
+-----------
+QUERY:
+
+
+-- but we can force a custom plan
+set plan_cache_mode to force_custom_plan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to force_custom_plan' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off) execute test_mode_pp(2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) execute test_mode_pp(2)' at line 1")
+
+-----------
+QUERY:
+
+select name, generic_plans, custom_plans from pg_prepared_statements
+  where  name = 'test_mode_pp';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_prepared_statements' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table test_mode;
+RESULT:
+	[]

@@ -1,0 +1,4219 @@
+
+-----------
+QUERY:
+--
+-- WINDOW FUNCTIONS
+--
+
+CREATE TEMPORARY TABLE empsalary (
+    depname varchar,
+    empno bigint,
+    salary int,
+    enroll_date date
+)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO empsalary VALUES
+('develop', 10, 5200, '2007-08-01'),
+('sales', 1, 5000, '2006-10-01'),
+('personnel', 5, 3500, '2007-12-10'),
+('sales', 4, 4800, '2007-08-08'),
+('personnel', 2, 3900, '2006-12-23'),
+('develop', 7, 4200, '2008-01-01'),
+('develop', 9, 4500, '2008-01-01'),
+('sales', 3, 4800, '2007-08-01'),
+('develop', 8, 6000, '2006-10-01'),
+('develop', 11, 5200, '2007-08-15')
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT depname, empno, salary, sum(salary) OVER (PARTITION BY depname) FROM empsalary ORDER BY depname, salary
+RESULT:
+	duckdb: [('develop', 7, 4200, 25100), ('develop', 9, 4500, 25100), ('develop', 10, 5200, 25100), ('develop', 11, 5200, 25100), ('develop', 8, 6000, 25100), ('personnel', 5, 3500, 7400), ('personnel', 2, 3900, 7400), ('sales', 4, 4800, 14600), ('sales', 3, 4800, 14600), ('sales', 1, 5000, 14600)]
+
+-----------
+QUERY:
+SELECT depname, empno, salary, rank() OVER (PARTITION BY depname ORDER BY salary) FROM empsalary
+RESULT:
+	duckdb: [('sales', 4, 4800, 1), ('sales', 3, 4800, 1), ('sales', 1, 5000, 3), ('develop', 7, 4200, 1), ('develop', 9, 4500, 2), ('develop', 10, 5200, 3), ('develop', 11, 5200, 3), ('develop', 8, 6000, 5), ('personnel', 5, 3500, 1), ('personnel', 2, 3900, 2)]
+
+-----------
+QUERY:
+-- with GROUP BY
+SELECT four, ten, SUM(SUM(four)) OVER (PARTITION BY four), AVG(ten) FROM tenk1
+GROUP BY four, ten ORDER BY four, ten
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT depname, empno, salary, sum(salary) OVER w FROM empsalary WINDOW w AS (PARTITION BY depname)
+RESULT:
+	duckdb: [('personnel', 5, 3500, 7400), ('personnel', 2, 3900, 7400), ('develop', 10, 5200, 25100), ('develop', 7, 4200, 25100), ('develop', 9, 4500, 25100), ('develop', 8, 6000, 25100), ('develop', 11, 5200, 25100), ('sales', 1, 5000, 14600), ('sales', 4, 4800, 14600), ('sales', 3, 4800, 14600)]
+
+-----------
+QUERY:
+SELECT depname, empno, salary, rank() OVER w FROM empsalary WINDOW w AS (PARTITION BY depname ORDER BY salary) ORDER BY rank() OVER w
+RESULT:
+	duckdb: [('sales', 4, 4800, 1), ('sales', 3, 4800, 1), ('develop', 7, 4200, 1), ('personnel', 5, 3500, 1), ('personnel', 2, 3900, 2), ('develop', 9, 4500, 2), ('sales', 1, 5000, 3), ('develop', 10, 5200, 3), ('develop', 11, 5200, 3), ('develop', 8, 6000, 5)]
+
+-----------
+QUERY:
+-- empty window specification
+SELECT COUNT(*) OVER () FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT COUNT(*) OVER w FROM tenk1 WHERE unique2 < 10 WINDOW w AS ()
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- no window operation
+SELECT four FROM tenk1 WHERE FALSE WINDOW w AS (PARTITION BY ten)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- cumulative aggregate
+SELECT sum(four) OVER (PARTITION BY ten ORDER BY unique2) AS sum_1, ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT row_number() OVER (ORDER BY unique2) FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT rank() OVER (PARTITION BY four ORDER BY ten) AS rank_1, ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT dense_rank() OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT percent_rank() OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT cume_dist() OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT ntile(3) OVER (ORDER BY ten, four), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT ntile(NULL) OVER (ORDER BY ten, four), ten, four FROM tenk1 LIMIT 2
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lag(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lag(ten, four) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lag(ten, four, 0) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lag(ten, four, 0.7) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lead(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lead(ten * 2, 1) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lead(ten * 2, 1, -1) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT lead(ten * 2, 1, -1.4) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT first_value(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- last_value returns the last row of the frame, which is CURRENT ROW in ORDER BY window.
+SELECT last_value(four) OVER (ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT last_value(ten) OVER (PARTITION BY four), ten, four FROM
+	(SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s
+	ORDER BY four, ten
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT nth_value(ten, four + 1) OVER (PARTITION BY four), ten, four
+	FROM (SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT ten, two, sum(hundred) AS gsum, sum(sum(hundred)) OVER (PARTITION BY two ORDER BY ten) AS wsum
+FROM tenk1 GROUP BY ten, two
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT count(*) OVER (PARTITION BY four), four FROM (SELECT * FROM tenk1 WHERE two = 1)s WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT (count(*) OVER (PARTITION BY four ORDER BY ten) +
+  sum(hundred) OVER (PARTITION BY four ORDER BY ten))::varchar AS cntsum
+  FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- opexpr with different windows evaluation.
+SELECT * FROM(
+  SELECT count(*) OVER (PARTITION BY four ORDER BY ten) +
+    sum(hundred) OVER (PARTITION BY two ORDER BY ten) AS total,
+    count(*) OVER (PARTITION BY four ORDER BY ten) AS fourcount,
+    sum(hundred) OVER (PARTITION BY two ORDER BY ten) AS twosum
+    FROM tenk1
+)sub
+WHERE total <> fourcount + twosum
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT avg(four) OVER (PARTITION BY four ORDER BY thousand / 100) FROM tenk1 WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT ten, two, sum(hundred) AS gsum, sum(sum(hundred)) OVER win AS wsum
+FROM tenk1 GROUP BY ten, two WINDOW win AS (PARTITION BY two ORDER BY ten)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- more than one window with GROUP BY
+SELECT sum(salary),
+	row_number() OVER (ORDER BY depname),
+	sum(sum(salary)) OVER (ORDER BY depname DESC)
+FROM empsalary GROUP BY depname
+RESULT:
+	duckdb: [(14600, 3, 14600), (7400, 2, 22000), (25100, 1, 47100)]
+
+-----------
+QUERY:
+-- identical windows with different names
+SELECT sum(salary) OVER w1, count(*) OVER w2
+FROM empsalary WINDOW w1 AS (ORDER BY salary), w2 AS (ORDER BY salary)
+RESULT:
+	duckdb: [(3500, 1), (7400, 2), (11600, 3), (16100, 4), (25700, 6), (25700, 6), (30700, 7), (41100, 9), (41100, 9), (47100, 10)]
+
+-----------
+QUERY:
+-- subplan
+SELECT lead(ten, (SELECT two FROM tenk1 WHERE s.unique2 = unique2)) OVER (PARTITION BY four ORDER BY ten)
+FROM tenk1 s WHERE unique2 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- empty table
+SELECT count(*) OVER (PARTITION BY four) FROM (SELECT * FROM tenk1 WHERE FALSE)s
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- mixture of agg/wfunc in the same window
+SELECT sum(salary) OVER w, rank() OVER w FROM empsalary WINDOW w AS (PARTITION BY depname ORDER BY salary DESC)
+RESULT:
+	duckdb: [(3900, 1), (7400, 2), (6000, 1), (16400, 2), (16400, 2), (20900, 4), (25100, 5), (5000, 1), (14600, 2), (14600, 2)]
+
+-----------
+QUERY:
+-- strict aggs
+SELECT empno, depname, salary, bonus, depadj, MIN(bonus) OVER (ORDER BY empno), MAX(depadj) OVER () FROM(
+	SELECT *,
+		CASE WHEN enroll_date < '2008-01-01' THEN 2008 - extract(YEAR FROM enroll_date) END * 500 AS bonus,
+		CASE WHEN
+			AVG(salary) OVER (PARTITION BY depname) < salary
+		THEN 200 END AS depadj FROM empsalary
+)s
+RESULT:
+	duckdb: [(1, 'sales', 5000, 1000, 200, 1000, 200), (2, 'personnel', 3900, 1000, 200, 1000, 200), (3, 'sales', 4800, 500, None, 500, 200), (4, 'sales', 4800, 500, None, 500, 200), (5, 'personnel', 3500, 500, None, 500, 200), (7, 'develop', 4200, None, None, 500, 200), (8, 'develop', 6000, 1000, 200, 500, 200), (9, 'develop', 4500, None, None, 500, 200), (10, 'develop', 5200, 500, 200, 500, 200), (11, 'develop', 5200, 500, 200, 500, 200)]
+
+-----------
+QUERY:
+-- window function over ungrouped agg over empty row set (bug before 9.1)
+SELECT SUM(COUNT(f1)) OVER () FROM int4_tbl WHERE f1=42
+RESULT:
+	duckdb: [(0,)]
+
+-----------
+QUERY:
+-- window function with ORDER BY an expression involving aggregates (9.1 bug)
+select ten,
+  sum(unique1) + sum(unique2) as res,
+  rank() over (order by sum(unique1) + sum(unique2)) as rank
+from tenk1
+group by ten order by ten
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- window and aggregate with GROUP BY expression (9.2 bug)
+explain (costs off)
+select first_value(max(x)) over (), y
+  from (select unique1 as x, ten+four as y from tenk1) ss
+  group by y
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+-- window functions returning pass-by-ref values from different rows
+select x, lag(x, 1) over (order by x), lead(x, 3) over (order by x)
+from (select x::numeric as x from generate_series(1,10) x)
+RESULT:
+	duckdb: Conversion Error: Unimplemented type for cast (STRUCT(generate_series BIGINT) -> DECIMAL(18,3))
+
+-----------
+QUERY:
+-- test non-default frame specifications
+SELECT four, ten,
+	sum(ten) over (partition by four order by ten),
+	last_value(ten) over (partition by four order by ten)
+FROM (select distinct ten, four from tenk1) ss
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT four, ten,
+	sum(ten) over (partition by four order by ten range between unbounded preceding and current row),
+	last_value(ten) over (partition by four order by ten range between unbounded preceding and current row)
+FROM (select distinct ten, four from tenk1) ss
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT four, ten,
+	sum(ten) over (partition by four order by ten range between unbounded preceding and unbounded following),
+	last_value(ten) over (partition by four order by ten range between unbounded preceding and unbounded following)
+FROM (select distinct ten, four from tenk1) ss
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT four, ten/4 as two,
+	sum(ten/4) over (partition by four order by ten/4 range between unbounded preceding and current row),
+	last_value(ten/4) over (partition by four order by ten/4 range between unbounded preceding and current row)
+FROM (select distinct ten, four from tenk1) ss
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT four, ten/4 as two,
+	sum(ten/4) over (partition by four order by ten/4 rows between unbounded preceding and current row),
+	last_value(ten/4) over (partition by four order by ten/4 rows between unbounded preceding and current row)
+FROM (select distinct ten, four from tenk1) ss
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between current row and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between current row and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 2 preceding and 2 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 2 preceding and 2 following exclude no others),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 2 preceding and 2 following exclude current row),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 2 preceding and 2 following exclude group),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 2 preceding and 2 following exclude ties),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT first_value(unique1) over (ORDER BY four rows between current row and 2 following exclude current row),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT first_value(unique1) over (ORDER BY four rows between current row and 2 following exclude group),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT first_value(unique1) over (ORDER BY four rows between current row and 2 following exclude ties),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT last_value(unique1) over (ORDER BY four rows between current row and 2 following exclude current row),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT last_value(unique1) over (ORDER BY four rows between current row and 2 following exclude group),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT last_value(unique1) over (ORDER BY four rows between current row and 2 following exclude ties),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 2 preceding and 1 preceding),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 1 following and 3 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between unbounded preceding and 1 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (w range between current row and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10 WINDOW w AS (order by four)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (w range between unbounded preceding and current row exclude current row),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10 WINDOW w AS (order by four)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (w range between unbounded preceding and current row exclude group),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10 WINDOW w AS (order by four)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (w range between unbounded preceding and current row exclude ties),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10 WINDOW w AS (order by four)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT first_value(unique1) over w,
+	nth_value(unique1, 2) over w AS nth_2,
+	last_value(unique1) over w, unique1, four
+FROM tenk1 WHERE unique1 < 10
+WINDOW w AS (order by four range between current row and unbounded following)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over
+	(order by unique1
+	 rows (SELECT unique1 FROM tenk1 ORDER BY unique1 LIMIT 1) + 1 PRECEDING),
+	unique1
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+CREATE TEMP VIEW v_window AS
+	SELECT i, sum(i) over (order by i rows between 1 preceding and 1 following) as sum_rows
+	FROM generate_series(1, 10) i
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(STRUCT(generate_series BIGINT))'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+LINE 2: 	SELECT i, sum(i) ove...
+                  ^
+
+-----------
+QUERY:
+SELECT * FROM v_window
+RESULT:
+	duckdb: Catalog Error: Table with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+CREATE OR REPLACE TEMP VIEW v_window AS
+	SELECT i, sum(i) over (order by i rows between 1 preceding and 1 following
+	exclude current row) as sum_rows FROM generate_series(1, 10) i
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(STRUCT(generate_series BIGINT))'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+LINE 2: 	SELECT i,...
+                  ^
+
+-----------
+QUERY:
+SELECT * FROM v_window
+RESULT:
+	duckdb: Catalog Error: Table with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+CREATE OR REPLACE TEMP VIEW v_window AS
+	SELECT i, sum(i) over (order by i rows between 1 preceding and 1 following
+	exclude group) as sum_rows FROM generate_series(1, 10) i
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(STRUCT(generate_series BIGINT))'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+LINE 2: 	SELECT i,...
+                  ^
+
+-----------
+QUERY:
+SELECT * FROM v_window
+RESULT:
+	duckdb: Catalog Error: Table with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+CREATE OR REPLACE TEMP VIEW v_window AS
+	SELECT i, sum(i) over (order by i rows between 1 preceding and 1 following
+	exclude ties) as sum_rows FROM generate_series(1, 10) i
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(STRUCT(generate_series BIGINT))'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+LINE 2: 	SELECT i,...
+                  ^
+
+-----------
+QUERY:
+SELECT * FROM v_window
+RESULT:
+	duckdb: Catalog Error: Table with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+CREATE OR REPLACE TEMP VIEW v_window AS
+	SELECT i, sum(i) over (order by i rows between 1 preceding and 1 following
+	exclude no others) as sum_rows FROM generate_series(1, 10) i
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(STRUCT(generate_series BIGINT))'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+LINE 2: 	SELECT i,...
+                  ^
+
+-----------
+QUERY:
+SELECT * FROM v_window
+RESULT:
+	duckdb: Catalog Error: Table with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+CREATE OR REPLACE TEMP VIEW v_window AS
+	SELECT i, sum(i) over (order by i groups between 1 preceding and 1 following) as sum_rows FROM generate_series(1, 10) i
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT * FROM v_window
+RESULT:
+	duckdb: Catalog Error: Table with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+DROP VIEW v_window
+RESULT:
+	duckdb: Catalog Error: View with name v_window does not exist!
+Did you mean "pg_index"?
+
+-----------
+QUERY:
+CREATE TEMP VIEW v_window AS
+	SELECT i, min(i) over (order by i range between '1 day' preceding and '10 days' following) as min_i
+  FROM generate_series(now(), now()+'100 days'::interval, '1 hour') i
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'generate_series(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE, VARCHAR)'. You might need to add explicit type casts.
+	Candidate functions:
+	generate_series(BIGINT)
+	generate_series(BIGINT, BIGINT)
+	generate_series(BIGINT, BIGINT, BIGINT)
+	generate_series(TIMESTAMP, TIMESTAMP, INTERVAL)
+	generate_series(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE, INTERVAL)
+
+LINE 3:   FROM generate_series(now(), now()+'100 days'::interval, '1 hour') i
+...
+               ^
+
+-----------
+QUERY:
+SELECT pg_get_viewdef('v_window')
+RESULT:
+	duckdb: Conversion Error: Could not convert string 'v_window' to INT64
+
+-----------
+QUERY:
+-- RANGE offset PRECEDING/FOLLOWING tests
+
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 1::int2 preceding),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four desc range between 2::int8 preceding and 1::int2 preceding),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 1::int2 preceding exclude no others),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 1::int2 preceding exclude current row),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 1::int2 preceding exclude group),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 1::int2 preceding exclude ties),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 6::int2 following exclude ties),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four range between 2::int8 preceding and 6::int2 following exclude group),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (partition by four order by unique1 range between 5::int8 preceding and 6::int2 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (partition by four order by unique1 range between 5::int8 preceding and 6::int2 following
+	exclude current row),unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+select sum(salary) over (order by enroll_date range between '1 year'::interval preceding and '1 year'::interval following),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(34900, 5000, datetime.date(2006, 10, 1)), (34900, 6000, datetime.date(2006, 10, 1)), (38400, 3900, datetime.date(2006, 12, 23)), (47100, 5200, datetime.date(2007, 8, 1)), (47100, 4800, datetime.date(2007, 8, 1)), (47100, 4800, datetime.date(2007, 8, 8)), (47100, 5200, datetime.date(2007, 8, 15)), (36100, 3500, datetime.date(2007, 12, 10)), (32200, 4200, datetime.date(2008, 1, 1)), (32200, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select sum(salary) over (order by enroll_date desc range between '1 year'::interval preceding and '1 year'::interval following),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(32200, 4200, datetime.date(2008, 1, 1)), (32200, 4500, datetime.date(2008, 1, 1)), (36100, 3500, datetime.date(2007, 12, 10)), (47100, 5200, datetime.date(2007, 8, 15)), (47100, 4800, datetime.date(2007, 8, 8)), (47100, 5200, datetime.date(2007, 8, 1)), (47100, 4800, datetime.date(2007, 8, 1)), (38400, 3900, datetime.date(2006, 12, 23)), (34900, 5000, datetime.date(2006, 10, 1)), (34900, 6000, datetime.date(2006, 10, 1))]
+
+-----------
+QUERY:
+select sum(salary) over (order by enroll_date desc range between '1 year'::interval following and '1 year'::interval following),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(None, 4200, datetime.date(2008, 1, 1)), (None, 4500, datetime.date(2008, 1, 1)), (None, 3500, datetime.date(2007, 12, 10)), (None, 5200, datetime.date(2007, 8, 15)), (None, 4800, datetime.date(2007, 8, 8)), (None, 5200, datetime.date(2007, 8, 1)), (None, 4800, datetime.date(2007, 8, 1)), (None, 3900, datetime.date(2006, 12, 23)), (None, 5000, datetime.date(2006, 10, 1)), (None, 6000, datetime.date(2006, 10, 1))]
+
+-----------
+QUERY:
+select sum(salary) over (order by enroll_date range between '1 year'::interval preceding and '1 year'::interval following
+	exclude current row), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(29900, 5000, datetime.date(2006, 10, 1)), (28900, 6000, datetime.date(2006, 10, 1)), (34500, 3900, datetime.date(2006, 12, 23)), (41900, 5200, datetime.date(2007, 8, 1)), (42300, 4800, datetime.date(2007, 8, 1)), (42300, 4800, datetime.date(2007, 8, 8)), (41900, 5200, datetime.date(2007, 8, 15)), (32600, 3500, datetime.date(2007, 12, 10)), (28000, 4200, datetime.date(2008, 1, 1)), (27700, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select sum(salary) over (order by enroll_date range between '1 year'::interval preceding and '1 year'::interval following
+	exclude group), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(23900, 5000, datetime.date(2006, 10, 1)), (23900, 6000, datetime.date(2006, 10, 1)), (34500, 3900, datetime.date(2006, 12, 23)), (37100, 5200, datetime.date(2007, 8, 1)), (37100, 4800, datetime.date(2007, 8, 1)), (42300, 4800, datetime.date(2007, 8, 8)), (41900, 5200, datetime.date(2007, 8, 15)), (32600, 3500, datetime.date(2007, 12, 10)), (23500, 4200, datetime.date(2008, 1, 1)), (23500, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select sum(salary) over (order by enroll_date range between '1 year'::interval preceding and '1 year'::interval following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(28900, 5000, datetime.date(2006, 10, 1)), (29900, 6000, datetime.date(2006, 10, 1)), (38400, 3900, datetime.date(2006, 12, 23)), (42300, 5200, datetime.date(2007, 8, 1)), (41900, 4800, datetime.date(2007, 8, 1)), (47100, 4800, datetime.date(2007, 8, 8)), (47100, 5200, datetime.date(2007, 8, 15)), (36100, 3500, datetime.date(2007, 12, 10)), (27700, 4200, datetime.date(2008, 1, 1)), (28000, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select first_value(salary) over(order by salary range between 1000 preceding and 1000 following),
+	lead(salary) over(order by salary range between 1000 preceding and 1000 following),
+	nth_value(salary, 1) over(order by salary range between 1000 preceding and 1000 following),
+	salary from empsalary
+RESULT:
+	duckdb: [(3500, 3900, 3500, 3500), (3500, 4200, 3500, 3900), (3500, 4500, 3500, 4200), (3500, 4800, 3500, 4500), (3900, 4800, 3900, 4800), (3900, 5000, 3900, 4800), (4200, 5200, 4200, 5000), (4200, 5200, 4200, 5200), (4200, 6000, 4200, 5200), (5000, None, 5000, 6000)]
+
+-----------
+QUERY:
+select last_value(salary) over(order by salary range between 1000 preceding and 1000 following),
+	lag(salary) over(order by salary range between 1000 preceding and 1000 following),
+	salary from empsalary
+RESULT:
+	duckdb: [(4500, None, 3500), (4800, 3500, 3900), (5200, 3900, 4200), (5200, 4200, 4500), (5200, 4500, 4800), (5200, 4800, 4800), (6000, 4800, 5000), (6000, 5000, 5200), (6000, 5200, 5200), (6000, 5200, 6000)]
+
+-----------
+QUERY:
+select first_value(salary) over(order by salary range between 1000 following and 3000 following
+	exclude current row),
+	lead(salary) over(order by salary range between 1000 following and 3000 following exclude ties),
+	nth_value(salary, 1) over(order by salary range between 1000 following and 3000 following
+	exclude ties),
+	salary from empsalary
+RESULT:
+	duckdb: [(4500, 3900, 4500, 3500), (5000, 4200, 5000, 3900), (5200, 4500, 5200, 4200), (6000, 4800, 6000, 4500), (6000, 4800, 6000, 4800), (6000, 5000, 6000, 4800), (6000, 5200, 6000, 5000), (None, 5200, None, 5200), (None, 6000, None, 5200), (None, None, None, 6000)]
+
+-----------
+QUERY:
+select last_value(salary) over(order by salary range between 1000 following and 3000 following
+	exclude group),
+	lag(salary) over(order by salary range between 1000 following and 3000 following exclude group),
+	salary from empsalary
+RESULT:
+	duckdb: [(6000, None, 3500), (6000, 3500, 3900), (6000, 3900, 4200), (6000, 4200, 4500), (6000, 4500, 4800), (6000, 4800, 4800), (6000, 4800, 5000), (None, 5000, 5200), (None, 5200, 5200), (None, 5200, 6000)]
+
+-----------
+QUERY:
+select first_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude ties),
+	last_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(5000, 5200, 5000, datetime.date(2006, 10, 1)), (6000, 5200, 6000, datetime.date(2006, 10, 1)), (5000, 3500, 3900, datetime.date(2006, 12, 23)), (5000, 4500, 5200, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 8)), (5000, 4500, 5200, datetime.date(2007, 8, 15)), (5000, 4500, 3500, datetime.date(2007, 12, 10)), (5000, 4500, 4200, datetime.date(2008, 1, 1)), (5000, 4500, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select first_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude ties),
+	last_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude ties),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(5000, 5200, 5000, datetime.date(2006, 10, 1)), (6000, 5200, 6000, datetime.date(2006, 10, 1)), (5000, 3500, 3900, datetime.date(2006, 12, 23)), (5000, 4500, 5200, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 8)), (5000, 4500, 5200, datetime.date(2007, 8, 15)), (5000, 4500, 3500, datetime.date(2007, 12, 10)), (5000, 4200, 4200, datetime.date(2008, 1, 1)), (5000, 4500, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select first_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude group),
+	last_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude group),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(3900, 5200, 5000, datetime.date(2006, 10, 1)), (3900, 5200, 6000, datetime.date(2006, 10, 1)), (5000, 3500, 3900, datetime.date(2006, 12, 23)), (5000, 4500, 5200, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 8)), (5000, 4500, 5200, datetime.date(2007, 8, 15)), (5000, 4500, 3500, datetime.date(2007, 12, 10)), (5000, 3500, 4200, datetime.date(2008, 1, 1)), (5000, 3500, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select first_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude current row),
+	last_value(salary) over(order by enroll_date range between unbounded preceding and '1 year'::interval following
+	exclude current row),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(6000, 5200, 5000, datetime.date(2006, 10, 1)), (5000, 5200, 6000, datetime.date(2006, 10, 1)), (5000, 3500, 3900, datetime.date(2006, 12, 23)), (5000, 4500, 5200, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 1)), (5000, 4500, 4800, datetime.date(2007, 8, 8)), (5000, 4500, 5200, datetime.date(2007, 8, 15)), (5000, 4500, 3500, datetime.date(2007, 12, 10)), (5000, 4500, 4200, datetime.date(2008, 1, 1)), (5000, 4200, 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+-- RANGE offset PRECEDING/FOLLOWING with null values
+select x, y,
+       first_value(y) over w,
+       last_value(y) over w
+from
+  (select x, x as y from generate_series(1,5) as x
+   union all select null, 42
+   union all select null, 43) ss
+window w as
+  (order by x asc nulls first range between 2 preceding and 2 following)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '-(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	-(TINYINT) -> TINYINT
+	-(TINYINT, TINYINT) -> TINYINT
+	-(SMALLINT) -> SMALLINT
+	-(SMALLINT, SMALLINT) -> SMALLINT
+	-(INTEGER) -> INTEGER
+	-(INTEGER, INTEGER) -> INTEGER
+	-(BIGINT) -> BIGINT
+	-(BIGINT, BIGINT) -> BIGINT
+	-(HUGEINT) -> HUGEINT
+	-(HUGEINT, HUGEINT) -> HUGEINT
+	-(FLOAT) -> FLOAT
+	-(FLOAT, FLOAT) -> FLOAT
+	-(DOUBLE) -> DOUBLE
+	-(DOUBLE, DOUBLE) -> DOUBLE
+	-(DECIMAL) -> DECIMAL
+	-(DECIMAL, DECIMAL) -> DECIMAL
+	-(UTINYINT) -> UTINYINT
+	-(UTINYINT, UTINYINT) -> UTINYINT
+	-(USMALLINT) -> USMALLINT
+	-(USMALLINT, USMALLINT) -> USMALLINT
+	-(UINTEGER) -> UINTEGER
+	-(UINTEGER, UINTEGER) -> UINTEGER
+	-(UBIGINT) -> UBIGINT
+	-(UBIGINT, UBIGINT) -> UBIGINT
+	-(UHUGEINT) -> UHUGEINT
+	-(UHUGEINT, UHUGEINT) -> UHUGEINT
+	-(DATE, DATE) -> BIGINT
+	-(DATE, INTEGER) -> DATE
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+	-(INTERVAL, INTERVAL) -> INTERVAL
+	-(DATE, INTERVAL) -> TIMESTAMP
+	-(TIME, INTERVAL) -> TIME
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	-(INTERVAL) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+
+
+-----------
+QUERY:
+select x, y,
+       first_value(y) over w,
+       last_value(y) over w
+from
+  (select x, x as y from generate_series(1,5) as x
+   union all select null, 42
+   union all select null, 43) ss
+window w as
+  (order by x asc nulls last range between 2 preceding and 2 following)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '-(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	-(TINYINT) -> TINYINT
+	-(TINYINT, TINYINT) -> TINYINT
+	-(SMALLINT) -> SMALLINT
+	-(SMALLINT, SMALLINT) -> SMALLINT
+	-(INTEGER) -> INTEGER
+	-(INTEGER, INTEGER) -> INTEGER
+	-(BIGINT) -> BIGINT
+	-(BIGINT, BIGINT) -> BIGINT
+	-(HUGEINT) -> HUGEINT
+	-(HUGEINT, HUGEINT) -> HUGEINT
+	-(FLOAT) -> FLOAT
+	-(FLOAT, FLOAT) -> FLOAT
+	-(DOUBLE) -> DOUBLE
+	-(DOUBLE, DOUBLE) -> DOUBLE
+	-(DECIMAL) -> DECIMAL
+	-(DECIMAL, DECIMAL) -> DECIMAL
+	-(UTINYINT) -> UTINYINT
+	-(UTINYINT, UTINYINT) -> UTINYINT
+	-(USMALLINT) -> USMALLINT
+	-(USMALLINT, USMALLINT) -> USMALLINT
+	-(UINTEGER) -> UINTEGER
+	-(UINTEGER, UINTEGER) -> UINTEGER
+	-(UBIGINT) -> UBIGINT
+	-(UBIGINT, UBIGINT) -> UBIGINT
+	-(UHUGEINT) -> UHUGEINT
+	-(UHUGEINT, UHUGEINT) -> UHUGEINT
+	-(DATE, DATE) -> BIGINT
+	-(DATE, INTEGER) -> DATE
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+	-(INTERVAL, INTERVAL) -> INTERVAL
+	-(DATE, INTERVAL) -> TIMESTAMP
+	-(TIME, INTERVAL) -> TIME
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	-(INTERVAL) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+
+
+-----------
+QUERY:
+select x, y,
+       first_value(y) over w,
+       last_value(y) over w
+from
+  (select x, x as y from generate_series(1,5) as x
+   union all select null, 42
+   union all select null, 43) ss
+window w as
+  (order by x desc nulls first range between 2 preceding and 2 following)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '+(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	+(TINYINT) -> TINYINT
+	+(TINYINT, TINYINT) -> TINYINT
+	+(SMALLINT) -> SMALLINT
+	+(SMALLINT, SMALLINT) -> SMALLINT
+	+(INTEGER) -> INTEGER
+	+(INTEGER, INTEGER) -> INTEGER
+	+(BIGINT) -> BIGINT
+	+(BIGINT, BIGINT) -> BIGINT
+	+(HUGEINT) -> HUGEINT
+	+(HUGEINT, HUGEINT) -> HUGEINT
+	+(FLOAT) -> FLOAT
+	+(FLOAT, FLOAT) -> FLOAT
+	+(DOUBLE) -> DOUBLE
+	+(DOUBLE, DOUBLE) -> DOUBLE
+	+(DECIMAL) -> DECIMAL
+	+(DECIMAL, DECIMAL) -> DECIMAL
+	+(UTINYINT) -> UTINYINT
+	+(UTINYINT, UTINYINT) -> UTINYINT
+	+(USMALLINT) -> USMALLINT
+	+(USMALLINT, USMALLINT) -> USMALLINT
+	+(UINTEGER) -> UINTEGER
+	+(UINTEGER, UINTEGER) -> UINTEGER
+	+(UBIGINT) -> UBIGINT
+	+(UBIGINT, UBIGINT) -> UBIGINT
+	+(UHUGEINT) -> UHUGEINT
+	+(UHUGEINT, UHUGEINT) -> UHUGEINT
+	+(DATE, INTEGER) -> DATE
+	+(INTEGER, DATE) -> DATE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+	+(DATE, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(TIME, INTERVAL) -> TIME
+	+(INTERVAL, TIME) -> TIME
+	+(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(TIME, DATE) -> TIMESTAMP
+	+(DATE, TIME) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, DATE) -> TIMESTAMP WITH TIME ZONE
+	+(DATE, TIME WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(ANY[], ANY[]) -> ANY[]
+	+(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+select x, y,
+       first_value(y) over w,
+       last_value(y) over w
+from
+  (select x, x as y from generate_series(1,5) as x
+   union all select null, 42
+   union all select null, 43) ss
+window w as
+  (order by x desc nulls last range between 2 preceding and 2 following)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '+(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	+(TINYINT) -> TINYINT
+	+(TINYINT, TINYINT) -> TINYINT
+	+(SMALLINT) -> SMALLINT
+	+(SMALLINT, SMALLINT) -> SMALLINT
+	+(INTEGER) -> INTEGER
+	+(INTEGER, INTEGER) -> INTEGER
+	+(BIGINT) -> BIGINT
+	+(BIGINT, BIGINT) -> BIGINT
+	+(HUGEINT) -> HUGEINT
+	+(HUGEINT, HUGEINT) -> HUGEINT
+	+(FLOAT) -> FLOAT
+	+(FLOAT, FLOAT) -> FLOAT
+	+(DOUBLE) -> DOUBLE
+	+(DOUBLE, DOUBLE) -> DOUBLE
+	+(DECIMAL) -> DECIMAL
+	+(DECIMAL, DECIMAL) -> DECIMAL
+	+(UTINYINT) -> UTINYINT
+	+(UTINYINT, UTINYINT) -> UTINYINT
+	+(USMALLINT) -> USMALLINT
+	+(USMALLINT, USMALLINT) -> USMALLINT
+	+(UINTEGER) -> UINTEGER
+	+(UINTEGER, UINTEGER) -> UINTEGER
+	+(UBIGINT) -> UBIGINT
+	+(UBIGINT, UBIGINT) -> UBIGINT
+	+(UHUGEINT) -> UHUGEINT
+	+(UHUGEINT, UHUGEINT) -> UHUGEINT
+	+(DATE, INTEGER) -> DATE
+	+(INTEGER, DATE) -> DATE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+	+(DATE, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(TIME, INTERVAL) -> TIME
+	+(INTERVAL, TIME) -> TIME
+	+(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(TIME, DATE) -> TIMESTAMP
+	+(DATE, TIME) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, DATE) -> TIMESTAMP WITH TIME ZONE
+	+(DATE, TIME WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(ANY[], ANY[]) -> ANY[]
+	+(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+-- There is a syntactic ambiguity in the SQL standard.  Since
+-- UNBOUNDED is a non-reserved word, it could be the name of a
+-- function parameter and be used as an expression.  There is a
+-- grammar hack to resolve such cases as the keyword.  The following
+-- tests record this behavior.
+
+CREATE FUNCTION unbounded_syntax_test1a(x int) RETURNS TABLE (a int, b int, c int)
+LANGUAGE SQL
+BEGIN ATOMIC
+  SELECT sum(unique1) over (rows between x preceding and x following),
+         unique1, four
+  FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: syntax error at or near "int"
+
+-----------
+QUERY:
+END
+RESULT:
+	duckdb: TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+CREATE FUNCTION unbounded_syntax_test1b(x int) RETURNS TABLE (a int, b int, c int)
+LANGUAGE SQL
+AS $$
+  SELECT sum(unique1) over (rows between x preceding and x following),
+         unique1, four
+  FROM tenk1 WHERE unique1 < 10;
+$$
+RESULT:
+	duckdb: Parser Error: syntax error at or near "int"
+
+-----------
+QUERY:
+-- These will apply the argument to the window specification inside the function.
+SELECT * FROM unbounded_syntax_test1a(2)
+RESULT:
+	duckdb: Catalog Error: Table Function with name unbounded_syntax_test1a does not exist!
+Did you mean "unnest"?
+
+-----------
+QUERY:
+SELECT * FROM unbounded_syntax_test1b(2)
+RESULT:
+	duckdb: Catalog Error: Table Function with name unbounded_syntax_test1b does not exist!
+Did you mean "unnest"?
+
+-----------
+QUERY:
+CREATE FUNCTION unbounded_syntax_test2a(unbounded int) RETURNS TABLE (a int, b int, c int)
+LANGUAGE SQL
+BEGIN ATOMIC
+  SELECT sum(unique1) over (rows between unbounded preceding and unbounded following),
+         unique1, four
+  FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: syntax error at or near "int"
+
+-----------
+QUERY:
+END
+RESULT:
+	duckdb: TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+CREATE FUNCTION unbounded_syntax_test2b(unbounded int) RETURNS TABLE (a int, b int, c int)
+LANGUAGE SQL
+AS $$
+  SELECT sum(unique1) over (rows between unbounded preceding and unbounded following),
+         unique1, four
+  FROM tenk1 WHERE unique1 < 10;
+$$
+RESULT:
+	duckdb: Parser Error: syntax error at or near "int"
+
+-----------
+QUERY:
+-- These will not apply the argument but instead treat UNBOUNDED as a keyword.
+SELECT * FROM unbounded_syntax_test2a(2)
+RESULT:
+	duckdb: Catalog Error: Table Function with name unbounded_syntax_test2a does not exist!
+Did you mean "unnest"?
+
+-----------
+QUERY:
+SELECT * FROM unbounded_syntax_test2b(2)
+RESULT:
+	duckdb: Catalog Error: Table Function with name unbounded_syntax_test2b does not exist!
+Did you mean "unnest"?
+
+-----------
+QUERY:
+DROP FUNCTION unbounded_syntax_test1a, unbounded_syntax_test1b,
+              unbounded_syntax_test2a, unbounded_syntax_test2b
+RESULT:
+	duckdb: Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+-- Other tests with token UNBOUNDED in potentially problematic position
+CREATE FUNCTION unbounded(x int) RETURNS int LANGUAGE SQL IMMUTABLE RETURN x
+RESULT:
+	duckdb: Parser Error: syntax error at or near "int"
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between 1 preceding and 1 following),
+       unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between unbounded(1) preceding and unbounded(1) following),
+       unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT sum(unique1) over (rows between unbounded.x preceding and unbounded.x following),
+       unique1, four
+FROM tenk1, (values (1)) as unbounded(x) WHERE unique1 < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+DROP FUNCTION unbounded
+RESULT:
+	duckdb: Catalog Error: Macro Function with name unbounded does not exist!
+Did you mean "round"?
+
+-----------
+QUERY:
+-- Check overflow behavior for various integer sizes
+
+select x, last_value(x) over (order by x::smallint range between current row and 2147450884 following)
+from generate_series(32764, 32766) x
+RESULT:
+	duckdb: Conversion Error: Unimplemented type for cast (STRUCT(generate_series BIGINT) -> SMALLINT)
+
+-----------
+QUERY:
+select x, last_value(x) over (order by x::smallint desc range between current row and 2147450885 following)
+from generate_series(-32766, -32764) x
+RESULT:
+	duckdb: Conversion Error: Unimplemented type for cast (STRUCT(generate_series BIGINT) -> SMALLINT)
+
+-----------
+QUERY:
+select x, last_value(x) over (order by x range between current row and 4 following)
+from generate_series(2147483644, 2147483646) x
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '+(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	+(TINYINT) -> TINYINT
+	+(TINYINT, TINYINT) -> TINYINT
+	+(SMALLINT) -> SMALLINT
+	+(SMALLINT, SMALLINT) -> SMALLINT
+	+(INTEGER) -> INTEGER
+	+(INTEGER, INTEGER) -> INTEGER
+	+(BIGINT) -> BIGINT
+	+(BIGINT, BIGINT) -> BIGINT
+	+(HUGEINT) -> HUGEINT
+	+(HUGEINT, HUGEINT) -> HUGEINT
+	+(FLOAT) -> FLOAT
+	+(FLOAT, FLOAT) -> FLOAT
+	+(DOUBLE) -> DOUBLE
+	+(DOUBLE, DOUBLE) -> DOUBLE
+	+(DECIMAL) -> DECIMAL
+	+(DECIMAL, DECIMAL) -> DECIMAL
+	+(UTINYINT) -> UTINYINT
+	+(UTINYINT, UTINYINT) -> UTINYINT
+	+(USMALLINT) -> USMALLINT
+	+(USMALLINT, USMALLINT) -> USMALLINT
+	+(UINTEGER) -> UINTEGER
+	+(UINTEGER, UINTEGER) -> UINTEGER
+	+(UBIGINT) -> UBIGINT
+	+(UBIGINT, UBIGINT) -> UBIGINT
+	+(UHUGEINT) -> UHUGEINT
+	+(UHUGEINT, UHUGEINT) -> UHUGEINT
+	+(DATE, INTEGER) -> DATE
+	+(INTEGER, DATE) -> DATE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+	+(DATE, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(TIME, INTERVAL) -> TIME
+	+(INTERVAL, TIME) -> TIME
+	+(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(TIME, DATE) -> TIMESTAMP
+	+(DATE, TIME) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, DATE) -> TIMESTAMP WITH TIME ZONE
+	+(DATE, TIME WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(ANY[], ANY[]) -> ANY[]
+	+(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+select x, last_value(x) over (order by x desc range between current row and 5 following)
+from generate_series(-2147483646, -2147483644) x
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '-(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	-(TINYINT) -> TINYINT
+	-(TINYINT, TINYINT) -> TINYINT
+	-(SMALLINT) -> SMALLINT
+	-(SMALLINT, SMALLINT) -> SMALLINT
+	-(INTEGER) -> INTEGER
+	-(INTEGER, INTEGER) -> INTEGER
+	-(BIGINT) -> BIGINT
+	-(BIGINT, BIGINT) -> BIGINT
+	-(HUGEINT) -> HUGEINT
+	-(HUGEINT, HUGEINT) -> HUGEINT
+	-(FLOAT) -> FLOAT
+	-(FLOAT, FLOAT) -> FLOAT
+	-(DOUBLE) -> DOUBLE
+	-(DOUBLE, DOUBLE) -> DOUBLE
+	-(DECIMAL) -> DECIMAL
+	-(DECIMAL, DECIMAL) -> DECIMAL
+	-(UTINYINT) -> UTINYINT
+	-(UTINYINT, UTINYINT) -> UTINYINT
+	-(USMALLINT) -> USMALLINT
+	-(USMALLINT, USMALLINT) -> USMALLINT
+	-(UINTEGER) -> UINTEGER
+	-(UINTEGER, UINTEGER) -> UINTEGER
+	-(UBIGINT) -> UBIGINT
+	-(UBIGINT, UBIGINT) -> UBIGINT
+	-(UHUGEINT) -> UHUGEINT
+	-(UHUGEINT, UHUGEINT) -> UHUGEINT
+	-(DATE, DATE) -> BIGINT
+	-(DATE, INTEGER) -> DATE
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+	-(INTERVAL, INTERVAL) -> INTERVAL
+	-(DATE, INTERVAL) -> TIMESTAMP
+	-(TIME, INTERVAL) -> TIME
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	-(INTERVAL) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+
+
+-----------
+QUERY:
+select x, last_value(x) over (order by x range between current row and 4 following)
+from generate_series(9223372036854775804, 9223372036854775806) x
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '+(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	+(TINYINT) -> TINYINT
+	+(TINYINT, TINYINT) -> TINYINT
+	+(SMALLINT) -> SMALLINT
+	+(SMALLINT, SMALLINT) -> SMALLINT
+	+(INTEGER) -> INTEGER
+	+(INTEGER, INTEGER) -> INTEGER
+	+(BIGINT) -> BIGINT
+	+(BIGINT, BIGINT) -> BIGINT
+	+(HUGEINT) -> HUGEINT
+	+(HUGEINT, HUGEINT) -> HUGEINT
+	+(FLOAT) -> FLOAT
+	+(FLOAT, FLOAT) -> FLOAT
+	+(DOUBLE) -> DOUBLE
+	+(DOUBLE, DOUBLE) -> DOUBLE
+	+(DECIMAL) -> DECIMAL
+	+(DECIMAL, DECIMAL) -> DECIMAL
+	+(UTINYINT) -> UTINYINT
+	+(UTINYINT, UTINYINT) -> UTINYINT
+	+(USMALLINT) -> USMALLINT
+	+(USMALLINT, USMALLINT) -> USMALLINT
+	+(UINTEGER) -> UINTEGER
+	+(UINTEGER, UINTEGER) -> UINTEGER
+	+(UBIGINT) -> UBIGINT
+	+(UBIGINT, UBIGINT) -> UBIGINT
+	+(UHUGEINT) -> UHUGEINT
+	+(UHUGEINT, UHUGEINT) -> UHUGEINT
+	+(DATE, INTEGER) -> DATE
+	+(INTEGER, DATE) -> DATE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+	+(DATE, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(TIME, INTERVAL) -> TIME
+	+(INTERVAL, TIME) -> TIME
+	+(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(TIME, DATE) -> TIMESTAMP
+	+(DATE, TIME) -> TIMESTAMP
+	+(TIME WITH TIME ZONE, DATE) -> TIMESTAMP WITH TIME ZONE
+	+(DATE, TIME WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(ANY[], ANY[]) -> ANY[]
+	+(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+select x, last_value(x) over (order by x desc range between current row and 5 following)
+from generate_series(-9223372036854775806, -9223372036854775804) x
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '-(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	-(TINYINT) -> TINYINT
+	-(TINYINT, TINYINT) -> TINYINT
+	-(SMALLINT) -> SMALLINT
+	-(SMALLINT, SMALLINT) -> SMALLINT
+	-(INTEGER) -> INTEGER
+	-(INTEGER, INTEGER) -> INTEGER
+	-(BIGINT) -> BIGINT
+	-(BIGINT, BIGINT) -> BIGINT
+	-(HUGEINT) -> HUGEINT
+	-(HUGEINT, HUGEINT) -> HUGEINT
+	-(FLOAT) -> FLOAT
+	-(FLOAT, FLOAT) -> FLOAT
+	-(DOUBLE) -> DOUBLE
+	-(DOUBLE, DOUBLE) -> DOUBLE
+	-(DECIMAL) -> DECIMAL
+	-(DECIMAL, DECIMAL) -> DECIMAL
+	-(UTINYINT) -> UTINYINT
+	-(UTINYINT, UTINYINT) -> UTINYINT
+	-(USMALLINT) -> USMALLINT
+	-(USMALLINT, USMALLINT) -> USMALLINT
+	-(UINTEGER) -> UINTEGER
+	-(UINTEGER, UINTEGER) -> UINTEGER
+	-(UBIGINT) -> UBIGINT
+	-(UBIGINT, UBIGINT) -> UBIGINT
+	-(UHUGEINT) -> UHUGEINT
+	-(UHUGEINT, UHUGEINT) -> UHUGEINT
+	-(DATE, DATE) -> BIGINT
+	-(DATE, INTEGER) -> DATE
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+	-(INTERVAL, INTERVAL) -> INTERVAL
+	-(DATE, INTERVAL) -> TIMESTAMP
+	-(TIME, INTERVAL) -> TIME
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	-(INTERVAL) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+
+
+-----------
+QUERY:
+-- Test in_range for other numeric datatypes
+
+create temp table numerics(
+    id int,
+    f_float4 float4,
+    f_float8 float8,
+    f_numeric numeric
+)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+insert into numerics values
+(0, '-infinity', '-infinity', '-infinity'),
+(1, -3, -3, -3),
+(2, -1, -1, -1),
+(3, 0, 0, 0),
+(4, 1.1, 1.1, 1.1),
+(5, 1.12, 1.12, 1.12),
+(6, 2, 2, 2),
+(7, 100, 100, 100),
+(8, 'infinity', 'infinity', 'infinity'),
+(9, 'NaN', 'NaN', 'NaN')
+RESULT:
+	duckdb: Conversion Error: Could not convert string "-infinity" to DECIMAL(18,3)
+LINE 2: (0, '-infinity', '-infinity', '-infinity'),
+                                      ^
+
+-----------
+QUERY:
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             1 preceding and 1 following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             1 preceding and 1.1::float4 following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             'inf' preceding and 'inf' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             'inf' preceding and 'inf' preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             'inf' following and 'inf' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             1.1 preceding and 'NaN' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, NaN disallowed
+
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             1 preceding and 1 following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             1 preceding and 1.1::float8 following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             'inf' preceding and 'inf' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             'inf' preceding and 'inf' preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             'inf' following and 'inf' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             1.1 preceding and 'NaN' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, NaN disallowed
+
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             1 preceding and 1 following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             1 preceding and 1.1::numeric following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             1 preceding and 1.1::float8 following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- currently unsupported
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             'inf' preceding and 'inf' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             'inf' preceding and 'inf' preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             'inf' following and 'inf' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             1.1 preceding and 'NaN' following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, NaN disallowed
+
+-- Test in_range for other datetime datatypes
+
+create temp table datetimes(
+    id int,
+    f_time time,
+    f_timetz timetz,
+    f_interval interval,
+    f_timestamptz timestamptz,
+    f_timestamp timestamp
+)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+insert into datetimes values
+(0, '10:00', '10:00 BST', '-infinity', '-infinity', '-infinity'),
+(1, '11:00', '11:00 BST', '1 year', '2000-10-19 10:23:54+01', '2000-10-19 10:23:54'),
+(2, '12:00', '12:00 BST', '2 years', '2001-10-19 10:23:54+01', '2001-10-19 10:23:54'),
+(3, '13:00', '13:00 BST', '3 years', '2001-10-19 10:23:54+01', '2001-10-19 10:23:54'),
+(4, '14:00', '14:00 BST', '4 years', '2002-10-19 10:23:54+01', '2002-10-19 10:23:54'),
+(5, '15:00', '15:00 BST', '5 years', '2003-10-19 10:23:54+01', '2003-10-19 10:23:54'),
+(6, '15:00', '15:00 BST', '5 years', '2004-10-19 10:23:54+01', '2004-10-19 10:23:54'),
+(7, '17:00', '17:00 BST', '7 years', '2005-10-19 10:23:54+01', '2005-10-19 10:23:54'),
+(8, '18:00', '18:00 BST', '8 years', '2006-10-19 10:23:54+01', '2006-10-19 10:23:54'),
+(9, '19:00', '19:00 BST', '9 years', '2007-10-19 10:23:54+01', '2007-10-19 10:23:54'),
+(10, '20:00', '20:00 BST', '10 years', '2008-10-19 10:23:54+01', '2008-10-19 10:23:54'),
+(11, '21:00', '21:00 BST', 'infinity', 'infinity', 'infinity')
+RESULT:
+	duckdb: Conversion Error: time field value out of range: "10:00", expected format is ([YYYY-MM-DD ]HH:MM:SS[.MS])
+LINE 2: (0, '10:00', '...
+            ^
+
+-----------
+QUERY:
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time range between
+             '70 min'::interval preceding and '2 hours'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time desc range between
+             '70 min' preceding and '2 hours' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+
+
+-----------
+QUERY:
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time desc range between
+             '-70 min' preceding and '2 hours' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time range between
+             'infinity'::interval preceding and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time range between
+             'infinity'::interval preceding and 'infinity'::interval preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time range between
+             'infinity'::interval following and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_time, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_time range between
+             '-infinity'::interval following and
+             'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz range between
+             '70 min'::interval preceding and '2 hours'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz desc range between
+             '70 min' preceding and '2 hours' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP WITH TIME ZONE, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz desc range between
+             '70 min' preceding and '-2 hours' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP WITH TIME ZONE, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz range between
+             'infinity'::interval preceding and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz range between
+             'infinity'::interval preceding and 'infinity'::interval preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz range between
+             'infinity'::interval following and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timetz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timetz range between
+             'infinity'::interval following and
+             '-infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval range between
+             '1 year'::interval preceding and '1 year'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval desc range between
+             '1 year' preceding and '1 year' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "+(INTERVAL, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(INTERVAL, TIME) -> TIME
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval desc range between
+             '-1 year' preceding and '1 year' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "+(INTERVAL, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	+(INTERVAL, DATE) -> TIMESTAMP
+	+(INTERVAL, TIME) -> TIME
+	+(INTERVAL, TIMESTAMP) -> TIMESTAMP
+	+(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	+(INTERVAL, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP WITH TIME ZONE
+	+(INTERVAL, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval range between
+             'infinity'::interval preceding and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval range between
+             'infinity'::interval preceding and 'infinity'::interval preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval range between
+             'infinity'::interval following and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_interval, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_interval range between
+             '-infinity'::interval following and
+             'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz range between
+             '1 year'::interval preceding and '1 year'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz desc range between
+             '1 year' preceding and '1 year' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP WITH TIME ZONE, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz desc range between
+             '1 year' preceding and '-1 year' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP WITH TIME ZONE, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz range between
+             'infinity'::interval preceding and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz range between
+             'infinity'::interval preceding and 'infinity'::interval preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz range between
+             'infinity'::interval following and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamptz, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamptz range between
+             '-infinity'::interval following and
+             'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp range between
+             '1 year'::interval preceding and '1 year'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp desc range between
+             '1 year' preceding and '1 year' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+
+
+-----------
+QUERY:
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp desc range between
+             '-1 year' preceding and '1 year' following)
+RESULT:
+	duckdb: Binder Error: Could not choose a best candidate function for the function call "-(TIMESTAMP, STRING_LITERAL)". In order to select one, please add explicit type casts.
+	Candidate functions:
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp range between
+             'infinity'::interval preceding and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp range between
+             'infinity'::interval preceding and 'infinity'::interval preceding)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp range between
+             'infinity'::interval following and 'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+select id, f_timestamp, first_value(id) over w, last_value(id) over w
+from datetimes
+window w as (order by f_timestamp range between
+             '-infinity'::interval following and
+             'infinity'::interval following)
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+-- error, negative offset disallowed
+
+-- RANGE offset PRECEDING/FOLLOWING error cases
+select sum(salary) over (order by enroll_date, salary range between '1 year'::interval preceding and '2 years'::interval following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: Binder Error: RANGE frames must have only one ORDER BY expression
+
+-----------
+QUERY:
+select sum(salary) over (range between '1 year'::interval preceding and '2 years'::interval following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: Binder Error: RANGE frames must have only one ORDER BY expression
+
+-----------
+QUERY:
+select sum(salary) over (order by depname range between '1 year'::interval preceding and '2 years'::interval following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '-(VARCHAR, INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	-(TINYINT) -> TINYINT
+	-(TINYINT, TINYINT) -> TINYINT
+	-(SMALLINT) -> SMALLINT
+	-(SMALLINT, SMALLINT) -> SMALLINT
+	-(INTEGER) -> INTEGER
+	-(INTEGER, INTEGER) -> INTEGER
+	-(BIGINT) -> BIGINT
+	-(BIGINT, BIGINT) -> BIGINT
+	-(HUGEINT) -> HUGEINT
+	-(HUGEINT, HUGEINT) -> HUGEINT
+	-(FLOAT) -> FLOAT
+	-(FLOAT, FLOAT) -> FLOAT
+	-(DOUBLE) -> DOUBLE
+	-(DOUBLE, DOUBLE) -> DOUBLE
+	-(DECIMAL) -> DECIMAL
+	-(DECIMAL, DECIMAL) -> DECIMAL
+	-(UTINYINT) -> UTINYINT
+	-(UTINYINT, UTINYINT) -> UTINYINT
+	-(USMALLINT) -> USMALLINT
+	-(USMALLINT, USMALLINT) -> USMALLINT
+	-(UINTEGER) -> UINTEGER
+	-(UINTEGER, UINTEGER) -> UINTEGER
+	-(UBIGINT) -> UBIGINT
+	-(UBIGINT, UBIGINT) -> UBIGINT
+	-(UHUGEINT) -> UHUGEINT
+	-(UHUGEINT, UHUGEINT) -> UHUGEINT
+	-(DATE, DATE) -> BIGINT
+	-(DATE, INTEGER) -> DATE
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+	-(INTERVAL, INTERVAL) -> INTERVAL
+	-(DATE, INTERVAL) -> TIMESTAMP
+	-(TIME, INTERVAL) -> TIME
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	-(INTERVAL) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+
+
+-----------
+QUERY:
+select max(enroll_date) over (order by enroll_date range between 1 preceding and 2 following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(datetime.date(2006, 10, 1), 5000, datetime.date(2006, 10, 1)), (datetime.date(2006, 10, 1), 6000, datetime.date(2006, 10, 1)), (datetime.date(2006, 12, 23), 3900, datetime.date(2006, 12, 23)), (datetime.date(2007, 8, 1), 5200, datetime.date(2007, 8, 1)), (datetime.date(2007, 8, 1), 4800, datetime.date(2007, 8, 1)), (datetime.date(2007, 8, 8), 4800, datetime.date(2007, 8, 8)), (datetime.date(2007, 8, 15), 5200, datetime.date(2007, 8, 15)), (datetime.date(2007, 12, 10), 3500, datetime.date(2007, 12, 10)), (datetime.date(2008, 1, 1), 4200, datetime.date(2008, 1, 1)), (datetime.date(2008, 1, 1), 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+select max(enroll_date) over (order by salary range between -1 preceding and 2 following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(datetime.date(2007, 12, 10), 3500, datetime.date(2007, 12, 10)), (datetime.date(2006, 12, 23), 3900, datetime.date(2006, 12, 23)), (datetime.date(2008, 1, 1), 4200, datetime.date(2008, 1, 1)), (datetime.date(2008, 1, 1), 4500, datetime.date(2008, 1, 1)), (datetime.date(2007, 8, 8), 4800, datetime.date(2007, 8, 8)), (datetime.date(2007, 8, 1), 4800, datetime.date(2007, 8, 1)), (datetime.date(2006, 10, 1), 5000, datetime.date(2006, 10, 1)), (datetime.date(2007, 8, 1), 5200, datetime.date(2007, 8, 1)), (datetime.date(2007, 8, 15), 5200, datetime.date(2007, 8, 15)), (datetime.date(2006, 10, 1), 6000, datetime.date(2006, 10, 1))]
+
+-----------
+QUERY:
+select max(enroll_date) over (order by salary range between 1 preceding and -2 following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(datetime.date(2007, 12, 10), 3500, datetime.date(2007, 12, 10)), (datetime.date(2006, 12, 23), 3900, datetime.date(2006, 12, 23)), (datetime.date(2008, 1, 1), 4200, datetime.date(2008, 1, 1)), (datetime.date(2008, 1, 1), 4500, datetime.date(2008, 1, 1)), (datetime.date(2007, 8, 8), 4800, datetime.date(2007, 8, 8)), (datetime.date(2007, 8, 1), 4800, datetime.date(2007, 8, 1)), (datetime.date(2006, 10, 1), 5000, datetime.date(2006, 10, 1)), (datetime.date(2007, 8, 1), 5200, datetime.date(2007, 8, 1)), (datetime.date(2007, 8, 15), 5200, datetime.date(2007, 8, 15)), (datetime.date(2006, 10, 1), 6000, datetime.date(2006, 10, 1))]
+
+-----------
+QUERY:
+select max(enroll_date) over (order by salary range between '1 year'::interval preceding and '2 years'::interval following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '-(INTEGER, INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	-(TINYINT) -> TINYINT
+	-(TINYINT, TINYINT) -> TINYINT
+	-(SMALLINT) -> SMALLINT
+	-(SMALLINT, SMALLINT) -> SMALLINT
+	-(INTEGER) -> INTEGER
+	-(INTEGER, INTEGER) -> INTEGER
+	-(BIGINT) -> BIGINT
+	-(BIGINT, BIGINT) -> BIGINT
+	-(HUGEINT) -> HUGEINT
+	-(HUGEINT, HUGEINT) -> HUGEINT
+	-(FLOAT) -> FLOAT
+	-(FLOAT, FLOAT) -> FLOAT
+	-(DOUBLE) -> DOUBLE
+	-(DOUBLE, DOUBLE) -> DOUBLE
+	-(DECIMAL) -> DECIMAL
+	-(DECIMAL, DECIMAL) -> DECIMAL
+	-(UTINYINT) -> UTINYINT
+	-(UTINYINT, UTINYINT) -> UTINYINT
+	-(USMALLINT) -> USMALLINT
+	-(USMALLINT, USMALLINT) -> USMALLINT
+	-(UINTEGER) -> UINTEGER
+	-(UINTEGER, UINTEGER) -> UINTEGER
+	-(UBIGINT) -> UBIGINT
+	-(UBIGINT, UBIGINT) -> UBIGINT
+	-(UHUGEINT) -> UHUGEINT
+	-(UHUGEINT, UHUGEINT) -> UHUGEINT
+	-(DATE, DATE) -> BIGINT
+	-(DATE, INTEGER) -> DATE
+	-(TIMESTAMP, TIMESTAMP) -> INTERVAL
+	-(INTERVAL, INTERVAL) -> INTERVAL
+	-(DATE, INTERVAL) -> TIMESTAMP
+	-(TIME, INTERVAL) -> TIME
+	-(TIMESTAMP, INTERVAL) -> TIMESTAMP
+	-(TIME WITH TIME ZONE, INTERVAL) -> TIME WITH TIME ZONE
+	-(INTERVAL) -> INTERVAL
+	-(TIMESTAMP WITH TIME ZONE, INTERVAL) -> TIMESTAMP WITH TIME ZONE
+	-(TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE) -> INTERVAL
+
+
+-----------
+QUERY:
+select max(enroll_date) over (order by enroll_date range between '1 year'::interval preceding and '-2 years'::interval following
+	exclude ties), salary, enroll_date from empsalary
+RESULT:
+	duckdb: [(datetime.date(2006, 10, 1), 5000, datetime.date(2006, 10, 1)), (datetime.date(2006, 10, 1), 6000, datetime.date(2006, 10, 1)), (datetime.date(2006, 12, 23), 3900, datetime.date(2006, 12, 23)), (datetime.date(2007, 8, 1), 5200, datetime.date(2007, 8, 1)), (datetime.date(2007, 8, 1), 4800, datetime.date(2007, 8, 1)), (datetime.date(2007, 8, 8), 4800, datetime.date(2007, 8, 8)), (datetime.date(2007, 8, 15), 5200, datetime.date(2007, 8, 15)), (datetime.date(2007, 12, 10), 3500, datetime.date(2007, 12, 10)), (datetime.date(2008, 1, 1), 4200, datetime.date(2008, 1, 1)), (datetime.date(2008, 1, 1), 4500, datetime.date(2008, 1, 1))]
+
+-----------
+QUERY:
+-- GROUPS tests
+
+SELECT sum(unique1) over (order by four groups between unbounded preceding and current row),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between unbounded preceding and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between current row and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 1 preceding and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 1 following and unbounded following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between unbounded preceding and 2 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 2 preceding and 1 preceding),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 2 preceding and 1 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 0 preceding and 0 following),
+	unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 2 preceding and 1 following
+	exclude current row), unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 2 preceding and 1 following
+	exclude group), unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (order by four groups between 2 preceding and 1 following
+	exclude ties), unique1, four
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (partition by ten
+	order by four groups between 0 preceding and 0 following),unique1, four, ten
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (partition by ten
+	order by four groups between 0 preceding and 0 following exclude current row), unique1, four, ten
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (partition by ten
+	order by four groups between 0 preceding and 0 following exclude group), unique1, four, ten
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+SELECT sum(unique1) over (partition by ten
+	order by four groups between 0 preceding and 0 following exclude ties), unique1, four, ten
+FROM tenk1 WHERE unique1 < 10
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+select first_value(salary) over(order by enroll_date groups between 1 preceding and 1 following),
+	lead(salary) over(order by enroll_date groups between 1 preceding and 1 following),
+	nth_value(salary, 1) over(order by enroll_date groups between 1 preceding and 1 following),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+select last_value(salary) over(order by enroll_date groups between 1 preceding and 1 following),
+	lag(salary) over(order by enroll_date groups between 1 preceding and 1 following),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+select first_value(salary) over(order by enroll_date groups between 1 following and 3 following
+	exclude current row),
+	lead(salary) over(order by enroll_date groups between 1 following and 3 following exclude ties),
+	nth_value(salary, 1) over(order by enroll_date groups between 1 following and 3 following
+	exclude ties),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+select last_value(salary) over(order by enroll_date groups between 1 following and 3 following
+	exclude group),
+	lag(salary) over(order by enroll_date groups between 1 following and 3 following exclude group),
+	salary, enroll_date from empsalary
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+-- Show differences in offset interpretation between ROWS, RANGE, and GROUPS
+WITH cte (x) AS (
+        SELECT * FROM generate_series(1, 35, 2)
+)
+SELECT x, (sum(x) over w)
+FROM cte
+WINDOW w AS (ORDER BY x rows between 1 preceding and 1 following)
+RESULT:
+	duckdb: [(1, 4), (3, 9), (5, 15), (7, 21), (9, 27), (11, 33), (13, 39), (15, 45), (17, 51), (19, 57), (21, 63), (23, 69), (25, 75), (27, 81), (29, 87), (31, 93), (33, 99), (35, 68)]
+
+-----------
+QUERY:
+WITH cte (x) AS (
+        SELECT * FROM generate_series(1, 35, 2)
+)
+SELECT x, (sum(x) over w)
+FROM cte
+WINDOW w AS (ORDER BY x range between 1 preceding and 1 following)
+RESULT:
+	duckdb: [(1, 1), (3, 3), (5, 5), (7, 7), (9, 9), (11, 11), (13, 13), (15, 15), (17, 17), (19, 19), (21, 21), (23, 23), (25, 25), (27, 27), (29, 29), (31, 31), (33, 33), (35, 35)]
+
+-----------
+QUERY:
+WITH cte (x) AS (
+        SELECT * FROM generate_series(1, 35, 2)
+)
+SELECT x, (sum(x) over w)
+FROM cte
+WINDOW w AS (ORDER BY x groups between 1 preceding and 1 following)
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+WITH cte (x) AS (
+        select 1 union all select 1 union all select 1 union all
+        SELECT * FROM generate_series(5, 49, 2)
+)
+SELECT x, (sum(x) over w)
+FROM cte
+WINDOW w AS (ORDER BY x rows between 1 preceding and 1 following)
+RESULT:
+	duckdb: [(1, 2), (1, 3), (1, 7), (5, 13), (7, 21), (9, 27), (11, 33), (13, 39), (15, 45), (17, 51), (19, 57), (21, 63), (23, 69), (25, 75), (27, 81), (29, 87), (31, 93), (33, 99), (35, 105), (37, 111), (39, 117), (41, 123), (43, 129), (45, 135), (47, 141), (49, 96)]
+
+-----------
+QUERY:
+WITH cte (x) AS (
+        select 1 union all select 1 union all select 1 union all
+        SELECT * FROM generate_series(5, 49, 2)
+)
+SELECT x, (sum(x) over w)
+FROM cte
+WINDOW w AS (ORDER BY x range between 1 preceding and 1 following)
+RESULT:
+	duckdb: [(1, 3), (1, 3), (1, 3), (5, 5), (7, 7), (9, 9), (11, 11), (13, 13), (15, 15), (17, 17), (19, 19), (21, 21), (23, 23), (25, 25), (27, 27), (29, 29), (31, 31), (33, 33), (35, 35), (37, 37), (39, 39), (41, 41), (43, 43), (45, 45), (47, 47), (49, 49)]
+
+-----------
+QUERY:
+WITH cte (x) AS (
+        select 1 union all select 1 union all select 1 union all
+        SELECT * FROM generate_series(5, 49, 2)
+)
+SELECT x, (sum(x) over w)
+FROM cte
+WINDOW w AS (ORDER BY x groups between 1 preceding and 1 following)
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+-- with UNION
+SELECT count(*) OVER (PARTITION BY four) FROM (SELECT * FROM tenk1 UNION ALL SELECT * FROM tenk2)s LIMIT 0
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- check some degenerate cases
+create temp table t1 (f1 int, f2 int8)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+insert into t1 values (1,1),(1,2),(2,2)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1
+                         range between 1 preceding and 1 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Binder Error: RANGE frames must have only one ORDER BY expression
+
+-----------
+QUERY:
+-- error, must have order by
+explain (costs off)
+select f1, sum(f1) over (partition by f1 order by f2
+                         range between 1 preceding and 1 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1 order by f2
+                         range between 1 preceding and 1 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: [(2, 2), (1, 1)]
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1, f1 order by f2
+                         range between 2 preceding and 1 preceding)
+from t1 where f1 = f2
+RESULT:
+	duckdb: [(2, None), (1, None)]
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1, f2 order by f2
+                         range between 1 following and 2 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: [(1, None), (2, None)]
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1
+                         groups between 1 preceding and 1 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+-- error, must have order by
+explain (costs off)
+select f1, sum(f1) over (partition by f1 order by f2
+                         groups between 1 preceding and 1 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1 order by f2
+                         groups between 1 preceding and 1 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1, f1 order by f2
+                         groups between 2 preceding and 1 preceding)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+select f1, sum(f1) over (partition by f1, f2 order by f2
+                         groups between 1 following and 2 following)
+from t1 where f1 = f2
+RESULT:
+	duckdb: Parser Error: GROUPS mode for window functions is not implemented yet
+
+-----------
+QUERY:
+-- ordering by a non-integer constant is allowed
+SELECT rank() OVER (ORDER BY length('abc'))
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+-- can/* REPLACED */''t order by another window function
+SELECT rank() OVER (ORDER BY rank() OVER (ORDER BY random()))
+RESULT:
+	duckdb: Parser Error: window functions are not allowed in window definitions
+
+-----------
+QUERY:
+-- some other errors
+SELECT * FROM empsalary WHERE row_number() OVER (ORDER BY salary) < 10
+RESULT:
+	duckdb: Binder Error: WHERE clause cannot contain window functions!
+
+-----------
+QUERY:
+SELECT * FROM empsalary INNER JOIN tenk1 ON row_number() OVER (ORDER BY salary) < 10
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "t1"?
+
+-----------
+QUERY:
+SELECT rank() OVER (ORDER BY 1), count(*) FROM empsalary GROUP BY 1
+RESULT:
+	duckdb: Binder Error: GROUP BY clause cannot contain window functions!
+
+-----------
+QUERY:
+SELECT * FROM rank() OVER (ORDER BY random())
+RESULT:
+	duckdb: Parser Error: syntax error at or near "ORDER"
+
+-----------
+QUERY:
+DELETE FROM empsalary WHERE (rank() OVER (ORDER BY random())) > 10
+RESULT:
+	duckdb: Binder Error: WHERE clause cannot contain window functions!
+
+-----------
+QUERY:
+DELETE FROM empsalary RETURNING rank() OVER (ORDER BY random())
+RESULT:
+	duckdb: Not implemented Error: Unimplemented expression class
+
+-----------
+QUERY:
+SELECT count(*) OVER w FROM tenk1 WINDOW w AS (ORDER BY unique1), w AS (ORDER BY unique1)
+RESULT:
+	duckdb: Parser Error: window "w" is already defined
+
+-----------
+QUERY:
+SELECT rank() OVER (PARTITION BY four, ORDER BY ten) FROM tenk1
+RESULT:
+	duckdb: Parser Error: syntax error at or near "ORDER"
+
+-----------
+QUERY:
+SELECT count() OVER () FROM tenk1
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "t1"?
+
+-----------
+QUERY:
+SELECT generate_series(1, 100) OVER () FROM empsalary
+RESULT:
+	duckdb: Catalog Error: generate_series is not an aggregate function
+
+-----------
+QUERY:
+SELECT ntile(0) OVER (ORDER BY ten), ten, four FROM tenk1
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "t1"?
+
+-----------
+QUERY:
+SELECT nth_value(four, 0) OVER (ORDER BY ten), ten, four FROM tenk1
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "t1"?
+
+-----------
+QUERY:
+-- filter
+
+SELECT sum(salary), row_number() OVER (ORDER BY depname), sum(
+    sum(salary) FILTER (WHERE enroll_date > '2007-01-01')
+) FILTER (WHERE depname <> 'sales') OVER (ORDER BY depname DESC) AS "filtered_sum",
+    depname
+FROM empsalary GROUP BY depname
+RESULT:
+	duckdb: [(14600, 3, None, 'sales'), (7400, 2, 3500, 'personnel'), (25100, 1, 22600, 'develop')]
+
+-----------
+QUERY:
+--
+-- Test SupportRequestOptimizeWindowClause/* REPLACED */''s ability to de-duplicate
+-- WindowClauses
+--
+
+-- Ensure WindowClause frameOptions are changed so that only a single
+-- WindowAgg exists in the plan.
+EXPLAIN (COSTS OFF)
+SELECT
+    empno,
+    depname,
+    row_number() OVER (PARTITION BY depname ORDER BY enroll_date) rn,
+    rank() OVER (PARTITION BY depname ORDER BY enroll_date ROWS BETWEEN
+                 UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) rnk,
+    dense_rank() OVER (PARTITION BY depname ORDER BY enroll_date RANGE BETWEEN
+                       CURRENT ROW AND CURRENT ROW) drnk,
+    ntile(10) OVER (PARTITION BY depname ORDER BY enroll_date RANGE BETWEEN
+                    CURRENT ROW AND UNBOUNDED FOLLOWING) nt,
+    percent_rank() OVER (PARTITION BY depname ORDER BY enroll_date ROWS BETWEEN
+                         CURRENT ROW AND UNBOUNDED FOLLOWING) pr,
+    cume_dist() OVER (PARTITION BY depname ORDER BY enroll_date RANGE BETWEEN
+                      CURRENT ROW AND UNBOUNDED FOLLOWING) cd
+FROM empsalary
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure WindowFuncs which cannot support their WindowClause/* REPLACED */''s frameOptions
+-- being changed are untouched
+EXPLAIN (COSTS OFF, VERBOSE)
+SELECT
+    empno,
+    depname,
+    row_number() OVER (PARTITION BY depname ORDER BY enroll_date) rn,
+    rank() OVER (PARTITION BY depname ORDER BY enroll_date ROWS BETWEEN
+                 UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) rnk,
+    count(*) OVER (PARTITION BY depname ORDER BY enroll_date RANGE BETWEEN
+                   CURRENT ROW AND CURRENT ROW) cnt
+FROM empsalary
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure the above query gives us the expected results
+SELECT
+    empno,
+    depname,
+    row_number() OVER (PARTITION BY depname ORDER BY enroll_date) rn,
+    rank() OVER (PARTITION BY depname ORDER BY enroll_date ROWS BETWEEN
+                 UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) rnk,
+    count(*) OVER (PARTITION BY depname ORDER BY enroll_date RANGE BETWEEN
+                   CURRENT ROW AND CURRENT ROW) cnt
+FROM empsalary
+RESULT:
+	duckdb: [(8, 'develop', 1, 1, 1), (10, 'develop', 2, 2, 1), (11, 'develop', 3, 3, 1), (7, 'develop', 4, 4, 2), (9, 'develop', 5, 4, 2), (1, 'sales', 1, 1, 1), (3, 'sales', 2, 2, 1), (4, 'sales', 3, 3, 1), (2, 'personnel', 1, 1, 1), (5, 'personnel', 2, 2, 1)]
+
+-----------
+QUERY:
+-- Test pushdown of quals into a subquery containing window functions
+
+-- pushdown is safe because all PARTITION BY clauses include depname:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY depname) depsalary,
+          min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales'
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- pushdown is unsafe because there/* REPLACED */''s a PARTITION BY clause without depname:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY enroll_date) enroll_salary,
+          min(salary) OVER (PARTITION BY depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales'
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Test window function run conditions are properly pushed down into the
+-- WindowAgg
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          row_number() OVER (ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE rn < 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- The following 3 statements should result the same result.
+SELECT * FROM
+  (SELECT empno,
+          row_number() OVER (ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE rn < 3
+RESULT:
+	duckdb: [(1, 1), (2, 2)]
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT empno,
+          row_number() OVER (ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE 3 > rn
+RESULT:
+	duckdb: [(1, 1), (2, 2)]
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT empno,
+          row_number() OVER (ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE 2 >= rn
+RESULT:
+	duckdb: [(1, 1), (2, 2)]
+
+-----------
+QUERY:
+-- Ensure r <= 3 is pushed down into the run condition of the window agg
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          rank() OVER (ORDER BY salary DESC) r
+   FROM empsalary) emp
+WHERE r <= 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          rank() OVER (ORDER BY salary DESC) r
+   FROM empsalary) emp
+WHERE r <= 3
+RESULT:
+	duckdb: [(8, 6000, 1), (10, 5200, 2), (11, 5200, 2)]
+
+-----------
+QUERY:
+-- Ensure dr = 1 is converted to dr <= 1 to get all rows leading up to dr = 1
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          dense_rank() OVER (ORDER BY salary DESC) dr
+   FROM empsalary) emp
+WHERE dr = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          dense_rank() OVER (ORDER BY salary DESC) dr
+   FROM empsalary) emp
+WHERE dr = 1
+RESULT:
+	duckdb: [(8, 6000, 1)]
+
+-----------
+QUERY:
+-- Check COUNT() and COUNT(*)
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER (ORDER BY salary DESC) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER (ORDER BY salary DESC) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: [(8, 6000, 1), (10, 5200, 3), (11, 5200, 3)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(empno) OVER (ORDER BY salary DESC) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(empno) OVER (ORDER BY salary DESC) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: [(8, 6000, 1), (10, 5200, 3), (11, 5200, 3)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER (ORDER BY salary DESC ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) c
+   FROM empsalary) emp
+WHERE c >= 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER () c
+   FROM empsalary) emp
+WHERE 11 <= c
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER (ORDER BY salary DESC) c,
+          dense_rank() OVER (ORDER BY salary DESC) dr
+   FROM empsalary) emp
+WHERE dr = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we get a run condition when there/* REPLACED */''s a PARTITION BY clause
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          depname,
+          row_number() OVER (PARTITION BY depname ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE rn < 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- and ensure we get the correct results from the above plan
+SELECT * FROM
+  (SELECT empno,
+          depname,
+          row_number() OVER (PARTITION BY depname ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE rn < 3
+RESULT:
+	duckdb: [(1, 'sales', 1), (3, 'sales', 2), (2, 'personnel', 1), (5, 'personnel', 2), (7, 'develop', 1), (8, 'develop', 2)]
+
+-----------
+QUERY:
+-- ensure that /* REPLACED */''unused/* REPLACED */'' subquery columns are not removed when the column only
+-- exists in the run condition
+EXPLAIN (COSTS OFF)
+SELECT empno, depname FROM
+  (SELECT empno,
+          depname,
+          row_number() OVER (PARTITION BY depname ORDER BY empno) rn
+   FROM empsalary) emp
+WHERE rn < 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- likewise with count(empno) instead of row_number()
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          depname,
+          salary,
+          count(empno) OVER (PARTITION BY depname ORDER BY salary DESC) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- and again, check the results are what we expect.
+SELECT * FROM
+  (SELECT empno,
+          depname,
+          salary,
+          count(empno) OVER (PARTITION BY depname ORDER BY salary DESC) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: [(2, 'personnel', 3900, 1), (5, 'personnel', 3500, 2), (1, 'sales', 5000, 1), (4, 'sales', 4800, 3), (3, 'sales', 4800, 3), (8, 'develop', 6000, 1), (10, 'develop', 5200, 3), (11, 'develop', 5200, 3)]
+
+-----------
+QUERY:
+-- Ensure we get the correct run condition when the window function is both
+-- monotonically increasing and decreasing.
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          depname,
+          salary,
+          count(empno) OVER () c
+   FROM empsalary) emp
+WHERE c = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Some more complex cases with multiple window clauses
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT *,
+          count(salary) OVER (PARTITION BY depname || '') c1, -- w1
+          row_number() OVER (PARTITION BY depname) rn, -- w2
+          count(*) OVER (PARTITION BY depname) c2, -- w2
+          count(*) OVER (PARTITION BY '' || depname) c3, -- w3
+          ntile(2) OVER (PARTITION BY depname) nt -- w2
+   FROM empsalary
+) e WHERE rn <= 1 AND c1 <= 3 AND nt < 2
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we correctly filter out all of the run conditions from each window
+SELECT * FROM
+  (SELECT *,
+          count(salary) OVER (PARTITION BY depname || '') c1, -- w1
+          row_number() OVER (PARTITION BY depname) rn, -- w2
+          count(*) OVER (PARTITION BY depname) c2, -- w2
+          count(*) OVER (PARTITION BY '' || depname) c3, -- w3
+          ntile(2) OVER (PARTITION BY depname) nt -- w2
+   FROM empsalary
+) e WHERE rn <= 1 AND c1 <= 3 AND nt < 2
+RESULT:
+	duckdb: [('personnel', 5, 3500, datetime.date(2007, 12, 10), 2, 1, 2, 2, 1), ('sales', 1, 5000, datetime.date(2006, 10, 1), 3, 1, 3, 3, 1)]
+
+-----------
+QUERY:
+-- Ensure we remove references to reduced outer joins as nulling rels in run
+-- conditions
+EXPLAIN (COSTS OFF)
+SELECT 1 FROM
+  (SELECT ntile(e2.salary) OVER (PARTITION BY e1.depname) AS c
+   FROM empsalary e1 LEFT JOIN empsalary e2 ON TRUE
+   WHERE e1.empno = e2.empno) s
+WHERE s.c = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Tests to ensure we don/* REPLACED */''t push down the run condition when it/* REPLACED */''s not valid to
+-- do so.
+
+-- Ensure we don/* REPLACED */''t push down when the frame options show that the window
+-- function is not monotonically increasing
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER (ORDER BY salary DESC ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) c
+   FROM empsalary) emp
+WHERE c <= 3
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we don/* REPLACED */''t push down when the window function/* REPLACED */''s monotonic properties
+-- don/* REPLACED */''t match that of the clauses.
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(*) OVER (ORDER BY salary) c
+   FROM empsalary) emp
+WHERE 3 <= c
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we don/* REPLACED */''t use a run condition when there/* REPLACED */''s a volatile function in the
+-- WindowFunc
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count(random()) OVER (ORDER BY empno DESC) c
+   FROM empsalary) emp
+WHERE c = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we don/* REPLACED */''t use a run condition when the WindowFunc contains subplans
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT empno,
+          salary,
+          count((SELECT 1)) OVER (ORDER BY empno DESC) c
+   FROM empsalary) emp
+WHERE c = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Test Sort node collapsing
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY depname order by empno) depsalary,
+          min(salary) OVER (PARTITION BY depname, empno order by enroll_date) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales'
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure that the evaluation order of the WindowAggs results in the WindowAgg
+-- with the same sort order that/* REPLACED */''s required by the ORDER BY is evaluated last.
+EXPLAIN (COSTS OFF)
+SELECT empno,
+       enroll_date,
+       depname,
+       sum(salary) OVER (PARTITION BY depname order by empno) depsalary,
+       min(salary) OVER (PARTITION BY depname order by enroll_date) depminsalary
+FROM empsalary
+ORDER BY depname, empno
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- As above, but with an adjusted ORDER BY to ensure the above plan didn/* REPLACED */''t
+-- perform only 2 sorts by accident.
+EXPLAIN (COSTS OFF)
+SELECT empno,
+       enroll_date,
+       depname,
+       sum(salary) OVER (PARTITION BY depname order by empno) depsalary,
+       min(salary) OVER (PARTITION BY depname order by enroll_date) depminsalary
+FROM empsalary
+ORDER BY depname, enroll_date
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+SET enable_hashagg TO off
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_hashagg"
+
+Did you mean: "enable_progress_bar"
+
+-----------
+QUERY:
+-- Ensure we don/* REPLACED */''t get a sort for both DISTINCT and ORDER BY.  We expect the
+-- sort for the DISTINCT to provide presorted input for the ORDER BY.
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT
+       empno,
+       enroll_date,
+       depname,
+       sum(salary) OVER (PARTITION BY depname order by empno) depsalary,
+       min(salary) OVER (PARTITION BY depname order by enroll_date) depminsalary
+FROM empsalary
+ORDER BY depname, enroll_date
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- As above but adjust the ORDER BY clause to help ensure the plan with the
+-- minimum amount of sorting wasn/* REPLACED */''t a fluke.
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT
+       empno,
+       enroll_date,
+       depname,
+       sum(salary) OVER (PARTITION BY depname order by empno) depsalary,
+       min(salary) OVER (PARTITION BY depname order by enroll_date) depminsalary
+FROM empsalary
+ORDER BY depname, empno
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+RESET enable_hashagg
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_hashagg"
+
+Did you mean: "enable_progress_bar"
+
+-----------
+QUERY:
+-- Test Sort node reordering
+EXPLAIN (COSTS OFF)
+SELECT
+  lead(1) OVER (PARTITION BY depname ORDER BY salary, enroll_date),
+  lag(1) OVER (PARTITION BY depname ORDER BY salary,enroll_date,empno)
+FROM empsalary
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Test incremental sorting
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          empno,
+          salary,
+          enroll_date,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date) AS first_emp,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date DESC) AS last_emp
+   FROM empsalary) emp
+WHERE first_emp = 1 OR last_emp = 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+SELECT * FROM
+  (SELECT depname,
+          empno,
+          salary,
+          enroll_date,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date) AS first_emp,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date DESC) AS last_emp
+   FROM empsalary) emp
+WHERE first_emp = 1 OR last_emp = 1
+RESULT:
+	duckdb: [('personnel', 5, 3500, datetime.date(2007, 12, 10), 2, 1), ('personnel', 2, 3900, datetime.date(2006, 12, 23), 1, 2), ('develop', 8, 6000, datetime.date(2006, 10, 1), 1, 5), ('develop', 7, 4200, datetime.date(2008, 1, 1), 4, 1), ('sales', 1, 5000, datetime.date(2006, 10, 1), 1, 3), ('sales', 4, 4800, datetime.date(2007, 8, 8), 3, 1)]
+
+-----------
+QUERY:
+-- cleanup
+DROP TABLE empsalary
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- test user-defined window function with named args and default args
+CREATE FUNCTION nth_value_def(val anyelement, n integer = 1) RETURNS anyelement
+  LANGUAGE internal WINDOW IMMUTABLE STRICT AS 'window_nth_value'
+RESULT:
+	duckdb: Parser Error: syntax error at or near "anyelement"
+
+-----------
+QUERY:
+SELECT nth_value_def(n := 2, val := ten) OVER (PARTITION BY four), ten, four
+  FROM (SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten) s
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "t1"?
+
+-----------
+QUERY:
+SELECT nth_value_def(ten) OVER (PARTITION BY four), ten, four
+  FROM (SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten) s
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "t1"?
+
+-----------
+QUERY:
+--
+-- Test the basic moving-aggregate machinery
+--
+
+-- create aggregates that record the series of transform calls (these are
+-- intentionally not true inverses)
+
+CREATE FUNCTION logging_sfunc_nonstrict(text, anyelement) RETURNS text AS
+$$ SELECT COALESCE($1, '') || '*' || quote_nullable($2) $$
+LANGUAGE SQL IMMUTABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE FUNCTION logging_msfunc_nonstrict(text, anyelement) RETURNS text AS
+$$ SELECT COALESCE($1, '') || '+' || quote_nullable($2) $$
+LANGUAGE SQL IMMUTABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE FUNCTION logging_minvfunc_nonstrict(text, anyelement) RETURNS text AS
+$$ SELECT $1 || '-' || quote_nullable($2) $$
+LANGUAGE SQL IMMUTABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE AGGREGATE logging_agg_nonstrict (anyelement)
+(
+	stype = text,
+	sfunc = logging_sfunc_nonstrict,
+	mstype = text,
+	msfunc = logging_msfunc_nonstrict,
+	minvfunc = logging_minvfunc_nonstrict
+)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AGGREGATE"
+
+-----------
+QUERY:
+CREATE AGGREGATE logging_agg_nonstrict_initcond (anyelement)
+(
+	stype = text,
+	sfunc = logging_sfunc_nonstrict,
+	mstype = text,
+	msfunc = logging_msfunc_nonstrict,
+	minvfunc = logging_minvfunc_nonstrict,
+	initcond = 'I',
+	minitcond = 'MI'
+)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AGGREGATE"
+
+-----------
+QUERY:
+CREATE FUNCTION logging_sfunc_strict(text, anyelement) RETURNS text AS
+$$ SELECT $1 || '*' || quote_nullable($2) $$
+LANGUAGE SQL STRICT IMMUTABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE FUNCTION logging_msfunc_strict(text, anyelement) RETURNS text AS
+$$ SELECT $1 || '+' || quote_nullable($2) $$
+LANGUAGE SQL STRICT IMMUTABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE FUNCTION logging_minvfunc_strict(text, anyelement) RETURNS text AS
+$$ SELECT $1 || '-' || quote_nullable($2) $$
+LANGUAGE SQL STRICT IMMUTABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE AGGREGATE logging_agg_strict (text)
+(
+	stype = text,
+	sfunc = logging_sfunc_strict,
+	mstype = text,
+	msfunc = logging_msfunc_strict,
+	minvfunc = logging_minvfunc_strict
+)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AGGREGATE"
+
+-----------
+QUERY:
+CREATE AGGREGATE logging_agg_strict_initcond (anyelement)
+(
+	stype = text,
+	sfunc = logging_sfunc_strict,
+	mstype = text,
+	msfunc = logging_msfunc_strict,
+	minvfunc = logging_minvfunc_strict,
+	initcond = 'I',
+	minitcond = 'MI'
+)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AGGREGATE"
+
+-----------
+QUERY:
+-- test strict and non-strict cases
+SELECT
+	p::text || ',' || i::text || ':' || COALESCE(v::text, 'NULL') AS row,
+	logging_agg_nonstrict(v) over wnd as nstrict,
+	logging_agg_nonstrict_initcond(v) over wnd as nstrict_init,
+	logging_agg_strict(v::text) over wnd as strict,
+	logging_agg_strict_initcond(v) over wnd as strict_init
+FROM (VALUES
+	(1, 1, NULL),
+	(1, 2, 'a'),
+	(1, 3, 'b'),
+	(1, 4, NULL),
+	(1, 5, NULL),
+	(1, 6, 'c'),
+	(2, 1, NULL),
+	(2, 2, 'x'),
+	(3, 1, 'z')
+) AS t(p, i, v)
+WINDOW wnd AS (PARTITION BY P ORDER BY i ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+ORDER BY p, i
+RESULT:
+	duckdb: Catalog Error: Aggregate Function with name logging_agg_nonstrict does not exist!
+Did you mean "instr"?
+
+-----------
+QUERY:
+-- and again, but with filter
+SELECT
+	p::text || ',' || i::text || ':' ||
+		CASE WHEN f THEN COALESCE(v::text, 'NULL') ELSE '-' END as row,
+	logging_agg_nonstrict(v) filter(where f) over wnd as nstrict_filt,
+	logging_agg_nonstrict_initcond(v) filter(where f) over wnd as nstrict_init_filt,
+	logging_agg_strict(v::text) filter(where f) over wnd as strict_filt,
+	logging_agg_strict_initcond(v) filter(where f) over wnd as strict_init_filt
+FROM (VALUES
+	(1, 1, true,  NULL),
+	(1, 2, false, 'a'),
+	(1, 3, true,  'b'),
+	(1, 4, false, NULL),
+	(1, 5, false, NULL),
+	(1, 6, false, 'c'),
+	(2, 1, false, NULL),
+	(2, 2, true,  'x'),
+	(3, 1, true,  'z')
+) AS t(p, i, f, v)
+WINDOW wnd AS (PARTITION BY p ORDER BY i ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+ORDER BY p, i
+RESULT:
+	duckdb: Catalog Error: Aggregate Function with name logging_agg_nonstrict does not exist!
+Did you mean "instr"?
+
+-----------
+QUERY:
+-- test that volatile arguments disable moving-aggregate mode
+SELECT
+	i::text || ':' || COALESCE(v::text, 'NULL') as row,
+	logging_agg_strict(v::text)
+		over wnd as inverse,
+	logging_agg_strict(v::text || CASE WHEN random() < 0 then '?' ELSE '' END)
+		over wnd as noinverse
+FROM (VALUES
+	(1, 'a'),
+	(2, 'b'),
+	(3, 'c')
+) AS t(i, v)
+WINDOW wnd AS (ORDER BY i ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+ORDER BY i
+RESULT:
+	duckdb: Catalog Error: Aggregate Function with name logging_agg_strict does not exist!
+Did you mean "instr"?
+
+-----------
+QUERY:
+SELECT
+	i::text || ':' || COALESCE(v::text, 'NULL') as row,
+	logging_agg_strict(v::text) filter(where true)
+		over wnd as inverse,
+	logging_agg_strict(v::text) filter(where random() >= 0)
+		over wnd as noinverse
+FROM (VALUES
+	(1, 'a'),
+	(2, 'b'),
+	(3, 'c')
+) AS t(i, v)
+WINDOW wnd AS (ORDER BY i ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+ORDER BY i
+RESULT:
+	duckdb: Catalog Error: Aggregate Function with name logging_agg_strict does not exist!
+Did you mean "instr"?
+
+-----------
+QUERY:
+-- test that non-overlapping windows don/* REPLACED */''t use inverse transitions
+SELECT
+	logging_agg_strict(v::text) OVER wnd
+FROM (VALUES
+	(1, 'a'),
+	(2, 'b'),
+	(3, 'c')
+) AS t(i, v)
+WINDOW wnd AS (ORDER BY i ROWS BETWEEN CURRENT ROW AND CURRENT ROW)
+ORDER BY i
+RESULT:
+	duckdb: Catalog Error: Aggregate Function with name logging_agg_strict does not exist!
+Did you mean "instr"?
+
+-----------
+QUERY:
+-- test that returning NULL from the inverse transition functions
+-- restarts the aggregation from scratch. The second aggregate is supposed
+-- to test cases where only some aggregates restart, the third one checks
+-- that one aggregate restarting doesn/* REPLACED */''t cause others to restart.
+
+CREATE FUNCTION sum_int_randrestart_minvfunc(int4, int4) RETURNS int4 AS
+$$ SELECT CASE WHEN random() < 0.2 THEN NULL ELSE $1 - $2 END $$
+LANGUAGE SQL STRICT
+RESULT:
+	duckdb: Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+CREATE AGGREGATE sum_int_randomrestart (int4)
+(
+	stype = int4,
+	sfunc = int4pl,
+	mstype = int4,
+	msfunc = int4pl,
+	minvfunc = sum_int_randrestart_minvfunc
+)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AGGREGATE"
+
+-----------
+QUERY:
+WITH
+vs AS (
+	SELECT i, (random() * 100)::int4 AS v
+	FROM generate_series(1, 100) AS i
+),
+sum_following AS (
+	SELECT i, SUM(v) OVER
+		(ORDER BY i DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS s
+	FROM vs
+)
+SELECT DISTINCT
+	sum_following.s = sum_int_randomrestart(v) OVER fwd AS eq1,
+	-sum_following.s = sum_int_randomrestart(-v) OVER fwd AS eq2,
+	100*3+(vs.i-1)*3 = length(logging_agg_nonstrict(''::text) OVER fwd) AS eq3
+FROM vs
+JOIN sum_following ON sum_following.i = vs.i
+WINDOW fwd AS (
+	ORDER BY vs.i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+)
+RESULT:
+	duckdb: Catalog Error: Aggregate Function with name sum_int_randomrestart does not exist!
+Did you mean "count_star"?
+
+-----------
+QUERY:
+--
+-- Test various built-in aggregates that have moving-aggregate support
+--
+
+-- test inverse transition functions handle NULLs properly
+SELECT i,AVG(v::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 1.5), (2, 2.0), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,AVG(v::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 1.5), (2, 2.0), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,AVG(v::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 1.5), (2, 2.0), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,AVG(v::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1.5),(2,2.5),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 2.0), (2, 2.5), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,AVG(v::interval) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,'1 sec'),(2,'2 sec'),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'avg(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	avg(DECIMAL) -> DECIMAL
+	avg(SMALLINT) -> DOUBLE
+	avg(INTEGER) -> DOUBLE
+	avg(BIGINT) -> DOUBLE
+	avg(HUGEINT) -> DOUBLE
+	avg(DOUBLE) -> DOUBLE
+
+
+-----------
+QUERY:
+-- moving aggregates over infinite intervals
+SELECT  x
+        ,avg(x) OVER(ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING ) as curr_next_avg
+        ,avg(x) OVER(ROWS BETWEEN 1 PRECEDING AND CURRENT ROW ) as prev_curr_avg
+        ,sum(x) OVER(ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING ) as curr_next_sum
+        ,sum(x) OVER(ROWS BETWEEN 1 PRECEDING AND CURRENT ROW ) as prev_curr_sum
+FROM (VALUES (NULL::interval),
+               ('infinity'::interval),
+               ('-2147483648 days -2147483648 months -9223372036854775807 usecs'), -- extreme interval value
+               ('-infinity'::interval),
+               ('2147483647 days 2147483647 months 9223372036854775806 usecs'), -- extreme interval value
+               ('infinity'::interval),
+               ('6 days'::interval),
+               ('7 days'::interval),
+               (NULL::interval),
+               ('-infinity'::interval)) v(x)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'avg(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	avg(DECIMAL) -> DECIMAL
+	avg(SMALLINT) -> DOUBLE
+	avg(INTEGER) -> DOUBLE
+	avg(BIGINT) -> DOUBLE
+	avg(HUGEINT) -> DOUBLE
+	avg(DOUBLE) -> DOUBLE
+
+
+-----------
+QUERY:
+--should fail.
+SELECT x, avg(x) OVER(ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)
+FROM (VALUES (NULL::interval),
+               ('3 days'::interval),
+               ('infinity'::timestamptz - now()),
+               ('6 days'::interval),
+               ('-infinity'::interval)) v(x)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'avg(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	avg(DECIMAL) -> DECIMAL
+	avg(SMALLINT) -> DOUBLE
+	avg(INTEGER) -> DOUBLE
+	avg(BIGINT) -> DOUBLE
+	avg(HUGEINT) -> DOUBLE
+	avg(DOUBLE) -> DOUBLE
+
+
+-----------
+QUERY:
+--should fail.
+SELECT x, sum(x) OVER(ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)
+FROM (VALUES (NULL::interval),
+               ('3 days'::interval),
+               ('infinity'::timestamptz - now()),
+               ('6 days'::interval),
+               ('-infinity'::interval)) v(x)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+
+-----------
+QUERY:
+SELECT i,SUM(v::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 3), (2, 2), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,SUM(v::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 3), (2, 2), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,SUM(v::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 3), (2, 2), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,SUM(v::money) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,'1.10'),(2,'2.20'),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: Catalog Error: Type with name money does not exist!
+Did you mean "JSON"?
+
+-----------
+QUERY:
+SELECT i,SUM(v::interval) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,'1 sec'),(2,'2 sec'),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types 'sum(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	sum(DECIMAL) -> DECIMAL
+	sum(SMALLINT) -> HUGEINT
+	sum(INTEGER) -> HUGEINT
+	sum(BIGINT) -> HUGEINT
+	sum(HUGEINT) -> HUGEINT
+	sum(DOUBLE) -> DOUBLE
+
+
+-----------
+QUERY:
+SELECT i,SUM(v::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1.1),(2,2.2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, Decimal('3.300')), (2, Decimal('2.200')), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT SUM(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1.01),(2,2),(3,3)) v(i,n)
+RESULT:
+	duckdb: [(Decimal('6.010'),), (Decimal('5.000'),), (Decimal('3.000'),)]
+
+-----------
+QUERY:
+SELECT i,COUNT(v) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 2), (2, 1), (3, 0), (4, 0)]
+
+-----------
+QUERY:
+SELECT i,COUNT(*) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 4), (2, 3), (3, 2), (4, 1)]
+
+-----------
+QUERY:
+SELECT VAR_POP(n::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(21703.999999999996,), (13868.75,), (11266.666666666666,), (4225.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT VAR_POP(n::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(21703.999999999996,), (13868.75,), (11266.666666666666,), (4225.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT VAR_POP(n::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(21703.999999999996,), (13868.75,), (11266.666666666666,), (4225.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT VAR_POP(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(21703.999999999996,), (13868.75,), (11266.666666666666,), (4225.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT VAR_SAMP(n::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VAR_SAMP(n::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VAR_SAMP(n::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VAR_SAMP(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VARIANCE(n::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VARIANCE(n::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VARIANCE(n::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT VARIANCE(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(27129.999999999996,), (18491.666666666668,), (16900.0,), (8450.0,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV_POP(n::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(147.32277488562315,), (147.32277488562315,), (117.76565713313877,), (106.14455552060438,), (65.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT STDDEV_POP(n::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(147.32277488562315,), (147.32277488562315,), (117.76565713313877,), (106.14455552060438,), (65.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT STDDEV_POP(n::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(147.32277488562315,), (147.32277488562315,), (117.76565713313877,), (106.14455552060438,), (65.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT STDDEV_POP(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(147.32277488562315,), (147.32277488562315,), (117.76565713313877,), (106.14455552060438,), (65.0,), (0.0,)]
+
+-----------
+QUERY:
+SELECT STDDEV_SAMP(n::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV_SAMP(n::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV_SAMP(n::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV_SAMP(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(1,NULL),(2,600),(3,470),(4,170),(5,430),(6,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV(n::bigint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(0,NULL),(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV(n::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(0,NULL),(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV(n::smallint) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(0,NULL),(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+SELECT STDDEV(n::numeric) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+  FROM (VALUES(0,NULL),(1,600),(2,470),(3,170),(4,430),(5,300)) r(i,n)
+RESULT:
+	duckdb: [(164.7118696390761,), (164.7118696390761,), (135.9840676942217,), (130.0,), (91.92388155425118,), (None,)]
+
+-----------
+QUERY:
+-- test that inverse transition functions work with various frame options
+SELECT i,SUM(v::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND CURRENT ROW)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 1), (2, 2), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,SUM(v::int) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,NULL),(4,NULL)) t(i,v)
+RESULT:
+	duckdb: [(1, 3), (2, 2), (3, None), (4, None)]
+
+-----------
+QUERY:
+SELECT i,SUM(v::int) OVER (ORDER BY i ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)
+  FROM (VALUES(1,1),(2,2),(3,3),(4,4)) t(i,v)
+RESULT:
+	duckdb: [(1, 3), (2, 6), (3, 9), (4, 7)]
+
+-----------
+QUERY:
+-- ensure aggregate over numeric properly recovers from NaN values
+SELECT a, b,
+       SUM(b) OVER(ORDER BY A ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+FROM (VALUES(1,1::numeric),(2,2),(3,'NaN'),(4,3),(5,4)) t(a,b)
+RESULT:
+	duckdb: Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: Conversion Error: Could not convert string "NaN" to DECIMAL(18,3)
+
+-----------
+QUERY:
+-- It might be tempting for someone to add an inverse trans function for
+-- float and double precision. This should not be done as it can give incorrect
+-- results. This test should fail if anyone ever does this without thinking too
+-- hard about it.
+SELECT to_char(SUM(n::float8) OVER (ORDER BY i ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING),'999999999999999999999D9')
+  FROM (VALUES(1,1e20),(2,1)) n(i,n)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name to_char does not exist!
+Did you mean "chr"?
+
+-----------
+QUERY:
+SELECT i, b, bool_and(b) OVER w, bool_or(b) OVER w
+  FROM (VALUES (1,true), (2,true), (3,false), (4,false), (5,true)) v(i,b)
+  WINDOW w AS (ORDER BY i ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING)
+RESULT:
+	duckdb: [(1, True, True, True), (2, True, False, True), (3, False, False, False), (4, False, False, True), (5, True, True, True)]
+
+-----------
+QUERY:
+--
+-- Test WindowAgg costing takes into account the number of rows that need to
+-- be fetched before the first row can be output.
+--
+
+-- Ensure we get a cheap start up plan as the WindowAgg can output the first
+-- row after reading 1 row from the join.
+EXPLAIN (COSTS OFF)
+SELECT COUNT(*) OVER (ORDER BY t1.unique1)
+FROM tenk1 t1 INNER JOIN tenk1 t2 ON t1.unique1 = t2.tenthous
+LIMIT 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we get a cheap total plan.  Lack of ORDER BY in the WindowClause
+-- means that all rows must be read from the join, so a cheap startup plan
+-- isn/* REPLACED */''t a good choice.
+EXPLAIN (COSTS OFF)
+SELECT COUNT(*) OVER ()
+FROM tenk1 t1 INNER JOIN tenk1 t2 ON t1.unique1 = t2.tenthous
+WHERE t2.two = 1
+LIMIT 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we get a cheap total plan.  This time use UNBOUNDED FOLLOWING, which
+-- needs to read all join rows to output the first WindowAgg row.
+EXPLAIN (COSTS OFF)
+SELECT COUNT(*) OVER (ORDER BY t1.unique1 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+FROM tenk1 t1 INNER JOIN tenk1 t2 ON t1.unique1 = t2.tenthous
+LIMIT 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we get a cheap total plan.  This time use 10000 FOLLOWING so we need
+-- to read all join rows.
+EXPLAIN (COSTS OFF)
+SELECT COUNT(*) OVER (ORDER BY t1.unique1 ROWS BETWEEN UNBOUNDED PRECEDING AND 10000 FOLLOWING)
+FROM tenk1 t1 INNER JOIN tenk1 t2 ON t1.unique1 = t2.tenthous
+LIMIT 1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Tests for problems with failure to walk or mutate expressions
+-- within window frame clauses.
+
+-- test walker (fails with collation error if expressions are not walked)
+SELECT array_agg(i) OVER w
+  FROM generate_series(1,5) i
+WINDOW w AS (ORDER BY i ROWS BETWEEN (('foo' < 'foobar')::integer) PRECEDING AND CURRENT ROW)
+RESULT:
+	duckdb: [([{'generate_series': 1}],), ([{'generate_series': 1}, {'generate_series': 2}],), ([{'generate_series': 2}, {'generate_series': 3}],), ([{'generate_series': 3}, {'generate_series': 4}],), ([{'generate_series': 4}, {'generate_series': 5}],)]
+
+-----------
+QUERY:
+-- test mutator (fails when inlined if expressions are not mutated)
+CREATE FUNCTION pg_temp.f(group_size BIGINT) RETURNS SETOF integer[]
+AS $$
+    SELECT array_agg(s) OVER w
+      FROM generate_series(1,5) s
+    WINDOW w AS (ORDER BY s ROWS BETWEEN CURRENT ROW AND GROUP_SIZE FOLLOWING)
+$$ LANGUAGE SQL STABLE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "BIGINT"
+
+-----------
+QUERY:
+EXPLAIN (costs off) SELECT * FROM pg_temp.f(2)
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+SELECT * FROM pg_temp.f(2)
+RESULT:
+	duckdb: Catalog Error: Table Function with name f does not exist!
+Did you mean "main.glob"?

@@ -1,0 +1,158 @@
+
+-----------
+QUERY:
+--
+-- Test index AM property-reporting functions
+--
+
+select prop,
+       pg_indexam_has_property(a.oid, prop) as "AM",
+       pg_index_has_property('onek_hundred'::regclass, prop) as "Index",
+       pg_index_column_has_property('onek_hundred'::regclass, 1, prop) as "Column"
+  from pg_am a,
+       unnest(array['asc', 'desc', 'nulls_first', 'nulls_last',
+                    'orderable', 'distance_orderable', 'returnable',
+                    'search_array', 'search_nulls',
+                    'clusterable', 'index_scan', 'bitmap_scan',
+                    'backward_scan',
+                    'can_order', 'can_unique', 'can_multi_col',
+                    'can_exclude', 'can_include',
+                    'bogus']::text[])
+         with ordinality as u(prop,ord)
+ where a.amname = 'btree'
+ order by ord;
+RESULT:
+	postgres: [('asc', None, None, True), ('desc', None, None, False), ('nulls_first', None, None, False), ('nulls_last', None, None, True), ('orderable', None, None, True), ('distance_orderable', None, None, False), ('returnable', None, None, True), ('search_array', None, None, True), ('search_nulls', None, None, True), ('clusterable', None, True, None), ('index_scan', None, True, None), ('bitmap_scan', None, True, None), ('backward_scan', None, True, None), ('can_order', True, None, None), ('can_unique', True, None, None), ('can_multi_col', True, None, None), ('can_exclude', True, None, None), ('can_include', True, None, None), ('bogus', None, None, None)]
+
+-----------
+QUERY:
+
+
+select prop,
+       pg_indexam_has_property(a.oid, prop) as "AM",
+       pg_index_has_property('gcircleind'::regclass, prop) as "Index",
+       pg_index_column_has_property('gcircleind'::regclass, 1, prop) as "Column"
+  from pg_am a,
+       unnest(array['asc', 'desc', 'nulls_first', 'nulls_last',
+                    'orderable', 'distance_orderable', 'returnable',
+                    'search_array', 'search_nulls',
+                    'clusterable', 'index_scan', 'bitmap_scan',
+                    'backward_scan',
+                    'can_order', 'can_unique', 'can_multi_col',
+                    'can_exclude', 'can_include',
+                    'bogus']::text[])
+         with ordinality as u(prop,ord)
+ where a.amname = 'gist'
+ order by ord;
+RESULT:
+	postgres: [('asc', None, None, False), ('desc', None, None, False), ('nulls_first', None, None, False), ('nulls_last', None, None, False), ('orderable', None, None, False), ('distance_orderable', None, None, True), ('returnable', None, None, False), ('search_array', None, None, False), ('search_nulls', None, None, True), ('clusterable', None, True, None), ('index_scan', None, True, None), ('bitmap_scan', None, True, None), ('backward_scan', None, False, None), ('can_order', False, None, None), ('can_unique', False, None, None), ('can_multi_col', True, None, None), ('can_exclude', True, None, None), ('can_include', True, None, None), ('bogus', None, None, None)]
+
+-----------
+QUERY:
+
+
+select prop,
+       pg_index_column_has_property('onek_hundred'::regclass, 1, prop) as btree,
+       pg_index_column_has_property('hash_i4_index'::regclass, 1, prop) as hash,
+       pg_index_column_has_property('gcircleind'::regclass, 1, prop) as gist,
+       pg_index_column_has_property('sp_radix_ind'::regclass, 1, prop) as spgist_radix,
+       pg_index_column_has_property('sp_quad_ind'::regclass, 1, prop) as spgist_quad,
+       pg_index_column_has_property('botharrayidx'::regclass, 1, prop) as gin,
+       pg_index_column_has_property('brinidx'::regclass, 1, prop) as brin
+  from unnest(array['asc', 'desc', 'nulls_first', 'nulls_last',
+                    'orderable', 'distance_orderable', 'returnable',
+                    'search_array', 'search_nulls',
+                    'bogus']::text[])
+         with ordinality as u(prop,ord)
+ order by ord;
+RESULT:
+	postgres: [('asc', True, False, False, False, False, False, False), ('desc', False, False, False, False, False, False, False), ('nulls_first', False, False, False, False, False, False, False), ('nulls_last', True, False, False, False, False, False, False), ('orderable', True, False, False, False, False, False, False), ('distance_orderable', False, False, True, False, True, False, False), ('returnable', True, False, False, True, True, False, False), ('search_array', True, False, False, False, False, False, False), ('search_nulls', True, False, True, True, True, False, True), ('bogus', None, None, None, None, None, None, None)]
+
+-----------
+QUERY:
+
+
+select prop,
+       pg_index_has_property('onek_hundred'::regclass, prop) as btree,
+       pg_index_has_property('hash_i4_index'::regclass, prop) as hash,
+       pg_index_has_property('gcircleind'::regclass, prop) as gist,
+       pg_index_has_property('sp_radix_ind'::regclass, prop) as spgist,
+       pg_index_has_property('botharrayidx'::regclass, prop) as gin,
+       pg_index_has_property('brinidx'::regclass, prop) as brin
+  from unnest(array['clusterable', 'index_scan', 'bitmap_scan',
+                    'backward_scan',
+                    'bogus']::text[])
+         with ordinality as u(prop,ord)
+ order by ord;
+RESULT:
+	postgres: [('clusterable', True, False, True, False, False, False), ('index_scan', True, True, True, True, False, False), ('bitmap_scan', True, True, True, True, True, True), ('backward_scan', True, True, False, False, False, False), ('bogus', None, None, None, None, None, None)]
+
+-----------
+QUERY:
+
+
+select amname, prop, pg_indexam_has_property(a.oid, prop) as p
+  from pg_am a,
+       unnest(array['can_order', 'can_unique', 'can_multi_col',
+                    'can_exclude', 'can_include', 'bogus']::text[])
+         with ordinality as u(prop,ord)
+ where amtype = 'i'
+ order by amname, ord;
+RESULT:
+	postgres: [('brin', 'can_order', False), ('brin', 'can_unique', False), ('brin', 'can_multi_col', True), ('brin', 'can_exclude', False), ('brin', 'can_include', False), ('brin', 'bogus', None), ('btree', 'can_order', True), ('btree', 'can_unique', True), ('btree', 'can_multi_col', True), ('btree', 'can_exclude', True), ('btree', 'can_include', True), ('btree', 'bogus', None), ('gin', 'can_order', False), ('gin', 'can_unique', False), ('gin', 'can_multi_col', True), ('gin', 'can_exclude', False), ('gin', 'can_include', False), ('gin', 'bogus', None), ('gist', 'can_order', False), ('gist', 'can_unique', False), ('gist', 'can_multi_col', True), ('gist', 'can_exclude', True), ('gist', 'can_include', True), ('gist', 'bogus', None), ('hash', 'can_order', False), ('hash', 'can_unique', False), ('hash', 'can_multi_col', False), ('hash', 'can_exclude', True), ('hash', 'can_include', False), ('hash', 'bogus', None), ('spgist', 'can_order', False), ('spgist', 'can_unique', False), ('spgist', 'can_multi_col', False), ('spgist', 'can_exclude', True), ('spgist', 'can_include', True), ('spgist', 'bogus', None)]
+
+-----------
+QUERY:
+
+
+--
+-- additional checks for pg_index_column_has_property
+--
+CREATE TEMP TABLE foo (f1 int, f2 int, f3 int, f4 int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX fooindex ON foo (f1 desc, f2 asc, f3 nulls first, f4 nulls last);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select col, prop, pg_index_column_has_property(o, col, prop)
+  from (values ('fooindex'::regclass)) v1(o),
+       (values (1,'orderable'),(2,'asc'),(3,'desc'),
+               (4,'nulls_first'),(5,'nulls_last'),
+               (6, 'bogus')) v2(idx,prop),
+       generate_series(1,4) col
+ order by col, idx;
+RESULT:
+	postgres: [(1, 'orderable', True), (1, 'asc', False), (1, 'desc', True), (1, 'nulls_first', True), (1, 'nulls_last', False), (1, 'bogus', None), (2, 'orderable', True), (2, 'asc', True), (2, 'desc', False), (2, 'nulls_first', False), (2, 'nulls_last', True), (2, 'bogus', None), (3, 'orderable', True), (3, 'asc', True), (3, 'desc', False), (3, 'nulls_first', True), (3, 'nulls_last', False), (3, 'bogus', None), (4, 'orderable', True), (4, 'asc', True), (4, 'desc', False), (4, 'nulls_first', False), (4, 'nulls_last', True), (4, 'bogus', None)]
+
+-----------
+QUERY:
+
+
+CREATE INDEX foocover ON foo (f1) INCLUDE (f2,f3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select col, prop, pg_index_column_has_property(o, col, prop)
+  from (values ('foocover'::regclass)) v1(o),
+       (values (1,'orderable'),(2,'asc'),(3,'desc'),
+               (4,'nulls_first'),(5,'nulls_last'),
+               (6,'distance_orderable'),(7,'returnable'),
+               (8, 'bogus')) v2(idx,prop),
+       generate_series(1,3) col
+ order by col, idx;
+RESULT:
+	postgres: [(1, 'orderable', True), (1, 'asc', True), (1, 'desc', False), (1, 'nulls_first', False), (1, 'nulls_last', True), (1, 'distance_orderable', False), (1, 'returnable', True), (1, 'bogus', None), (2, 'orderable', False), (2, 'asc', None), (2, 'desc', None), (2, 'nulls_first', None), (2, 'nulls_last', None), (2, 'distance_orderable', False), (2, 'returnable', True), (2, 'bogus', None), (3, 'orderable', False), (3, 'asc', None), (3, 'desc', None), (3, 'nulls_first', None), (3, 'nulls_last', None), (3, 'distance_orderable', False), (3, 'returnable', True), (3, 'bogus', None)]

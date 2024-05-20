@@ -1,0 +1,1749 @@
+
+-----------
+QUERY:
+--
+-- CREATE SEQUENCE
+--
+
+-- various error cases
+CREATE SEQUENCE sequence_testx INCREMENT BY 0
+RESULT:
+	duckdb: Parser Error: Increment must not be zero
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx INCREMENT BY -1 MINVALUE 20
+RESULT:
+	duckdb: Parser Error: MINVALUE (20) must be less than MAXVALUE (-1)
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx INCREMENT BY 1 MAXVALUE -20
+RESULT:
+	duckdb: Parser Error: MINVALUE (1) must be less than MAXVALUE (-20)
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx INCREMENT BY -1 START 10
+RESULT:
+	duckdb: Parser Error: START value (10) cannot be greater than MAXVALUE (-1)
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx INCREMENT BY 1 START -10
+RESULT:
+	duckdb: Parser Error: START value (-10) cannot be less than MINVALUE (1)
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx CACHE 0
+RESULT:
+	duckdb: Parser Error: Unrecognized option "cache" for CREATE SEQUENCE
+
+-----------
+QUERY:
+-- OWNED BY errors
+CREATE SEQUENCE sequence_testx OWNED BY nobody
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option owned_by
+
+-----------
+QUERY:
+-- nonsense word
+CREATE SEQUENCE sequence_testx OWNED BY pg_class_oid_index.oid
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option owned_by
+
+-----------
+QUERY:
+-- not a table
+CREATE SEQUENCE sequence_testx OWNED BY pg_class.relname
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option owned_by
+
+-----------
+QUERY:
+-- not same schema
+CREATE TABLE sequence_test_table (a int)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx OWNED BY sequence_test_table.b
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option owned_by
+
+-----------
+QUERY:
+-- wrong column
+DROP TABLE sequence_test_table
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- sequence data types
+CREATE SEQUENCE sequence_test5 AS integer
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test6 AS smallint
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test7 AS bigint
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test8 AS integer MAXVALUE 100000
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test9 AS integer INCREMENT BY -1
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test10 AS integer MINVALUE -100000 START 1
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test11 AS smallint
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test12 AS smallint INCREMENT -1
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test13 AS smallint MINVALUE -32768
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test14 AS smallint MAXVALUE 32767 INCREMENT -1
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx AS text
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx AS nosuchtype
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx AS smallint MAXVALUE 100000
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_testx AS smallint MINVALUE -100000
+RESULT:
+	duckdb: Parser Error: Expected an integer argument for option as
+
+-----------
+QUERY:
+ALTER SEQUENCE sequence_test5 AS smallint
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- success, max will be adjusted
+ALTER SEQUENCE sequence_test8 AS smallint
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- fail, max has to be adjusted
+ALTER SEQUENCE sequence_test8 AS smallint MAXVALUE 20000
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- ok now
+ALTER SEQUENCE sequence_test9 AS smallint
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- success, min will be adjusted
+ALTER SEQUENCE sequence_test10 AS smallint
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- fail, min has to be adjusted
+ALTER SEQUENCE sequence_test10 AS smallint MINVALUE -20000
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- ok now
+
+ALTER SEQUENCE sequence_test11 AS int
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- max will be adjusted
+ALTER SEQUENCE sequence_test12 AS int
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- min will be adjusted
+ALTER SEQUENCE sequence_test13 AS int
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- min and max will be adjusted
+ALTER SEQUENCE sequence_test14 AS int
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- min and max will be adjusted
+
+---
+--- test creation of SERIAL column
+---
+
+CREATE TABLE serialTest1 (f1 text, f2 serial)
+RESULT:
+	duckdb: Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+INSERT INTO serialTest1 VALUES ('foo')
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest1 VALUES ('bar')
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest1 VALUES ('force', 100)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest1 VALUES ('wrong', NULL)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT * FROM serialTest1
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT pg_get_serial_sequence('serialTest1', 'f2')
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name pg_get_serial_sequence does not exist!
+Did you mean "pg_get_expr"?
+
+-----------
+QUERY:
+-- test smallserial / bigserial
+CREATE TABLE serialTest2 (f1 text, f2 serial, f3 smallserial, f4 serial2,
+  f5 bigserial, f6 serial8)
+RESULT:
+	duckdb: Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1)
+  VALUES ('test_defaults')
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f2, f3, f4, f5, f6)
+  VALUES ('test_max_vals', 2147483647, 32767, 32767, 9223372036854775807,
+          9223372036854775807),
+         ('test_min_vals', -2147483648, -32768, -32768, -9223372036854775808,
+          -9223372036854775808)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- All these INSERTs should fail:
+INSERT INTO serialTest2 (f1, f3)
+  VALUES ('bogus', -32769)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f4)
+  VALUES ('bogus', -32769)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f3)
+  VALUES ('bogus', 32768)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f4)
+  VALUES ('bogus', 32768)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f5)
+  VALUES ('bogus', -9223372036854775809)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f6)
+  VALUES ('bogus', -9223372036854775809)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f5)
+  VALUES ('bogus', 9223372036854775808)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest2 (f1, f6)
+  VALUES ('bogus', 9223372036854775808)
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT * FROM serialTest2 ORDER BY f2 ASC
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest2 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT nextval('serialTest2_f2_seq')
+RESULT:
+	duckdb: Catalog Error: Sequence with name serialTest2_f2_seq does not exist!
+
+-----------
+QUERY:
+SELECT nextval('serialTest2_f3_seq')
+RESULT:
+	duckdb: Catalog Error: Sequence with name serialTest2_f3_seq does not exist!
+
+-----------
+QUERY:
+SELECT nextval('serialTest2_f4_seq')
+RESULT:
+	duckdb: Catalog Error: Sequence with name serialTest2_f4_seq does not exist!
+
+-----------
+QUERY:
+SELECT nextval('serialTest2_f5_seq')
+RESULT:
+	duckdb: Catalog Error: Sequence with name serialTest2_f5_seq does not exist!
+
+-----------
+QUERY:
+SELECT nextval('serialTest2_f6_seq')
+RESULT:
+	duckdb: Catalog Error: Sequence with name serialTest2_f6_seq does not exist!
+
+-----------
+QUERY:
+-- basic sequence operations using both text and oid references
+CREATE SEQUENCE sequence_test
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+CREATE SEQUENCE IF NOT EXISTS sequence_test
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('sequence_test'::text)
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test'::regclass)
+RESULT:
+	duckdb: Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+SELECT currval('sequence_test'::text)
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+SELECT currval('sequence_test'::regclass)
+RESULT:
+	duckdb: Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+SELECT setval('sequence_test'::text, 32)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+SELECT nextval('sequence_test'::regclass)
+RESULT:
+	duckdb: Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+SELECT setval('sequence_test'::text, 99, false)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+SELECT nextval('sequence_test'::regclass)
+RESULT:
+	duckdb: Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+SELECT setval('sequence_test'::regclass, 32)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+SELECT nextval('sequence_test'::text)
+RESULT:
+	duckdb: [(2,)]
+
+-----------
+QUERY:
+SELECT setval('sequence_test'::regclass, 99, false)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+SELECT nextval('sequence_test'::text)
+RESULT:
+	duckdb: [(3,)]
+
+-----------
+QUERY:
+DISCARD SEQUENCES
+RESULT:
+	duckdb: Parser Error: syntax error at or near "DISCARD"
+
+-----------
+QUERY:
+SELECT currval('sequence_test'::regclass)
+RESULT:
+	duckdb: Catalog Error: Type with name regclass does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+DROP SEQUENCE sequence_test
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- renaming sequences
+CREATE SEQUENCE foo_seq
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+ALTER TABLE foo_seq RENAME TO foo_seq_new
+RESULT:
+	duckdb: Catalog Error: Table with name foo_seq does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+SELECT * FROM foo_seq_new
+RESULT:
+	duckdb: Catalog Error: Table with name foo_seq_new does not exist!
+Did you mean "pg_sequence"?
+
+-----------
+QUERY:
+SELECT nextval('foo_seq_new')
+RESULT:
+	duckdb: Catalog Error: Sequence with name foo_seq_new does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+SELECT nextval('foo_seq_new')
+RESULT:
+	duckdb: Catalog Error: Sequence with name foo_seq_new does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+-- log_cnt can be higher if there is a checkpoint just at the right
+-- time, so just test for the expected range
+SELECT last_value, log_cnt IN (31, 32) AS log_cnt_ok, is_called FROM foo_seq_new
+RESULT:
+	duckdb: Catalog Error: Table with name foo_seq_new does not exist!
+Did you mean "pg_sequence"?
+
+-----------
+QUERY:
+DROP SEQUENCE foo_seq_new
+RESULT:
+	duckdb: Catalog Error: Sequence with name foo_seq_new does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+-- renaming serial sequences
+ALTER TABLE serialtest1_f2_seq RENAME TO serialtest1_f2_foo
+RESULT:
+	duckdb: Catalog Error: Table with name serialtest1_f2_seq does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+INSERT INTO serialTest1 VALUES ('more')
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SELECT * FROM serialTest1
+RESULT:
+	duckdb: Catalog Error: Table with name serialTest1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+--
+-- Check dependencies of serial and ordinary sequences
+--
+CREATE TEMP SEQUENCE myseq2
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+CREATE TEMP SEQUENCE myseq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+CREATE TEMP TABLE t1 (
+  f1 serial,
+  f2 int DEFAULT nextval('myseq2'),
+  f3 int DEFAULT nextval('myseq3'::text)
+)
+RESULT:
+	duckdb: Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+-- Both drops should fail, but with different error messages:
+DROP SEQUENCE t1_f1_seq
+RESULT:
+	duckdb: Catalog Error: Sequence with name t1_f1_seq does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+DROP SEQUENCE myseq2
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- This however will work:
+DROP SEQUENCE myseq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+DROP TABLE t1
+RESULT:
+	duckdb: Catalog Error: Table with name t1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- Fails because no longer existent:
+DROP SEQUENCE t1_f1_seq
+RESULT:
+	duckdb: Catalog Error: Sequence with name t1_f1_seq does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+-- Now OK:
+DROP SEQUENCE myseq2
+RESULT:
+	duckdb: Catalog Error: Sequence with name myseq2 does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+--
+-- Alter sequence
+--
+
+ALTER SEQUENCE IF EXISTS sequence_test2 RESTART WITH 24
+  INCREMENT BY 4 MAXVALUE 36 MINVALUE 5 CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+ALTER SEQUENCE serialTest1 CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- error, not a sequence
+
+CREATE SEQUENCE sequence_test2 START WITH 32
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test4 INCREMENT BY -1
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(32,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test4')
+RESULT:
+	duckdb: [(-1,)]
+
+-----------
+QUERY:
+ALTER SEQUENCE sequence_test2 RESTART
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(33,)]
+
+-----------
+QUERY:
+ALTER SEQUENCE sequence_test2 RESTART WITH 0
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- error
+ALTER SEQUENCE sequence_test4 RESTART WITH 40
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+-- error
+
+-- test CYCLE and NO CYCLE
+ALTER SEQUENCE sequence_test2 RESTART WITH 24
+  INCREMENT BY 4 MAXVALUE 36 MINVALUE 5 CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(34,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(35,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(36,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(37,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(38,)]
+
+-----------
+QUERY:
+-- cycled
+
+ALTER SEQUENCE sequence_test2 RESTART WITH 24
+  NO CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(39,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(40,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(41,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(42,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(43,)]
+
+-----------
+QUERY:
+-- error
+
+ALTER SEQUENCE sequence_test2 RESTART WITH -24 START WITH -24
+  INCREMENT BY -4 MINVALUE -36 MAXVALUE -5 CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(44,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(45,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(46,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(47,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(48,)]
+
+-----------
+QUERY:
+-- cycled
+
+ALTER SEQUENCE sequence_test2 RESTART WITH -24
+  NO CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(49,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(50,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(51,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(52,)]
+
+-----------
+QUERY:
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(53,)]
+
+-----------
+QUERY:
+-- error
+
+-- reset
+ALTER SEQUENCE IF EXISTS sequence_test2 RESTART WITH 32 START WITH 32
+  INCREMENT BY 4 MAXVALUE 36 MINVALUE 5 CYCLE
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+SELECT setval('sequence_test2', -100)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+-- error
+SELECT setval('sequence_test2', 100)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+-- error
+SELECT setval('sequence_test2', 5)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+CREATE SEQUENCE sequence_test3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- not read from, to test is_called
+
+
+-- Information schema
+SELECT * FROM information_schema.sequences
+  WHERE sequence_name ~ ANY(ARRAY['sequence_test', 'serialtest'])
+  ORDER BY sequence_name ASC
+RESULT:
+	duckdb: Parser Error: Unsupported comparison "~" for ANY/ALL subquery
+
+-----------
+QUERY:
+SELECT schemaname, sequencename, start_value, min_value, max_value, increment_by, cycle, cache_size, last_value
+FROM pg_sequences
+WHERE sequencename ~ ANY(ARRAY['sequence_test', 'serialtest'])
+  ORDER BY sequencename ASC
+RESULT:
+	duckdb: Parser Error: Unsupported comparison "~" for ANY/ALL subquery
+
+-----------
+QUERY:
+SELECT * FROM pg_sequence_parameters('sequence_test4'::regclass)
+RESULT:
+	duckdb: Catalog Error: Table Function with name pg_sequence_parameters does not exist!
+Did you mean "generate_series"?
+
+-----------
+QUERY:
+-- \d sequence_test4
+-- \d serialtest2_f2_seq
+
+
+-- Test comments
+COMMENT ON SEQUENCE asdf IS 'won''t work'
+RESULT:
+	duckdb: Catalog Error: Sequence with name asdf does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+COMMENT ON SEQUENCE sequence_test2 IS 'will work'
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+COMMENT ON SEQUENCE sequence_test2 IS NULL
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- Test lastval()
+CREATE SEQUENCE seq
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+SELECT setval('seq', 99)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+DISCARD SEQUENCES
+RESULT:
+	duckdb: Parser Error: syntax error at or near "DISCARD"
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+CREATE SEQUENCE seq2
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq2')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+DROP SEQUENCE seq2
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- should fail
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+-- unlogged sequences
+-- (more tests in src/test/recovery/)
+CREATE UNLOGGED SEQUENCE sequence_test_unlogged
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+ALTER SEQUENCE sequence_test_unlogged SET LOGGED
+RESULT:
+	duckdb: Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+-- \d sequence_test_unlogged
+ALTER SEQUENCE sequence_test_unlogged SET UNLOGGED
+RESULT:
+	duckdb: Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+-- \d sequence_test_unlogged
+DROP SEQUENCE sequence_test_unlogged
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- Test sequences in read-only transactions
+CREATE TEMPORARY SEQUENCE sequence_test_temp1
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+START TRANSACTION READ ONLY
+RESULT:
+	duckdb: Parser Error: syntax error at or near "READ"
+
+-----------
+QUERY:
+SELECT nextval('sequence_test_temp1')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+-- ok
+SELECT nextval('sequence_test2')
+RESULT:
+	duckdb: [(54,)]
+
+-----------
+QUERY:
+-- error
+ROLLBACK
+RESULT:
+	duckdb: TransactionContext Error: cannot rollback - no transaction is active
+
+-----------
+QUERY:
+START TRANSACTION READ ONLY
+RESULT:
+	duckdb: Parser Error: syntax error at or near "READ"
+
+-----------
+QUERY:
+SELECT setval('sequence_test_temp1', 1)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+-- ok
+SELECT setval('sequence_test2', 1)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+-- error
+ROLLBACK
+RESULT:
+	duckdb: TransactionContext Error: cannot rollback - no transaction is active
+
+-----------
+QUERY:
+-- privileges tests
+
+CREATE USER regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "USER"
+
+-----------
+QUERY:
+-- nextval
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT SELECT ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT UPDATE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT USAGE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- currval
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT SELECT ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT currval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT UPDATE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT currval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT USAGE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT currval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- lastval
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT SELECT ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT UPDATE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+GRANT USAGE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT lastval()
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name lastval does not exist!
+Did you mean "last"?
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- setval
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+CREATE SEQUENCE seq3
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+REVOKE ALL ON seq3 FROM regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "REVOKE"
+
+-----------
+QUERY:
+SAVEPOINT save
+RESULT:
+	duckdb: Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+SELECT setval('seq3', 5)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+ROLLBACK TO save
+RESULT:
+	duckdb: Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
+GRANT UPDATE ON seq3 TO regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+SELECT setval('seq3', 5)
+RESULT:
+	duckdb: Catalog Error: Scalar Function with name setval does not exist!
+Did you mean "nextval"?
+
+-----------
+QUERY:
+SELECT nextval('seq3')
+RESULT:
+	duckdb: [(1,)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- ALTER SEQUENCE
+BEGIN
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+SET LOCAL SESSION AUTHORIZATION regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+ALTER SEQUENCE sequence_test2 START WITH 1
+RESULT:
+	duckdb: Not implemented Error: ALTER SEQUENCE option not supported yet!
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- Sequences should get wiped out as well:
+DROP TABLE serialTest1, serialTest2
+RESULT:
+	duckdb: Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+-- Make sure sequences are gone:
+SELECT * FROM information_schema.sequences WHERE sequence_name IN
+  ('sequence_test2', 'serialtest2_f2_seq', 'serialtest2_f3_seq',
+   'serialtest2_f4_seq', 'serialtest2_f5_seq', 'serialtest2_f6_seq')
+  ORDER BY sequence_name ASC
+RESULT:
+	duckdb: Catalog Error: Table with name sequences does not exist!
+Did you mean "temp.pg_catalog.pg_sequences"?
+
+-----------
+QUERY:
+DROP USER regress_seq_user
+RESULT:
+	duckdb: Parser Error: syntax error at or near "USER"
+
+-----------
+QUERY:
+DROP SEQUENCE seq
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- cache tests
+CREATE SEQUENCE test_seq1 CACHE 10
+RESULT:
+	duckdb: Parser Error: Unrecognized option "cache" for CREATE SEQUENCE
+
+-----------
+QUERY:
+SELECT nextval('test_seq1')
+RESULT:
+	duckdb: Catalog Error: Sequence with name test_seq1 does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+SELECT nextval('test_seq1')
+RESULT:
+	duckdb: Catalog Error: Sequence with name test_seq1 does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+SELECT nextval('test_seq1')
+RESULT:
+	duckdb: Catalog Error: Sequence with name test_seq1 does not exist!
+Did you mean "foo_seq"?
+
+-----------
+QUERY:
+DROP SEQUENCE test_seq1
+RESULT:
+	duckdb: Catalog Error: Sequence with name test_seq1 does not exist!
+Did you mean "foo_seq"?

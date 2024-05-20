@@ -1,0 +1,7508 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- UPDATABLE VIEWS
+--
+
+-- avoid bit-exact output here because operations may not be bit-exact.
+SET extra_float_digits = 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- check that non-updatable views and columns are rejected with useful error
+-- messages
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i, 'Row ' || i FROM generate_series(-2, 2) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW ro_view1 AS SELECT DISTINCT a, b FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- DISTINCT not supported
+CREATE VIEW ro_view2 AS SELECT a, b FROM base_tbl GROUP BY a, b;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- GROUP BY not supported
+CREATE VIEW ro_view3 AS SELECT 1 FROM base_tbl HAVING max(a) > 0;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- HAVING not supported
+CREATE VIEW ro_view4 AS SELECT count(*) FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Aggregate functions not supported
+CREATE VIEW ro_view5 AS SELECT a, rank() OVER() FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Window functions not supported
+CREATE VIEW ro_view6 AS SELECT a, b FROM base_tbl UNION SELECT -a, b FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Set ops not supported
+CREATE VIEW ro_view7 AS WITH t AS (SELECT a, b FROM base_tbl) SELECT * FROM t;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- WITH not supported
+CREATE VIEW ro_view8 AS SELECT a, b FROM base_tbl ORDER BY a OFFSET 1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OFFSET not supported
+CREATE VIEW ro_view9 AS SELECT a, b FROM base_tbl ORDER BY a LIMIT 1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- LIMIT not supported
+CREATE VIEW ro_view10 AS SELECT 1 AS a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- No base relations
+CREATE VIEW ro_view11 AS SELECT b1.a, b2.b FROM base_tbl b1, base_tbl b2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Multiple base relations
+CREATE VIEW ro_view12 AS SELECT * FROM generate_series(1, 10) AS g(a);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- SRF in rangetable
+CREATE VIEW ro_view13 AS SELECT a, b FROM (SELECT * FROM base_tbl) AS t;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Subselect in rangetable
+CREATE VIEW rw_view14 AS SELECT ctid, a, b FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- System columns may be part of an updatable view
+CREATE VIEW rw_view15 AS SELECT a, upper(b) FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Expression/function may be part of an updatable view
+CREATE VIEW rw_view16 AS SELECT a, b, a AS aa FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Repeated column may be part of an updatable view
+CREATE VIEW ro_view17 AS SELECT * FROM ro_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Base relation not updatable
+CREATE VIEW ro_view18 AS SELECT * FROM (VALUES(1)) AS tmp(a);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- VALUES in rangetable
+CREATE SEQUENCE uv_seq;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW ro_view19 AS SELECT * FROM uv_seq;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- View based on a sequence
+CREATE VIEW ro_view20 AS SELECT a, b, generate_series(1, a) g FROM base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- SRF in targetlist not supported
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE E'r_\\_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE E'r_\\_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE E'r_\\_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Read-only views
+DELETE FROM ro_view1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DELETE FROM ro_view2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DELETE FROM ro_view3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DELETE FROM ro_view4;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DELETE FROM ro_view5;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DELETE FROM ro_view6;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view7 SET a=a+1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view8 SET a=a+1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view9 SET a=a+1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view10 SET a=a+1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view11 SET a=a+1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view12 SET a=a+1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO ro_view13 VALUES (3, 'Row 3');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+MERGE INTO ro_view13 AS t USING (VALUES (1, 'Row 1')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED THEN DELETE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+MERGE INTO ro_view13 AS t USING (VALUES (2, 'Row 2')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = v.b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+MERGE INTO ro_view13 AS t USING (VALUES (3, 'Row 3')) AS v(a,b) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a, v.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+MERGE INTO ro_view13 AS t USING (VALUES (3, 'Row 3')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED THEN DO NOTHING
+  WHEN NOT MATCHED THEN DO NOTHING;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK to do nothing
+-- Partially updatable view
+INSERT INTO rw_view14 VALUES (null, 3, 'Row 3');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view14 (a, b) VALUES (3, 'Row 3');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+UPDATE rw_view14 SET ctid=null WHERE a=3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view14 SET b='ROW 3' WHERE a=3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view14 WHERE a=3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+MERGE INTO rw_view14  AS t
+  USING (VALUES (2, 'Merged row 2'), (3, 'Merged row 3')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = v.b  -- should be OK, except...
+  WHEN NOT MATCHED THEN INSERT VALUES (null, v.a, v.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view14  AS t
+  USING (VALUES (2, 'Merged row 2'), (3, 'Merged row 3')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = v.b  -- should be OK
+  WHEN NOT MATCHED THEN INSERT (a,b) VALUES (v.a, v.b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+SELECT * FROM base_tbl ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view14  AS t
+  USING (VALUES (2, 'Row 2'), (3, 'Row 3')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED AND t.a = 2 THEN UPDATE SET b = v.b  -- should be OK
+  WHEN MATCHED AND t.a = 3 THEN DELETE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+SELECT * FROM base_tbl ORDER BY a;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- Partially updatable view
+INSERT INTO rw_view15 VALUES (3, 'ROW 3');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view15 (a) VALUES (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+INSERT INTO rw_view15 (a) VALUES (3) ON CONFLICT DO NOTHING;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- succeeds
+SELECT * FROM rw_view15;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view15 (a) VALUES (3) ON CONFLICT (a) DO NOTHING;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- succeeds
+SELECT * FROM rw_view15;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view15 (a) VALUES (3) ON CONFLICT (a) DO UPDATE set a = excluded.a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- succeeds
+SELECT * FROM rw_view15;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view15 (a) VALUES (3) ON CONFLICT (a) DO UPDATE set upper = 'blarg';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- fails
+SELECT * FROM rw_view15;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view15;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER VIEW rw_view15 ALTER COLUMN upper SET DEFAULT 'NOT SET';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view15 (a) VALUES (4);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view15 SET upper='ROW 3' WHERE a=3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view15 SET upper=DEFAULT WHERE a=3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view15 SET a=4 WHERE a=3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view15 WHERE a=4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+-- Partially updatable view
+INSERT INTO rw_view16 VALUES (3, 'Row 3', 3);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view16 (a, b) VALUES (3, 'Row 3');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+UPDATE rw_view16 SET a=3, aa=-3 WHERE a=3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view16 SET aa=-3 WHERE a=3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view16 WHERE a=-3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+-- Read-only views
+INSERT INTO ro_view17 VALUES (3, 'ROW 3');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DELETE FROM ro_view18;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view19 SET last_value=1000;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE ro_view20 SET b=upper(b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- A view with a conditional INSTEAD rule but no unconditional INSTEAD rules
+-- or INSTEAD OF triggers should be non-updatable and generate useful error
+-- messages with appropriate detail
+CREATE RULE rw_view16_ins_rule AS ON INSERT TO rw_view16
+  WHERE NEW.a > 0 DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a, NEW.b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE RULE rw_view16_upd_rule AS ON UPDATE TO rw_view16
+  WHERE OLD.a > 0 DO INSTEAD UPDATE base_tbl SET b=NEW.b WHERE a=OLD.a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE RULE rw_view16_del_rule AS ON DELETE TO rw_view16
+  WHERE OLD.a > 0 DO INSTEAD DELETE FROM base_tbl WHERE a=OLD.a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view16 (a, b) VALUES (3, 'Row 3');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view16 SET b='ROW 2' WHERE a=2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+DELETE FROM rw_view16 WHERE a=2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view16 AS t USING (VALUES (3, 'Row 3')) AS v(a,b) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a, v.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP VIEW ro_view10, ro_view12, ro_view18;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP SEQUENCE uv_seq CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- simple updatable view
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i, 'Row ' || i FROM generate_series(-2, 2) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a>0;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name = 'rw_view1';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name = 'rw_view1';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name = 'rw_view1'
+ ORDER BY ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (3, 'Row 3');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 (a) VALUES (4);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET a=5 WHERE a=4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view1 WHERE b='Row 2';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+MERGE INTO rw_view1 t
+  USING (VALUES (0, 'ROW 0'), (1, 'ROW 1'),
+                (2, 'ROW 2'), (3, 'ROW 3')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED AND t.a <= 1 THEN UPDATE SET b = v.b
+  WHEN MATCHED THEN DELETE
+  WHEN NOT MATCHED AND a > 0 THEN INSERT (a) VALUES (v.a)
+  RETURNING merge_action(), v.*, t.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) UPDATE rw_view1 SET a=6 WHERE a=5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) DELETE FROM rw_view1 WHERE a=5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+MERGE INTO rw_view1 t USING (VALUES (5, 'X')) AS v(a,b) ON t.a = v.a
+  WHEN MATCHED THEN DELETE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+MERGE INTO rw_view1 t
+  USING (SELECT * FROM generate_series(1,5)) AS s(a) ON t.a = s.a
+  WHEN MATCHED THEN UPDATE SET b = 'Updated';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+MERGE INTO rw_view1 t
+  USING (SELECT * FROM generate_series(1,5)) AS s(a) ON t.a = s.a
+  WHEN NOT MATCHED THEN INSERT (a) VALUES (s.a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- it/* REPLACED */''s still updatable if we add a DO ALSO rule
+
+CREATE TABLE base_tbl_hist(ts timestamptz default now(), a int, b text);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE RULE base_tbl_log AS ON INSERT TO rw_view1 DO ALSO
+  INSERT INTO base_tbl_hist(a,b) VALUES(new.a, new.b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name = 'rw_view1';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Check behavior with DEFAULTs (bug #17633)
+
+INSERT INTO rw_view1 VALUES (9, DEFAULT), (10, DEFAULT);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT a, b FROM base_tbl_hist;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE base_tbl_hist;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- view on top of view
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i, 'Row ' || i FROM generate_series(-2, 2) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT b AS bb, a AS aa FROM base_tbl WHERE a>0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT aa AS aaa, bb AS bbb FROM rw_view1 WHERE aa<10;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name = 'rw_view2';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name = 'rw_view2';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name = 'rw_view2'
+ ORDER BY ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (3, 'Row 3');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view2 (aaa) VALUES (4);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view2 SET bbb='Row 4' WHERE aaa=4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view2 WHERE aaa=2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+MERGE INTO rw_view2 t
+  USING (VALUES (3, 'R3'), (4, 'R4'), (5, 'R5')) AS v(a,b) ON aaa = v.a
+  WHEN MATCHED AND aaa = 3 THEN DELETE
+  WHEN MATCHED THEN UPDATE SET bbb = v.b
+  WHEN NOT MATCHED THEN INSERT (aaa) VALUES (v.a)
+  RETURNING merge_action(), v.*, t.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2 ORDER BY aaa;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) UPDATE rw_view2 SET aaa=5 WHERE aaa=4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) DELETE FROM rw_view2 WHERE aaa=4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- view on top of view with rules
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i, 'Row ' || i FROM generate_series(-2, 2) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a>0 OFFSET 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not updatable without rules/triggers
+CREATE VIEW rw_view2 AS SELECT * FROM rw_view1 WHERE a<10;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE RULE rw_view1_ins_rule AS ON INSERT TO rw_view1
+  DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a, NEW.b) RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE RULE rw_view1_upd_rule AS ON UPDATE TO rw_view1
+  DO INSTEAD UPDATE base_tbl SET b=NEW.b WHERE a=OLD.a RETURNING NEW.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE RULE rw_view1_del_rule AS ON DELETE TO rw_view1
+  DO INSTEAD DELETE FROM base_tbl WHERE a=OLD.a RETURNING OLD.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (3, 'Row 3') RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view2 SET b='Row three' WHERE a=3 RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view2 WHERE a=3 RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+MERGE INTO rw_view2 t USING (VALUES (3, 'Row 3')) AS v(a,b) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a, v.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+EXPLAIN (costs off) UPDATE rw_view2 SET a=3 WHERE a=2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) DELETE FROM rw_view2 WHERE a=2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- view on top of view with triggers
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i, 'Row ' || i FROM generate_series(-2, 2) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a>0 OFFSET 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not updatable without rules/triggers
+CREATE VIEW rw_view2 AS SELECT * FROM rw_view1 WHERE a<10;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into,
+       is_trigger_updatable, is_trigger_deletable,
+       is_trigger_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION rw_view1_trig_fn()
+RETURNS trigger AS
+$$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO base_tbl VALUES (NEW.a, NEW.b);
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    UPDATE base_tbl SET b=NEW.b WHERE a=OLD.a;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    DELETE FROM base_tbl WHERE a=OLD.a;
+    RETURN OLD;
+  END IF;
+END;
+$$
+LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER rw_view1_ins_trig INSTEAD OF INSERT ON rw_view1
+  FOR EACH ROW EXECUTE PROCEDURE rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into,
+       is_trigger_updatable, is_trigger_deletable,
+       is_trigger_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER rw_view1_upd_trig INSTEAD OF UPDATE ON rw_view1
+  FOR EACH ROW EXECUTE PROCEDURE rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into,
+       is_trigger_updatable, is_trigger_deletable,
+       is_trigger_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER rw_view1_del_trig INSTEAD OF DELETE ON rw_view1
+  FOR EACH ROW EXECUTE PROCEDURE rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into,
+       is_trigger_updatable, is_trigger_deletable,
+       is_trigger_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE 'rw_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (3, 'Row 3') RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view2 SET b='Row three' WHERE a=3 RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view2 WHERE a=3 RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED AND t.a <= 1 THEN DELETE
+  WHEN MATCHED THEN UPDATE SET b = s.b
+  WHEN NOT MATCHED AND s.a > 0 THEN INSERT VALUES (s.a, s.b)
+  RETURNING merge_action(), s.*, t.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) UPDATE rw_view2 SET a=3 WHERE a=2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) DELETE FROM rw_view2 WHERE a=2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED AND t.a <= 1 THEN DELETE
+  WHEN MATCHED THEN UPDATE SET b = s.b
+  WHEN NOT MATCHED AND s.a > 0 THEN INSERT VALUES (s.a, s.b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- MERGE with incomplete set of INSTEAD OF triggers
+DROP TRIGGER rw_view1_del_trig ON rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED AND t.a <= 1 THEN DELETE
+  WHEN MATCHED THEN UPDATE SET b = s.b
+  WHEN NOT MATCHED AND s.a > 0 THEN INSERT VALUES (s.a, s.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED THEN UPDATE SET b = s.b
+  WHEN NOT MATCHED AND s.a > 0 THEN INSERT VALUES (s.a, s.b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+DROP TRIGGER rw_view1_ins_trig ON rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED THEN UPDATE SET b = s.b
+  WHEN NOT MATCHED AND s.a > 0 THEN INSERT VALUES (s.a, s.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED THEN UPDATE SET b = s.b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+-- MERGE with INSTEAD OF triggers on auto-updatable view
+CREATE TRIGGER rw_view2_upd_trig INSTEAD OF UPDATE ON rw_view2
+  FOR EACH ROW EXECUTE PROCEDURE rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED THEN UPDATE SET b = s.b
+  WHEN NOT MATCHED AND s.a > 0 THEN INSERT VALUES (s.a, s.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view2 t
+  USING (SELECT x, 'R'||x FROM generate_series(0,3) x) AS s(a,b) ON t.a = s.a
+  WHEN MATCHED THEN UPDATE SET b = s.b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM base_tbl ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- update using whole row from view
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i, 'Row ' || i FROM generate_series(-2, 2) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT b AS bb, a AS aa FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION rw_view1_aa(x rw_view1)
+  RETURNS int AS $$ SELECT x.aa $$ LANGUAGE sql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+UPDATE rw_view1 v SET bb='Updated row 2' WHERE rw_view1_aa(v)=2
+  RETURNING rw_view1_aa(v), v.bb;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+UPDATE rw_view1 v SET bb='Updated row 2' WHERE rw_view1_aa(v)=2
+  RETURNING rw_view1_aa(v), v.bb;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- permissions checks
+
+CREATE USER regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE USER regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE USER regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE base_tbl(a int, b text, c float);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1', 1.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT b AS bb, c AS cc, a AS aa FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 VALUES ('Row 2', 2.0, 2);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT SELECT ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (a,c) ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (bb,cc) ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT b AS bb, c AS cc, a AS aa FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+
+INSERT INTO base_tbl VALUES (3, 'Row 3', 3.0);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO rw_view1 VALUES ('Row 3', 3.0, 3);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO rw_view2 VALUES ('Row 3', 3.0, 3);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+
+MERGE INTO rw_view1 t
+  USING (VALUES ('Row 3', 3.0, 3)) AS v(b,c,a) ON t.aa = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.b, v.c, v.a);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t
+  USING (VALUES ('Row 3', 3.0, 3)) AS v(b,c,a) ON t.aa = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.b, v.c, v.a);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+UPDATE base_tbl SET a=a, c=c;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+UPDATE base_tbl SET b=b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE rw_view1 SET bb=bb, cc=cc;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view1 SET aa=aa;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE rw_view2 SET aa=aa, cc=cc;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view2 SET bb=bb;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET bb = bb, cc = cc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET aa = aa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET aa = aa, cc = cc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET bb = bb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+DELETE FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT INSERT, DELETE ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (3, 'Row 3', 3.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES ('Row 4', 4.0, 4);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO rw_view2 VALUES ('Row 4', 4.0, 4);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+DELETE FROM base_tbl WHERE a=1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+DELETE FROM rw_view1 WHERE aa=2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM rw_view2 WHERE aa=2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED AND bb = 'xxx' THEN DELETE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED AND bb = 'xxx' THEN DELETE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE INSERT, DELETE ON base_tbl FROM regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT INSERT, DELETE ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (5, 'Row 5', 5.0);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO rw_view1 VALUES ('Row 5', 5.0, 5);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view2 VALUES ('Row 6', 6.0, 6);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM base_tbl WHERE a=3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM rw_view1 WHERE aa=3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+DELETE FROM rw_view2 WHERE aa=4;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED AND bb = 'xxx' THEN DELETE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED AND bb = 'xxx' THEN DELETE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- nested-view permissions
+
+CREATE TABLE base_tbl(a int, b text, c float);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1', 1.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+SELECT * FROM rw_view1 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+SELECT * FROM rw_view2 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT SELECT ON base_tbl TO regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+SELECT * FROM rw_view2 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT SELECT ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT UPDATE ON base_tbl TO regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1 FOR UPDATE;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'bar';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT UPDATE ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2 FOR UPDATE;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'fud';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE UPDATE ON base_tbl FROM regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2 FOR UPDATE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET b = 'foo';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- security invoker view permissions
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TABLE base_tbl(a int, b text, c float);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1', 1.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT b AS bb, c AS cc, a AS aa FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER VIEW rw_view1 SET (security_invoker = true);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 VALUES ('Row 2', 2.0, 2);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT SELECT ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (bb,cc) ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+SELECT * FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO base_tbl VALUES (3, 'Row 3', 3.0);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO rw_view1 VALUES ('Row 3', 3.0, 3);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE base_tbl SET a=a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE rw_view1 SET bb=bb, cc=cc;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET bb = bb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN DELETE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT SELECT ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (a,c) ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+ -- ok
+UPDATE base_tbl SET a=a, c=c;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+UPDATE base_tbl SET b=b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE rw_view1 SET cc=cc;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET cc = cc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view1 SET aa=aa;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE rw_view1 SET bb=bb;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET aa = aa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET bb = bb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT INSERT, DELETE ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (3, 'Row 3', 3.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES ('Row 4', 4.0, 4);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM base_tbl WHERE a=1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+DELETE FROM rw_view1 WHERE aa=2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN DELETE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+REVOKE INSERT, DELETE ON base_tbl FROM regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT INSERT, DELETE ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 VALUES ('Row 4', 4.0, 4);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+DELETE FROM rw_view1 WHERE aa=2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN DELETE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT INSERT, DELETE ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 VALUES ('Row 4', 4.0, 4);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+DELETE FROM rw_view1 WHERE aa=2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (3)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN DELETE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+ -- ok
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- ordinary view on top of security invoker view permissions
+
+CREATE TABLE base_tbl(a int, b text, c float);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1', 1.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT b AS bb, c AS cc, a AS aa FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER VIEW rw_view1 SET (security_invoker = true);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view1 SET aa=aa;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (2, 'Row 2', 2.0)) AS v(a,b,c) ON t.aa = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.b, v.c, v.a);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT cc AS ccc, aa AS aaa, bb AS bbb FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT SELECT, UPDATE ON rw_view2 TO regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (2, 'Row 2', 2.0)) AS v(a,b,c) ON t.aaa = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.c, v.a, v.b);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON base_tbl TO regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (a, b) ON base_tbl TO regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view1 SET aa=aa, bb=bb;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+  -- ok
+UPDATE rw_view1 SET cc=cc;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET aa = aa, bb = bb;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET cc = cc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+GRANT SELECT ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (bb, cc) ON rw_view1 TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (a, c) ON base_tbl TO regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+  -- ok
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+SET SESSION AUTHORIZATION regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON base_tbl TO regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+GRANT UPDATE (a, c) ON base_tbl TO regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+  -- ok
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+REVOKE SELECT, UPDATE ON base_tbl FROM regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view1 SET aa=aa;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.aa = v.a
+  WHEN MATCHED THEN UPDATE SET aa = aa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+  -- ok
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+SET SESSION AUTHORIZATION regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+  -- ok
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+REVOKE SELECT, UPDATE ON base_tbl FROM regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+  -- ok
+UPDATE rw_view2 SET aaa=aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET bbb=bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+UPDATE rw_view2 SET ccc=ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+  -- ok
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET aaa = aaa;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET bbb = bbb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+MERGE INTO rw_view2 t USING (VALUES (1)) AS v(a) ON t.aaa = v.a
+  WHEN MATCHED THEN UPDATE SET ccc = ccc;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+RESET SESSION AUTHORIZATION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+DROP USER regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP USER regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP USER regress_view_user3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- column defaults
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified', c serial);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (2, 'Row 2');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT a AS aa, b AS bb FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ALTER VIEW rw_view1 ALTER COLUMN bb SET DEFAULT 'View default';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (4, 'Row 4');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 (aa) VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view1 t USING (VALUES (6)) AS v(a) ON t.aa = v.a
+  WHEN NOT MATCHED THEN INSERT (aa) VALUES (v.a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Table having triggers
+
+CREATE TABLE base_tbl (a int PRIMARY KEY, b text DEFAULT 'Unspecified');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (2, 'Row 2');
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION rw_view1_trig_fn()
+RETURNS trigger AS
+$$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE base_tbl SET b=NEW.b WHERE a=1;
+    RETURN NULL;
+  END IF;
+  RETURN NULL;
+END;
+$$
+LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER rw_view1_ins_trig AFTER INSERT ON base_tbl
+  FOR EACH ROW EXECUTE PROCEDURE rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT a AS aa, b AS bb FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (3, 'Row 3');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP VIEW rw_view1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TRIGGER rw_view1_ins_trig on base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE base_tbl;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- view with ORDER BY
+
+CREATE TABLE base_tbl (a int, b int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1,2), (4,5), (3,-3);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl ORDER BY a+b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (7,-8);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: DIFFERENT, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+EXPLAIN (verbose, costs off) UPDATE rw_view1 SET b = b + 1 RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET b = b + 1 RETURNING *;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- multiple array-column updates
+
+CREATE TABLE base_tbl (a int, arr int[]);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1,ARRAY[2]), (3,ARRAY[4]);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+UPDATE rw_view1 SET arr[1] = 42, arr[2] = 77 WHERE a = 3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- views with updatable and non-updatable columns
+
+CREATE TABLE base_tbl(a float);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl SELECT i/10.0 FROM generate_series(1,10) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS
+  SELECT ctid, sin(a) s, a, cos(a) c
+  FROM base_tbl
+  WHERE a != 0
+  ORDER BY abs(a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (null, null, 1.1, null);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view1 (s, c, a) VALUES (null, null, 1.1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view1 (a) VALUES (1.1) RETURNING a, s, c;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+UPDATE rw_view1 SET s = s WHERE a = 1.1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view1 SET a = 1.05 WHERE a = 1.1 RETURNING s;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+DELETE FROM rw_view1 WHERE a = 1.05;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+
+CREATE VIEW rw_view2 AS
+  SELECT s, c, s/c t, a base_a, ctid
+  FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (null, null, null, 1.1, null);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view2(s, c, base_a) VALUES (null, null, 1.1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view2(base_a) VALUES (1.1) RETURNING t;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+UPDATE rw_view2 SET s = s WHERE base_a = 1.1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view2 SET t = t WHERE base_a = 1.1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view2 SET base_a = 1.05 WHERE base_a = 1.1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+DELETE FROM rw_view2 WHERE base_a = 1.05 RETURNING base_a, s, c, t;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+
+CREATE VIEW rw_view3 AS
+  SELECT s, c, s/c t, ctid
+  FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view3 VALUES (null, null, null, null);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view3(s) VALUES (null);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view3 SET s = s;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+DELETE FROM rw_view3 WHERE s = sin(0.1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should be OK
+SELECT * FROM base_tbl ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name LIKE E'r_\\_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name LIKE E'r_\\_view%'
+ ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name LIKE E'r_\\_view%'
+ ORDER BY table_name, ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT events & 4 != 0 AS upd,
+       events & 8 != 0 AS ins,
+       events & 16 != 0 AS del
+  FROM pg_catalog.pg_relation_is_updatable('rw_view3'::regclass, false) t(events);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- view on table with GENERATED columns
+
+CREATE TABLE base_tbl (id int, idplus1 int GENERATED ALWAYS AS (id + 1) STORED);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO base_tbl (id) VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 (id) VALUES (2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl (id, idplus1) VALUES (3, DEFAULT);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 (id, idplus1) VALUES (4, DEFAULT);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl (id, idplus1) VALUES (5, 6);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- error
+INSERT INTO rw_view1 (id, idplus1) VALUES (6, 7);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- error
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+UPDATE base_tbl SET id = 2000 WHERE id = 2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET id = 3000 WHERE id = 3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- inheritance tests
+
+CREATE TABLE base_tbl_parent (a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE base_tbl_child (CHECK (a > 0)) INHERITS (base_tbl_parent);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl_parent SELECT * FROM generate_series(-8, -1);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl_child SELECT * FROM generate_series(1, 8);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl_parent;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT * FROM ONLY base_tbl_parent;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view1 ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM ONLY rw_view1 ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM rw_view2 ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (-100), (100);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view2 VALUES (-200), (200);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+UPDATE rw_view1 SET a = a*10 WHERE a IN (-1, 1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -10 and 10
+UPDATE ONLY rw_view1 SET a = a*10 WHERE a IN (-2, 2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -20 and 20
+UPDATE rw_view2 SET a = a*10 WHERE a IN (-3, 3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -30 only
+UPDATE ONLY rw_view2 SET a = a*10 WHERE a IN (-4, 4);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -40 only
+
+DELETE FROM rw_view1 WHERE a IN (-5, 5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should delete -5 and 5
+DELETE FROM ONLY rw_view1 WHERE a IN (-6, 6);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should delete -6 and 6
+DELETE FROM rw_view2 WHERE a IN (-7, 7);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should delete -7 only
+DELETE FROM ONLY rw_view2 WHERE a IN (-8, 8);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should delete -8 only
+
+SELECT * FROM ONLY base_tbl_parent ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl_child ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+MERGE INTO rw_view1 t USING (VALUES (-200), (10)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a+1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -199 and 11
+MERGE INTO ONLY rw_view1 t USING (VALUES (-100), (20)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a+1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -99 and 21
+MERGE INTO rw_view2 t USING (VALUES (-40), (3)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a+1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -39 only
+MERGE INTO ONLY rw_view2 t USING (VALUES (-30), (4)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a+1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should produce -29 only
+
+SELECT * FROM ONLY base_tbl_parent ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl_child ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE other_tbl_parent (id int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE other_tbl_child () INHERITS (other_tbl_parent);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO other_tbl_parent VALUES (7),(200);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO other_tbl_child VALUES (8),(100);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+UPDATE rw_view1 SET a = a + 1000 FROM other_tbl_parent WHERE a = id;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET a = a + 1000 FROM other_tbl_parent WHERE a = id;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM ONLY base_tbl_parent ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM base_tbl_child ORDER BY a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl_parent, base_tbl_child CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE other_tbl_parent CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- simple WITH CHECK OPTION
+
+CREATE TABLE base_tbl (a int, b int DEFAULT 10);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1,2), (2,3), (1,-1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a < b
+  WITH LOCAL CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- \d+ rw_view1
+SELECT * FROM information_schema.views WHERE table_name = 'rw_view1';
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES(3,4);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES(4,3);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view1 VALUES(5,null);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view1 SET b = 5 WHERE a = 3;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view1 SET b = -5 WHERE a = 3;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view1(a) VALUES (9);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1(a) VALUES (10);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should fail
+SELECT * FROM base_tbl ORDER BY a, b;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+MERGE INTO rw_view1 t USING (VALUES (10)) AS v(a) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a, v.a + 1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (11)) AS v(a) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a, v.a - 1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view1 t USING (VALUES (1)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a - 1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view1 t USING (VALUES (2)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a + 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+SELECT * FROM base_tbl ORDER BY a, b;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- WITH LOCAL/CASCADED CHECK OPTION
+
+CREATE TABLE base_tbl (a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a > 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT * FROM rw_view1 WHERE a < 10
+  WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- implicitly cascaded
+-- \d+ rw_view2
+SELECT * FROM information_schema.views WHERE table_name = 'rw_view2';
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (-5);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view2 VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view2 VALUES (15);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+UPDATE rw_view2 SET a = a - 10;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view2 SET a = a + 10;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+CREATE OR REPLACE VIEW rw_view2 AS SELECT * FROM rw_view1 WHERE a < 10
+  WITH LOCAL CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- \d+ rw_view2
+SELECT * FROM information_schema.views WHERE table_name = 'rw_view2';
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (-10);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view
+INSERT INTO rw_view2 VALUES (20);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+ALTER VIEW rw_view1 SET (check_option=here);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- invalid
+ALTER VIEW rw_view1 SET (check_option=local);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (-20);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view2 VALUES (30);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+ALTER VIEW rw_view2 RESET (check_option);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- \d+ rw_view2
+SELECT * FROM information_schema.views WHERE table_name = 'rw_view2';
+RESULT: [duckdb: ERROR, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view2 VALUES (30);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- WITH CHECK OPTION with no local view qual
+
+CREATE TABLE base_tbl (a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS SELECT * FROM rw_view1 WHERE a > 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view3 AS SELECT * FROM rw_view2 WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM information_schema.views WHERE table_name LIKE E'rw\\_view_' ORDER BY table_name;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (-1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view2 VALUES (-2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view
+INSERT INTO rw_view2 VALUES (2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view3 VALUES (-3);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view3 VALUES (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- WITH CHECK OPTION with scalar array ops
+
+CREATE TABLE base_tbl (a int, b int[]);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a = ANY (b)
+  WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (1, ARRAY[1,2,3]);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES (10, ARRAY[4,5]);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+UPDATE rw_view1 SET b[2] = -b[2] WHERE a = 1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view1 SET b[1] = -b[1] WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+PREPARE ins(int, int[]) AS INSERT INTO rw_view1 VALUES($1, $2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXECUTE ins(2, ARRAY[1,2,3]);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+EXECUTE ins(10, ARRAY[4,5]);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+DEALLOCATE PREPARE ins;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- WITH CHECK OPTION with subquery
+
+CREATE TABLE base_tbl (a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE ref_tbl (a int PRIMARY KEY);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO ref_tbl SELECT * FROM generate_series(1,10);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS
+  SELECT * FROM base_tbl b
+  WHERE EXISTS(SELECT 1 FROM ref_tbl r WHERE r.a = b.a)
+  WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES (15);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+UPDATE rw_view1 SET a = a + 5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view1 SET a = a + 5;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+EXPLAIN (costs off) INSERT INTO rw_view1 VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) UPDATE rw_view1 SET a = a + 5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl, ref_tbl CASCADE;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- WITH CHECK OPTION with BEFORE trigger on base table
+
+CREATE TABLE base_tbl (a int, b int);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION base_tbl_trig_fn()
+RETURNS trigger AS
+$$
+BEGIN
+  NEW.b := 10;
+  RETURN NEW;
+END;
+$$
+LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER base_tbl_trig BEFORE INSERT OR UPDATE ON base_tbl
+  FOR EACH ROW EXECUTE PROCEDURE base_tbl_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl WHERE a < b WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view1 VALUES (5,0);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view1 VALUES (15, 20);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should fail
+UPDATE rw_view1 SET a = 20, b = 30;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should fail
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP FUNCTION base_tbl_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- WITH LOCAL CHECK OPTION with INSTEAD OF trigger on base view
+
+CREATE TABLE base_tbl (a int, b int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS SELECT a FROM base_tbl WHERE a < b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION rw_view1_trig_fn()
+RETURNS trigger AS
+$$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO base_tbl VALUES (NEW.a, 10);
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    UPDATE base_tbl SET a=NEW.a WHERE a=OLD.a;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    DELETE FROM base_tbl WHERE a=OLD.a;
+    RETURN OLD;
+  END IF;
+END;
+$$
+LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER rw_view1_trig
+  INSTEAD OF INSERT OR UPDATE OR DELETE ON rw_view1
+  FOR EACH ROW EXECUTE PROCEDURE rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view2 AS
+  SELECT * FROM rw_view1 WHERE a > 0 WITH LOCAL CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO rw_view2 VALUES (-5);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view2 t USING (VALUES (-5)) AS v(a) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+INSERT INTO rw_view2 VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+MERGE INTO rw_view2 t USING (VALUES (6)) AS v(a) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view2 VALUES (50);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view
+MERGE INTO rw_view2 t USING (VALUES (60)) AS v(a) ON t.a = v.a
+  WHEN NOT MATCHED THEN INSERT VALUES (v.a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view
+UPDATE rw_view2 SET a = a - 10;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+MERGE INTO rw_view2 t USING (VALUES (6)) AS v(a) ON t.a = v.a
+  WHEN MATCHED THEN UPDATE SET a = t.a - 10;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+-- Check option won/* REPLACED */''t cascade down to base view with INSTEAD OF triggers
+
+ALTER VIEW rw_view2 SET (check_option=cascaded);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view2 VALUES (100);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view1/* REPLACED */''s check)
+UPDATE rw_view2 SET a = 200 WHERE a = 5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view1/* REPLACED */''s check)
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+-- Neither local nor cascaded check options work with INSTEAD rules
+
+DROP TRIGGER rw_view1_trig ON rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE RULE rw_view1_ins_rule AS ON INSERT TO rw_view1
+  DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a, 10);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE RULE rw_view1_upd_rule AS ON UPDATE TO rw_view1
+  DO INSTEAD UPDATE base_tbl SET a=NEW.a WHERE a=OLD.a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view2 VALUES (-10);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view2/* REPLACED */''s check)
+INSERT INTO rw_view2 VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO rw_view2 VALUES (20);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view1/* REPLACED */''s check)
+UPDATE rw_view2 SET a = 30 WHERE a = 5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view1/* REPLACED */''s check)
+INSERT INTO rw_view2 VALUES (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+UPDATE rw_view2 SET a = -5 WHERE a = 5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view2/* REPLACED */''s check)
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP FUNCTION rw_view1_trig_fn();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE base_tbl (a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view1 AS SELECT a,10 AS b FROM base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE RULE rw_view1_ins_rule AS ON INSERT TO rw_view1
+  DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW rw_view2 AS
+  SELECT * FROM rw_view1 WHERE a > b WITH LOCAL CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view2 VALUES (2,3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok, but not in view (doesn/* REPLACED */''t fail rw_view2/* REPLACED */''s check)
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- security barrier view
+
+CREATE TABLE base_tbl (person text, visibility text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES ('Tom', 'public'),
+                            ('Dick', 'private'),
+                            ('Harry', 'public');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 AS
+  SELECT person FROM base_tbl WHERE visibility = 'public';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION snoop(anyelement)
+RETURNS boolean AS
+$$
+BEGIN
+  RAISE NOTICE 'snooped value: %', $1;
+  RETURN true;
+END;
+$$
+LANGUAGE plpgsql COST 0.000001;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION leakproof(anyelement)
+RETURNS boolean AS
+$$
+BEGIN
+  RETURN true;
+END;
+$$
+LANGUAGE plpgsql STRICT IMMUTABLE LEAKPROOF;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view1 WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET person=person WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view1 WHERE NOT snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+ALTER VIEW rw_view1 SET (security_barrier = true);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name = 'rw_view1';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name = 'rw_view1';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name = 'rw_view1'
+ ORDER BY ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view1 WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view1 SET person=person WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view1 WHERE NOT snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view1 t
+  USING (VALUES ('Tom'), ('Dick'), ('Harry')) AS v(person) ON t.person = v.person
+  WHEN MATCHED AND snoop(t.person) THEN UPDATE SET person = v.person;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) SELECT * FROM rw_view1 WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) UPDATE rw_view1 SET person=person WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) DELETE FROM rw_view1 WHERE NOT snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+MERGE INTO rw_view1 t
+  USING (VALUES ('Tom'), ('Dick'), ('Harry')) AS v(person) ON t.person = v.person
+  WHEN MATCHED AND snoop(t.person) THEN UPDATE SET person = v.person;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- security barrier view on top of security barrier view
+
+CREATE VIEW rw_view2 WITH (security_barrier = true) AS
+  SELECT * FROM rw_view1 WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_insertable_into
+  FROM information_schema.tables
+ WHERE table_name = 'rw_view2';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, is_updatable, is_insertable_into
+  FROM information_schema.views
+ WHERE table_name = 'rw_view2';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT table_name, column_name, is_updatable
+  FROM information_schema.columns
+ WHERE table_name = 'rw_view2'
+ ORDER BY ordinal_position;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view2 WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE rw_view2 SET person=person WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view2 WHERE NOT snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+MERGE INTO rw_view2 t
+  USING (VALUES ('Tom'), ('Dick'), ('Harry')) AS v(person) ON t.person = v.person
+  WHEN MATCHED AND snoop(t.person) THEN UPDATE SET person = v.person;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) SELECT * FROM rw_view2 WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) UPDATE rw_view2 SET person=person WHERE snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off) DELETE FROM rw_view2 WHERE NOT snoop(person);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+EXPLAIN (costs off)
+MERGE INTO rw_view2 t
+  USING (VALUES ('Tom'), ('Dick'), ('Harry')) AS v(person) ON t.person = v.person
+  WHEN MATCHED AND snoop(t.person) THEN UPDATE SET person = v.person;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- security barrier view on top of table with rules
+
+CREATE TABLE base_tbl(id int PRIMARY KEY, data text, deleted boolean);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO base_tbl VALUES (1, 'Row 1', false), (2, 'Row 2', true);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE RULE base_tbl_ins_rule AS ON INSERT TO base_tbl
+  WHERE EXISTS (SELECT 1 FROM base_tbl t WHERE t.id = new.id)
+  DO INSTEAD
+    UPDATE base_tbl SET data = new.data, deleted = false WHERE id = new.id;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE RULE base_tbl_del_rule AS ON DELETE TO base_tbl
+  DO INSTEAD
+    UPDATE base_tbl SET deleted = true WHERE id = old.id;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW rw_view1 WITH (security_barrier=true) AS
+  SELECT id, data FROM base_tbl WHERE NOT deleted;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) DELETE FROM rw_view1 WHERE id = 1 AND snoop(data);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DELETE FROM rw_view1 WHERE id = 1 AND snoop(data);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) INSERT INTO rw_view1 VALUES (2, 'New row 2');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO rw_view1 VALUES (2, 'New row 2');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE base_tbl CASCADE;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- security barrier view based on inheritance set
+CREATE TABLE t1 (a int, b float, c text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE INDEX t1_a_idx ON t1(a);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO t1
+SELECT i,i,'t1' FROM generate_series(1,10) g(i);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ANALYZE t1;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE t11 (d text) INHERITS (t1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE INDEX t11_a_idx ON t11(a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO t11
+SELECT i,i,'t11','t11d' FROM generate_series(1,10) g(i);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ANALYZE t11;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE t12 (e int[]) INHERITS (t1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE INDEX t12_a_idx ON t12(a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO t12
+SELECT i,i,'t12','{1,2}'::int[] FROM generate_series(1,10) g(i);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ANALYZE t12;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE t111 () INHERITS (t11, t12);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE INDEX t111_a_idx ON t111(a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO t111
+SELECT i,i,'t111','t111d','{1,1,1}'::int[] FROM generate_series(1,10) g(i);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+ANALYZE t111;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW v1 WITH (security_barrier=true) AS
+SELECT *, (SELECT d FROM t11 WHERE t11.a = t1.a LIMIT 1) AS d
+FROM t1
+WHERE a > 5 AND EXISTS(SELECT 1 FROM t12 WHERE t12.a = t1.a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM v1 WHERE a=3;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should not see anything
+SELECT * FROM v1 WHERE a=8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE v1 SET a=100 WHERE snoop(a) AND leakproof(a) AND a < 7 AND a != 6;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE v1 SET a=100 WHERE snoop(a) AND leakproof(a) AND a < 7 AND a != 6;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM v1 WHERE a=100;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Nothing should have been changed to 100
+SELECT * FROM t1 WHERE a=100;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- Nothing should have been changed to 100
+
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE v1 SET a=a+1 WHERE snoop(a) AND leakproof(a) AND a = 8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+UPDATE v1 SET a=a+1 WHERE snoop(a) AND leakproof(a) AND a = 8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM v1 WHERE b=8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DELETE FROM v1 WHERE snoop(a) AND leakproof(a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should not delete everything, just where a>5
+
+TABLE t1;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+ -- verify all a<=5 are intact
+
+DROP TABLE t1, t11, t12, t111 CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION snoop(anyelement);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION leakproof(anyelement);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE tx1 (a integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE tx2 (b integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE tx3 (c integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW vx1 AS SELECT a FROM tx1 WHERE EXISTS(SELECT 1 FROM tx2 JOIN tx3 ON b=c);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO vx1 values (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM tx1;
+RESULT: [duckdb: DIFFERENT, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM vx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+DROP VIEW vx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TABLE tx1 (a integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE tx2 (b integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE tx3 (c integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW vx1 AS SELECT a FROM tx1 WHERE EXISTS(SELECT 1 FROM tx2 JOIN tx3 ON b=c);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO vx1 VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO vx1 VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM tx1;
+RESULT: [duckdb: DIFFERENT, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM vx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+DROP VIEW vx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TABLE tx1 (a integer, b integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE tx2 (b integer, c integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE TABLE tx3 (c integer, d integer);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ALTER TABLE tx1 DROP COLUMN b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ALTER TABLE tx2 DROP COLUMN c;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+ALTER TABLE tx3 DROP COLUMN d;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW vx1 AS SELECT a FROM tx1 WHERE EXISTS(SELECT 1 FROM tx2 JOIN tx3 ON b=c);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO vx1 VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO vx1 VALUES (1);
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM tx1;
+RESULT: [duckdb: DIFFERENT, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM vx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+DROP VIEW vx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE tx3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--
+-- Test handling of vars from correlated subqueries in quals from outer
+-- security barrier views, per bug #13988
+--
+CREATE TABLE t1 (a int, b text, c int);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO t1 VALUES (1, 'one', 10);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE t2 (cc int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO t2 VALUES (10), (20);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE VIEW v1 WITH (security_barrier = true) AS
+  SELECT * FROM t1 WHERE (a > 0)
+  WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE VIEW v2 WITH (security_barrier = true) AS
+  SELECT * FROM v1 WHERE EXISTS (SELECT 1 FROM t2 WHERE t2.cc = v1.c)
+  WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO v2 VALUES (2, 'two', 20);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO v2 VALUES (-2, 'minus two', 20);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+INSERT INTO v2 VALUES (3, 'three', 30);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+UPDATE v2 SET b = 'ONE' WHERE a = 1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+UPDATE v2 SET a = -1 WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+UPDATE v2 SET c = 30 WHERE a = 1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- not allowed
+
+DELETE FROM v2 WHERE a = 2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM v2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP VIEW v2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP VIEW v1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE t2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE t1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--
+-- Test sub-select in nested security barrier views, per bug #17972
+--
+CREATE TABLE t1 (a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW v1 WITH (security_barrier = true) AS
+  SELECT * FROM t1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE RULE v1_upd_rule AS ON UPDATE TO v1 DO INSTEAD
+  UPDATE t1 SET a = NEW.a WHERE a = OLD.a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE VIEW v2 WITH (security_barrier = true) AS
+  SELECT * FROM v1 WHERE EXISTS (SELECT 1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF) UPDATE v2 SET a = 1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP VIEW v2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP VIEW v1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TABLE t1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--
+-- Test CREATE OR REPLACE VIEW turning a non-updatable view into an
+-- auto-updatable view and adding check options in a single step
+--
+CREATE TABLE t1 (a int, b text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+CREATE VIEW v1 AS SELECT null::int AS a;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1 WHERE a > 0 WITH CHECK OPTION;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+INSERT INTO v1 VALUES (1, 'ok');
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO v1 VALUES (-1, 'invalid');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- should fail
+
+DROP VIEW v1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE t1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- check that an auto-updatable view on a partitioned table works correctly
+create table uv_pt (a int, b int, v varchar) partition by range (a, b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create table uv_pt1 (b int not null, v varchar, a int not null) partition by range (b);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create table uv_pt11 (like uv_pt1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter table uv_pt11 drop a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter table uv_pt11 add a int;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter table uv_pt11 drop a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter table uv_pt11 add a int not null;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter table uv_pt1 attach partition uv_pt11 for values from (2) to (5);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter table uv_pt attach partition uv_pt1 for values from (1, 2) to (1, 10);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+create view uv_ptv as select * from uv_pt;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select events & 4 != 0 AS upd,
+       events & 8 != 0 AS ins,
+       events & 16 != 0 AS del
+  from pg_catalog.pg_relation_is_updatable('uv_pt'::regclass, false) t(events);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select pg_catalog.pg_column_is_updatable('uv_pt'::regclass, 1::smallint, false);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select pg_catalog.pg_column_is_updatable('uv_pt'::regclass, 2::smallint, false);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select table_name, is_updatable, is_insertable_into
+  from information_schema.views where table_name = 'uv_ptv';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select table_name, column_name, is_updatable
+  from information_schema.columns where table_name = 'uv_ptv' order by column_name;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_ptv values (1, 2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from uv_pt;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view uv_ptv_wco as select * from uv_pt where a = 0 with check option;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_ptv_wco values (1, 2);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+merge into uv_ptv t
+  using (values (1,2), (1,4)) as v(a,b) on t.a = v.a -- fail: matches 2 src rows
+  when matched then update set b = t.b + 1
+  when not matched then insert values (v.a, v.b + 1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+merge into uv_ptv t
+  using (values (1,2), (1,4)) as v(a,b) on t.a = v.a and t.b = v.b
+  when matched then update set b = t.b + 1
+  when not matched then insert values (v.a, v.b + 1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- fail: no partition for b=5
+merge into uv_ptv t
+  using (values (1,2), (1,3)) as v(a,b) on t.a = v.a and t.b = v.b
+  when matched then update set b = t.b + 1
+  when not matched then insert values (v.a, v.b + 1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- ok
+select tableoid::regclass, * from uv_pt order by a, b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop view uv_ptv, uv_ptv_wco;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop table uv_pt, uv_pt1, uv_pt11;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- check that wholerow vars appearing in WITH CHECK OPTION constraint expressions
+-- work fine with partitioned tables
+create table wcowrtest (a int) partition by list (a);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create table wcowrtest1 partition of wcowrtest for values in (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view wcowrtest_v as select * from wcowrtest where wcowrtest = '(2)'::wcowrtest with check option;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into wcowrtest_v values (1);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+alter table wcowrtest add b text;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create table wcowrtest2 (b text, c int, a int);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+alter table wcowrtest2 drop c;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+alter table wcowrtest attach partition wcowrtest2 for values in (2);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+create table sometable (a int, b text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+insert into sometable values (1, 'a'), (2, 'b');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+create view wcowrtest_v2 as
+    select *
+      from wcowrtest r
+      where r in (select s from sometable s where r.a = s.a)
+with check option;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- WITH CHECK qual will be processed with wcowrtest2/* REPLACED */''s
+-- rowtype after tuple-routing
+insert into wcowrtest_v2 values (2, 'no such row in sometable');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+drop view wcowrtest_v, wcowrtest_v2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop table wcowrtest, sometable;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Check INSERT .. ON CONFLICT DO UPDATE works correctly when the view/* REPLACED */''s
+-- columns are named and ordered differently than the underlying table/* REPLACED */''s.
+create table uv_iocu_tab (a text unique, b float);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_tab values ('xyxyxy', 0);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view uv_iocu_view as
+   select b, b+1 as c, a, '2.0'::text as two from uv_iocu_tab;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+insert into uv_iocu_view (a, b) values ('xyxyxy', 1)
+   on conflict (a) do update set b = uv_iocu_view.b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_tab;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_view (a, b) values ('xyxyxy', 1)
+   on conflict (a) do update set b = excluded.b;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_tab;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- OK to access view columns that are not present in underlying base
+-- relation in the ON CONFLICT portion of the query
+insert into uv_iocu_view (a, b) values ('xyxyxy', 3)
+   on conflict (a) do update set b = cast(excluded.two as float);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_tab;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+explain (costs off)
+insert into uv_iocu_view (a, b) values ('xyxyxy', 3)
+   on conflict (a) do update set b = excluded.b where excluded.c > 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+insert into uv_iocu_view (a, b) values ('xyxyxy', 3)
+   on conflict (a) do update set b = excluded.b where excluded.c > 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_tab;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+drop view uv_iocu_view;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop table uv_iocu_tab;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test whole-row references to the view
+create table uv_iocu_tab (a int unique, b text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+create view uv_iocu_view as
+    select b as bb, a as aa, uv_iocu_tab::text as cc from uv_iocu_tab;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+insert into uv_iocu_view (aa,bb) values (1,'x');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+explain (costs off)
+insert into uv_iocu_view (aa,bb) values (1,'y')
+   on conflict (aa) do update set bb = 'Rejected: '||excluded.*
+   where excluded.aa > 0
+   and excluded.bb != ''
+   and excluded.cc is not null;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_view (aa,bb) values (1,'y')
+   on conflict (aa) do update set bb = 'Rejected: '||excluded.*
+   where excluded.aa > 0
+   and excluded.bb != ''
+   and excluded.cc is not null;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_view;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test omitting a column of the base relation
+delete from uv_iocu_view;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_view (aa,bb) values (1,'x');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_view (aa) values (1)
+   on conflict (aa) do update set bb = 'Rejected: '||excluded.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_view;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+alter table uv_iocu_tab alter column b set default 'table default';
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_view (aa) values (1)
+   on conflict (aa) do update set bb = 'Rejected: '||excluded.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_view;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+alter view uv_iocu_view alter column bb set default 'view default';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into uv_iocu_view (aa) values (1)
+   on conflict (aa) do update set bb = 'Rejected: '||excluded.*;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from uv_iocu_view;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Should fail to update non-updatable columns
+insert into uv_iocu_view (aa) values (1)
+   on conflict (aa) do update set cc = 'XXX';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+drop view uv_iocu_view;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop table uv_iocu_tab;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- ON CONFLICT DO UPDATE permissions checks
+create user regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+create user regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+set session authorization regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create table base_tbl(a int unique, b text, c float);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+insert into base_tbl values (1,'xxx',1.0);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+create view rw_view1 as select b as bb, c as cc, a as aa from base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+grant select (aa,bb) on rw_view1 to regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+grant insert on rw_view1 to regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+grant update (bb) on rw_view1 to regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+set session authorization regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into rw_view1 values ('yyy',2.0,1)
+  on conflict (aa) do update set bb = excluded.cc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- Not allowed
+insert into rw_view1 values ('yyy',2.0,1)
+  on conflict (aa) do update set bb = rw_view1.cc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- Not allowed
+insert into rw_view1 values ('yyy',2.0,1)
+  on conflict (aa) do update set bb = excluded.bb;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+insert into rw_view1 values ('zzz',2.0,1)
+  on conflict (aa) do update set bb = rw_view1.bb||'xxx';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+insert into rw_view1 values ('zzz',2.0,1)
+  on conflict (aa) do update set cc = 3.0;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- Not allowed
+reset session authorization;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+set session authorization regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+grant select (a,b) on base_tbl to regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+grant insert (a,b) on base_tbl to regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+grant update (a,b) on base_tbl to regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+set session authorization regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view rw_view2 as select b as bb, c as cc, a as aa from base_tbl;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into rw_view2 (aa,bb) values (1,'xxx')
+  on conflict (aa) do update set bb = excluded.bb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- Not allowed
+create view rw_view3 as select b as bb, a as aa from base_tbl;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+insert into rw_view3 (aa,bb) values (1,'xxx')
+  on conflict (aa) do update set bb = excluded.bb;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+reset session authorization;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tbl;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+set session authorization regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view rw_view4 as select aa, bb, cc FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into rw_view4 (aa,bb) values (1,'yyy')
+  on conflict (aa) do update set bb = excluded.bb;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- Not allowed
+create view rw_view5 as select aa, bb FROM rw_view1;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into rw_view5 (aa,bb) values (1,'yyy')
+  on conflict (aa) do update set bb = excluded.bb;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- OK
+reset session authorization;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tbl;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+drop view rw_view5;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop view rw_view4;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop view rw_view3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+drop view rw_view2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+drop view rw_view1;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+drop table base_tbl;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+drop user regress_view_user1;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+drop user regress_view_user2;
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test single- and multi-row inserts with table and view defaults.
+-- Table defaults should be used, unless overridden by view defaults.
+create table base_tab_def (a int, b text default 'Table default',
+                           c text default 'Table default', d text, e text);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view base_tab_def_view as select * from base_tab_def;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter view base_tab_def_view alter b set default 'View default';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter view base_tab_def_view alter d set default 'View default';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (2), (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (4, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (11);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (12), (13);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (14, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (17), (default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tab_def order by a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Adding an INSTEAD OF trigger should cause NULLs to be inserted instead of
+-- table defaults, where there are no view defaults.
+create function base_tab_def_view_instrig_func() returns trigger
+as
+$$
+begin
+  insert into base_tab_def values (new.a, new.b, new.c, new.d, new.e);
+  return new;
+end;
+$$
+language plpgsql;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create trigger base_tab_def_view_instrig instead of insert on base_tab_def_view
+  for each row execute function base_tab_def_view_instrig_func();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+truncate base_tab_def;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (2), (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (4, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (11);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (12), (13);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (14, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (17), (default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tab_def order by a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Using an unconditional DO INSTEAD rule should also cause NULLs to be
+-- inserted where there are no view defaults.
+drop trigger base_tab_def_view_instrig on base_tab_def_view;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop function base_tab_def_view_instrig_func;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create rule base_tab_def_view_ins_rule as on insert to base_tab_def_view
+  do instead insert into base_tab_def values (new.a, new.b, new.c, new.d, new.e);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+truncate base_tab_def;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (2), (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (4, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (11);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (12), (13);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (14, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (17), (default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tab_def order by a;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- A DO ALSO rule should cause each row to be inserted twice. The first
+-- insert should behave the same as an auto-updatable view (using table
+-- defaults, unless overridden by view defaults). The second insert should
+-- behave the same as a rule-updatable view (inserting NULLs where there are
+-- no view defaults).
+drop rule base_tab_def_view_ins_rule on base_tab_def_view;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create rule base_tab_def_view_ins_rule as on insert to base_tab_def_view
+  do also insert into base_tab_def values (new.a, new.b, new.c, new.d, new.e);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+truncate base_tab_def;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (2), (3);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (4, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (11);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (12), (13);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (14, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (17), (default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tab_def order by a, c NULLS LAST;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test a DO ALSO INSERT ... SELECT rule
+drop rule base_tab_def_view_ins_rule on base_tab_def_view;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create rule base_tab_def_view_ins_rule as on insert to base_tab_def_view
+  do also insert into base_tab_def (a, b, e) select new.a, new.b, 'xxx';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+truncate base_tab_def;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (1, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_def_view values (2, default, default, default, default),
+                                     (3, default, default, default, default);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tab_def order by a, e nulls first;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+drop view base_tab_def_view;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop table base_tab_def;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test defaults with array assignments
+create table base_tab (a serial, b int[], c text, d text default 'Table default');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+create view base_tab_view as select c, a, b from base_tab;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+alter view base_tab_view alter column c set default 'View default';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+insert into base_tab_view (b[1], b[2], c, b[5], b[4], a, b[3])
+values (1, 2, default, 5, 4, default, 3), (10, 11, 'C value', 14, 13, 100, 12);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select * from base_tab order by a;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop view base_tab_view;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+drop table base_tab;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+=========================================
+Summary for test case updatable_views/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 400 queries, which is 36.70%
+DIFFERENT: 85 queries, which is 7.80%
+ERROR: 605 queries, which is 55.50%
+
+=================
+Results for mySQL
+SAME: 352 queries, which is 32.29%
+DIFFERENT: 39 queries, which is 3.58%
+ERROR: 699 queries, which is 64.13%
