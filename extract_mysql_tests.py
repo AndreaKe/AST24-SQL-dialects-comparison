@@ -212,7 +212,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                 os.remove(setup_path.resolve())
                 os.remove(test_path.resolve())
                 if test_path.parent.exists():
-                    os.rmdir(test_path.parent.relative())
+                    os.rmdir(test_path.parent.resolve())
                 print(e)
                 failed_file.write(f"{filepath.resolve()}\n")
             test_file.close()
