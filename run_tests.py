@@ -3,10 +3,11 @@ import sys, logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import duckdb
-# import pymysql
+import pymysql
 from enum import Enum
 import itertools
 import re
+import math
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
@@ -29,6 +30,7 @@ RESULT_PATH = PG_ABS_BUILDDIR
 COMPARE_TO_EXPECTED_RESULT = False
 GENERATE_EXPECTED = False
 PURGE_TESTS = False
+FLOAT_TOLERANCE=0.001
 
 arguments = sys.argv[1:]
 arg_idx = 0
@@ -42,6 +44,9 @@ while arg_idx < len(arguments):
     elif arguments[arg_idx] in ("--result", "-r") and arg_idx < len(arguments)-1:
         RESULT_PATH = str(arguments[arg_idx+1])
         result_path_set = True
+        arg_idx = arg_idx+1
+    elif arguments[arg_idx] in ("--tol") and arg_idx < len(arguments)-1:
+        FLOAT_TOLERANCE = float(arguments[arg_idx+1])
         arg_idx = arg_idx+1
     elif arguments[arg_idx] in ("--purge", "-p"):
         PURGE_TESTS = True
@@ -87,6 +92,9 @@ class TestResult(object):
 
     def __str__(self):
         return f"{self.test} on {self.dbms} resulted in {self.compatibility.name}"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class QueryResult(object):
@@ -99,31 +107,23 @@ class QueryResult(object):
         self.dbms = dbms
         self.status = status
         self.result = result
-        self.error = error
+        self.error = error   
 
-    def is_result_identical(self, other):
-        # TODO: ignore minor accuracy difference, check ordering for order by queries, handle dict comparison correctly
-        logging.debug("is_result_identical")
-        if self.result == None or other.result == None:
-            return self.result == None and other.result == None
-        if len(self.result) > 0:
-            logging.debug(self.result)
-            if isinstance(self.result[0], dict): # TODO: does not work yet
-                logging.debug("comparing dictionaries")
-                self_list = [[(key, value) for key, value in row.items()]for row in self.result]
-                other_list = [[(key, value) for key, value in row.items()]for row in other.result]
-            else:
-                self_list = self.result
-                other_list = other.result
-            return sorted(self_list, key=lambda x: [(val is None, val) for val in x]) == sorted(other_list, key=lambda x: [(val is None, val) for val in x])
+    def short_str(self):
+        if self.status == QueryStatus.PASS:
+            return f"{self.result}"
         else:
-            return len(other.result) == 0
+            return f"ERROR - {self.error}"     
     
     def __str__(self):
         if self.status == QueryStatus.PASS:
             return f"{self.dbms}: {self.result}"
         else:
             return f"{self.dbms}: ERROR - {self.error}"
+    
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class CompatibilityCaseWrapper(object):
@@ -135,6 +135,9 @@ class CompatibilityCaseWrapper(object):
         self.result = result
 
     def __str__(self):
+        return f"{self.dbms}: {self.result.name}"
+
+    def __repr__(self) -> str:
         return f"{self.dbms}: {self.result.name}"
 
 
@@ -173,7 +176,7 @@ class SQLDialectWrapper(object):
         return QueryResult(self.name, status, result, error)
     
     def create_empty_query_result(self):
-        return self.create_query_result(QueryStatus.PASS, None, None)
+        return self.create_query_result(QueryStatus.PASS, [], None)
     
     def create_error_query_result(self, e):
         return self.create_query_result(QueryStatus.ERROR, None, e)
@@ -313,9 +316,11 @@ class MySQL(SQLDialectWrapper):
 
     def setup_clean_db(self):
         logging.debug("MYSQL: Setup clean database {} with user {} at {}:{}".format(self.DATABASE_NAME, self.DATABASE_USER, self.HOST, self.PORT))
-        con = pymysql.connect(user=self.DATABASE_USER, password="", host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
+        con = pymysql.connect(user=self.DATABASE_USER, password="sao", host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
         # con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        self.db_conn = con
         cur = con.cursor()
+        self.db_cursor = cur
         cur.execute("SHOW DATABASES;")
         db_names = [db[0] for db in cur.fetchall() if db[0] not in ['sys', 'mysql', 'information_schema', 'performance_schema']];
         for db in db_names:
@@ -328,9 +333,11 @@ class MySQL(SQLDialectWrapper):
 
     def setup_connection(self):
         logging.info("MYSQL: Connecting to database {} at {}:{}".format(self.DATABASE_NAME, self.HOST, self.PORT))
-        con = pymysql.connect(user=self.DATABASE_USER, password="", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
+        con = pymysql.connect(user=self.DATABASE_USER, password="sao", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
         #con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        self.db_conn = con
         cur = con.cursor()
+        self.db_cursor = cur
         cur.execute(f"use {self.DATABASE_NAME};")
         return con
 
@@ -373,13 +380,48 @@ def is_guest_dbms(dbms: SQLDialectWrapper, guest_dbms):
     return dbms.name == guest_dbms
 
 
-def compare_single_result(guest_result: QueryResult, host_result: QueryResult):
+def compare_elements(elem1, elem2, tolerance=FLOAT_TOLERANCE):
+    if isinstance(elem1, (int, float)) and isinstance(elem2, (int, float)):
+        if math.isnan(elem1) and math.isnan(elem2):
+            return True
+        return math.isclose(elem1, elem2, abs_tol=tolerance)
+    elif isinstance(elem1, (list, tuple)) and isinstance(elem2, (list, tuple)):
+        if len(elem1) != len(elem2):
+            return False
+        return all(compare_elements(a, b, tolerance) for a, b in zip(elem1, elem2))
+    elif isinstance(elem1, dict) and isinstance(elem2, dict):
+        if elem1.keys() != elem2.keys():
+            return False
+        return all(compare_elements(elem1[key], elem2[key], tolerance) for key in elem1)
+    else:
+        return elem1 == elem2
+    
+def is_result_identical(guest_result, host_result, is_ordered)-> bool:
+    logging.debug("is_result_identical")
+    if guest_result == None or host_result == None:
+        return guest_result == None and host_result == None
+    elif len(guest_result) == 0 or len(host_result) == 0:
+        return len(guest_result) == 0 and len(host_result) == 0
+    elif is_ordered:
+        return compare_elements(guest_result, host_result)
+    else:
+        logging.debug(guest_result)
+        if isinstance(guest_result[0], dict):
+            logging.debug("comparing dictionaries")
+            self_list = [[(key, value) for key, value in row.items()]for row in guest_result]
+            other_list = [[(key, value) for key, value in row.items()]for row in host_result]
+        else:
+            self_list = guest_result
+            other_list = host_result
+        return compare_elements(sorted(self_list, key=lambda x: [(val is None, val) for val in x]), sorted(other_list, key=lambda x: [(val is None, val) for val in x]))
+
+def compare_single_result(guest_result: QueryResult, host_result: QueryResult, is_ordered=False):
     try:
         if guest_result.status !=  host_result.status:
             return CompatibilityCase.ERROR
         elif guest_result.status == CompatibilityCase.ERROR:
             return CompatibilityCase.SAME
-        elif guest_result.is_result_identical(host_result): # TODO: what if the order matters?
+        elif is_result_identical(guest_result.result, host_result.result, is_ordered):
             return CompatibilityCase.SAME
         else:
             return CompatibilityCase.DIFFERENT
@@ -387,8 +429,11 @@ def compare_single_result(guest_result: QueryResult, host_result: QueryResult):
         logging.error(f"Could not compare results. {e}")
         return CompatibilityCase.ERROR
 
+def is_ordered(query: str)-> bool:
+    pattern = re.compile(r'[\s\(;\[\)\]]{}[\s\(;\[\)\]]'.format(re.escape("order by"), re.IGNORECASE))
+    return re.search(pattern, query) is not None
 
-def compare_results(results, guest_dbms):
+def compare_results(results, guest_dbms, is_ordered):
     guest_results = [r for r in results if r.dbms == guest_dbms]
     hosts_results = [r for r in results if r.dbms != guest_dbms]
 
@@ -401,7 +446,7 @@ def compare_results(results, guest_dbms):
     comp_cases = []
 
     for h in hosts_results:
-        cc = compare_single_result(guest_result, h)
+        cc = compare_single_result(guest_result, h, is_ordered)
         comp_cases.append(CompatibilityCaseWrapper(h.dbms, cc))
     return comp_cases
 
@@ -477,7 +522,7 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
                     curr_results.append(result)
                     logging.debug(f"RESULT: {result}")
 
-                compare_results(curr_results, guest_dbms)
+                compare_results(curr_results, guest_dbms, is_ordered(query))
 
         except StopIteration:
             break
@@ -520,15 +565,14 @@ def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
                 for dialect in sql_dialects:
                     dialect.write_to_result_file(query_string)
                     result = dialect.exec_query(query)
-                    result_string = f"RESULT:\n\t{result}\n"
-                    logging.debug(result_string)
-                    dialect.write_to_result_file(result_string)
+                    logging.debug(f"RESULT:\n\t{result}\n")
+                    dialect.write_to_result_file(f"RESULT:\n\t{result.short_str()}\n")
                     curr_results.append(result)
-
-                comp_cases = compare_results(curr_results, guest_dbms)
+                # print(f"curr result: {pprint.pformat(curr_results)}")
+                comp_cases = compare_results(curr_results, guest_dbms, is_ordered(query))
                 all_results.append(comp_cases)
-                logging.info("COMPATIBILITY: {}\n".format([str(cc) for cc in comp_cases]))
-                write_to_summary_file(summary_file, "RESULT: {}\n".format([str(cc) for cc in comp_cases]))
+                logging.info("COMPATIBILITY: {}\n".format(comp_cases))
+                write_to_summary_file(summary_file, "RESULT: {}\n".format(comp_cases))
         except StopIteration:
             break
 
@@ -619,11 +663,6 @@ def execute_single_test(test_folder, result_folder):
     logging.debug(f"Dialects: {dialects}\n")
 
     execute_setup_sql(dialects, test_folder + "/setup.sql", result_folder, False) 
-
-    for dialect in dialects:
-        if dialect.name == "postgres":
-            dialect.db_cursor.execute("SELECT pg_catalog.set_config('search_path', 'public', false);")
-        # TODO check if we have to do something for other dialects
 
     test_result = execute_test_sql(dialects, test_folder + "/test.sql", result_folder)
 
@@ -884,7 +923,9 @@ def purge_single_test(test_folder):
 def execute_tests_in_folder_rec(test_folder, result_folder):
     logging.info(f"Execute ALL tests in {test_folder} (and all subfolders) and storing results in {result_folder}")
     all_results = []
-    for fname in os.listdir(test_folder):
+    items = os.listdir(test_folder)
+    items.sort()
+    for fname in items:
 
         single_test_path = os.path.join(test_folder, fname)
         logging.debug(f"single test path = {single_test_path}")
@@ -907,9 +948,9 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
 
 def init_dialects(guest_dbms):
     if GENERATE_EXPECTED:
-        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB()] # TODO other SQL dialects here
+        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB(), MySQL()] # TODO other SQL dialects here
         return [d for d in all_dbms if d.name == guest_dbms]
-    return [PostgreSQL('regression', None, None), DuckDB()] 
+    return [PostgreSQL('regression', None, None), DuckDB(), MySQL()] 
 
 
 def compute_overall_summary(all_results, result_folder):
