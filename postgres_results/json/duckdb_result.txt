@@ -1,271 +1,369 @@
+
+-----------
+QUERY:
 -- Strings.
-SELECT '""'::json
-RESULT: 
+SELECT '""'::json;
+RESULT:
 	[('""',)]
+
+-----------
+QUERY:
 				-- OK.
-SELECT $$''$$::json
-ERROR: 				-- OK.
-SELECT $$''$$::json
+SELECT $$''$$::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 0 of input: unexpected character.  Input: ''
 
-Conversion Error: Malformed JSON at byte 0 of input: unexpected character.  Input: ''
+-----------
+QUERY:
 			-- ERROR, single quotes are not allowed
-SELECT '"abc"'::json
-RESULT: 
+SELECT '"abc"'::json;
+RESULT:
 	[('"abc"',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT '"abc'::json;			-- ERROR, quotes not closed
-SELECT '"abc
-def"'::json;					-- ERROR, unescaped newline in string constant
-SELECT '"\n\"\\"'::json
-ERROR: 			-- OK
-SELECT '"abc'::json;			-- ERROR, quotes not closed
-SELECT '"abc
-def"'::json;					-- ERROR, unescaped newline in string constant
-SELECT '"\n\"\\"'::json
+SELECT '"abc'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 4 of input: unexpected end of data.  Input: "abc
 
-Conversion Error: Malformed JSON at byte 4 of input: unexpected end of data.  Input: "abc
-LINE 2: SELECT '"abc'::json;			-- ERROR, quotes not closed
-                     ^
+-----------
+QUERY:
+			-- ERROR, quotes not closed
+SELECT '"abc
+def"'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 4 of input: unexpected control character in string.  Input: "abc
+def"
+
+-----------
+QUERY:
+					-- ERROR, unescaped newline in string constant
+SELECT '"\n\"\\"'::json;
+RESULT:
+	[('"\\n\\"\\\\"',)]
+
+-----------
+QUERY:
 		-- OK, legal escapes
-SELECT '"\v"'::json
-ERROR: 		-- OK, legal escapes
-SELECT '"\v"'::json
+SELECT '"\v"'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 2 of input: invalid escaped character in string.  Input: "\v"
 
-Conversion Error: Malformed JSON at byte 2 of input: invalid escaped character in string.  Input: "\v"
+-----------
+QUERY:
 			-- ERROR, not a valid JSON escape
 
 -- Check fast path for longer strings (at least 16 bytes long)
-SELECT ('"'||repeat('.', 12)||'abc"')::json
-RESULT: 
+SELECT ('"'||repeat('.', 12)||'abc"')::json;
+RESULT:
 	[('"............abc"',)]
+
+-----------
+QUERY:
  -- OK
-SELECT ('"'||repeat('.', 12)||'abc\n"')::json
-RESULT: 
+SELECT ('"'||repeat('.', 12)||'abc\n"')::json;
+RESULT:
 	[('"............abc\\n"',)]
+
+-----------
+QUERY:
  -- OK, legal escapes
 
 -- see json_encoding test for input with unicode escapes
 
 -- Numbers.
-SELECT '1'::json
-RESULT: 
+SELECT '1'::json;
+RESULT:
 	[('1',)]
+
+-----------
+QUERY:
 				-- OK
-SELECT '0'::json
-RESULT: 
+SELECT '0'::json;
+RESULT:
 	[('0',)]
-				-- OK
-SELECT '01'::json
-ERROR: 				-- OK
-SELECT '01'::json
 
-Conversion Error: Malformed JSON at byte 0 of input: number with leading zero is not allowed.  Input: 01
+-----------
+QUERY:
+				-- OK
+SELECT '01'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 0 of input: number with leading zero is not allowed.  Input: 01
+
+-----------
+QUERY:
 				-- ERROR, not valid according to JSON spec
-SELECT '0.1'::json
-RESULT: 
+SELECT '0.1'::json;
+RESULT:
 	[('0.1',)]
+
+-----------
+QUERY:
 				-- OK
-SELECT '9223372036854775808'::json
-RESULT: 
+SELECT '9223372036854775808'::json;
+RESULT:
 	[('9223372036854775808',)]
-	-- OK, even though it''s too large for int8
-SELECT '1e100'::json
-RESULT: 
+
+-----------
+QUERY:
+	-- OK, even though it/* REPLACED */''s too large for int8
+SELECT '1e100'::json;
+RESULT:
 	[('1e100',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT '1.3e100'::json
-RESULT: 
+SELECT '1.3e100'::json;
+RESULT:
 	[('1.3e100',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT '1f2'::json
-ERROR: 			-- OK
-SELECT '1f2'::json
+SELECT '1f2'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 1 of input: unexpected content after document.  Input: 1f2
 
-Conversion Error: Malformed JSON at byte 1 of input: unexpected content after document.  Input: 1f2
+-----------
+QUERY:
 				-- ERROR
-SELECT '0.x1'::json
-ERROR: 				-- ERROR
-SELECT '0.x1'::json
+SELECT '0.x1'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 2 of input: no digit after decimal point.  Input: 0.x1
 
-Conversion Error: Malformed JSON at byte 2 of input: no digit after decimal point.  Input: 0.x1
+-----------
+QUERY:
 			-- ERROR
-SELECT '1.3ex100'::json
-ERROR: 			-- ERROR
-SELECT '1.3ex100'::json
+SELECT '1.3ex100'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 4 of input: no digit after exponent sign.  Input: 1.3ex100
 
-Conversion Error: Malformed JSON at byte 4 of input: no digit after exponent sign.  Input: 1.3ex100
+-----------
+QUERY:
 		-- ERROR
 
 -- Arrays.
-SELECT '[]'::json
-RESULT: 
+SELECT '[]'::json;
+RESULT:
 	[('[]',)]
+
+-----------
+QUERY:
 				-- OK
-SELECT '[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]'::json
-RESULT: 
+SELECT '[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]'::json;
+RESULT:
 	[('[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]',)]
+
+-----------
+QUERY:
   -- OK
-SELECT '[1,2]'::json
-RESULT: 
+SELECT '[1,2]'::json;
+RESULT:
 	[('[1,2]',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT '[1,2,]'::json
-RESULT: 
+SELECT '[1,2,]'::json;
+RESULT:
 	[('[1,2,]',)]
+
+-----------
+QUERY:
 			-- ERROR, trailing comma
-SELECT '[1,2'::json
-ERROR: 			-- ERROR, trailing comma
-SELECT '[1,2'::json
+SELECT '[1,2'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 4 of input: unexpected end of data.  Input: [1,2
 
-Conversion Error: Malformed JSON at byte 4 of input: unexpected end of data.  Input: [1,2
+-----------
+QUERY:
 			-- ERROR, no closing bracket
-SELECT '[1,[2]'::json
-ERROR: 			-- ERROR, no closing bracket
-SELECT '[1,[2]'::json
+SELECT '[1,[2]'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 6 of input: unexpected end of data.  Input: [1,[2]
 
-Conversion Error: Malformed JSON at byte 6 of input: unexpected end of data.  Input: [1,[2]
+-----------
+QUERY:
 			-- ERROR, no closing bracket
 
 -- Objects.
-SELECT '{}'::json
-RESULT: 
+SELECT '{}'::json;
+RESULT:
 	[('{}',)]
+
+-----------
+QUERY:
 				-- OK
-SELECT '{"abc"}'::json
-ERROR: 				-- OK
-SELECT '{"abc"}'::json
+SELECT '{"abc"}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 6 of input: unexpected character.  Input: {"abc"}
 
-Conversion Error: Malformed JSON at byte 6 of input: unexpected character.  Input: {"abc"}
+-----------
+QUERY:
 			-- ERROR, no value
-SELECT '{"abc":1}'::json
-RESULT: 
+SELECT '{"abc":1}'::json;
+RESULT:
 	[('{"abc":1}',)]
+
+-----------
+QUERY:
 		-- OK
-SELECT '{1:"abc"}'::json
-ERROR: 		-- OK
-SELECT '{1:"abc"}'::json
+SELECT '{1:"abc"}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 1 of input: unexpected character.  Input: {1:"abc"}
 
-Conversion Error: Malformed JSON at byte 1 of input: unexpected character.  Input: {1:"abc"}
+-----------
+QUERY:
 		-- ERROR, keys must be strings
-SELECT '{"abc",1}'::json
-ERROR: 		-- ERROR, keys must be strings
-SELECT '{"abc",1}'::json
+SELECT '{"abc",1}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 6 of input: unexpected character.  Input: {"abc",1}
 
-Conversion Error: Malformed JSON at byte 6 of input: unexpected character.  Input: {"abc",1}
+-----------
+QUERY:
 		-- ERROR, wrong separator
-SELECT '{"abc"=1}'::json
-ERROR: 		-- ERROR, wrong separator
-SELECT '{"abc"=1}'::json
+SELECT '{"abc"=1}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 6 of input: unexpected character.  Input: {"abc"=1}
 
-Conversion Error: Malformed JSON at byte 6 of input: unexpected character.  Input: {"abc"=1}
+-----------
+QUERY:
 		-- ERROR, totally wrong separator
-SELECT '{"abc"::1}'::json
-ERROR: 		-- ERROR, totally wrong separator
-SELECT '{"abc"::1}'::json
+SELECT '{"abc"::1}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 7 of input: unexpected character.  Input: {"abc"::1}
 
-Conversion Error: Malformed JSON at byte 7 of input: unexpected character.  Input: {"abc"::1}
+-----------
+QUERY:
 		-- ERROR, another wrong separator
-SELECT '{"abc":1,"def":2,"ghi":[3,4],"hij":{"klm":5,"nop":[6]}}'::json
-RESULT: 
+SELECT '{"abc":1,"def":2,"ghi":[3,4],"hij":{"klm":5,"nop":[6]}}'::json;
+RESULT:
 	[('{"abc":1,"def":2,"ghi":[3,4],"hij":{"klm":5,"nop":[6]}}',)]
+
+-----------
+QUERY:
  -- OK
-SELECT '{"abc":1:2}'::json
-ERROR:  -- OK
-SELECT '{"abc":1:2}'::json
+SELECT '{"abc":1:2}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 8 of input: unexpected character.  Input: {"abc":1:2}
 
-Conversion Error: Malformed JSON at byte 8 of input: unexpected character.  Input: {"abc":1:2}
+-----------
+QUERY:
 		-- ERROR, colon in wrong spot
-SELECT '{"abc":1,3}'::json
-ERROR: 		-- ERROR, colon in wrong spot
-SELECT '{"abc":1,3}'::json
+SELECT '{"abc":1,3}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 9 of input: unexpected character.  Input: {"abc":1,3}
 
-Conversion Error: Malformed JSON at byte 9 of input: unexpected character.  Input: {"abc":1,3}
+-----------
+QUERY:
 		-- ERROR, no value
 
 -- Recursion.
-SET max_stack_depth = '100kB'
-ERROR: 		-- ERROR, no value
-
--- Recursion.
-SET max_stack_depth = '100kB'
-
-Catalog Error: unrecognized configuration parameter "max_stack_depth"
+SET max_stack_depth = '100kB';
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "max_stack_depth"
 
 Did you mean: "search_path"
 
-SELECT repeat('[', 10000)::json
-ERROR: 
-SELECT repeat('[', 10000)::json
+-----------
+QUERY:
 
-Conversion Error: Malformed JSON at byte 10000 of input: unexpected end of data.  Input: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...
+SELECT repeat('[', 10000)::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 10000 of input: unexpected end of data.  Input: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...
 
-SELECT repeat('{"a":', 10000)::json
-ERROR: 
-SELECT repeat('{"a":', 10000)::json
+-----------
+QUERY:
 
-Conversion Error: Malformed JSON at byte 50000 of input: unexpected end of data.  Input: {"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"...
+SELECT repeat('{"a":', 10000)::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 50000 of input: unexpected end of data.  Input: {"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"a":{"...
 
-RESET max_stack_depth
-ERROR: 
-RESET max_stack_depth
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "max_stack_depth"
+RESET max_stack_depth;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "max_stack_depth"
 
 Did you mean: "search_path"
+
+-----------
+QUERY:
 
 
 -- Miscellaneous stuff.
-SELECT 'true'::json
-RESULT: 
+SELECT 'true'::json;
+RESULT:
 	[('true',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT 'false'::json
-RESULT: 
+SELECT 'false'::json;
+RESULT:
 	[('false',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT 'null'::json
-RESULT: 
+SELECT 'null'::json;
+RESULT:
 	[('null',)]
+
+-----------
+QUERY:
 			-- OK
-SELECT ' true '::json
-RESULT: 
+SELECT ' true '::json;
+RESULT:
 	[(' true ',)]
+
+-----------
+QUERY:
 			-- OK, even with extra whitespace
-SELECT 'true false'::json
-ERROR: 			-- OK, even with extra whitespace
-SELECT 'true false'::json
+SELECT 'true false'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 5 of input: unexpected content after document.  Input: true false
 
-Conversion Error: Malformed JSON at byte 5 of input: unexpected content after document.  Input: true false
+-----------
+QUERY:
 		-- ERROR, too many values
-SELECT 'true, false'::json
-ERROR: 		-- ERROR, too many values
-SELECT 'true, false'::json
+SELECT 'true, false'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 4 of input: unexpected content after document.  Input: true, false
 
-Conversion Error: Malformed JSON at byte 4 of input: unexpected content after document.  Input: true, false
+-----------
+QUERY:
 		-- ERROR, too many values
-SELECT 'truf'::json
-ERROR: 		-- ERROR, too many values
-SELECT 'truf'::json
+SELECT 'truf'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 0 of input: invalid literal.  Input: truf
 
-Conversion Error: Malformed JSON at byte 0 of input: invalid literal.  Input: truf
+-----------
+QUERY:
 			-- ERROR, not a keyword
-SELECT 'trues'::json
-ERROR: 			-- ERROR, not a keyword
-SELECT 'trues'::json
+SELECT 'trues'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 4 of input: unexpected content after document.  Input: trues
 
-Conversion Error: Malformed JSON at byte 4 of input: unexpected content after document.  Input: trues
+-----------
+QUERY:
 			-- ERROR, not a keyword
-SELECT ''::json
-ERROR: 			-- ERROR, not a keyword
-SELECT ''::json
+SELECT ''::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 0 of input: input length is 0.  Input: 
 
-Conversion Error: Malformed JSON at byte 0 of input: input length is 0.  Input: 
+-----------
+QUERY:
 				-- ERROR, no value
-SELECT '    '::json
-ERROR: 				-- ERROR, no value
-SELECT '    '::json
+SELECT '    '::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 0 of input: input data is empty.  Input:     
 
-Conversion Error: Malformed JSON at byte 0 of input: input data is empty.  Input:     
+-----------
+QUERY:
 			-- ERROR, no value
 
 -- Multi-line JSON input to check ERROR reporting
@@ -273,81 +371,80 @@ SELECT '{
 		"one": 1,
 		"two":"two",
 		"three":
-		true}'::json
-RESULT: 
+		true}'::json;
+RESULT:
 	[('{\n\t\t"one": 1,\n\t\t"two":"two",\n\t\t"three":\n\t\ttrue}',)]
+
+-----------
+QUERY:
  -- OK
 SELECT '{
 		"one": 1,
-		"two":,"two",  -- ERROR extraneous comma before field ''two''
+		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */''two/* REPLACED */''
 		"three":
-		true}'::json
-ERROR:  -- OK
-SELECT '{
-		"one": 1,
-		"two":,"two",  -- ERROR extraneous comma before field ''two''
-		"three":
-		true}'::json
-
-Conversion Error: Malformed JSON at byte 22 of input: unexpected character.  Input: {
+		true}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 22 of input: unexpected character.  Input: {
 		"one": 1,
 		"two":,"two",  -- ERROR extrane...
 
-SELECT '{
-		"one": 1,
-		"two":"two",
-		"averyveryveryveryveryveryveryveryveryverylongfieldname":}'::json
-ERROR: 
-SELECT '{
-		"one": 1,
-		"two":"two",
-		"averyveryveryveryveryveryveryveryveryverylongfieldname":}'::json
+-----------
+QUERY:
 
-Conversion Error: Malformed JSON at byte 88 of input: unexpected character.  Input: {
+SELECT '{
+		"one": 1,
+		"two":"two",
+		"averyveryveryveryveryveryveryveryveryverylongfieldname":}'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 88 of input: unexpected character.  Input: {
 		"one": 1,
 		"two":"two",
 		"averyveryveryve...
 
+-----------
+QUERY:
+
 -- ERROR missing value for last field
 
 -- test non-error-throwing input
-select pg_input_is_valid('{"a":true}', 'json')
-ERROR: 
--- ERROR missing value for last field
-
--- test non-error-throwing input
-select pg_input_is_valid('{"a":true}', 'json')
-
-Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+select pg_input_is_valid('{"a":true}', 'json');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
 Did you mean "json_valid"?
 
-select pg_input_is_valid('{"a":true', 'json')
-ERROR: 
-select pg_input_is_valid('{"a":true', 'json')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+select pg_input_is_valid('{"a":true', 'json');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
 Did you mean "json_valid"?
 
-select * from pg_input_error_info('{"a":true', 'json')
-ERROR: 
-select * from pg_input_error_info('{"a":true', 'json')
+-----------
+QUERY:
 
-Catalog Error: Table Function with name pg_input_error_info does not exist!
+select * from pg_input_error_info('{"a":true', 'json');
+RESULT:
+	ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
 Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
 
 
 --constructors
 -- array_to_json
 
-SELECT array_to_json(array(select 1 as a))
-RESULT: 
+SELECT array_to_json(array(select 1 as a));
+RESULT:
 	[('[1]',)]
 
-SELECT array_to_json(array_agg(q),false) from (select x as b, x * 2 as c from generate_series(1,3) x) q
-ERROR: 
-SELECT array_to_json(array_agg(q),false) from (select x as b, x * 2 as c from generate_series(1,3) x) q
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types '*(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+SELECT array_to_json(array_agg(q),false) from (select x as b, x * 2 as c from generate_series(1,3) x) q;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	*(TINYINT, TINYINT) -> TINYINT
 	*(SMALLINT, SMALLINT) -> SMALLINT
@@ -366,11 +463,12 @@ Binder Error: No function matches the given name and argument types '*(STRUCT(ge
 	*(BIGINT, INTERVAL) -> INTERVAL
 
 
-SELECT array_to_json(array_agg(q),true) from (select x as b, x * 2 as c from generate_series(1,3) x) q
-ERROR: 
-SELECT array_to_json(array_agg(q),true) from (select x as b, x * 2 as c from generate_series(1,3) x) q
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types '*(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+SELECT array_to_json(array_agg(q),true) from (select x as b, x * 2 as c from generate_series(1,3) x) q;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	*(TINYINT, TINYINT) -> TINYINT
 	*(SMALLINT, SMALLINT) -> SMALLINT
@@ -389,40 +487,44 @@ Binder Error: No function matches the given name and argument types '*(STRUCT(ge
 	*(BIGINT, INTERVAL) -> INTERVAL
 
 
+-----------
+QUERY:
+
 SELECT array_to_json(array_agg(q),false)
   FROM ( SELECT $$a$$ || x AS b, y AS c,
                ARRAY[ROW(x.*,ARRAY[1,2,3]),
                ROW(y.*,ARRAY[4,5,6])] AS z
          FROM generate_series(1,2) x,
-              generate_series(4,5) y) q
-ERROR: 
-SELECT array_to_json(array_agg(q),false)
-  FROM ( SELECT $$a$$ || x AS b, y AS c,
-               ARRAY[ROW(x.*,ARRAY[1,2,3]),
-               ROW(y.*,ARRAY[4,5,6])] AS z
-         FROM generate_series(1,2) x,
-              generate_series(4,5) y) q
+              generate_series(4,5) y) q;
+RESULT:
+	ERROR - Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
 
-Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
+-----------
+QUERY:
 
-SELECT array_to_json(array_agg(x),false) from generate_series(5,10) x
-ERROR: 
-SELECT array_to_json(array_agg(x),false) from generate_series(5,10) x
+SELECT array_to_json(array_agg(x),false) from generate_series(5,10) x;
+RESULT:
+	ERROR - Invalid Input Error: array_to_json() takes exactly one argument
 
-Invalid Input Error: array_to_json() takes exactly one argument
+-----------
+QUERY:
 
-SELECT array_to_json('{{1,5},{99,100}}'::int[])
-ERROR: 
-SELECT array_to_json('{{1,5},{99,100}}'::int[])
+SELECT array_to_json('{{1,5},{99,100}}'::int[]);
+RESULT:
+	ERROR - Conversion Error: Type VARCHAR with value '{{1,5},{99,100}}' can't be cast to the destination type LIST
 
-Conversion Error: Type VARCHAR with value '{{1,5},{99,100}}' can't be cast to the destination type LIST
+-----------
+QUERY:
 
 
 -- row_to_json
-SELECT row_to_json(row(1,'foo'))
-RESULT: 
+SELECT row_to_json(row(1,'foo'));
+RESULT:
 	[('{"":1,"":"foo"}',)]
 
+-----------
+QUERY:
+
 
 SELECT row_to_json(q)
 FROM (SELECT $$a$$ || x AS b,
@@ -430,18 +532,12 @@ FROM (SELECT $$a$$ || x AS b,
          ARRAY[ROW(x.*,ARRAY[1,2,3]),
                ROW(y.*,ARRAY[4,5,6])] AS z
       FROM generate_series(1,2) x,
-           generate_series(4,5) y) q
-ERROR: 
+           generate_series(4,5) y) q;
+RESULT:
+	ERROR - Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
 
-SELECT row_to_json(q)
-FROM (SELECT $$a$$ || x AS b,
-         y AS c,
-         ARRAY[ROW(x.*,ARRAY[1,2,3]),
-               ROW(y.*,ARRAY[4,5,6])] AS z
-      FROM generate_series(1,2) x,
-           generate_series(4,5) y) q
-
-Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
+-----------
+QUERY:
 
 
 SELECT row_to_json(q,true)
@@ -450,125 +546,166 @@ FROM (SELECT $$a$$ || x AS b,
          ARRAY[ROW(x.*,ARRAY[1,2,3]),
                ROW(y.*,ARRAY[4,5,6])] AS z
       FROM generate_series(1,2) x,
-           generate_series(4,5) y) q
-ERROR: 
+           generate_series(4,5) y) q;
+RESULT:
+	ERROR - Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
 
-SELECT row_to_json(q,true)
-FROM (SELECT $$a$$ || x AS b,
-         y AS c,
-         ARRAY[ROW(x.*,ARRAY[1,2,3]),
-               ROW(y.*,ARRAY[4,5,6])] AS z
-      FROM generate_series(1,2) x,
-           generate_series(4,5) y) q
-
-Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
+-----------
+QUERY:
 
 
 CREATE TEMP TABLE rows AS
 SELECT x, 'txt' || x as y
-FROM generate_series(1,3) AS x
+FROM generate_series(1,3) AS x;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 SELECT row_to_json(q,true)
-FROM rows q
-ERROR: 
+FROM rows q;
+RESULT:
+	ERROR - Invalid Input Error: row_to_json() takes exactly one argument
 
-SELECT row_to_json(q,true)
-FROM rows q
-
-Invalid Input Error: row_to_json() takes exactly one argument
+-----------
+QUERY:
 
 
-SELECT row_to_json(row((select array_agg(x) as d from generate_series(5,10) x)),false)
-ERROR: 
+SELECT row_to_json(row((select array_agg(x) as d from generate_series(5,10) x)),false);
+RESULT:
+	ERROR - Invalid Input Error: row_to_json() takes exactly one argument
 
-SELECT row_to_json(row((select array_agg(x) as d from generate_series(5,10) x)),false)
-
-Invalid Input Error: row_to_json() takes exactly one argument
+-----------
+QUERY:
 
 
 -- anyarray column
 
-analyze rows
+analyze rows;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 select attname, to_json(histogram_bounds) histogram_bounds
 from pg_stats
 where tablename = 'rows' and
       schemaname = pg_my_temp_schema()::regnamespace::text
-order by 1
-ERROR: 
-
-select attname, to_json(histogram_bounds) histogram_bounds
-from pg_stats
-where tablename = 'rows' and
-      schemaname = pg_my_temp_schema()::regnamespace::text
-order by 1
-
-Catalog Error: Table with name pg_stats does not exist!
+order by 1;
+RESULT:
+	ERROR - Catalog Error: Table with name pg_stats does not exist!
 Did you mean "pg_am"?
+
+-----------
+QUERY:
 
 
 -- to_json, timestamps
 
-select to_json(timestamp '2014-05-28 12:22:35.614298')
-RESULT: 
+select to_json(timestamp '2014-05-28 12:22:35.614298');
+RESULT:
 	[('"2014-05-28 12:22:35.614298"',)]
 
+-----------
+QUERY:
 
-BEGIN
 
-SET LOCAL TIME ZONE 10.5
-ERROR: 
-SET LOCAL TIME ZONE 10.5
+BEGIN;
+RESULT:
+	[]
 
-Not implemented Error: SET LOCAL is not implemented.
+-----------
+QUERY:
 
-select to_json(timestamptz '2014-05-28 12:22:35.614298-04')
-RESULT: 
+SET LOCAL TIME ZONE 10.5;
+RESULT:
+	ERROR - Not implemented Error: SET LOCAL is not implemented.
+
+-----------
+QUERY:
+
+select to_json(timestamptz '2014-05-28 12:22:35.614298-04');
+RESULT:
 	[('"2014-05-28 18:22:35.614298+02"',)]
 
-SET LOCAL TIME ZONE -8
-ERROR: 
-SET LOCAL TIME ZONE -8
+-----------
+QUERY:
 
-Not implemented Error: SET LOCAL is not implemented.
+SET LOCAL TIME ZONE -8;
+RESULT:
+	ERROR - Not implemented Error: SET LOCAL is not implemented.
 
-select to_json(timestamptz '2014-05-28 12:22:35.614298-04')
-RESULT: 
+-----------
+QUERY:
+
+select to_json(timestamptz '2014-05-28 12:22:35.614298-04');
+RESULT:
 	[('"2014-05-28 18:22:35.614298+02"',)]
 
-COMMIT
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-select to_json(date '2014-05-28')
-RESULT: 
+select to_json(date '2014-05-28');
+RESULT:
 	[('"2014-05-28"',)]
 
+-----------
+QUERY:
 
-select to_json(date 'Infinity')
-RESULT: 
+
+select to_json(date 'Infinity');
+RESULT:
 	[('"infinity"',)]
 
-select to_json(date '-Infinity')
-RESULT: 
+-----------
+QUERY:
+
+select to_json(date '-Infinity');
+RESULT:
 	[('"-infinity"',)]
 
-select to_json(timestamp 'Infinity')
-RESULT: 
+-----------
+QUERY:
+
+select to_json(timestamp 'Infinity');
+RESULT:
 	[('"infinity"',)]
 
-select to_json(timestamp '-Infinity')
-RESULT: 
+-----------
+QUERY:
+
+select to_json(timestamp '-Infinity');
+RESULT:
 	[('"-infinity"',)]
 
-select to_json(timestamptz 'Infinity')
-RESULT: 
+-----------
+QUERY:
+
+select to_json(timestamptz 'Infinity');
+RESULT:
 	[('"infinity"',)]
 
-select to_json(timestamptz '-Infinity')
-RESULT: 
+-----------
+QUERY:
+
+select to_json(timestamptz '-Infinity');
+RESULT:
 	[('"-infinity"',)]
+
+-----------
+QUERY:
 
 
 --json_agg
@@ -578,77 +715,80 @@ SELECT json_agg(q)
                ARRAY[ROW(x.*,ARRAY[1,2,3]),
                ROW(y.*,ARRAY[4,5,6])] AS z
          FROM generate_series(1,2) x,
-              generate_series(4,5) y) q
-ERROR: 
+              generate_series(4,5) y) q;
+RESULT:
+	ERROR - Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
 
---json_agg
-
-SELECT json_agg(q)
-  FROM ( SELECT $$a$$ || x AS b, y AS c,
-               ARRAY[ROW(x.*,ARRAY[1,2,3]),
-               ROW(y.*,ARRAY[4,5,6])] AS z
-         FROM generate_series(1,2) x,
-              generate_series(4,5) y) q
-
-Binder Error: STAR expression is only allowed as the root element of an expression. Use COLUMNS(*) instead.
+-----------
+QUERY:
 
 
 SELECT json_agg(q ORDER BY x, y)
-  FROM rows q
-ERROR: 
-
-SELECT json_agg(q ORDER BY x, y)
-  FROM rows q
-
-Catalog Error: Scalar Function with name json_agg does not exist!
+  FROM rows q;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_agg does not exist!
 Did you mean "json"?
 
+-----------
+QUERY:
 
-UPDATE rows SET x = NULL WHERE x = 1
-ERROR: 
 
-UPDATE rows SET x = NULL WHERE x = 1
-
-Conversion Error: Unimplemented type for cast (INTEGER -> STRUCT(generate_series BIGINT))
-LINE 3: UPDATE rows SET x = NULL WHERE x = 1
+UPDATE rows SET x = NULL WHERE x = 1;
+RESULT:
+	ERROR - Conversion Error: Unimplemented type for cast (INTEGER -> STRUCT(generate_series BIGINT))
+LINE 3: UPDATE rows SET x = NULL WHERE x = 1;
                                            ^
 
+-----------
+QUERY:
+
 
 SELECT json_agg(q ORDER BY x NULLS FIRST, y)
-  FROM rows q
-ERROR: 
-
-SELECT json_agg(q ORDER BY x NULLS FIRST, y)
-  FROM rows q
-
-Catalog Error: Scalar Function with name json_agg does not exist!
+  FROM rows q;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_agg does not exist!
 Did you mean "json"?
+
+-----------
+QUERY:
 
 
 -- non-numeric output
 SELECT row_to_json(q)
-FROM (SELECT 'NaN'::float8 AS "float8field") q
-RESULT: 
+FROM (SELECT 'NaN'::float8 AS "float8field") q;
+RESULT:
 	[('{"float8field":NaN}',)]
 
+-----------
+QUERY:
+
 
 SELECT row_to_json(q)
-FROM (SELECT 'Infinity'::float8 AS "float8field") q
-RESULT: 
+FROM (SELECT 'Infinity'::float8 AS "float8field") q;
+RESULT:
 	[('{"float8field":Infinity}',)]
 
+-----------
+QUERY:
+
 
 SELECT row_to_json(q)
-FROM (SELECT '-Infinity'::float8 AS "float8field") q
-RESULT: 
+FROM (SELECT '-Infinity'::float8 AS "float8field") q;
+RESULT:
 	[('{"float8field":-Infinity}',)]
+
+-----------
+QUERY:
 
 
 -- json input
 SELECT row_to_json(q)
-FROM (SELECT '{"a":1,"b": [2,3,4,"d","e","f"],"c":{"p":1,"q":2}}'::json AS "jsonfield") q
-RESULT: 
+FROM (SELECT '{"a":1,"b": [2,3,4,"d","e","f"],"c":{"p":1,"q":2}}'::json AS "jsonfield") q;
+RESULT:
 	[('{"jsonfield":{"a":1,"b":[2,3,4,"d","e","f"],"c":{"p":1,"q":2}}}',)]
+
+-----------
+QUERY:
 
 
 
@@ -657,144 +797,193 @@ RESULT:
 CREATE TEMP TABLE test_json (
        json_type text,
        test_json json
-)
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO test_json VALUES
 ('scalar','"a scalar"'),
 ('array','["zero", "one","two",null,"four","five", [1,2,3],{"f1":9}]'),
-('object','{"field1":"val1","field2":"val2","field3":null, "field4": 4, "field5": [1,2,3], "field6": {"f1":9}}')
+('object','{"field1":"val1","field2":"val2","field3":null, "field4": 4, "field5": [1,2,3], "field6": {"f1":9}}');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 SELECT test_json -> 'x'
 FROM test_json
-WHERE json_type = 'scalar'
-RESULT: 
+WHERE json_type = 'scalar';
+RESULT:
 	[(None,)]
+
+-----------
+QUERY:
 
 
 SELECT test_json -> 'x'
 FROM test_json
-WHERE json_type = 'array'
-RESULT: 
+WHERE json_type = 'array';
+RESULT:
 	[(None,)]
+
+-----------
+QUERY:
 
 
 SELECT test_json -> 'x'
 FROM test_json
-WHERE json_type = 'object'
-RESULT: 
+WHERE json_type = 'object';
+RESULT:
 	[(None,)]
+
+-----------
+QUERY:
 
 
 SELECT test_json->'field2'
 FROM test_json
-WHERE json_type = 'object'
-RESULT: 
+WHERE json_type = 'object';
+RESULT:
 	[('"val2"',)]
+
+-----------
+QUERY:
 
 
 SELECT test_json->>'field2'
 FROM test_json
-WHERE json_type = 'object'
-RESULT: 
+WHERE json_type = 'object';
+RESULT:
 	[('val2',)]
 
+-----------
+QUERY:
+
 
 SELECT test_json -> 2
 FROM test_json
-WHERE json_type = 'scalar'
-RESULT: 
+WHERE json_type = 'scalar';
+RESULT:
 	[(None,)]
 
+-----------
+QUERY:
+
 
 SELECT test_json -> 2
 FROM test_json
-WHERE json_type = 'array'
-RESULT: 
+WHERE json_type = 'array';
+RESULT:
 	[('"two"',)]
+
+-----------
+QUERY:
 
 
 SELECT test_json -> -1
 FROM test_json
-WHERE json_type = 'array'
-RESULT: 
+WHERE json_type = 'array';
+RESULT:
 	[(None,)]
+
+-----------
+QUERY:
 
 
 SELECT test_json -> 2
 FROM test_json
-WHERE json_type = 'object'
-RESULT: 
+WHERE json_type = 'object';
+RESULT:
 	[(None,)]
+
+-----------
+QUERY:
 
 
 SELECT test_json->>2
 FROM test_json
-WHERE json_type = 'array'
-RESULT: 
+WHERE json_type = 'array';
+RESULT:
 	[('two',)]
 
+-----------
+QUERY:
 
-SELECT test_json ->> 6 FROM test_json WHERE json_type = 'array'
-RESULT: 
+
+SELECT test_json ->> 6 FROM test_json WHERE json_type = 'array';
+RESULT:
 	[('[1,2,3]',)]
 
-SELECT test_json ->> 7 FROM test_json WHERE json_type = 'array'
-RESULT: 
+-----------
+QUERY:
+
+SELECT test_json ->> 7 FROM test_json WHERE json_type = 'array';
+RESULT:
 	[('{"f1":9}',)]
 
+-----------
+QUERY:
 
-SELECT test_json ->> 'field4' FROM test_json WHERE json_type = 'object'
-RESULT: 
+
+SELECT test_json ->> 'field4' FROM test_json WHERE json_type = 'object';
+RESULT:
 	[('4',)]
 
-SELECT test_json ->> 'field5' FROM test_json WHERE json_type = 'object'
-RESULT: 
+-----------
+QUERY:
+
+SELECT test_json ->> 'field5' FROM test_json WHERE json_type = 'object';
+RESULT:
 	[('[1,2,3]',)]
 
-SELECT test_json ->> 'field6' FROM test_json WHERE json_type = 'object'
-RESULT: 
+-----------
+QUERY:
+
+SELECT test_json ->> 'field6' FROM test_json WHERE json_type = 'object';
+RESULT:
 	[('{"f1":9}',)]
 
+-----------
+QUERY:
+
 
 SELECT json_object_keys(test_json)
 FROM test_json
-WHERE json_type = 'scalar'
-ERROR: 
-
-SELECT json_object_keys(test_json)
-FROM test_json
-WHERE json_type = 'scalar'
-
-Catalog Error: Scalar Function with name json_object_keys does not exist!
+WHERE json_type = 'scalar';
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_object_keys does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
+
 
 SELECT json_object_keys(test_json)
 FROM test_json
-WHERE json_type = 'array'
-ERROR: 
-
-SELECT json_object_keys(test_json)
-FROM test_json
-WHERE json_type = 'array'
-
-Catalog Error: Scalar Function with name json_object_keys does not exist!
+WHERE json_type = 'array';
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_object_keys does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
+
 
 SELECT json_object_keys(test_json)
 FROM test_json
-WHERE json_type = 'object'
-ERROR: 
-
-SELECT json_object_keys(test_json)
-FROM test_json
-WHERE json_type = 'object'
-
-Catalog Error: Scalar Function with name json_object_keys does not exist!
+WHERE json_type = 'object';
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_object_keys does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- test extending object_keys resultset - initial resultset size is 256
@@ -802,218 +991,297 @@ Did you mean "json_object"?
 select count(*) from
     (select json_object_keys(json_object(array_agg(g)))
      from (select unnest(array['f'||n,n::text])as g
-           from generate_series(1,300) as n) x ) y
-ERROR: 
-
--- test extending object_keys resultset - initial resultset size is 256
-
-select count(*) from
-    (select json_object_keys(json_object(array_agg(g)))
-     from (select unnest(array['f'||n,n::text])as g
-           from generate_series(1,300) as n) x ) y
-
-Catalog Error: Scalar Function with name json_object_keys does not exist!
+           from generate_series(1,300) as n) x ) y;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_object_keys does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- nulls
 
 select (test_json->'field3') is null as expect_false
 from test_json
-where json_type = 'object'
-RESULT: 
+where json_type = 'object';
+RESULT:
 	[(True,)]
+
+-----------
+QUERY:
 
 
 select (test_json->>'field3') is null as expect_true
 from test_json
-where json_type = 'object'
-RESULT: 
+where json_type = 'object';
+RESULT:
 	[(True,)]
+
+-----------
+QUERY:
 
 
 select (test_json->3) is null as expect_false
 from test_json
-where json_type = 'array'
-RESULT: 
+where json_type = 'array';
+RESULT:
 	[(True,)]
+
+-----------
+QUERY:
 
 
 select (test_json->>3) is null as expect_true
 from test_json
-where json_type = 'array'
-RESULT: 
+where json_type = 'array';
+RESULT:
 	[(True,)]
+
+-----------
+QUERY:
 
 
 -- corner cases
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> null::text
-RESULT: 
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> null::text;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> null::int
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> null::int;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> 1
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> 1;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> -1
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> -1;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> 'z'
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> 'z';
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> ''
-ERROR: 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> ''
+-----------
+QUERY:
 
-Binder Error: Empty JSON path
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json -> '';
+RESULT:
+	ERROR - Binder Error: Empty JSON path
 
-select '[{"b": "c"}, {"b": "cc"}]'::json -> 1
-RESULT: 
+-----------
+QUERY:
+
+select '[{"b": "c"}, {"b": "cc"}]'::json -> 1;
+RESULT:
 	[('{"b":"cc"}',)]
 
-select '[{"b": "c"}, {"b": "cc"}]'::json -> 3
-RESULT: 
+-----------
+QUERY:
+
+select '[{"b": "c"}, {"b": "cc"}]'::json -> 3;
+RESULT:
 	[(None,)]
 
-select '[{"b": "c"}, {"b": "cc"}]'::json -> 'z'
-RESULT: 
+-----------
+QUERY:
+
+select '[{"b": "c"}, {"b": "cc"}]'::json -> 'z';
+RESULT:
 	[(None,)]
 
-select '{"a": "c", "b": null}'::json -> 'b'
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": "c", "b": null}'::json -> 'b';
+RESULT:
 	[(None,)]
 
-select '"foo"'::json -> 1
-RESULT: 
+-----------
+QUERY:
+
+select '"foo"'::json -> 1;
+RESULT:
 	[(None,)]
 
-select '"foo"'::json -> 'z'
-RESULT: 
+-----------
+QUERY:
+
+select '"foo"'::json -> 'z';
+RESULT:
 	[(None,)]
 
+-----------
+QUERY:
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> null::text
-RESULT: 
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> null::text;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> null::int
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> null::int;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> 1
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> 1;
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> 'z'
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> 'z';
+RESULT:
 	[(None,)]
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> ''
-ERROR: 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> ''
+-----------
+QUERY:
 
-Binder Error: Empty JSON path
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json ->> '';
+RESULT:
+	ERROR - Binder Error: Empty JSON path
 
-select '[{"b": "c"}, {"b": "cc"}]'::json ->> 1
-RESULT: 
+-----------
+QUERY:
+
+select '[{"b": "c"}, {"b": "cc"}]'::json ->> 1;
+RESULT:
 	[('{"b":"cc"}',)]
 
-select '[{"b": "c"}, {"b": "cc"}]'::json ->> 3
-RESULT: 
+-----------
+QUERY:
+
+select '[{"b": "c"}, {"b": "cc"}]'::json ->> 3;
+RESULT:
 	[(None,)]
 
-select '[{"b": "c"}, {"b": "cc"}]'::json ->> 'z'
-RESULT: 
+-----------
+QUERY:
+
+select '[{"b": "c"}, {"b": "cc"}]'::json ->> 'z';
+RESULT:
 	[(None,)]
 
-select '{"a": "c", "b": null}'::json ->> 'b'
-RESULT: 
+-----------
+QUERY:
+
+select '{"a": "c", "b": null}'::json ->> 'b';
+RESULT:
 	[(None,)]
 
-select '"foo"'::json ->> 1
-RESULT: 
+-----------
+QUERY:
+
+select '"foo"'::json ->> 1;
+RESULT:
 	[(None,)]
 
-select '"foo"'::json ->> 'z'
-RESULT: 
+-----------
+QUERY:
+
+select '"foo"'::json ->> 'z';
+RESULT:
 	[(None,)]
+
+-----------
+QUERY:
 
 
 -- array length
 
-SELECT json_array_length('[1,2,3,{"f1":1,"f2":[5,6]},4]')
-RESULT: 
+SELECT json_array_length('[1,2,3,{"f1":1,"f2":[5,6]},4]');
+RESULT:
 	[(5,)]
 
+-----------
+QUERY:
 
-SELECT json_array_length('[]')
-RESULT: 
+
+SELECT json_array_length('[]');
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT json_array_length('{"f1":1,"f2":[5,6]}')
-RESULT: 
+
+SELECT json_array_length('{"f1":1,"f2":[5,6]}');
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT json_array_length('4')
-RESULT: 
+
+SELECT json_array_length('4');
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 
 -- each
 
-select json_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null}')
-ERROR: 
-
--- each
-
-select json_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null}')
-
-Catalog Error: Scalar Function with name json_each does not exist!
+select json_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_each does not exist!
 Did you mean "json"?
 
-select * from json_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q
-ERROR: 
-select * from json_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_each does not exist!
+select * from json_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_each does not exist!
 Did you mean "range"?
 
+-----------
+QUERY:
 
-select json_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":"null"}')
-ERROR: 
 
-select json_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":"null"}')
-
-Catalog Error: Scalar Function with name json_each_text does not exist!
+select json_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":"null"}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_each_text does not exist!
 Did you mean "json_extract"?
 
-select * from json_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q
-ERROR: 
-select * from json_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_each_text does not exist!
+select * from json_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_each_text does not exist!
 Did you mean "read_text"?
 
+-----------
+QUERY:
+
 
 -- extract_path, extract_path_as_text
 
-select json_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6')
-ERROR: 
-
--- extract_path, extract_path_as_text
-
-select json_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6')
-
-Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
+select json_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6');
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path(VARCHAR, BIGINT) -> JSON
 	json_extract_path(VARCHAR, VARCHAR) -> JSON
@@ -1023,15 +1291,19 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path(JSON, VARCHAR[]) -> JSON[]
 
 
-select json_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f2')
-RESULT: 
+-----------
+QUERY:
+
+select json_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f2');
+RESULT:
 	[('{"f3":1}',)]
 
-select json_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text)
-ERROR: 
-select json_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text)
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
+select json_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path(VARCHAR, BIGINT) -> JSON
 	json_extract_path(VARCHAR, VARCHAR) -> JSON
@@ -1041,11 +1313,12 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path(JSON, VARCHAR[]) -> JSON[]
 
 
-select json_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text)
-ERROR: 
-select json_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text)
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
+select json_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path(VARCHAR, BIGINT) -> JSON
 	json_extract_path(VARCHAR, VARCHAR) -> JSON
@@ -1055,11 +1328,12 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path(JSON, VARCHAR[]) -> JSON[]
 
 
-select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6')
-ERROR: 
-select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6')
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
+select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6');
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path_text(VARCHAR, BIGINT) -> VARCHAR
 	json_extract_path_text(VARCHAR, VARCHAR) -> VARCHAR
@@ -1069,15 +1343,19 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path_text(JSON, VARCHAR[]) -> VARCHAR[]
 
 
-select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f2')
-RESULT: 
+-----------
+QUERY:
+
+select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f2');
+RESULT:
 	[('{"f3":1}',)]
 
-select json_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text)
-ERROR: 
-select json_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text)
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
+select json_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path_text(VARCHAR, BIGINT) -> VARCHAR
 	json_extract_path_text(VARCHAR, VARCHAR) -> VARCHAR
@@ -1087,11 +1365,12 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path_text(JSON, VARCHAR[]) -> VARCHAR[]
 
 
-select json_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text)
-ERROR: 
-select json_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text)
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
+select json_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, VARCHAR)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path_text(VARCHAR, BIGINT) -> VARCHAR
 	json_extract_path_text(VARCHAR, VARCHAR) -> VARCHAR
@@ -1100,18 +1379,16 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path_text(JSON, VARCHAR) -> VARCHAR
 	json_extract_path_text(JSON, VARCHAR[]) -> VARCHAR[]
 
+
+-----------
+QUERY:
 
 
 -- extract_path nulls
 
-select json_extract_path('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') is null as expect_false
-ERROR: 
-
--- extract_path nulls
-
-select json_extract_path('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') is null as expect_false
-
-Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
+select json_extract_path('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') is null as expect_false;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path(VARCHAR, BIGINT) -> JSON
 	json_extract_path(VARCHAR, VARCHAR) -> JSON
@@ -1121,11 +1398,12 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path(JSON, VARCHAR[]) -> JSON[]
 
 
-select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') is null as expect_true
-ERROR: 
-select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') is null as expect_true
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
+select json_extract_path_text('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') is null as expect_true;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path_text(VARCHAR, BIGINT) -> VARCHAR
 	json_extract_path_text(VARCHAR, VARCHAR) -> VARCHAR
@@ -1135,11 +1413,12 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path_text(JSON, VARCHAR[]) -> VARCHAR[]
 
 
-select json_extract_path('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') is null as expect_false
-ERROR: 
-select json_extract_path('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') is null as expect_false
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
+select json_extract_path('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') is null as expect_false;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path(VARCHAR, BIGINT) -> JSON
 	json_extract_path(VARCHAR, VARCHAR) -> JSON
@@ -1149,11 +1428,12 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path(JSON, VARCHAR[]) -> JSON[]
 
 
-select json_extract_path_text('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') is null as expect_true
-ERROR: 
-select json_extract_path_text('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') is null as expect_true
+-----------
+QUERY:
 
-Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
+select json_extract_path_text('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') is null as expect_true;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'json_extract_path_text(STRING_LITERAL, STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
 	Candidate functions:
 	json_extract_path_text(VARCHAR, BIGINT) -> VARCHAR
 	json_extract_path_text(VARCHAR, VARCHAR) -> VARCHAR
@@ -1163,385 +1443,432 @@ Binder Error: No function matches the given name and argument types 'json_extrac
 	json_extract_path_text(JSON, VARCHAR[]) -> VARCHAR[]
 
 
+-----------
+QUERY:
+
 
 -- extract_path operators
 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f4','f6']
-ERROR: 
+select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f4','f6'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
--- extract_path operators
+-----------
+QUERY:
 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f4','f6']
+select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2']
-ERROR: 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2']
+select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2','0'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2','0']
-ERROR: 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2','0']
+select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2','1'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
-
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2','1']
-ERROR: 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>array['f2','1']
-
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f4','f6']
-ERROR: 
+select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f4','f6'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f4','f6']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2']
-ERROR: 
-select '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2','0'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2','0']
-ERROR: 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2','0']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2','1'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2','1']
-ERROR: 
-select '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::json#>>array['f2','1']
-
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
 
 -- corner cases for same
-select '{"a": {"b":{"c": "foo"}}}'::json #> '{}'
-ERROR: 
+select '{"a": {"b":{"c": "foo"}}}'::json #> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
--- corner cases for same
-select '{"a": {"b":{"c": "foo"}}}'::json #> '{}'
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '[1,2,3]'::json #> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '[1,2,3]'::json #> '{}'
-ERROR: 
-select '[1,2,3]'::json #> '{}'
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '"foo"'::json #> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '"foo"'::json #> '{}'
-ERROR: 
-select '"foo"'::json #> '{}'
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '42'::json #> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '42'::json #> '{}'
-ERROR: 
-select '42'::json #> '{}'
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select 'null'::json #> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select 'null'::json #> '{}'
-ERROR: 
-select 'null'::json #> '{}'
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a', null];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a', null]
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a', null]
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a', ''];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a', '']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a', '']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b','c'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b','c']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b','c']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b','c','d'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b','c','d']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','b','c','d']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','z','c'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','z','c']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #> array['a','z','c']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #> array['a','1','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #> array['a','1','b']
-ERROR: 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #> array['a','1','b']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #> array['a','z','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #> array['a','z','b']
-ERROR: 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #> array['a','z','b']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '[{"b": "c"}, {"b": "cc"}]'::json #> array['1','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '[{"b": "c"}, {"b": "cc"}]'::json #> array['1','b']
-ERROR: 
-select '[{"b": "c"}, {"b": "cc"}]'::json #> array['1','b']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '[{"b": "c"}, {"b": "cc"}]'::json #> array['z','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '[{"b": "c"}, {"b": "cc"}]'::json #> array['z','b']
-ERROR: 
-select '[{"b": "c"}, {"b": "cc"}]'::json #> array['z','b']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '[{"b": "c"}, {"b": null}]'::json #> array['1','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '[{"b": "c"}, {"b": null}]'::json #> array['1','b']
-ERROR: 
-select '[{"b": "c"}, {"b": null}]'::json #> array['1','b']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '"foo"'::json #> array['z'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '"foo"'::json #> array['z']
-ERROR: 
-select '"foo"'::json #> array['z']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '42'::json #> array['f2'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '42'::json #> array['f2']
-ERROR: 
-select '42'::json #> array['f2']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
+select '42'::json #> array['0'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '42'::json #> array['0']
-ERROR: 
-select '42'::json #> array['0']
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "#"
 
+select '{"a": {"b":{"c": "foo"}}}'::json #>> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> '{}'
-ERROR: 
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> '{}'
+select '[1,2,3]'::json #>> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '[1,2,3]'::json #>> '{}'
-ERROR: 
-select '[1,2,3]'::json #>> '{}'
+select '"foo"'::json #>> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '"foo"'::json #>> '{}'
-ERROR: 
-select '"foo"'::json #>> '{}'
+select '42'::json #>> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '42'::json #>> '{}'
-ERROR: 
-select '42'::json #>> '{}'
+select 'null'::json #>> '{}';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select 'null'::json #>> '{}'
-ERROR: 
-select 'null'::json #>> '{}'
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a']
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a', null];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a', null]
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a', null]
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a', ''];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a', '']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a', '']
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b']
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b','c'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b','c']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b','c']
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b','c','d'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b','c','d']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','b','c','d']
+select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','z','c'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','z','c']
-ERROR: 
-select '{"a": {"b":{"c": "foo"}}}'::json #>> array['a','z','c']
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #>> array['a','1','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #>> array['a','1','b']
-ERROR: 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #>> array['a','1','b']
+select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #>> array['a','z','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #>> array['a','z','b']
-ERROR: 
-select '{"a": [{"b": "c"}, {"b": "cc"}]}'::json #>> array['a','z','b']
+select '[{"b": "c"}, {"b": "cc"}]'::json #>> array['1','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '[{"b": "c"}, {"b": "cc"}]'::json #>> array['1','b']
-ERROR: 
-select '[{"b": "c"}, {"b": "cc"}]'::json #>> array['1','b']
+select '[{"b": "c"}, {"b": "cc"}]'::json #>> array['z','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '[{"b": "c"}, {"b": "cc"}]'::json #>> array['z','b']
-ERROR: 
-select '[{"b": "c"}, {"b": "cc"}]'::json #>> array['z','b']
+select '[{"b": "c"}, {"b": null}]'::json #>> array['1','b'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '[{"b": "c"}, {"b": null}]'::json #>> array['1','b']
-ERROR: 
-select '[{"b": "c"}, {"b": null}]'::json #>> array['1','b']
+select '"foo"'::json #>> array['z'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '"foo"'::json #>> array['z']
-ERROR: 
-select '"foo"'::json #>> array['z']
+select '42'::json #>> array['f2'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
-select '42'::json #>> array['f2']
-ERROR: 
-select '42'::json #>> array['f2']
+select '42'::json #>> array['0'];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "#"
 
-Parser Error: syntax error at or near "#"
-
-select '42'::json #>> array['0']
-ERROR: 
-select '42'::json #>> array['0']
-
-Parser Error: syntax error at or near "#"
+-----------
+QUERY:
 
 
 -- array_elements
 
-select json_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]')
-ERROR: 
-
--- array_elements
-
-select json_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]')
-
-Catalog Error: Scalar Function with name json_array_elements does not exist!
+select json_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_array_elements does not exist!
 Did you mean "json_array_length"?
 
-select * from json_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q
-ERROR: 
-select * from json_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_array_elements does not exist!
+select * from json_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_array_elements does not exist!
 Did you mean "repeat"?
 
-select json_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]')
-ERROR: 
-select json_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_array_elements_text does not exist!
+select json_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_array_elements_text does not exist!
 Did you mean "json_array_length"?
 
-select * from json_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q
-ERROR: 
-select * from json_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_array_elements_text does not exist!
+select * from json_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_array_elements_text does not exist!
 Did you mean "read_text"?
 
+-----------
+QUERY:
+
 
 -- populate_record
-create type jpop as (a text, b int, c timestamp)
-ERROR: 
+create type jpop as (a text, b int, c timestamp);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
--- populate_record
-create type jpop as (a text, b int, c timestamp)
-
-Parser Error: syntax error at or near "("
-
-
-CREATE DOMAIN js_int_not_null  AS int     NOT NULL
-ERROR: 
-
-CREATE DOMAIN js_int_not_null  AS int     NOT NULL
-
-Parser Error: syntax error at or near "DOMAIN"
-
-CREATE DOMAIN js_int_array_1d  AS int[]   CHECK(array_length(VALUE, 1) = 3)
-ERROR: 
-CREATE DOMAIN js_int_array_1d  AS int[]   CHECK(array_length(VALUE, 1) = 3)
-
-Parser Error: syntax error at or near "DOMAIN"
-
-CREATE DOMAIN js_int_array_2d  AS int[][] CHECK(array_length(VALUE, 2) = 3)
-ERROR: 
-CREATE DOMAIN js_int_array_2d  AS int[][] CHECK(array_length(VALUE, 2) = 3)
-
-Parser Error: syntax error at or near "DOMAIN"
+-----------
+QUERY:
 
 
-create type j_unordered_pair as (x int, y int)
-ERROR: 
+CREATE DOMAIN js_int_not_null  AS int     NOT NULL;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
 
-create type j_unordered_pair as (x int, y int)
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "("
+CREATE DOMAIN js_int_array_1d  AS int[]   CHECK(array_length(VALUE, 1) = 3);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
 
-create domain j_ordered_pair as j_unordered_pair check((value).x <= (value).y)
-ERROR: 
-create domain j_ordered_pair as j_unordered_pair check((value).x <= (value).y)
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "domain"
+CREATE DOMAIN js_int_array_2d  AS int[][] CHECK(array_length(VALUE, 2) = 3);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
+
+-----------
+QUERY:
+
+
+create type j_unordered_pair as (x int, y int);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+create domain j_ordered_pair as j_unordered_pair check((value).x <= (value).y);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "domain"
+
+-----------
+QUERY:
 
 
 CREATE TYPE jsrec AS (
@@ -1562,919 +1889,971 @@ CREATE TYPE jsrec AS (
 	jsa	json[],
 	rec	jpop,
 	reca	jpop[]
-)
-ERROR: 
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
-CREATE TYPE jsrec AS (
-	i	int,
-	ia	_int4,
-	ia1	int[],
-	ia2	int[][],
-	ia3	int[][][],
-	ia1d	js_int_array_1d,
-	ia2d	js_int_array_2d,
-	t	text,
-	ta	text[],
-	c	char(10),
-	ca	char(10)[],
-	ts	timestamp,
-	js	json,
-	jsb	jsonb,
-	jsa	json[],
-	rec	jpop,
-	reca	jpop[]
-)
-
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
 
 CREATE TYPE jsrec_i_not_null AS (
 	i	js_int_not_null
-)
-ERROR: 
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
-CREATE TYPE jsrec_i_not_null AS (
-	i	js_int_not_null
-)
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "("
 
-
-select * from json_populate_record(null::jpop,'{"a":"blurfl","x":43.2}') q
-ERROR: 
-
-select * from json_populate_record(null::jpop,'{"a":"blurfl","x":43.2}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(null::jpop,'{"a":"blurfl","x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":"blurfl","x":43.2}') q
-ERROR: 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":"blurfl","x":43.2}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":"blurfl","x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-select * from json_populate_record(null::jpop,'{"a":"blurfl","x":43.2}') q
-ERROR: 
 
-select * from json_populate_record(null::jpop,'{"a":"blurfl","x":43.2}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(null::jpop,'{"a":"blurfl","x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":"blurfl","x":43.2}') q
-ERROR: 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":"blurfl","x":43.2}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":"blurfl","x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
-
 
-select * from json_populate_record(null::jpop,'{"a":[100,200,false],"x":43.2}') q
-ERROR: 
+-----------
+QUERY:
 
-select * from json_populate_record(null::jpop,'{"a":[100,200,false],"x":43.2}') q
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(null::jpop,'{"a":[100,200,false],"x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":[100,200,false],"x":43.2}') q
-ERROR: 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":[100,200,false],"x":43.2}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"a":[100,200,false],"x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"c":[100,200,false],"x":43.2}') q
-ERROR: 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"c":[100,200,false],"x":43.2}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{"c":[100,200,false],"x":43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{}') q
-ERROR: 
 
-select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+select * from json_populate_record(row('x',3,'2012-12-31 15:30:56')::jpop,'{}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"x": 43.2}') q
-ERROR: 
 
-SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"x": 43.2}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"x": 43.2}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"i": null}') q
-ERROR: 
-SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"i": null}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"i": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"i": 12345}') q
-ERROR: 
-SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"i": 12345}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT i FROM json_populate_record(NULL::jsrec_i_not_null, '{"i": 12345}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
-
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": null}') q
-ERROR: 
+-----------
+QUERY:
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": null}') q
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": 123}') q
-ERROR: 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": 123}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [1, "2", null, 4]}') q
-ERROR: 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [1, "2", null, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1, 2], [3, 4]]}') q
-ERROR: 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1, 2], [3, 4]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1, 2], [3, 4]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1], 2]}') q
-ERROR: 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1], 2]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1], 2]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1], [2, 3]]}') q
-ERROR: 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1], [2, 3]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": [[1], [2, 3]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": "{1,2,3}"}') q
-ERROR: 
-SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": "{1,2,3}"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia FROM json_populate_record(NULL::jsrec, '{"ia": "{1,2,3}"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": null}') q
-ERROR: 
 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": null}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": 123}') q
-ERROR: 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": 123}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": [1, "2", null, 4]}') q
-ERROR: 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": [1, "2", null, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": [[1, 2, 3]]}') q
-ERROR: 
-SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": [[1, 2, 3]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1 FROM json_populate_record(NULL::jsrec, '{"ia1": [[1, 2, 3]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": null}') q
-ERROR: 
 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": null}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": 123}') q
-ERROR: 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": 123}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": [1, "2", null, 4]}') q
-ERROR: 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": [1, "2", null, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": [1, "2", null]}') q
-ERROR: 
-SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": [1, "2", null]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia1d FROM json_populate_record(NULL::jsrec, '{"ia1d": [1, "2", null]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
-
 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [1, "2", null, 4]}') q
-ERROR: 
+-----------
+QUERY:
 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [1, "2", null, 4]}') q
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], [null, 4]]}') q
-ERROR: 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], [null, 4]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], [null, 4]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[], []]}') q
-ERROR: 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[], []]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[], []]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], [3]]}') q
-ERROR: 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], [3]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], [3]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], 3, 4]}') q
-ERROR: 
-SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], 3, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2 FROM json_populate_record(NULL::jsrec, '{"ia2": [[1, 2], 3, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT ia2d FROM json_populate_record(NULL::jsrec, '{"ia2d": [[1, "2"], [null, 4]]}') q
-ERROR: 
 
-SELECT ia2d FROM json_populate_record(NULL::jsrec, '{"ia2d": [[1, "2"], [null, 4]]}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2d FROM json_populate_record(NULL::jsrec, '{"ia2d": [[1, "2"], [null, 4]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia2d FROM json_populate_record(NULL::jsrec, '{"ia2d": [[1, "2", 3], [null, 5, 6]]}') q
-ERROR: 
-SELECT ia2d FROM json_populate_record(NULL::jsrec, '{"ia2d": [[1, "2", 3], [null, 5, 6]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia2d FROM json_populate_record(NULL::jsrec, '{"ia2d": [[1, "2", 3], [null, 5, 6]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
-
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [1, "2", null, 4]}') q
-ERROR: 
+-----------
+QUERY:
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [1, "2", null, 4]}') q
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [[1, 2], [null, 4]]}') q
-ERROR: 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [[1, 2], [null, 4]]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [[1, 2], [null, 4]]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[], []], [[], []], [[], []] ]}') q
-ERROR: 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[], []], [[], []], [[], []] ]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[], []], [[], []], [[], []] ]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2]], [[3, 4]] ]}') q
-ERROR: 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2]], [[3, 4]] ]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2]], [[3, 4]] ]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8]] ]}') q
-ERROR: 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8]] ]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8]] ]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8], [9, 10]] ]}') q
-ERROR: 
-SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8], [9, 10]] ]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ia3 FROM json_populate_record(NULL::jsrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8], [9, 10]] ]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": null}') q
-ERROR: 
 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": null}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": 123}') q
-ERROR: 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": 123}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": [1, "2", null, 4]}') q
-ERROR: 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": [1, "2", null, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": [[1, 2, 3], {"k": "v"}]}') q
-ERROR: 
-SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": [[1, 2, 3], {"k": "v"}]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ta FROM json_populate_record(NULL::jsrec, '{"ta": [[1, 2, 3], {"k": "v"}]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": null}') q
-ERROR: 
 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": null}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT c FROM json_populate_record(NULL::jsrec, '{"c": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaa"}') q
-ERROR: 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaa"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaa"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaaaaaaaaa"}') q
-ERROR: 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaaaaaaaaa"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaaaaaaaaa"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaaaaaaaaaaaa"}') q
-ERROR: 
-SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaaaaaaaaaaaa"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT c FROM json_populate_record(NULL::jsrec, '{"c": "aaaaaaaaaaaaa"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
-
 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": null}') q
-ERROR: 
+-----------
+QUERY:
 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": null}') q
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": 123}') q
-ERROR: 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": 123}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": [1, "2", null, 4]}') q
-ERROR: 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": [1, "2", null, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": ["aaaaaaaaaaaaaaaa"]}') q
-ERROR: 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": ["aaaaaaaaaaaaaaaa"]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": ["aaaaaaaaaaaaaaaa"]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": [[1, 2, 3], {"k": "v"}]}') q
-ERROR: 
-SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": [[1, 2, 3], {"k": "v"}]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT ca FROM json_populate_record(NULL::jsrec, '{"ca": [[1, 2, 3], {"k": "v"}]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": null}') q
-ERROR: 
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": null}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": true}') q
-ERROR: 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": true}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": true}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": 123.45}') q
-ERROR: 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": 123.45}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": 123.45}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": "123.45"}') q
-ERROR: 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": "123.45"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": "123.45"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": "abc"}') q
-ERROR: 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": "abc"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": "abc"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": [123, "123", null, {"key": "value"}]}') q
-ERROR: 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": [123, "123", null, {"key": "value"}]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": [123, "123", null, {"key": "value"}]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": {"a": "bbb", "b": null, "c": 123.45}}') q
-ERROR: 
-SELECT js FROM json_populate_record(NULL::jsrec, '{"js": {"a": "bbb", "b": null, "c": 123.45}}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT js FROM json_populate_record(NULL::jsrec, '{"js": {"a": "bbb", "b": null, "c": 123.45}}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": null}') q
-ERROR: 
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": null}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": true}') q
-ERROR: 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": true}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": true}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": 123.45}') q
-ERROR: 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": 123.45}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": 123.45}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": "123.45"}') q
-ERROR: 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": "123.45"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": "123.45"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": "abc"}') q
-ERROR: 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": "abc"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": "abc"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": [123, "123", null, {"key": "value"}]}') q
-ERROR: 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": [123, "123", null, {"key": "value"}]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": [123, "123", null, {"key": "value"}]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": {"a": "bbb", "b": null, "c": 123.45}}') q
-ERROR: 
-SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": {"a": "bbb", "b": null, "c": 123.45}}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsb FROM json_populate_record(NULL::jsrec, '{"jsb": {"a": "bbb", "b": null, "c": 123.45}}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
-
 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": null}') q
-ERROR: 
+-----------
+QUERY:
 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": null}') q
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": null}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": 123}') q
-ERROR: 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": 123}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": [1, "2", null, 4]}') q
-ERROR: 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": [1, "2", null, 4]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": [1, "2", null, 4]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": ["aaa", null, [1, 2, "3", {}], { "k" : "v" }]}') q
-ERROR: 
-SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": ["aaa", null, [1, 2, "3", {}], { "k" : "v" }]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT jsa FROM json_populate_record(NULL::jsrec, '{"jsa": ["aaa", null, [1, 2, "3", {}], { "k" : "v" }]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": 123}') q
-ERROR: 
 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": 123}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": [1, 2]}') q
-ERROR: 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": [1, 2]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": [1, 2]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}') q
-ERROR: 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": "(abc,42,01.02.2003)"}') q
-ERROR: 
-SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": "(abc,42,01.02.2003)"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT rec FROM json_populate_record(NULL::jsrec, '{"rec": "(abc,42,01.02.2003)"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": 123}') q
-ERROR: 
 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": 123}') q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": 123}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": [1, 2]}') q
-ERROR: 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": [1, 2]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": [1, 2]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": [{"a": "abc", "b": 456}, null, {"c": "01.02.2003", "x": 43.2}]}') q
-ERROR: 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": [{"a": "abc", "b": 456}, null, {"c": "01.02.2003", "x": 43.2}]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": [{"a": "abc", "b": 456}, null, {"c": "01.02.2003", "x": 43.2}]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": ["(abc,42,01.02.2003)"]}') q
-ERROR: 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": ["(abc,42,01.02.2003)"]}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": ["(abc,42,01.02.2003)"]}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": "{\"(abc,42,01.02.2003)\"}"}') q
-ERROR: 
-SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": "{\"(abc,42,01.02.2003)\"}"}') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT reca FROM json_populate_record(NULL::jsrec, '{"reca": "{\"(abc,42,01.02.2003)\"}"}') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 SELECT rec FROM json_populate_record(
 	row(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 		row('x',3,'2012-12-31 15:30:56')::jpop,NULL)::jsrec,
 	'{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}'
-) q
-ERROR: 
-
-SELECT rec FROM json_populate_record(
-	row(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-		row('x',3,'2012-12-31 15:30:56')::jpop,NULL)::jsrec,
-	'{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}'
-) q
-
-Catalog Error: Table Function with name json_populate_record does not exist!
+) q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 -- anonymous record type
-SELECT json_populate_record(null::record, '{"x": 0, "y": 1}')
-ERROR: 
-
--- anonymous record type
-SELECT json_populate_record(null::record, '{"x": 0, "y": 1}')
-
-Catalog Error: Scalar Function with name json_populate_record does not exist!
+SELECT json_populate_record(null::record, '{"x": 0, "y": 1}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_record does not exist!
 Did you mean "json_array"?
 
-SELECT json_populate_record(row(1,2), '{"f1": 0, "f2": 1}')
-ERROR: 
-SELECT json_populate_record(row(1,2), '{"f1": 0, "f2": 1}')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_record does not exist!
+SELECT json_populate_record(row(1,2), '{"f1": 0, "f2": 1}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_record does not exist!
 Did you mean "json_array"?
 
-SELECT * FROM
-  json_populate_record(null::record, '{"x": 776}') AS (x int, y int)
-ERROR: 
-SELECT * FROM
-  json_populate_record(null::record, '{"x": 776}') AS (x int, y int)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_record does not exist!
+SELECT * FROM
+  json_populate_record(null::record, '{"x": 776}') AS (x int, y int);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
+
 
 -- composite domain
-SELECT json_populate_record(null::j_ordered_pair, '{"x": 0, "y": 1}')
-ERROR: 
-
--- composite domain
-SELECT json_populate_record(null::j_ordered_pair, '{"x": 0, "y": 1}')
-
-Catalog Error: Scalar Function with name json_populate_record does not exist!
+SELECT json_populate_record(null::j_ordered_pair, '{"x": 0, "y": 1}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_record does not exist!
 Did you mean "json_array"?
 
-SELECT json_populate_record(row(1,2)::j_ordered_pair, '{"x": 0}')
-ERROR: 
-SELECT json_populate_record(row(1,2)::j_ordered_pair, '{"x": 0}')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_record does not exist!
+SELECT json_populate_record(row(1,2)::j_ordered_pair, '{"x": 0}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_record does not exist!
 Did you mean "json_array"?
 
-SELECT json_populate_record(row(1,2)::j_ordered_pair, '{"x": 1, "y": 0}')
-ERROR: 
-SELECT json_populate_record(row(1,2)::j_ordered_pair, '{"x": 1, "y": 0}')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_record does not exist!
+SELECT json_populate_record(row(1,2)::j_ordered_pair, '{"x": 1, "y": 0}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_record does not exist!
 Did you mean "json_array"?
+
+-----------
+QUERY:
 
 
 -- populate_recordset
 
-select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-
--- populate_recordset
-
-select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"c":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"c":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row('def',99,null)::jpop,'[{"c":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-create type jpop2 as (a int, b json, c int, d int)
-ERROR: 
 
-create type jpop2 as (a int, b json, c int, d int)
+create type jpop2 as (a int, b json, c int, d int);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
-select * from json_populate_recordset(null::jpop2, '[{"a":2,"c":3,"b":{"z":4},"d":6}]') q
-ERROR: 
-select * from json_populate_recordset(null::jpop2, '[{"a":2,"c":3,"b":{"z":4},"d":6}]') q
-
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(null::jpop2, '[{"a":2,"c":3,"b":{"z":4},"d":6}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
 
-select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(null::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q
-ERROR: 
-select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row('def',99,null)::jpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 -- anonymous record type
-SELECT json_populate_recordset(null::record, '[{"x": 0, "y": 1}]')
-ERROR: 
-
--- anonymous record type
-SELECT json_populate_recordset(null::record, '[{"x": 0, "y": 1}]')
-
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(null::record, '[{"x": 0, "y": 1}]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
 
-SELECT json_populate_recordset(row(1,2), '[{"f1": 0, "f2": 1}]')
-ERROR: 
-SELECT json_populate_recordset(row(1,2), '[{"f1": 0, "f2": 1}]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(row(1,2), '[{"f1": 0, "f2": 1}]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 SELECT i, json_populate_recordset(row(i,50), '[{"f1":"42"},{"f2":"43"}]')
-FROM (VALUES (1),(2)) v(i)
-ERROR: 
-SELECT i, json_populate_recordset(row(i,50), '[{"f1":"42"},{"f2":"43"}]')
-FROM (VALUES (1),(2)) v(i)
-
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+FROM (VALUES (1),(2)) v(i);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
 
-SELECT * FROM
-  json_populate_recordset(null::record, '[{"x": 776}]') AS (x int, y int)
-ERROR: 
-SELECT * FROM
-  json_populate_recordset(null::record, '[{"x": 776}]') AS (x int, y int)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+SELECT * FROM
+  json_populate_recordset(null::record, '[{"x": 776}]') AS (x int, y int);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 -- empty array is a corner case
-SELECT json_populate_recordset(null::record, '[]')
-ERROR: 
-
--- empty array is a corner case
-SELECT json_populate_recordset(null::record, '[]')
-
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(null::record, '[]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
 
-SELECT json_populate_recordset(row(1,2), '[]')
-ERROR: 
-SELECT json_populate_recordset(row(1,2), '[]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(row(1,2), '[]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
 
-SELECT * FROM json_populate_recordset(NULL::jpop,'[]') q
-ERROR: 
-SELECT * FROM json_populate_recordset(NULL::jpop,'[]') q
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+SELECT * FROM json_populate_recordset(NULL::jpop,'[]') q;
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-SELECT * FROM
-  json_populate_recordset(null::record, '[]') AS (x int, y int)
-ERROR: 
-SELECT * FROM
-  json_populate_recordset(null::record, '[]') AS (x int, y int)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+SELECT * FROM
+  json_populate_recordset(null::record, '[]') AS (x int, y int);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 -- composite domain
-SELECT json_populate_recordset(null::j_ordered_pair, '[{"x": 0, "y": 1}]')
-ERROR: 
-
--- composite domain
-SELECT json_populate_recordset(null::j_ordered_pair, '[{"x": 0, "y": 1}]')
-
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(null::j_ordered_pair, '[{"x": 0, "y": 1}]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
 
-SELECT json_populate_recordset(row(1,2)::j_ordered_pair, '[{"x": 0}, {"y": 3}]')
-ERROR: 
-SELECT json_populate_recordset(row(1,2)::j_ordered_pair, '[{"x": 0}, {"y": 3}]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(row(1,2)::j_ordered_pair, '[{"x": 0}, {"y": 3}]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
 
-SELECT json_populate_recordset(row(1,2)::j_ordered_pair, '[{"x": 1, "y": 0}]')
-ERROR: 
-SELECT json_populate_recordset(row(1,2)::j_ordered_pair, '[{"x": 1, "y": 0}]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_populate_recordset does not exist!
+SELECT json_populate_recordset(row(1,2)::j_ordered_pair, '[{"x": 1, "y": 0}]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_populate_recordset does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- negative cases where the wrong record type is supplied
-select * from json_populate_recordset(row(0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text)
-ERROR: 
-
--- negative cases where the wrong record type is supplied
-select * from json_populate_recordset(row(0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text)
-
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row(0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row(0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text)
-ERROR: 
-select * from json_populate_recordset(row(0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row(0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row(0::int,0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text)
-ERROR: 
-select * from json_populate_recordset(row(0::int,0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row(0::int,0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_populate_recordset(row(1000000000::int,50::int),'[{"b":"2"},{"a":"3"}]') q (a text, b text)
-ERROR: 
-select * from json_populate_recordset(row(1000000000::int,50::int),'[{"b":"2"},{"a":"3"}]') q (a text, b text)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_populate_recordset does not exist!
+select * from json_populate_recordset(row(1000000000::int,50::int),'[{"b":"2"},{"a":"3"}]') q (a text, b text);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_populate_recordset does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 -- test type info caching in json_populate_record()
-CREATE TEMP TABLE jspoptest (js json)
+CREATE TEMP TABLE jspoptest (js json);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO jspoptest
@@ -2483,63 +2862,74 @@ SELECT '{
 	"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2},
 	"reca": [{"a": "abc", "b": 456}, null, {"c": "01.02.2003", "x": 43.2}]
 }'::json
-FROM generate_series(1, 3)
+FROM generate_series(1, 3);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT (json_populate_record(NULL::jsrec, js)).* FROM jspoptest
-ERROR: 
+SELECT (json_populate_record(NULL::jsrec, js)).* FROM jspoptest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "*"
 
-SELECT (json_populate_record(NULL::jsrec, js)).* FROM jspoptest
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "*"
 
-
-DROP TYPE jsrec
-ERROR: 
-
-DROP TYPE jsrec
-
-Catalog Error: Type with name jsrec does not exist!
+DROP TYPE jsrec;
+RESULT:
+	ERROR - Catalog Error: Type with name jsrec does not exist!
 Did you mean "dec"?
 
-DROP TYPE jsrec_i_not_null
-ERROR: 
-DROP TYPE jsrec_i_not_null
+-----------
+QUERY:
 
-Catalog Error: Type with name jsrec_i_not_null does not exist!
+DROP TYPE jsrec_i_not_null;
+RESULT:
+	ERROR - Catalog Error: Type with name jsrec_i_not_null does not exist!
 Did you mean "JSON"?
 
-DROP DOMAIN js_int_not_null
-ERROR: 
-DROP DOMAIN js_int_not_null
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "DOMAIN"
+DROP DOMAIN js_int_not_null;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
 
-DROP DOMAIN js_int_array_1d
-ERROR: 
-DROP DOMAIN js_int_array_1d
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "DOMAIN"
+DROP DOMAIN js_int_array_1d;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
 
-DROP DOMAIN js_int_array_2d
-ERROR: 
-DROP DOMAIN js_int_array_2d
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "DOMAIN"
+DROP DOMAIN js_int_array_2d;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
 
-DROP DOMAIN j_ordered_pair
-ERROR: 
-DROP DOMAIN j_ordered_pair
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "DOMAIN"
+DROP DOMAIN j_ordered_pair;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DOMAIN"
 
-DROP TYPE j_unordered_pair
-ERROR: 
-DROP TYPE j_unordered_pair
+-----------
+QUERY:
 
-Catalog Error: Type with name j_unordered_pair does not exist!
+DROP TYPE j_unordered_pair;
+RESULT:
+	ERROR - Catalog Error: Type with name j_unordered_pair does not exist!
 Did you mean "real"?
 
+-----------
+QUERY:
+
 
 --json_typeof() function
 select value, json_typeof(value)
@@ -2554,982 +2944,1029 @@ select value, json_typeof(value)
                (json '{"x":"foo", "y":123}'),
                (json '{}'),
                (NULL::json))
-      as data(value)
-ERROR: 
-
---json_typeof() function
-select value, json_typeof(value)
-  from (values (json '123.4'),
-               (json '-1'),
-               (json '"foo"'),
-               (json 'true'),
-               (json 'false'),
-               (json 'null'),
-               (json '[1, 2, 3]'),
-               (json '[]'),
-               (json '{"x":"foo", "y":123}'),
-               (json '{}'),
-               (NULL::json))
-      as data(value)
-
-Catalog Error: Scalar Function with name json_typeof does not exist!
+      as data(value);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_typeof does not exist!
 Did you mean "json_type"?
 
+-----------
+QUERY:
+
 
 -- json_build_array, json_build_object, json_object_agg
 
-SELECT json_build_array('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}')
-ERROR: 
-
--- json_build_array, json_build_object, json_object_agg
-
-SELECT json_build_array('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}')
-
-Catalog Error: Scalar Function with name json_build_array does not exist!
+SELECT json_build_array('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
 
-SELECT json_build_array('a', NULL)
-ERROR: 
-SELECT json_build_array('a', NULL)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+SELECT json_build_array('a', NULL);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_array(VARIADIC NULL::text[])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC NULL::text[])
-
-Catalog Error: Scalar Function with name json_build_array does not exist!
+SELECT json_build_array(VARIADIC NULL::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
- -- ok
-SELECT json_build_array(VARIADIC '{}'::text[])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC '{}'::text[])
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+-----------
+QUERY:
+ -- ok
+SELECT json_build_array(VARIADIC '{}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
- -- ok
-SELECT json_build_array(VARIADIC '{a,b,c}'::text[])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC '{a,b,c}'::text[])
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+-----------
+QUERY:
+ -- ok
+SELECT json_build_array(VARIADIC '{a,b,c}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
- -- ok
-SELECT json_build_array(VARIADIC ARRAY['a', NULL]::text[])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC ARRAY['a', NULL]::text[])
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+-----------
+QUERY:
+ -- ok
+SELECT json_build_array(VARIADIC ARRAY['a', NULL]::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
- -- ok
-SELECT json_build_array(VARIADIC '{1,2,3,4}'::text[])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC '{1,2,3,4}'::text[])
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+-----------
+QUERY:
+ -- ok
+SELECT json_build_array(VARIADIC '{1,2,3,4}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
- -- ok
-SELECT json_build_array(VARIADIC '{1,2,3,4}'::int[])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC '{1,2,3,4}'::int[])
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+-----------
+QUERY:
+ -- ok
+SELECT json_build_array(VARIADIC '{1,2,3,4}'::int[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
- -- ok
-SELECT json_build_array(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][])
-ERROR:  -- ok
-SELECT json_build_array(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][])
 
-Catalog Error: Scalar Function with name json_build_array does not exist!
+-----------
+QUERY:
+ -- ok
+SELECT json_build_array(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
+
+-----------
+QUERY:
  -- ok
 
-SELECT json_build_object('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}')
-ERROR:  -- ok
-
-SELECT json_build_object('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}')
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 SELECT json_build_object(
        'a', json_build_object('b',false,'c',99),
        'd', json_build_object('e',array[9,8,7]::int[],
-           'f', (select row_to_json(r) from ( select relkind, oid::regclass as name from pg_class where relname = 'pg_class') r)))
-ERROR: 
-
-SELECT json_build_object(
-       'a', json_build_object('b',false,'c',99),
-       'd', json_build_object('e',array[9,8,7]::int[],
-           'f', (select row_to_json(r) from ( select relkind, oid::regclass as name from pg_class where relname = 'pg_class') r)))
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+           'f', (select row_to_json(r) from ( select relkind, oid::regclass as name from pg_class where relname = 'pg_class') r)));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
 
-SELECT json_build_object('{a,b,c}'::text[])
-ERROR: 
-SELECT json_build_object('{a,b,c}'::text[])
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object('{a,b,c}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- error
-SELECT json_build_object('{a,b,c}'::text[], '{d,e,f}'::text[])
-ERROR:  -- error
-SELECT json_build_object('{a,b,c}'::text[], '{d,e,f}'::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object('{a,b,c}'::text[], '{d,e,f}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- error, key cannot be array
-SELECT json_build_object('a', 'b', 'c')
-ERROR:  -- error, key cannot be array
-SELECT json_build_object('a', 'b', 'c')
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object('a', 'b', 'c');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- error
-SELECT json_build_object(NULL, 'a')
-ERROR:  -- error
-SELECT json_build_object(NULL, 'a')
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(NULL, 'a');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- error, key cannot be NULL
-SELECT json_build_object('a', NULL)
-ERROR:  -- error, key cannot be NULL
-SELECT json_build_object('a', NULL)
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object('a', NULL);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_object(VARIADIC NULL::text[])
-ERROR:  -- ok
-SELECT json_build_object(VARIADIC NULL::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC NULL::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_object(VARIADIC '{}'::text[])
-ERROR:  -- ok
-SELECT json_build_object(VARIADIC '{}'::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC '{}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_object(VARIADIC '{a,b,c}'::text[])
-ERROR:  -- ok
-SELECT json_build_object(VARIADIC '{a,b,c}'::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC '{a,b,c}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- error
-SELECT json_build_object(VARIADIC ARRAY['a', NULL]::text[])
-ERROR:  -- error
-SELECT json_build_object(VARIADIC ARRAY['a', NULL]::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC ARRAY['a', NULL]::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_object(VARIADIC ARRAY[NULL, 'a']::text[])
-ERROR:  -- ok
-SELECT json_build_object(VARIADIC ARRAY[NULL, 'a']::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC ARRAY[NULL, 'a']::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- error, key cannot be NULL
-SELECT json_build_object(VARIADIC '{1,2,3,4}'::text[])
-ERROR:  -- error, key cannot be NULL
-SELECT json_build_object(VARIADIC '{1,2,3,4}'::text[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC '{1,2,3,4}'::text[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_object(VARIADIC '{1,2,3,4}'::int[])
-ERROR:  -- ok
-SELECT json_build_object(VARIADIC '{1,2,3,4}'::int[])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC '{1,2,3,4}'::int[]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
-SELECT json_build_object(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][])
-ERROR:  -- ok
-SELECT json_build_object(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][])
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][]);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
  -- ok
 
 -- empty objects/arrays
-SELECT json_build_array()
-ERROR:  -- ok
-
--- empty objects/arrays
-SELECT json_build_array()
-
-Catalog Error: Scalar Function with name json_build_array does not exist!
+SELECT json_build_array();
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_array does not exist!
 Did you mean "json_array"?
 
+-----------
+QUERY:
 
-SELECT json_build_object()
-ERROR: 
 
-SELECT json_build_object()
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object();
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- make sure keys are quoted
-SELECT json_build_object(1,2)
-ERROR: 
-
--- make sure keys are quoted
-SELECT json_build_object(1,2)
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(1,2);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- keys must be scalar and not null
-SELECT json_build_object(null,2)
-ERROR: 
-
--- keys must be scalar and not null
-SELECT json_build_object(null,2)
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(null,2);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-SELECT json_build_object(r,2) FROM (SELECT 1 AS a, 2 AS b) r
-ERROR: 
 
-SELECT json_build_object(r,2) FROM (SELECT 1 AS a, 2 AS b) r
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(r,2) FROM (SELECT 1 AS a, 2 AS b) r;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-SELECT json_build_object(json '{"a":1,"b":2}', 3)
-ERROR: 
 
-SELECT json_build_object(json '{"a":1,"b":2}', 3)
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object(json '{"a":1,"b":2}', 3);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-SELECT json_build_object('{1,2,3}'::int[], 3)
-ERROR: 
 
-SELECT json_build_object('{1,2,3}'::int[], 3)
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+SELECT json_build_object('{1,2,3}'::int[], 3);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-CREATE TEMP TABLE foo (serial_num int, name text, type text)
 
-INSERT INTO foo VALUES (847001,'t15','GE1043')
+CREATE TEMP TABLE foo (serial_num int, name text, type text);
+RESULT:
+	[]
 
-INSERT INTO foo VALUES (847002,'t16','GE1043')
+-----------
+QUERY:
 
-INSERT INTO foo VALUES (847003,'sub-alpha','GESS90')
+INSERT INTO foo VALUES (847001,'t15','GE1043');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO foo VALUES (847002,'t16','GE1043');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO foo VALUES (847003,'sub-alpha','GESS90');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 SELECT json_build_object('turbines',json_object_agg(serial_num,json_build_object('name',name,'type',type)))
-FROM foo
-ERROR: 
-
-SELECT json_build_object('turbines',json_object_agg(serial_num,json_build_object('name',name,'type',type)))
-FROM foo
-
-Catalog Error: Scalar Function with name json_build_object does not exist!
+FROM foo;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_build_object does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-SELECT json_object_agg(name, type) FROM foo
-ERROR: 
 
-SELECT json_object_agg(name, type) FROM foo
-
-Catalog Error: Scalar Function with name json_object_agg does not exist!
+SELECT json_object_agg(name, type) FROM foo;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_object_agg does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-INSERT INTO foo VALUES (999999, NULL, 'bar')
 
-SELECT json_object_agg(name, type) FROM foo
-ERROR: 
-SELECT json_object_agg(name, type) FROM foo
+INSERT INTO foo VALUES (999999, NULL, 'bar');
+RESULT:
+	[]
 
-Catalog Error: Scalar Function with name json_object_agg does not exist!
+-----------
+QUERY:
+
+SELECT json_object_agg(name, type) FROM foo;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_object_agg does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- json_object
 
 -- empty object, one dimension
-SELECT json_object('{}')
-ERROR: 
+SELECT json_object('{}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
--- json_object
-
--- empty object, one dimension
-SELECT json_object('{}')
-
-Invalid Input Error: json_object() requires an even number of arguments
+-----------
+QUERY:
 
 
 -- empty object, two dimensions
-SELECT json_object('{}', '{}')
-RESULT: 
+SELECT json_object('{}', '{}');
+RESULT:
 	[('{"{}":"{}"}',)]
 
+-----------
+QUERY:
+
 
 -- one dimension
-SELECT json_object('{a,1,b,2,3,NULL,"d e f","a b c"}')
-ERROR: 
+SELECT json_object('{a,1,b,2,3,NULL,"d e f","a b c"}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
--- one dimension
-SELECT json_object('{a,1,b,2,3,NULL,"d e f","a b c"}')
-
-Invalid Input Error: json_object() requires an even number of arguments
+-----------
+QUERY:
 
 
 -- same but with two dimensions
-SELECT json_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}')
-ERROR: 
+SELECT json_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
--- same but with two dimensions
-SELECT json_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}')
-
-Invalid Input Error: json_object() requires an even number of arguments
+-----------
+QUERY:
 
 
 -- odd number error
-SELECT json_object('{a,b,c}')
-ERROR: 
+SELECT json_object('{a,b,c}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
--- odd number error
-SELECT json_object('{a,b,c}')
-
-Invalid Input Error: json_object() requires an even number of arguments
+-----------
+QUERY:
 
 
 -- one column error
-SELECT json_object('{{a},{b}}')
-ERROR: 
+SELECT json_object('{{a},{b}}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
--- one column error
-SELECT json_object('{{a},{b}}')
-
-Invalid Input Error: json_object() requires an even number of arguments
+-----------
+QUERY:
 
 
 -- too many columns error
-SELECT json_object('{{a,b,c},{b,c,d}}')
-ERROR: 
+SELECT json_object('{{a,b,c},{b,c,d}}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
--- too many columns error
-SELECT json_object('{{a,b,c},{b,c,d}}')
+-----------
+QUERY:
 
-Invalid Input Error: json_object() requires an even number of arguments
-
-
--- too many dimensions error
-SELECT json_object('{{{a,b},{c,d}},{{b,c},{d,e}}}')
-ERROR: 
 
 -- too many dimensions error
-SELECT json_object('{{{a,b},{c,d}},{{b,c},{d,e}}}')
+SELECT json_object('{{{a,b},{c,d}},{{b,c},{d,e}}}');
+RESULT:
+	ERROR - Invalid Input Error: json_object() requires an even number of arguments
 
-Invalid Input Error: json_object() requires an even number of arguments
+-----------
+QUERY:
 
 
 --two argument form of json_object
 
-select json_object('{a,b,c,"d e f"}','{1,2,3,"a b c"}')
-RESULT: 
+select json_object('{a,b,c,"d e f"}','{1,2,3,"a b c"}');
+RESULT:
 	[('{"{a,b,c,\\"d e f\\"}":"{1,2,3,\\"a b c\\"}"}',)]
+
+-----------
+QUERY:
 
 
 -- too many dimensions
-SELECT json_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}', '{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}')
-RESULT: 
+SELECT json_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}', '{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}');
+RESULT:
 	[('{"{{a,1},{b,2},{3,NULL},{\\"d e f\\",\\"a b c\\"}}":"{{a,1},{b,2},{3,NULL},{\\"d e f\\",\\"a b c\\"}}"}',)]
+
+-----------
+QUERY:
 
 
 -- mismatched dimensions
 
-select json_object('{a,b,c,"d e f",g}','{1,2,3,"a b c"}')
-RESULT: 
+select json_object('{a,b,c,"d e f",g}','{1,2,3,"a b c"}');
+RESULT:
 	[('{"{a,b,c,\\"d e f\\",g}":"{1,2,3,\\"a b c\\"}"}',)]
 
+-----------
+QUERY:
 
-select json_object('{a,b,c,"d e f"}','{1,2,3,"a b c",g}')
-RESULT: 
+
+select json_object('{a,b,c,"d e f"}','{1,2,3,"a b c",g}');
+RESULT:
 	[('{"{a,b,c,\\"d e f\\"}":"{1,2,3,\\"a b c\\",g}"}',)]
+
+-----------
+QUERY:
 
 
 -- null key error
 
-select json_object('{a,b,NULL,"d e f"}','{1,2,3,"a b c"}')
-RESULT: 
+select json_object('{a,b,NULL,"d e f"}','{1,2,3,"a b c"}');
+RESULT:
 	[('{"{a,b,NULL,\\"d e f\\"}":"{1,2,3,\\"a b c\\"}"}',)]
+
+-----------
+QUERY:
 
 
 -- empty key is allowed
 
-select json_object('{a,b,"","d e f"}','{1,2,3,"a b c"}')
-RESULT: 
+select json_object('{a,b,"","d e f"}','{1,2,3,"a b c"}');
+RESULT:
 	[('{"{a,b,\\"\\",\\"d e f\\"}":"{1,2,3,\\"a b c\\"}"}',)]
 
+-----------
+QUERY:
 
-
--- json_to_record and json_to_recordset
-
-select * from json_to_record('{"a":1,"b":"foo","c":"bar"}')
-    as x(a int, b text, d text)
-ERROR: 
 
 
 -- json_to_record and json_to_recordset
 
 select * from json_to_record('{"a":1,"b":"foo","c":"bar"}')
-    as x(a int, b text, d text)
-
-Catalog Error: Table Function with name json_to_record does not exist!
+    as x(a int, b text, d text);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
+
 
 select * from json_to_recordset('[{"a":1,"b":"foo","d":false},{"a":2,"b":"bar","c":true}]')
-    as x(a int, b text, c boolean)
-ERROR: 
-
-select * from json_to_recordset('[{"a":1,"b":"foo","d":false},{"a":2,"b":"bar","c":true}]')
-    as x(a int, b text, c boolean)
-
-Catalog Error: Table Function with name json_to_recordset does not exist!
+    as x(a int, b text, c boolean);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_recordset does not exist!
 Did you mean "repeat"?
+
+-----------
+QUERY:
 
 
 select * from json_to_recordset('[{"a":1,"b":{"d":"foo"},"c":true},{"a":2,"c":false,"b":{"d":"bar"}}]')
-    as x(a int, b json, c boolean)
-ERROR: 
-
-select * from json_to_recordset('[{"a":1,"b":{"d":"foo"},"c":true},{"a":2,"c":false,"b":{"d":"bar"}}]')
-    as x(a int, b json, c boolean)
-
-Catalog Error: Table Function with name json_to_recordset does not exist!
+    as x(a int, b json, c boolean);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_recordset does not exist!
 Did you mean "repeat"?
+
+-----------
+QUERY:
 
 
 select *, c is null as c_is_null
 from json_to_record('{"a":1, "b":{"c":16, "d":2}, "x":8, "ca": ["1 2", 3], "ia": [[1,2],[3,4]], "r": {"a": "aaa", "b": 123}}'::json)
-    as t(a int, b json, c text, x int, ca char(5)[], ia int[][], r jpop)
-ERROR: 
-
-select *, c is null as c_is_null
-from json_to_record('{"a":1, "b":{"c":16, "d":2}, "x":8, "ca": ["1 2", 3], "ia": [[1,2],[3,4]], "r": {"a": "aaa", "b": 123}}'::json)
-    as t(a int, b json, c text, x int, ca char(5)[], ia int[][], r jpop)
-
-Catalog Error: Table Function with name json_to_record does not exist!
+    as t(a int, b json, c text, x int, ca char(5)[], ia int[][], r jpop);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
+
 
 select *, c is null as c_is_null
 from json_to_recordset('[{"a":1, "b":{"c":16, "d":2}, "x":8}]'::json)
-    as t(a int, b json, c text, x int)
-ERROR: 
-
-select *, c is null as c_is_null
-from json_to_recordset('[{"a":1, "b":{"c":16, "d":2}, "x":8}]'::json)
-    as t(a int, b json, c text, x int)
-
-Catalog Error: Table Function with name json_to_recordset does not exist!
+    as t(a int, b json, c text, x int);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_recordset does not exist!
 Did you mean "repeat"?
 
+-----------
+QUERY:
 
-select * from json_to_record('{"ia": null}') as x(ia _int4)
-ERROR: 
 
-select * from json_to_record('{"ia": null}') as x(ia _int4)
-
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia": null}') as x(ia _int4);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia": 123}') as x(ia _int4)
-ERROR: 
-select * from json_to_record('{"ia": 123}') as x(ia _int4)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia": 123}') as x(ia _int4);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia": [1, "2", null, 4]}') as x(ia _int4)
-ERROR: 
-select * from json_to_record('{"ia": [1, "2", null, 4]}') as x(ia _int4)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia": [1, "2", null, 4]}') as x(ia _int4);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia": [[1, 2], [3, 4]]}') as x(ia _int4)
-ERROR: 
-select * from json_to_record('{"ia": [[1, 2], [3, 4]]}') as x(ia _int4)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia": [[1, 2], [3, 4]]}') as x(ia _int4);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia": [[1], 2]}') as x(ia _int4)
-ERROR: 
-select * from json_to_record('{"ia": [[1], 2]}') as x(ia _int4)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia": [[1], 2]}') as x(ia _int4);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia": [[1], [2, 3]]}') as x(ia _int4)
-ERROR: 
-select * from json_to_record('{"ia": [[1], [2, 3]]}') as x(ia _int4)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia": [[1], [2, 3]]}') as x(ia _int4);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-select * from json_to_record('{"ia2": [1, 2, 3]}') as x(ia2 int[][])
-ERROR: 
 
-select * from json_to_record('{"ia2": [1, 2, 3]}') as x(ia2 int[][])
-
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia2": [1, 2, 3]}') as x(ia2 int[][]);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia2": [[1, 2], [3, 4]]}') as x(ia2 int4[][])
-ERROR: 
-select * from json_to_record('{"ia2": [[1, 2], [3, 4]]}') as x(ia2 int4[][])
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia2": [[1, 2], [3, 4]]}') as x(ia2 int4[][]);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"ia2": [[[1], [2], [3]]]}') as x(ia2 int4[][])
-ERROR: 
-select * from json_to_record('{"ia2": [[[1], [2], [3]]]}') as x(ia2 int4[][])
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"ia2": [[[1], [2], [3]]]}') as x(ia2 int4[][]);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
+-----------
+QUERY:
 
-select * from json_to_record('{"out": {"key": 1}}') as x(out json)
-ERROR: 
 
-select * from json_to_record('{"out": {"key": 1}}') as x(out json)
-
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"out": {"key": 1}}') as x(out json);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"out": [{"key": 1}]}') as x(out json)
-ERROR: 
-select * from json_to_record('{"out": [{"key": 1}]}') as x(out json)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"out": [{"key": 1}]}') as x(out json);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"out": "{\"key\": 1}"}') as x(out json)
-ERROR: 
-select * from json_to_record('{"out": "{\"key\": 1}"}') as x(out json)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"out": "{\"key\": 1}"}') as x(out json);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"out": {"key": 1}}') as x(out jsonb)
-ERROR: 
-select * from json_to_record('{"out": {"key": 1}}') as x(out jsonb)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"out": {"key": 1}}') as x(out jsonb);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"out": [{"key": 1}]}') as x(out jsonb)
-ERROR: 
-select * from json_to_record('{"out": [{"key": 1}]}') as x(out jsonb)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"out": [{"key": 1}]}') as x(out jsonb);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
 
-select * from json_to_record('{"out": "{\"key\": 1}"}') as x(out jsonb)
-ERROR: 
-select * from json_to_record('{"out": "{\"key\": 1}"}') as x(out jsonb)
+-----------
+QUERY:
 
-Catalog Error: Table Function with name json_to_record does not exist!
+select * from json_to_record('{"out": "{\"key\": 1}"}') as x(out jsonb);
+RESULT:
+	ERROR - Catalog Error: Table Function with name json_to_record does not exist!
 Did you mean "read_json_auto"?
+
+-----------
+QUERY:
 
 
 -- json_strip_nulls
 
-select json_strip_nulls(null)
-ERROR: 
-
--- json_strip_nulls
-
-select json_strip_nulls(null)
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls(null);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
 
-select json_strip_nulls('1')
-ERROR: 
 
-select json_strip_nulls('1')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('1');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
 
-select json_strip_nulls('"a string"')
-ERROR: 
 
-select json_strip_nulls('"a string"')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('"a string"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
 
-select json_strip_nulls('null')
-ERROR: 
 
-select json_strip_nulls('null')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('null');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
 
-select json_strip_nulls('[1,2,null,3,4]')
-ERROR: 
 
-select json_strip_nulls('[1,2,null,3,4]')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('[1,2,null,3,4]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
 
-select json_strip_nulls('{"a":1,"b":null,"c":[2,null,3],"d":{"e":4,"f":null}}')
-ERROR: 
 
-select json_strip_nulls('{"a":1,"b":null,"c":[2,null,3],"d":{"e":4,"f":null}}')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('{"a":1,"b":null,"c":[2,null,3],"d":{"e":4,"f":null}}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
 
-select json_strip_nulls('[1,{"a":1,"b":null,"c":2},3]')
-ERROR: 
 
-select json_strip_nulls('[1,{"a":1,"b":null,"c":2},3]')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('[1,{"a":1,"b":null,"c":2},3]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
+
+-----------
+QUERY:
 
 
 -- an empty object is not null and should not be stripped
-select json_strip_nulls('{"a": {"b": null, "c": null}, "d": {} }')
-ERROR: 
-
--- an empty object is not null and should not be stripped
-select json_strip_nulls('{"a": {"b": null, "c": null}, "d": {} }')
-
-Catalog Error: Scalar Function with name json_strip_nulls does not exist!
+select json_strip_nulls('{"a": {"b": null, "c": null}, "d": {} }');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_strip_nulls does not exist!
 Did you mean "json_contains"?
 
+-----------
+QUERY:
+
 
 -- json to tsvector
-select to_tsvector('{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::json)
-ERROR: 
-
--- json to tsvector
-select to_tsvector('{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::json)
-
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
+
+-----------
+QUERY:
 
 
 -- json to tsvector with config
-select to_tsvector('simple', '{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::json)
-ERROR: 
-
--- json to tsvector with config
-select to_tsvector('simple', '{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::json)
-
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('simple', '{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
+
+-----------
+QUERY:
 
 
 -- json to tsvector with stop words
-select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": ["the eee fff ggg"], "c": {"d": "hhh. iii"}}'::json)
-ERROR: 
-
--- json to tsvector with stop words
-select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": ["the eee fff ggg"], "c": {"d": "hhh. iii"}}'::json)
-
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": ["the eee fff ggg"], "c": {"d": "hhh. iii"}}'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
+
+-----------
+QUERY:
 
 
 -- json to tsvector with numeric values
-select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": 123, "c": 456}'::json)
-ERROR: 
-
--- json to tsvector with numeric values
-select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": 123, "c": 456}'::json)
-
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": 123, "c": 456}'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
+
+-----------
+QUERY:
 
 
 -- json_to_tsvector
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"all"')
-ERROR: 
-
--- json_to_tsvector
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"all"')
-
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"all"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"key"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"key"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"key"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"string"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"string"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"string"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"numeric"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"numeric"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"numeric"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"boolean"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"boolean"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"boolean"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["string", "numeric"]')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["string", "numeric"]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["string", "numeric"]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"all"')
-ERROR: 
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"all"')
-
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"all"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"key"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"key"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"key"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"string"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"string"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"string"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"numeric"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"numeric"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"numeric"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"boolean"')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"boolean"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '"boolean"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["string", "numeric"]')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["string", "numeric"]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["string", "numeric"]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- to_tsvector corner cases
-select to_tsvector('""'::json)
-ERROR: 
-
--- to_tsvector corner cases
-select to_tsvector('""'::json)
-
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('""'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
 
-select to_tsvector('{}'::json)
-ERROR: 
-select to_tsvector('{}'::json)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('{}'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
 
-select to_tsvector('[]'::json)
-ERROR: 
-select to_tsvector('[]'::json)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('[]'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
 
-select to_tsvector('null'::json)
-ERROR: 
-select to_tsvector('null'::json)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name to_tsvector does not exist!
+select to_tsvector('null'::json);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_tsvector does not exist!
 Did you mean "to_seconds"?
+
+-----------
+QUERY:
 
 
 -- json_to_tsvector corner cases
-select json_to_tsvector('""'::json, '"all"')
-ERROR: 
-
--- json_to_tsvector corner cases
-select json_to_tsvector('""'::json, '"all"')
-
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('""'::json, '"all"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('{}'::json, '"all"')
-ERROR: 
-select json_to_tsvector('{}'::json, '"all"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('{}'::json, '"all"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('[]'::json, '"all"')
-ERROR: 
-select json_to_tsvector('[]'::json, '"all"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('[]'::json, '"all"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('null'::json, '"all"')
-ERROR: 
-select json_to_tsvector('null'::json, '"all"')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('null'::json, '"all"');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
+-----------
+QUERY:
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '""')
-ERROR: 
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '""')
-
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '""');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '{}')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '{}')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '{}');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '[]')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '[]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '[]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, 'null')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, 'null')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, 'null');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["all", null]')
-ERROR: 
-select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["all", null]')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name json_to_tsvector does not exist!
+select json_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::json, '["all", null]');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name json_to_tsvector does not exist!
 Did you mean "json_object"?
+
+-----------
+QUERY:
 
 
 -- ts_headline for json
-select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'))
-ERROR: 
-
--- ts_headline for json
-select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'))
-
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
 
-select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'))
-ERROR: 
-select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'))
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
 
-select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >')
-ERROR: 
-select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
 
-select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >')
-ERROR: 
-select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >')
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::json, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
+
+-----------
+QUERY:
 
 
 -- corner cases for ts_headline with json
-select ts_headline('null'::json, tsquery('aaa & bbb'))
-ERROR: 
-
--- corner cases for ts_headline with json
-select ts_headline('null'::json, tsquery('aaa & bbb'))
-
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('null'::json, tsquery('aaa & bbb'));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
 
-select ts_headline('{}'::json, tsquery('aaa & bbb'))
-ERROR: 
-select ts_headline('{}'::json, tsquery('aaa & bbb'))
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('{}'::json, tsquery('aaa & bbb'));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
 
-select ts_headline('[]'::json, tsquery('aaa & bbb'))
-ERROR: 
-select ts_headline('[]'::json, tsquery('aaa & bbb'))
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name ts_headline does not exist!
+select ts_headline('[]'::json, tsquery('aaa & bbb'));
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name ts_headline does not exist!
 Did you mean "sin"?
-
-

@@ -1,0 +1,164 @@
+
+-----------
+QUERY:
+--
+-- PARALLEL
+--
+
+begin
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- encourage use of parallel plans
+set parallel_setup_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_setup_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+set parallel_tuple_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_tuple_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+set min_parallel_table_scan_size=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "min_parallel_table_scan_size"
+
+Did you mean: "binary_as_string"
+
+-----------
+QUERY:
+set max_parallel_workers_per_gather=4
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "max_parallel_workers_per_gather"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+--
+-- Test write operations that has an underlying query that is eligible
+-- for parallel plans
+--
+explain (costs off) create table parallel_write as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+create table parallel_write as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+LINE 2:     select length(stringu1) from tenk1 group by length(stringu1)
+                                         ^
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT:
+	duckdb: Catalog Error: Table with name parallel_write does not exist!
+Did you mean "pg_type"?
+
+-----------
+QUERY:
+explain (costs off) select length(stringu1) into parallel_write
+    from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+select length(stringu1) into parallel_write
+    from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Parser Error: SELECT INTO not supported!
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT:
+	duckdb: Catalog Error: Table with name parallel_write does not exist!
+Did you mean "pg_type"?
+
+-----------
+QUERY:
+explain (costs off) create materialized view parallel_mat_view as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "materialized"
+
+-----------
+QUERY:
+create materialized view parallel_mat_view as
+    select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Parser Error: syntax error at or near "materialized"
+
+-----------
+QUERY:
+create unique index on parallel_mat_view(length)
+RESULT:
+	duckdb: Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
+refresh materialized view parallel_mat_view
+RESULT:
+	duckdb: Parser Error: syntax error at or near "refresh"
+
+-----------
+QUERY:
+refresh materialized view concurrently parallel_mat_view
+RESULT:
+	duckdb: Parser Error: syntax error at or near "refresh"
+
+-----------
+QUERY:
+drop materialized view parallel_mat_view
+RESULT:
+	duckdb: Not implemented Error: Cannot drop this type yet
+
+-----------
+QUERY:
+prepare prep_stmt as select length(stringu1) from tenk1 group by length(stringu1)
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+LINE 1: ...p_stmt as select length(stringu1) from tenk1 group by length(stringu1)
+                                                  ^
+
+-----------
+QUERY:
+explain (costs off) create table parallel_write as execute prep_stmt
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+create table parallel_write as execute prep_stmt
+RESULT:
+	duckdb: Parser Error: CREATE TABLE AS requires a SELECT clause
+
+-----------
+QUERY:
+drop table parallel_write
+RESULT:
+	duckdb: Catalog Error: Table with name parallel_write does not exist!
+Did you mean "pg_type"?
+
+-----------
+QUERY:
+rollback
+RESULT:
+	duckdb: None

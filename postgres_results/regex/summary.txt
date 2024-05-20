@@ -1,0 +1,327 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- Regular expression tests
+--
+
+-- Don/* REPLACED */''t want to have to double backslashes in regexes
+set standard_conforming_strings = on
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test simple quantified backrefs
+select 'bbbbb' ~ '^([bc])\1*$' as t
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'ccc' ~ '^([bc])\1*$' as t
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'xxx' ~ '^([bc])\1*$' as f
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'bbc' ~ '^([bc])\1*$' as f
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'b' ~ '^([bc])\1*$' as t
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test quantified backref within a larger expression
+select 'abc abc abc' ~ '^(\w+)( \1)+$' as t
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'abc abd abc' ~ '^(\w+)( \1)+$' as f
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'abc abc abd' ~ '^(\w+)( \1)+$' as f
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'abc abc abc' ~ '^(.+)( \1)+$' as t
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'abc abd abc' ~ '^(.+)( \1)+$' as f
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'abc abc abd' ~ '^(.+)( \1)+$' as f
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test some cases that crashed in 9.2beta1 due to pmatch[] array overrun
+select substring('asd TO foo' from ' TO (([a-z0-9._]+|"([^"]+|"")+")+)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select substring('a' from '((a))+')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select substring('a' from '((a)+)')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test regexp_match()
+select regexp_match('abc', '')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_match('abc', 'bc')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_match('abc', 'd') is null
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_match('abc', '(B)(c)', 'i')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_match('abc', 'Bd', 'ig')
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- error
+
+-- Test lookahead constraints
+select regexp_matches('ab', 'a(?=b)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?=b)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('abc', 'a(?=b)b*(?=c)c*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a(?=b)b*(?=c)c*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a(?!b)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?!b)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('b', '(?=b)b')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('a', '(?=b)b')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test lookbehind constraints
+select regexp_matches('abb', '(?<=a)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?<=a)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('abc', 'a(?<=a)b*(?<=b)c*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a(?<=a)b*(?<=b)c*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a*(?<!a)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('ab', 'a*(?<!a)b+')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('b', 'a*(?<!a)b+')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('a', 'a(?<!a)b*')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('b', '(?<=b)b')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('foobar', '(?<=f)b+')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('foobar', '(?<=foo)b+')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select regexp_matches('foobar', '(?<=oo)b+')
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test optimization of single-chr-or-bracket-expression lookaround constraints
+select 'xz' ~ 'x(?=[xy])'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'xy' ~ 'x(?=[xy])'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'xz' ~ 'x(?![xy])'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'xy' ~ 'x(?![xy])'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'x'  ~ 'x(?![xy])'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'xyy' ~ '(?<=[xy])yy+'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'zyy' ~ '(?<=[xy])yy+'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'xyy' ~ '(?<![xy])yy+'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select 'zyy' ~ '(?<![xy])yy+'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test conversion of regex patterns to indexable conditions
+explain (costs off) select * from pg_proc where proname ~ 'abc'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abc'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abc$'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abcd*e'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abc+d'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^(abc)(def)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^(abc)$'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^(abc)?d'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off) select * from pg_proc where proname ~ '^abcd(x|(?=\w\w)q)'
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- Test for infinite loop in pullback() (CVE-2007-4772)
+select 'a' ~ '($|^)*'
+RESULT: ['duckdb: DIFFERENT']
+
+-----------
+QUERY:
+-- These cases expose a bug in the original fix for CVE-2007-4772
+select 'a' ~ '(^)+^'
+RESULT: ['duckdb: DIFFERENT']
+=========================================
+Summary for test case regex/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 1 queries, which is 1.67%
+DIFFERENT: 2 queries, which is 3.33%
+ERROR: 57 queries, which is 95.00%
+Guest results are identical to expected results

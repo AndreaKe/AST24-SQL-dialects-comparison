@@ -1,0 +1,743 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- CREATE_TYPE
+--
+
+-- directory path and dlsuffix are passed to us in environment variables
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
+
+-- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+
+--
+-- Test the /* REPLACED */''old style/* REPLACED */'' approach of making the I/O functions first,
+-- with no explicit shell type creation.
+--
+CREATE FUNCTION widget_in(cstring)
+   RETURNS widget
+   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   LANGUAGE C STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION widget_out(widget)
+   RETURNS cstring
+   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   LANGUAGE C STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION int44in(cstring)
+   RETURNS city_budget
+   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   LANGUAGE C STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION int44out(city_budget)
+   RETURNS cstring
+   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   LANGUAGE C STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TYPE widget (
+   internallength = 24,
+   input = widget_in,
+   output = widget_out,
+   typmod_in = numerictypmodin,
+   typmod_out = numerictypmodout,
+   alignment = double
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TYPE city_budget (
+   internallength = 16,
+   input = int44in,
+   output = int44out,
+   element = int4,
+   category = 'x',   -- just to verify the system will take it
+   preferred = true  -- ditto
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test creation and destruction of shell types
+CREATE TYPE shell;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TYPE shell;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+   -- fail, type already present
+DROP TYPE shell;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP TYPE shell;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+     -- fail, type not exist
+
+-- also, let/* REPLACED */''s leave one around for purposes of pg_dump testing
+CREATE TYPE myshell;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+--
+-- Test type-related default values (broken in releases before PG 7.2)
+--
+-- This part of the test also exercises the /* REPLACED */''new style/* REPLACED */'' approach of making
+-- a shell type and then filling it in.
+--
+CREATE TYPE int42;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TYPE text_w_default;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Make dummy I/O routines using the existing internal support for int4, text
+CREATE FUNCTION int42_in(cstring)
+   RETURNS int42
+   AS 'int4in'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION int42_out(int42)
+   RETURNS cstring
+   AS 'int4out'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION text_w_default_in(cstring)
+   RETURNS text_w_default
+   AS 'textin'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION text_w_default_out(text_w_default)
+   RETURNS cstring
+   AS 'textout'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TYPE int42 (
+   internallength = 4,
+   input = int42_in,
+   output = int42_out,
+   alignment = int4,
+   default = 42,
+   passedbyvalue
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TYPE text_w_default (
+   internallength = variable,
+   input = text_w_default_in,
+   output = text_w_default_out,
+   alignment = int4,
+   default = 'zippo'
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE default_test (f1 text_w_default, f2 int42);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO default_test DEFAULT VALUES;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT * FROM default_test;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- We need a shell type to test some CREATE TYPE failure cases with
+CREATE TYPE bogus_type;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- invalid: non-lowercase quoted identifiers
+CREATE TYPE bogus_type (
+	"Internallength" = 4,
+	"Input" = int42_in,
+	"Output" = int42_out,
+	"Alignment" = int4,
+	"Default" = 42,
+	"Passedbyvalue"
+);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- invalid: input/output function incompatibility
+CREATE TYPE bogus_type (INPUT = array_in,
+    OUTPUT = array_out,
+    ELEMENT = int,
+    INTERNALLENGTH = 32);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+DROP TYPE bogus_type;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- It no longer is possible to issue CREATE TYPE without making a shell first
+CREATE TYPE bogus_type (INPUT = array_in,
+    OUTPUT = array_out,
+    ELEMENT = int,
+    INTERNALLENGTH = 32);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test stand-alone composite type
+
+CREATE TYPE default_test_row AS (f1 text_w_default, f2 int42);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION get_default_test() RETURNS SETOF default_test_row AS '
+  SELECT * FROM default_test;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+' LANGUAGE SQL;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SELECT * FROM get_default_test();
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- Test comments
+COMMENT ON TYPE bad IS 'bad comment';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+COMMENT ON TYPE default_test_row IS 'good comment';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+COMMENT ON TYPE default_test_row IS NULL;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN default_test_row.nope IS 'bad comment';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN default_test_row.f1 IS 'good comment';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+COMMENT ON COLUMN default_test_row.f1 IS NULL;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Check shell type create for existing types
+CREATE TYPE text_w_default;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- should fail
+
+DROP TYPE default_test_row CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE default_test;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Check dependencies are established when creating a new type
+CREATE TYPE base_type;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION base_fn_in(cstring) RETURNS base_type AS 'boolin'
+    LANGUAGE internal IMMUTABLE STRICT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION base_fn_out(base_type) RETURNS cstring AS 'boolout'
+    LANGUAGE internal IMMUTABLE STRICT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE TYPE base_type(INPUT = base_fn_in, OUTPUT = base_fn_out);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+DROP FUNCTION base_fn_in(cstring);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- error
+DROP FUNCTION base_fn_out(base_type);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- error
+DROP TYPE base_type;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- error
+DROP TYPE base_type CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Check usage of typmod with a user-defined type
+-- (we have borrowed numeric/* REPLACED */''s typmod functions)
+
+CREATE TEMP TABLE mytab (foo widget(42,13,7));
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+     -- should fail
+CREATE TEMP TABLE mytab (foo widget(42,13));
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT format_type(atttypid,atttypmod) FROM pg_attribute
+WHERE attrelid = 'mytab'::regclass AND attnum > 0;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- might as well exercise the widget type while we/* REPLACED */''re here
+INSERT INTO mytab VALUES ('(1,2,3)'), ('(-44,5.5,12)');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+TABLE mytab;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- and test format_type() a bit more, too
+select format_type('varchar'::regtype, 42);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select format_type('bpchar'::regtype, null);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- this behavior difference is intentional
+select format_type('bpchar'::regtype, -1);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Test non-error-throwing APIs using widget, which still throws errors
+SELECT pg_input_is_valid('(1,2,3)', 'widget');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('(1,2)', 'widget');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- hard error expected
+SELECT pg_input_is_valid('{"(1,2,3)"}', 'widget[]');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('{"(1,2)"}', 'widget[]');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- hard error expected
+SELECT pg_input_is_valid('("(1,2,3)")', 'mytab');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('("(1,2)")', 'mytab');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- hard error expected
+
+-- Test creation of an operator over a user-defined type
+
+CREATE FUNCTION pt_in_widget(point, widget)
+   RETURNS bool
+   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   LANGUAGE C STRICT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE OPERATOR <% (
+   leftarg = point,
+   rightarg = widget,
+   procedure = pt_in_widget,
+   commutator = >% ,
+   negator = >=%
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT point '(1,2)' <% widget '(0,0,3)' AS t,
+       point '(1,2)' <% widget '(0,0,1)' AS f;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- exercise city_budget type
+CREATE TABLE city (
+	name		name,
+	location 	box,
+	budget 		city_budget
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO city VALUES
+('Podunk', '(1,2),(3,4)', '100,127,1000'),
+('Gotham', '(1000,34),(1100,334)', '123456,127,-1000,6789');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+TABLE city;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+--
+-- Test CREATE/ALTER TYPE using a type that/* REPLACED */''s compatible with varchar,
+-- so we can re-use those support functions
+--
+CREATE TYPE myvarchar;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION myvarcharin(cstring, oid, integer) RETURNS myvarchar
+LANGUAGE internal IMMUTABLE PARALLEL SAFE STRICT AS 'varcharin';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION myvarcharout(myvarchar) RETURNS cstring
+LANGUAGE internal IMMUTABLE PARALLEL SAFE STRICT AS 'varcharout';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION myvarcharsend(myvarchar) RETURNS bytea
+LANGUAGE internal STABLE PARALLEL SAFE STRICT AS 'varcharsend';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION myvarcharrecv(internal, oid, integer) RETURNS myvarchar
+LANGUAGE internal STABLE PARALLEL SAFE STRICT AS 'varcharrecv';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- fail, it/* REPLACED */''s still a shell:
+ALTER TYPE myvarchar SET (storage = extended);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE TYPE myvarchar (
+    input = myvarcharin,
+    output = myvarcharout,
+    alignment = integer,
+    storage = main
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- want to check updating of a domain over the target type, too
+CREATE DOMAIN myvarchardom AS myvarchar;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+ALTER TYPE myvarchar SET (storage = plain);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- not allowed
+
+ALTER TYPE myvarchar SET (storage = extended);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+ALTER TYPE myvarchar SET (
+    send = myvarcharsend,
+    receive = myvarcharrecv,
+    typmod_in = varchartypmodin,
+    typmod_out = varchartypmodout,
+    -- these are bogus, but it/* REPLACED */''s safe as long as we don/* REPLACED */''t use the type:
+    analyze = ts_typanalyze,
+    subscript = raw_array_subscript_handler
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT typinput, typoutput, typreceive, typsend, typmodin, typmodout,
+       typanalyze, typsubscript, typstorage
+FROM pg_type WHERE typname = 'myvarchar';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT typinput, typoutput, typreceive, typsend, typmodin, typmodout,
+       typanalyze, typsubscript, typstorage
+FROM pg_type WHERE typname = '_myvarchar';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT typinput, typoutput, typreceive, typsend, typmodin, typmodout,
+       typanalyze, typsubscript, typstorage
+FROM pg_type WHERE typname = 'myvarchardom';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT typinput, typoutput, typreceive, typsend, typmodin, typmodout,
+       typanalyze, typsubscript, typstorage
+FROM pg_type WHERE typname = '_myvarchardom';
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- ensure dependencies are straight
+DROP FUNCTION myvarcharsend(myvarchar);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- fail
+DROP TYPE myvarchar;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+  -- fail
+
+DROP TYPE myvarchar CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+=========================================
+Summary for test case create_type/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 22 queries, which is 25.58%
+DIFFERENT: 4 queries, which is 4.65%
+ERROR: 60 queries, which is 69.77%
+
+=================
+Results for mySQL
+SAME: 22 queries, which is 25.58%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 64 queries, which is 74.42%

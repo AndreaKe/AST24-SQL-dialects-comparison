@@ -1,0 +1,807 @@
+
+-----------
+QUERY:
+--
+-- CREATE_OPERATOR
+--
+
+CREATE OPERATOR ## (
+   leftarg = path,
+   rightarg = path,
+   function = path_inter,
+   commutator = ##
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR ## (\n   leftarg = path,\n   rightarg = path,\n   function = path_inter,\n ' at line 5")
+
+-----------
+QUERY:
+
+
+CREATE OPERATOR @#@ (
+   rightarg = int8,		-- prefix
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR @#@ (\n   rightarg = int8,\t\t-- prefix\n   procedure = factorial\n)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OPERATOR #%# (
+   leftarg = int8,		-- fail, postfix is no longer supported
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #%# (\n   leftarg = int8,\t\t-- fail, postfix is no longer supported\n   pr' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test operator created above
+SELECT @#@ 24;
+RESULT:
+	((None,),)
+
+-----------
+QUERY:
+
+
+-- Test comments
+COMMENT ON OPERATOR ###### (NONE, int4) IS 'bad prefix';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON OPERATOR ###### (NONE, int4) IS 'bad prefix'' at line 2")
+
+-----------
+QUERY:
+
+COMMENT ON OPERATOR ###### (int4, NONE) IS 'bad postfix';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON OPERATOR ###### (int4, NONE) IS 'bad postfix'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON OPERATOR ###### (int4, int8) IS 'bad infix';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON OPERATOR ###### (int4, int8) IS 'bad infix'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check that DROP on a nonexistent op behaves sanely, too
+DROP OPERATOR ###### (NONE, int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR ###### (NONE, int4)' at line 2")
+
+-----------
+QUERY:
+
+DROP OPERATOR ###### (int4, NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR ###### (int4, NONE)' at line 1")
+
+-----------
+QUERY:
+
+DROP OPERATOR ###### (int4, int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR ###### (int4, int8)' at line 1")
+
+-----------
+QUERY:
+
+
+-- => is disallowed as an operator name now
+CREATE OPERATOR => (
+   rightarg = int8,
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR => (\n   rightarg = int8,\n   procedure = factorial\n)' at line 2")
+
+-----------
+QUERY:
+
+
+-- lexing of <=, >=, <>, != has a number of edge cases
+-- (=> is tested elsewhere)
+
+-- this is legal because ! is not allowed in sql ops
+CREATE OPERATOR !=- (
+   rightarg = int8,
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR !=- (\n   rightarg = int8,\n   procedure = factorial\n)' at line 5")
+
+-----------
+QUERY:
+
+SELECT !=- 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!=- 10' at line 1")
+
+-----------
+QUERY:
+
+-- postfix operators don/* REPLACED */''t work anymore
+SELECT 10 !=-;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 2")
+
+-----------
+QUERY:
+
+-- make sure lexer returns != as <> even in edge cases
+SELECT 2 !=/**/ 1, 2 !=/**/ 2;
+RESULT:
+	((1, 0),)
+
+-----------
+QUERY:
+
+SELECT 2 !=-- comment to be removed by psql
+  1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+DO $$ -- use DO to protect -- from psql
+  declare r boolean;
+  begin
+    execute $e$ select 2 !=-- comment
+      1 $e$ into r;
+    raise info 'r = %', r;
+  end;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'declare r boolean;\n  begin\n    execute $e$ select 2 !=-- comment\n      1 $e$ int' at line 2")
+
+-----------
+QUERY:
+
+
+-- check that <= etc. followed by more operator characters are returned
+-- as the correct token with correct precedence
+SELECT true<>-1 BETWEEN 1 AND 1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+  -- BETWEEN has prec. above <> but below Op
+SELECT false<>/**/1 BETWEEN 1 AND 1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT false<=-1 BETWEEN 1 AND 1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT false>=-1 BETWEEN 1 AND 1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 2<=/**/3, 3>=/**/2, 2<>/**/3;
+RESULT:
+	((1, 1, 1),)
+
+-----------
+QUERY:
+
+SELECT 3<=/**/2, 2>=/**/3, 2<>/**/2;
+RESULT:
+	((0, 0, 0),)
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on SCHEMA
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SCHEMA schema_op1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT USAGE ON SCHEMA schema_op1 TO PUBLIC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SCHEMA schema_op1 TO PUBLIC' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON SCHEMA schema_op1 FROM regress_rol_op1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SCHEMA schema_op1 FROM regress_rol_op1' at line 1")
+
+-----------
+QUERY:
+
+SET ROLE regress_rol_op1;
+RESULT:
+	ERROR - (3530, '`regress_rol_op1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CREATE OPERATOR schema_op1.#*# (
+   rightarg = int8,
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR schema_op1.#*# (\n   rightarg = int8,\n   procedure = factorial\n)' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Should fail. SETOF type functions not allowed as argument (testing leftarg)
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = SETOF int8,
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #*# (\n   leftarg = SETOF int8,\n   procedure = factorial\n)' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Should fail. SETOF type functions not allowed as argument (testing rightarg)
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   rightarg = SETOF int8,
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #*# (\n   rightarg = SETOF int8,\n   procedure = factorial\n)' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Should work. Sample text-book case
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE OR REPLACE FUNCTION fn_op2(boolean, boolean)
+RETURNS boolean AS $$
+    SELECT NULL::BOOLEAN;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION fn_op2(boolean, boolean)\nRETURNS boolean AS $$\n    SELECT NULL::BOOLEAN' at line 1")
+
+-----------
+QUERY:
+
+CREATE OPERATOR === (
+    LEFTARG = boolean,
+    RIGHTARG = boolean,
+    PROCEDURE = fn_op2,
+    COMMUTATOR = ===,
+    NEGATOR = !==,
+    RESTRICT = contsel,
+    JOIN = contjoinsel,
+    SORT1, SORT2, LTCMP, GTCMP, HASHES, MERGES
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR === (\n    LEFTARG = boolean,\n    RIGHTARG = boolean,\n    PROCEDURE = fn' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Should fail. Invalid attribute
+CREATE OPERATOR #@%# (
+   rightarg = int8,
+   procedure = factorial,
+   invalid_att = int8
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #@%# (\n   rightarg = int8,\n   procedure = factorial,\n   invalid_att = i' at line 2")
+
+-----------
+QUERY:
+
+
+-- Should fail. At least rightarg should be mandatorily specified
+CREATE OPERATOR #@%# (
+   procedure = factorial
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #@%# (\n   procedure = factorial\n)' at line 2")
+
+-----------
+QUERY:
+
+
+-- Should fail. Procedure should be mandatorily specified
+CREATE OPERATOR #@%# (
+   rightarg = int8
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #@%# (\n   rightarg = int8\n)' at line 2")
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on TYPE
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op3 AS ENUM ('new', 'open', 'closed');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE type_op3 AS ENUM ('new', 'open', 'closed')' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op3(type_op3, int8)
+RETURNS int8 AS $$
+    SELECT NULL::int8;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', int8)\nRETURNS int8 AS $$\n    SELECT NULL::int8;\n$$ LANGUAGE sql IMMUTABLE' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op3 FROM regress_rol_op3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type_op3 FROM regress_rol_op3' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op3 FROM PUBLIC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type_op3 FROM PUBLIC' at line 1")
+
+-----------
+QUERY:
+  -- Need to do this so that regress_rol_op3 is not allowed USAGE via PUBLIC
+SET ROLE regress_rol_op3;
+RESULT:
+	ERROR - (3530, '`regress_rol_op3`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = type_op3,
+   rightarg = int8,
+   procedure = fn_op3
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #*# (\n   leftarg = type_op3,\n   rightarg = int8,\n   procedure = fn_op3\n' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on TYPE (need to check separately for rightarg)
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op4 AS ENUM ('new', 'open', 'closed');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE type_op4 AS ENUM ('new', 'open', 'closed')' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op4(int8, type_op4)
+RETURNS int8 AS $$
+    SELECT NULL::int8;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8, type_op4)\nRETURNS int8 AS $$\n    SELECT NULL::int8;\n$$ LANGUAGE sql IMMUTA' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op4 FROM regress_rol_op4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type_op4 FROM regress_rol_op4' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op4 FROM PUBLIC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type_op4 FROM PUBLIC' at line 1")
+
+-----------
+QUERY:
+  -- Need to do this so that regress_rol_op3 is not allowed USAGE via PUBLIC
+SET ROLE regress_rol_op4;
+RESULT:
+	ERROR - (3530, '`regress_rol_op4`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = int8,
+   rightarg = type_op4,
+   procedure = fn_op4
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #*# (\n   leftarg = int8,\n   rightarg = type_op4,\n   procedure = fn_op4\n' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires EXECUTE on function
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op5 AS ENUM ('new', 'open', 'closed');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE type_op5 AS ENUM ('new', 'open', 'closed')' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op5(int8, int8)
+RETURNS int8 AS $$
+    SELECT NULL::int8;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8, int8)\nRETURNS int8 AS $$\n    SELECT NULL::int8;\n$$ LANGUAGE sql IMMUTABLE' at line 1")
+
+-----------
+QUERY:
+
+REVOKE EXECUTE ON FUNCTION fn_op5(int8, int8) FROM regress_rol_op5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8, int8) FROM regress_rol_op5' at line 1")
+
+-----------
+QUERY:
+
+REVOKE EXECUTE ON FUNCTION fn_op5(int8, int8) FROM PUBLIC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8, int8) FROM PUBLIC' at line 1")
+
+-----------
+QUERY:
+-- Need to do this so that regress_rol_op3 is not allowed EXECUTE via PUBLIC
+SET ROLE regress_rol_op5;
+RESULT:
+	ERROR - (3530, '`regress_rol_op5`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = int8,
+   rightarg = int8,
+   procedure = fn_op5
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #*# (\n   leftarg = int8,\n   rightarg = int8,\n   procedure = fn_op5\n)' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Should fail. CREATE OPERATOR requires USAGE on return TYPE
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_op6;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TYPE type_op6 AS ENUM ('new', 'open', 'closed');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE type_op6 AS ENUM ('new', 'open', 'closed')' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION fn_op6(int8, int8)
+RETURNS type_op6 AS $$
+    SELECT NULL::type_op6;
+$$ LANGUAGE sql IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8, int8)\nRETURNS type_op6 AS $$\n    SELECT NULL::type_op6;\n$$ LANGUAGE sql IM' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op6 FROM regress_rol_op6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type_op6 FROM regress_rol_op6' at line 1")
+
+-----------
+QUERY:
+
+REVOKE USAGE ON TYPE type_op6 FROM PUBLIC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type_op6 FROM PUBLIC' at line 1")
+
+-----------
+QUERY:
+  -- Need to do this so that regress_rol_op3 is not allowed USAGE via PUBLIC
+SET ROLE regress_rol_op6;
+RESULT:
+	ERROR - (3530, '`regress_rol_op6`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+CREATE OPERATOR #*# (
+   leftarg = int8,
+   rightarg = int8,
+   procedure = fn_op6
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR #*# (\n   leftarg = int8,\n   rightarg = int8,\n   procedure = fn_op6\n)' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Should fail. An operator cannot be its own negator.
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    negator = ===
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR === (\n    leftarg = integer,\n    rightarg = integer,\n    procedure = in' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Should fail. An operator cannot be its own negator. Here we check that
+-- this error is detected when replacing a shell operator.
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 3")
+
+-----------
+QUERY:
+
+-- create a shell operator for ===!!! by referencing it as a commutator
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    commutator = ===!!!
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR === (\n    leftarg = integer,\n    rightarg = integer,\n    procedure = in' at line 2")
+
+-----------
+QUERY:
+
+CREATE OPERATOR ===!!! (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4ne,
+    negator = ===!!!
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR ===!!! (\n    leftarg = integer,\n    rightarg = integer,\n    procedure =' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test that we can/* REPLACED */''t use part of an existing commutator or negator pair
+-- as a commutator or negator
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    commutator = =
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR === (\n    leftarg = integer,\n    rightarg = integer,\n    procedure = in' at line 3")
+
+-----------
+QUERY:
+
+CREATE OPERATOR === (
+    leftarg = integer,
+    rightarg = integer,
+    procedure = int4eq,
+    negator = <>
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OPERATOR === (\n    leftarg = integer,\n    rightarg = integer,\n    procedure = in' at line 1")
+
+-----------
+QUERY:
+
+
+-- invalid: non-lowercase quoted identifiers
+CREATE OPERATOR ===
+(
+	"Leftarg" = box,
+	"Rightarg" = box,
+	"Procedure" = area_equal_function,
+	"Commutator" = ===,
+	"Negator" = !==,
+	"Restrict" = area_restriction_function,
+	"Join" = area_join_function,
+	"Hashes",
+	"Merges"
+);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'OPERATOR ===\n(\n\t"Leftarg" = box,\n\t"Rightarg" = box,\n\t"Procedure" = area_equal_fu\' at line 2')

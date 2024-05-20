@@ -1,0 +1,1642 @@
+
+-----------
+QUERY:
+--
+-- grouping sets
+--
+
+-- test data sources
+
+create temp view gstest1(a,b,v)
+  as values (1,1,10),(1,1,11),(1,2,12),(1,2,13),(1,3,14),
+            (2,3,15),
+            (3,3,16),(3,4,17),
+            (4,1,18),(4,1,19);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp view gstest1(a,b,v)\n  as values (1,1,10),(1,1,11),(1,2,12),(1,2,13),(1,3,14' at line 7")
+
+-----------
+QUERY:
+
+
+create temp table gstest2 (a integer, b integer, c integer, d integer,
+                           e integer, f integer, g integer, h integer);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table gstest2 (a integer, b integer, c integer, d integer,\n                ' at line 1")
+
+-----------
+QUERY:
+
+copy gstest2 from stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'copy gstest2 from stdin' at line 1")
+
+-----------
+QUERY:
+
+1	1	1	1	1	1	1	1
+1	1	1	1	1	1	1	2
+1	1	1	1	1	1	2	2
+1	1	1	1	1	2	2	2
+1	1	1	1	2	2	2	2
+1	1	1	2	2	2	2	2
+1	1	2	2	2	2	2	2
+1	2	2	2	2	2	2	2
+2	2	2	2	2	2	2	2
+\.
+
+create temp table gstest3 (a integer, b integer, c integer, d integer);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1\t1\t1\t1\t1\t1\t1\t1\n1\t1\t1\t1\t1\t1\t1\t2\n1\t1\t1\t1\t1\t1\t2\t2\n1\t1\t1\t1\t1\t2\t2\t2\n1\t1\t1\t1\t2\t2\t2\t2\n' at line 1")
+
+-----------
+QUERY:
+
+copy gstest3 from stdin;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'copy gstest3 from stdin' at line 1")
+
+-----------
+QUERY:
+
+1	1	1	1
+2	2	2	2
+\.
+alter table gstest3 add primary key (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1\t1\t1\t1\n2\t2\t2\t2\n\\.\nalter table gstest3 add primary key (a)' at line 1")
+
+-----------
+QUERY:
+
+
+create temp table gstest4(id integer, v integer,
+                          unhashable_col bit(4), unsortable_col xid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table gstest4(id integer, v integer,\n                          unhashable_c' at line 1")
+
+-----------
+QUERY:
+
+insert into gstest4
+values (1,1,b'0000','1'), (2,2,b'0001','1'),
+       (3,4,b'0010','2'), (4,8,b'0011','2'),
+       (5,16,b'0000','2'), (6,32,b'0001','2'),
+       (7,64,b'0010','1'), (8,128,b'0011','1');
+RESULT:
+	ERROR - (1146, "Table 'test.gstest4' doesn't exist")
+
+-----------
+QUERY:
+
+
+create temp table gstest_empty (a integer, b integer, v integer);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table gstest_empty (a integer, b integer, v integer)' at line 1")
+
+-----------
+QUERY:
+
+
+create function gstest_data(v integer, out a integer, out b integer)
+  returns setof record
+  as $f$
+    begin
+      return query select v, i from generate_series(1,3) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'out a integer, out b integer)\n  returns setof record\n  as $f$\n    begin\n      re' at line 1")
+
+-----------
+QUERY:
+
+    end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'end' at line 1")
+
+-----------
+QUERY:
+
+  $f$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '$f$ language plpgsql' at line 1")
+
+-----------
+QUERY:
+
+
+-- basic functionality
+
+set enable_hashagg = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+  -- test hashing explicitly later
+
+-- simple rollup with multiple plain aggregates, with and without ordering
+-- (and with ordering differing from grouping)
+
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by rollup (a,b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b)' at line 7")
+
+-----------
+QUERY:
+
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by rollup (a,b) order by a,b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b) order by a,b' at line 2")
+
+-----------
+QUERY:
+
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by rollup (a,b) order by b desc, a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b) order by b desc, a' at line 2")
+
+-----------
+QUERY:
+
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by rollup (a,b) order by coalesce(a,0)+coalesce(b,0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b) order by coalesce(a,0)+coalesce(b,0)' at line 2")
+
+-----------
+QUERY:
+
+
+-- various types of ordered aggs
+select a, b, grouping(a,b),
+       array_agg(v order by v),
+       string_agg(v::text, ':' order by v desc),
+       percentile_disc(0.5) within group (order by v),
+       rank(1,2,12) within group (order by a,b,v)
+  from gstest1 group by rollup (a,b) order by a,b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'order by v),\n       string_agg(v::text, ':' order by v desc),\n       percentile_' at line 3")
+
+-----------
+QUERY:
+
+
+-- test usage of grouped columns in direct args of aggs
+select grouping(a), a, array_agg(b),
+       rank(a) within group (order by b nulls first),
+       rank(a) within group (order by b nulls last)
+  from (values (1,1),(1,4),(1,5),(3,1),(3,2)) v(a,b)
+ group by rollup (a) order by a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a) within group (order by b nulls first),\n       rank(a) within group (order by ' at line 3")
+
+-----------
+QUERY:
+
+
+-- nesting with window functions
+select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+  from gstest2 group by rollup (a,b) order by rsum, a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b) order by rsum, a, b' at line 3")
+
+-----------
+QUERY:
+
+
+-- nesting with grouping sets
+select sum(c) from gstest2
+  group by grouping sets((), grouping sets((), grouping sets(())))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets((), grouping sets((), grouping sets(())))\n  order by 1 desc' at line 3")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets((), grouping sets((), grouping sets(((a, b)))))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets((), grouping sets((), grouping sets(((a, b)))))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(rollup(c), grouping sets(cube(c))))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(grouping sets(rollup(c), grouping sets(cube(c))))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets(a, grouping sets(a, cube(b)))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(a, grouping sets(a, cube(b)))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets((a, (b))))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(grouping sets((a, (b))))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets((a, b)))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(grouping sets((a, b)))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(a, grouping sets(a), a))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(grouping sets(a, grouping sets(a), a))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets(grouping sets(a, grouping sets(a, grouping sets(a), ((a)), a, grouping sets(a), (a)), a))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(grouping sets(a, grouping sets(a, grouping sets(a), ((a)), a, grouping sets' at line 2")
+
+-----------
+QUERY:
+
+select sum(c) from gstest2
+  group by grouping sets((a,(a,b)), grouping sets((a,(a,b)),a))
+  order by 1 desc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets((a,(a,b)), grouping sets((a,(a,b)),a))\n  order by 1 desc' at line 2")
+
+-----------
+QUERY:
+
+
+-- empty input: first is 0 rows, second 1, third 3 etc.
+select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),a)' at line 2")
+
+-----------
+QUERY:
+
+select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),())' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),(),(),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),(),(),())' at line 1")
+
+-----------
+QUERY:
+
+select sum(v), count(*) from gstest_empty group by grouping sets ((),(),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((),(),())' at line 1")
+
+-----------
+QUERY:
+
+
+-- empty input with joins tests some important code paths
+select t1.a, t2.b, sum(t1.v), count(*) from gstest_empty t1, gstest_empty t2
+ group by grouping sets ((t1.a,t2.b),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((t1.a,t2.b),())' at line 3")
+
+-----------
+QUERY:
+
+
+-- simple joins, var resolution, GROUPING on join vars
+select t1.a, t2.b, grouping(t1.a, t2.b), sum(t1.v), max(t2.a)
+  from gstest1 t1, gstest2 t2
+ group by grouping sets ((t1.a, t2.b), ());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((t1.a, t2.b), ())' at line 4")
+
+-----------
+QUERY:
+
+
+select t1.a, t2.b, grouping(t1.a, t2.b), sum(t1.v), max(t2.a)
+  from gstest1 t1 join gstest2 t2 on (t1.a=t2.a)
+ group by grouping sets ((t1.a, t2.b), ());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((t1.a, t2.b), ())' at line 3")
+
+-----------
+QUERY:
+
+
+select a, b, grouping(a, b), sum(t1.v), max(t2.c)
+  from gstest1 t1 join gstest2 t2 using (a,b)
+ group by grouping sets ((a, b), ());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a, b), ())' at line 3")
+
+-----------
+QUERY:
+
+
+-- check that functionally dependent cols are not nulled
+select a, d, grouping(a,b,c)
+  from gstest3
+ group by grouping sets ((a,b), (a,c));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b), (a,c))' at line 4")
+
+-----------
+QUERY:
+
+
+-- check that distinct grouping columns are kept separate
+-- even if they are equal()
+explain (costs off)
+select g as alias1, g as alias2
+  from generate_series(1,3) g
+ group by alias1, rollup(alias2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect g as alias1, g as alias2\n  from generate_series(1,3) g\n group ' at line 3")
+
+-----------
+QUERY:
+
+
+select g as alias1, g as alias2
+  from generate_series(1,3) g
+ group by alias1, rollup(alias2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,3) g\n group by alias1, rollup(alias2)' at line 2")
+
+-----------
+QUERY:
+
+
+-- check that pulled-up subquery outputs still go to null when appropriate
+select four, x
+  from (select four, ten, 'foo'::text as x from tenk1) as t
+  group by grouping sets (four, x)
+  having x = 'foo';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text as x from tenk1) as t\n  group by grouping sets (four, x)\n  having x = 'fo' at line 3")
+
+-----------
+QUERY:
+
+
+select four, x || 'x'
+  from (select four, ten, 'foo'::text as x from tenk1) as t
+  group by grouping sets (four, x)
+  order by four;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text as x from tenk1) as t\n  group by grouping sets (four, x)\n  order by four' at line 2")
+
+-----------
+QUERY:
+
+
+select (x+y)*1, sum(z)
+ from (select 1 as x, 2 as y, 3 as z) s
+ group by grouping sets (x+y, x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets (x+y, x)' at line 3")
+
+-----------
+QUERY:
+
+
+select x, not x as not_x, q2 from
+  (select *, q1 = 1 as x from int8_tbl i1) as t
+  group by grouping sets(x, q2)
+  order by x, q2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(x, q2)\n  order by x, q2' at line 3")
+
+-----------
+QUERY:
+
+
+-- check qual push-down rules for a subquery with grouping sets
+explain (verbose, costs off)
+select * from (
+  select 1 as x, q1, sum(q2)
+  from int8_tbl i1
+  group by grouping sets(1, 2)
+) ss
+where x = 1 and q1 = 123;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from (\n  select 1 as x, q1, sum(q2)\n  from int8_tbl' at line 2")
+
+-----------
+QUERY:
+
+
+select * from (
+  select 1 as x, q1, sum(q2)
+  from int8_tbl i1
+  group by grouping sets(1, 2)
+) ss
+where x = 1 and q1 = 123;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(1, 2)\n) ss\nwhere x = 1 and q1 = 123' at line 4")
+
+-----------
+QUERY:
+
+
+-- check handling of pulled-up SubPlan in GROUPING() argument (bug #17479)
+explain (verbose, costs off)
+select grouping(ss.x)
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect grouping(ss.x)\nfrom int8_tbl i1\ncross join lateral (s' at line 2")
+
+-----------
+QUERY:
+
+
+select grouping(ss.x)
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select (select grouping(ss.x))
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect (select grouping(ss.x))\nfrom int8_tbl i1\ncross join l' at line 1")
+
+-----------
+QUERY:
+
+
+select (select grouping(ss.x))
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- simple rescan tests
+
+select a, b, sum(v.x)
+  from (values (1),(2)) v(x), gstest_data(v.x)
+ group by rollup (a,b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(x), gstest_data(v.x)\n group by rollup (a,b)' at line 4")
+
+-----------
+QUERY:
+
+
+select *
+  from (values (1),(2)) v(x),
+       lateral (select a, b, sum(v.x) from gstest_data(v.x) group by rollup (a,b)) s;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(x),\n       lateral (select a, b, sum(v.x) from gstest_data(v.x) group' at line 2")
+
+-----------
+QUERY:
+
+
+-- min max optimization should still work with GROUP BY ()
+explain (costs off)
+  select min(unique1) from tenk1 GROUP BY ();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select min(unique1) from tenk1 GROUP BY ()' at line 2")
+
+-----------
+QUERY:
+
+
+-- Views with GROUPING SET queries
+CREATE VIEW gstest_view AS select a, b, grouping(a,b), sum(c), count(*), max(c)
+  from gstest2 group by rollup ((a,b,c),(c,d));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '((a,b,c),(c,d))' at line 3")
+
+-----------
+QUERY:
+
+
+select pg_get_viewdef('gstest_view'::regclass, true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, true)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Nested queries with 3 or more levels of nesting
+select(select (select grouping(a,b) from (values (1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,f) GROUP BY ROLLUP(e,f);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,' at line 2")
+
+-----------
+QUERY:
+
+select(select (select grouping(e,f) from (values (1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,f) GROUP BY ROLLUP(e,f);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,' at line 1")
+
+-----------
+QUERY:
+
+select(select (select grouping(c) from (values (1)) v2(c) GROUP BY c) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,f) GROUP BY ROLLUP(e,f);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)) v2(c) GROUP BY c) from (values (1,2)) v1(a,b) group by (a,b)) from (values(' at line 1")
+
+-----------
+QUERY:
+
+
+-- Combinations of operations
+select a, b, c, d from gstest2 group by rollup(a,b),grouping sets(c,d);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b),grouping sets(c,d)' at line 2")
+
+-----------
+QUERY:
+
+select a, b from (values (1,2),(2,3)) v(a,b) group by a,b, grouping sets(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,2),(2,3)) v(a,b) group by a,b, grouping sets(a)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Tests for chained aggregates
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by grouping sets ((a,b),(a+1,b+1),(a+2,b+2)) order by 3,6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),(a+1,b+1),(a+2,b+2)) order by 3,6' at line 3")
+
+-----------
+QUERY:
+
+select(select (select grouping(a,b) from (values (1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,f) GROUP BY ROLLUP((e+1),(f+1));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,' at line 1")
+
+-----------
+QUERY:
+
+select(select (select grouping(a,b) from (values (1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,f) GROUP BY CUBE((e+1),(f+1)) ORDER BY (e+1),(f+1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)) v2(c)) from (values (1,2)) v1(a,b) group by (a,b)) from (values(6,7)) v3(e,' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+  from gstest2 group by cube (a,b) order by rsum, a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cube (a,b) order by rsum, a, b' at line 2")
+
+-----------
+QUERY:
+
+select a, b, sum(c) from (values (1,1,10),(1,1,11),(1,2,12),(1,2,13),(1,3,14),(2,3,15),(3,3,16),(3,4,17),(4,1,18),(4,1,19)) v(a,b,c) group by rollup (a,b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,1,10),(1,1,11),(1,2,12),(1,2,13),(1,3,14),(2,3,15),(3,3,16),(3,4,17),(4,1,18)' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(v.x)
+  from (values (1),(2)) v(x), gstest_data(v.x)
+ group by cube (a,b) order by a,b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(x), gstest_data(v.x)\n group by cube (a,b) order by a,b' at line 2")
+
+-----------
+QUERY:
+
+
+-- Test reordering of grouping sets
+explain (costs off)
+select * from gstest1 group by grouping sets((a,b,v),(v)) order by v,b,a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect * from gstest1 group by grouping sets((a,b,v),(v)) order by v,' at line 2")
+
+-----------
+QUERY:
+
+
+-- Agg level check. This query should error out.
+select (select grouping(a,b) from gstest2) from gstest2 group by a,b;
+RESULT:
+	ERROR - (1146, "Table 'test.gstest2' doesn't exist")
+
+-----------
+QUERY:
+
+
+--Nested queries
+select a, b, sum(c), count(*) from gstest2 group by grouping sets (rollup(a,b),a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Nested queries\nselect a, b, sum(c), count(*) from gstest2 group by grouping se' at line 1")
+
+-----------
+QUERY:
+
+
+-- HAVING queries
+select ten, sum(distinct four) from onek a
+group by grouping sets((ten,four),(ten))
+having exists (select 1 from onek b where sum(distinct a.four) = b.four);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets((ten,four),(ten))\nhaving exists (select 1 from onek b where sum(distinct a.' at line 3")
+
+-----------
+QUERY:
+
+
+-- Tests around pushdown of HAVING clauses, partially testing against previous bugs
+select a,count(*) from gstest2 group by rollup(a) order by a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a) order by a' at line 2")
+
+-----------
+QUERY:
+
+select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a) having a is distinct from 1 order by a' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a,count(*) from gstest2 group by rollup(a) having a is disti' at line 1")
+
+-----------
+QUERY:
+
+
+select v.c, (select count(*) from gstest2 group by () having v.c)
+  from (values (false),(true)) v(c) order by v.c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') having v.c)\n  from (values (false),(true)) v(c) order by v.c' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select v.c, (select count(*) from gstest2 group by () having v.c)
+    from (values (false),(true)) v(c) order by v.c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select v.c, (select count(*) from gstest2 group by () having v.c)\n ' at line 1")
+
+-----------
+QUERY:
+
+
+-- HAVING with GROUPING queries
+select ten, grouping(ten) from onek
+group by grouping sets(ten) having grouping(ten) >= 0
+order by 2,1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(ten) having grouping(ten) >= 0\norder by 2,1' at line 3")
+
+-----------
+QUERY:
+
+select ten, grouping(ten) from onek
+group by grouping sets(ten, four) having grouping(ten) > 0
+order by 2,1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets(ten, four) having grouping(ten) > 0\norder by 2,1' at line 2")
+
+-----------
+QUERY:
+
+select ten, grouping(ten) from onek
+group by rollup(ten) having grouping(ten) > 0
+order by 2,1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(ten) having grouping(ten) > 0\norder by 2,1' at line 2")
+
+-----------
+QUERY:
+
+select ten, grouping(ten) from onek
+group by cube(ten) having grouping(ten) > 0
+order by 2,1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cube(ten) having grouping(ten) > 0\norder by 2,1' at line 2")
+
+-----------
+QUERY:
+
+select ten, grouping(ten) from onek
+group by (ten) having grouping(ten) >= 0
+order by 2,1;
+RESULT:
+	ERROR - (1146, "Table 'test.onek' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- FILTER queries
+select ten, sum(distinct four) filter (where four::text ~ '123') from onek a
+group by rollup(ten);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(where four::text ~ '123') from onek a\ngroup by rollup(ten)' at line 2")
+
+-----------
+QUERY:
+
+
+-- More rescan tests
+select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group by cube(four,ten)) s on true order by v.a,four,ten;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group' at line 2")
+
+-----------
+QUERY:
+
+select array(select row(v.a,s1.*) from (select two,four, count(*) from onek group by cube(two,four) order by two,four) s1) from (values (1),(2)) v(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(select row(v.a,s1.*) from (select two,four, count(*) from onek group by cube(tw' at line 1")
+
+-----------
+QUERY:
+
+
+-- Grouping on text columns
+select sum(ten) from onek group by two, rollup(four::text) order by 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(four::text) order by 1' at line 2")
+
+-----------
+QUERY:
+
+select sum(ten) from onek group by rollup(four::text), two order by 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(four::text), two order by 1' at line 1")
+
+-----------
+QUERY:
+
+
+-- hashing support
+
+set enable_hashagg = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+
+-- failure cases
+
+select count(*) from gstest4 group by rollup(unhashable_col,unsortable_col);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(unhashable_col,unsortable_col)' at line 3")
+
+-----------
+QUERY:
+
+select array_agg(v order by v) from gstest4 group by grouping sets ((id,unsortable_col),(id));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'order by v) from gstest4 group by grouping sets ((id,unsortable_col),(id))' at line 1")
+
+-----------
+QUERY:
+
+
+-- simple cases
+
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by grouping sets ((a),(b)) order by 3,1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a),(b)) order by 3,1,2' at line 4")
+
+-----------
+QUERY:
+
+explain (costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by grouping sets ((a),(b)) order by 3,1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)\n  from gstest1 g' at line 1")
+
+-----------
+QUERY:
+
+
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by cube(a,b) order by 3,1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cube(a,b) order by 3,1,2' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by cube(a,b) order by 3,1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)\n  from gstest1 g' at line 1")
+
+-----------
+QUERY:
+
+
+-- shouldn/* REPLACED */''t try and hash
+explain (costs off)
+  select a, b, grouping(a,b), array_agg(v order by v)
+    from gstest1 group by cube(a,b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, grouping(a,b), array_agg(v order by v)\n    from gstest' at line 2")
+
+-----------
+QUERY:
+
+
+-- unsortable cases
+select unsortable_col, count(*)
+  from gstest4 group by grouping sets ((unsortable_col),(unsortable_col))
+  order by unsortable_col::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((unsortable_col),(unsortable_col))\n  order by unsortable_col::text' at line 3")
+
+-----------
+QUERY:
+
+
+-- mixed hashable/sortable cases
+select unhashable_col, unsortable_col,
+       grouping(unhashable_col, unsortable_col),
+       count(*), sum(v)
+  from gstest4 group by grouping sets ((unhashable_col),(unsortable_col))
+ order by 3, 5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((unhashable_col),(unsortable_col))\n order by 3, 5' at line 5")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select unhashable_col, unsortable_col,
+         grouping(unhashable_col, unsortable_col),
+         count(*), sum(v)
+    from gstest4 group by grouping sets ((unhashable_col),(unsortable_col))
+   order by 3,5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select unhashable_col, unsortable_col,\n         grouping(unhashable' at line 1")
+
+-----------
+QUERY:
+
+
+select unhashable_col, unsortable_col,
+       grouping(unhashable_col, unsortable_col),
+       count(*), sum(v)
+  from gstest4 group by grouping sets ((v,unhashable_col),(v,unsortable_col))
+ order by 3,5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((v,unhashable_col),(v,unsortable_col))\n order by 3,5' at line 4")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select unhashable_col, unsortable_col,
+         grouping(unhashable_col, unsortable_col),
+         count(*), sum(v)
+    from gstest4 group by grouping sets ((v,unhashable_col),(v,unsortable_col))
+   order by 3,5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select unhashable_col, unsortable_col,\n         grouping(unhashable' at line 1")
+
+-----------
+QUERY:
+
+
+-- empty input: first is 0 rows, second 1, third 3 etc.
+select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),a)' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, sum(v), count(*) from gstest_empty group by grouping s' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),())' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),(),(),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),(),(),())' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),(),(),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, sum(v), count(*) from gstest_empty group by grouping s' at line 1")
+
+-----------
+QUERY:
+
+select sum(v), count(*) from gstest_empty group by grouping sets ((),(),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((),(),())' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select sum(v), count(*) from gstest_empty group by grouping sets ((),(),());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select sum(v), count(*) from gstest_empty group by grouping sets ((' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that functionally dependent cols are not nulled
+select a, d, grouping(a,b,c)
+  from gstest3
+ group by grouping sets ((a,b), (a,c));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b), (a,c))' at line 4")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, d, grouping(a,b,c)
+    from gstest3
+   group by grouping sets ((a,b), (a,c));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, d, grouping(a,b,c)\n    from gstest3\n   group by grouping ' at line 1")
+
+-----------
+QUERY:
+
+
+-- simple rescan tests
+
+select a, b, sum(v.x)
+  from (values (1),(2)) v(x), gstest_data(v.x)
+ group by grouping sets (a,b)
+ order by 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(x), gstest_data(v.x)\n group by grouping sets (a,b)\n order by 1, 2, 3' at line 4")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, b, sum(v.x)
+    from (values (1),(2)) v(x), gstest_data(v.x)
+   group by grouping sets (a,b)
+   order by 3, 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, sum(v.x)\n    from (values (1),(2)) v(x), gstest_data(v' at line 1")
+
+-----------
+QUERY:
+
+select *
+  from (values (1),(2)) v(x),
+       lateral (select a, b, sum(v.x) from gstest_data(v.x) group by grouping sets (a,b)) s;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(x),\n       lateral (select a, b, sum(v.x) from gstest_data(v.x) group' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select *
+    from (values (1),(2)) v(x),
+         lateral (select a, b, sum(v.x) from gstest_data(v.x) group by grouping sets (a,b)) s;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select *\n    from (values (1),(2)) v(x),\n         lateral (select a' at line 1")
+
+-----------
+QUERY:
+
+
+-- Tests for chained aggregates
+select a, b, grouping(a,b), sum(v), count(*), max(v)
+  from gstest1 group by grouping sets ((a,b),(a+1,b+1),(a+2,b+2)) order by 3,6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets ((a,b),(a+1,b+1),(a+2,b+2)) order by 3,6' at line 3")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, b, grouping(a,b), sum(v), count(*), max(v)
+    from gstest1 group by grouping sets ((a,b),(a+1,b+1),(a+2,b+2)) order by 3,6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, grouping(a,b), sum(v), count(*), max(v)\n    from gstes' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+  from gstest2 group by cube (a,b) order by rsum, a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cube (a,b) order by rsum, a, b' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+    from gstest2 group by cube (a,b) order by rsum, a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum\n    fr' at line 1")
+
+-----------
+QUERY:
+
+select a, b, sum(v.x)
+  from (values (1),(2)) v(x), gstest_data(v.x)
+ group by cube (a,b) order by a,b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(x), gstest_data(v.x)\n group by cube (a,b) order by a,b' at line 2")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select a, b, sum(v.x)
+    from (values (1),(2)) v(x), gstest_data(v.x)
+   group by cube (a,b) order by a,b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select a, b, sum(v.x)\n    from (values (1),(2)) v(x), gstest_data(v' at line 1")
+
+-----------
+QUERY:
+
+
+-- Verify that we correctly handle the child node returning a
+-- non-minimal slot, which happens if the input is pre-sorted,
+-- e.g. due to an index scan.
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL enable_hashagg = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING ' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SETS(a, b,()) ORDER BY a, b' at line 1")
+
+-----------
+QUERY:
+
+SET LOCAL enable_seqscan = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING ' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SETS(a, b,()) ORDER BY a, b' at line 1")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- More rescan tests
+select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group by cube(four,ten)) s on true order by v.a,four,ten;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group' at line 2")
+
+-----------
+QUERY:
+
+select array(select row(v.a,s1.*) from (select two,four, count(*) from onek group by cube(two,four) order by two,four) s1) from (values (1),(2)) v(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(select row(v.a,s1.*) from (select two,four, count(*) from onek group by cube(tw' at line 1")
+
+-----------
+QUERY:
+
+
+-- Rescan logic changes when there are no empty grouping sets, so test
+-- that too:
+select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group by grouping sets(four,ten)) s on true order by v.a,four,ten;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group' at line 3")
+
+-----------
+QUERY:
+
+select array(select row(v.a,s1.*) from (select two,four, count(*) from onek group by grouping sets(two,four) order by two,four) s1) from (values (1),(2)) v(a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(select row(v.a,s1.*) from (select two,four, count(*) from onek group by groupin' at line 1")
+
+-----------
+QUERY:
+
+
+-- test the knapsack
+
+set enable_indexscan = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set work_mem = '64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select unique1,
+         count(two), count(four), count(ten),
+         count(hundred), count(thousand), count(twothousand),
+         count(*)
+    from tenk1 group by grouping sets (unique1,twothousand,thousand,hundred,ten,four,two);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select unique1,\n         count(two), count(four), count(ten),\n     ' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select unique1,
+         count(two), count(four), count(ten),
+         count(hundred), count(thousand), count(twothousand),
+         count(*)
+    from tenk1 group by grouping sets (unique1,hundred,ten,four,two);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select unique1,\n         count(two), count(four), count(ten),\n     ' at line 1")
+
+-----------
+QUERY:
+
+
+set work_mem = '384kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select unique1,
+         count(two), count(four), count(ten),
+         count(hundred), count(thousand), count(twothousand),
+         count(*)
+    from tenk1 group by grouping sets (unique1,twothousand,thousand,hundred,ten,four,two);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select unique1,\n         count(two), count(four), count(ten),\n     ' at line 1")
+
+-----------
+QUERY:
+
+
+-- check collation-sensitive matching between grouping expressions
+-- (similar to a check for aggregates, but there are additional code
+-- paths for GROUPING, so check again here)
+
+select v||'a', case grouping(v||'a') when 1 then 1 else 0 end, count(*)
+  from unnest(array[1,1], array['a','b']) u(i,v)
+ group by rollup(i, v||'a') order by 1,3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1,1], array['a','b']) u(i,v)\n group by rollup(i, v||'a') order by 1,3' at line 6")
+
+-----------
+QUERY:
+
+select v||'a', case when grouping(v||'a') = 1 then 1 else 0 end, count(*)
+  from unnest(array[1,1], array['a','b']) u(i,v)
+ group by rollup(i, v||'a') order by 1,3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1,1], array['a','b']) u(i,v)\n group by rollup(i, v||'a') order by 1,3' at line 2")
+
+-----------
+QUERY:
+
+
+-- Bug #16784
+create table bug_16784(i int, j int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+analyze bug_16784;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'bug_16784' at line 1")
+
+-----------
+QUERY:
+
+alter table bug_16784 set (autovacuum_enabled = 'false');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (autovacuum_enabled = 'false')' at line 1")
+
+-----------
+QUERY:
+
+update pg_class set reltuples = 10 where relname='bug_16784';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+insert into bug_16784 select g/10, g from generate_series(1,40) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,40) g' at line 1")
+
+-----------
+QUERY:
+
+
+set work_mem='64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set enable_sort = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+
+select * from
+  (values (1),(2)) v(a),
+  lateral (select a, i, j, count(*) from
+             bug_16784 group by cube(i,j)) s
+  order by v.a, i, j;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v(a),\n  lateral (select a, i, j, count(*) from\n             bug_16784 g' at line 2")
+
+-----------
+QUERY:
+
+
+--
+-- Compare results between plans using sorting and plans using hash
+-- aggregation. Force spilling in both cases by setting work_mem low
+-- and altering the statistics.
+--
+
+create table gs_data_1 as
+select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,1999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0,1999) g' at line 9")
+
+-----------
+QUERY:
+
+
+analyze gs_data_1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'gs_data_1' at line 1")
+
+-----------
+QUERY:
+
+alter table gs_data_1 set (autovacuum_enabled = 'false');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (autovacuum_enabled = 'false')' at line 1")
+
+-----------
+QUERY:
+
+update pg_class set reltuples = 10 where relname='gs_data_1';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+set work_mem='64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+
+-- Produce results with sorting.
+
+set enable_sort = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+set enable_hashagg = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+set jit_above_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'jit_above_cost'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect g100, g10, sum(g::numeric), count(*), max(g::text)\nfrom gs_dat' at line 1")
+
+-----------
+QUERY:
+
+
+create table gs_group_1 as
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::numeric), count(*), max(g::text)\nfrom gs_data_1 group by cube (g1000, g100,g10' at line 2")
+
+-----------
+QUERY:
+
+
+-- Produce results with hash aggregation.
+
+set enable_hashagg = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+set enable_sort = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect g100, g10, sum(g::numeric), count(*), max(g::text)\nfrom gs_dat' at line 1")
+
+-----------
+QUERY:
+
+
+create table gs_hash_1 as
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::numeric), count(*), max(g::text)\nfrom gs_data_1 group by cube (g1000, g100,g10' at line 2")
+
+-----------
+QUERY:
+
+
+set enable_sort = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+set work_mem to default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to default' at line 1")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier to default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to default' at line 1")
+
+-----------
+QUERY:
+
+
+-- Compare results
+
+(select * from gs_hash_1 except select * from gs_group_1)
+  union all
+(select * from gs_group_1 except select * from gs_hash_1);
+RESULT:
+	ERROR - (1146, "Table 'test.gs_hash_1' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table gs_group_1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.gs_group_1'")
+
+-----------
+QUERY:
+
+drop table gs_hash_1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.gs_hash_1'")
+
+-----------
+QUERY:
+
+
+-- GROUP BY DISTINCT
+
+-- /* REPLACED */''normal/* REPLACED */'' behavior...
+select a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by all rollup(a, b), rollup(a, c)
+order by a, b, c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)\ngroup by all rollup(a, b), ro' at line 5")
+
+-----------
+QUERY:
+
+
+-- ...which is also the default
+select a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by rollup(a, b), rollup(a, c)
+order by a, b, c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)\ngroup by rollup(a, b), rollup' at line 3")
+
+-----------
+QUERY:
+
+
+-- /* REPLACED */''group by distinct/* REPLACED */'' behavior...
+select a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by distinct rollup(a, b), rollup(a, c)
+order by a, b, c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)\ngroup by distinct rollup(a, b' at line 3")
+
+-----------
+QUERY:
+
+
+-- ...which is not the same as /* REPLACED */''select distinct/* REPLACED */''
+select distinct a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by rollup(a, b), rollup(a, c)
+order by a, b, c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)\ngroup by rollup(a, b), rollup' at line 3")
+
+-----------
+QUERY:
+
+
+-- test handling of outer GroupingFunc within subqueries
+explain (costs off)
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect (select grouping(v1)) from (values ((select 1))) v(v1) group b' at line 2")
+
+-----------
+QUERY:
+
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '((select 1))) v(v1) group by cube(v1)' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect (select grouping(v1)) from (values ((select 1))) v(v1) group b' at line 1")
+
+-----------
+QUERY:
+
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '((select 1))) v(v1) group by v1' at line 1")
+
+-----------
+QUERY:
+
+
+-- end
+
+RESULT:
+	[]

@@ -1,0 +1,228 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- encoding-sensitive tests for jsonpath
+--
+
+-- We provide expected-results files for UTF8 (jsonpath_encoding.out)
+-- and for SQL_ASCII (jsonpath_encoding_1.out).  Skip otherwise.
+SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+SELECT getdatabaseencoding();
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+           -- just to label the results files
+
+-- checks for double-quoted values
+
+-- basic unicode input
+SELECT '"\u"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '"\u00"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '"\u000g"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+	-- ERROR, g is not a hex digit
+SELECT '"\u0000"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+	-- OK, legal escape
+SELECT '"\uaBcD"'::jsonpath;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+	-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+select '"\ud83d\ude04\ud83d\udc36"'::jsonpath as correct_in_utf8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '"\ud83d\ud83d"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select '"\ude04\ud83d"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select '"\ud83dX"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select '"\ude04X"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+select '"the Copyright \u00a9 sign"'::jsonpath as correct_in_utf8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '"dollar \u0024 character"'::jsonpath as correct_everywhere;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '"dollar \\u0024 character"'::jsonpath as not_an_escape;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '"null \u0000 escape"'::jsonpath as not_unescaped;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+select '"null \\u0000 escape"'::jsonpath as not_an_escape;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- checks for quoted key names
+
+-- basic unicode input
+SELECT '$."\u"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '$."\u00"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+	-- ERROR, incomplete escape
+SELECT '$."\u000g"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+	-- ERROR, g is not a hex digit
+SELECT '$."\u0000"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+	-- OK, legal escape
+SELECT '$."\uaBcD"'::jsonpath;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+	-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+select '$."\ud83d\ude04\ud83d\udc36"'::jsonpath as correct_in_utf8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '$."\ud83d\ud83d"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select '$."\ude04\ud83d"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select '$."\ud83dX"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select '$."\ude04X"'::jsonpath;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+select '$."the Copyright \u00a9 sign"'::jsonpath as correct_in_utf8;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '$."dollar \u0024 character"'::jsonpath as correct_everywhere;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '$."dollar \\u0024 character"'::jsonpath as not_an_escape;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+select '$."null \u0000 escape"'::jsonpath as not_unescaped;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+select '$."null \\u0000 escape"'::jsonpath as not_an_escape;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+=========================================
+Summary for test case jsonpath_encoding/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 19 queries, which is 61.29%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 12 queries, which is 38.71%
+
+=================
+Results for mySQL
+SAME: 19 queries, which is 61.29%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 12 queries, which is 38.71%

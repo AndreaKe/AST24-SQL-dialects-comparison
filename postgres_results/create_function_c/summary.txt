@@ -1,0 +1,74 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- CREATE_FUNCTION_C
+--
+-- This script used to create C functions for other scripts to use.
+-- But to get rid of the ordering dependencies that caused, such
+-- functions are now made either in test_setup.sql or in the specific
+-- test script that needs them.  All that remains here is error cases.
+
+-- directory path and dlsuffix are passed to us in environment variables
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
+
+-- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+
+--
+-- Check LOAD command.  (The alternative of implicitly loading the library
+-- is checked in many other test scripts.)
+--
+LOAD /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Things that shouldn/* REPLACED */''t work:
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
+    AS 'nosuchfile';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- To produce stable regression test output, we have to filter the name
+-- of the regresslib file out of the error message in this test.
+-- \set VERBOSITY sqlstate
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
+    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'nosuchsymbol';
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+-- \set VERBOSITY default
+SELECT regexp_replace(:'LAST_ERROR_MESSAGE', 'file ".*"', 'file "..."');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE internal
+    AS 'nosuch';
+RESULT: [duckdb: SAME, mySQL: SAME]
+=========================================
+Summary for test case create_function_c/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 4 queries, which is 80.00%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 1 queries, which is 20.00%
+
+=================
+Results for mySQL
+SAME: 4 queries, which is 80.00%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 1 queries, which is 20.00%

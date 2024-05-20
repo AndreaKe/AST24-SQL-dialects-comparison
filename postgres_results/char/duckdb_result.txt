@@ -1,0 +1,288 @@
+
+-----------
+QUERY:
+--
+-- CHAR
+--
+
+-- Per SQL standard, CHAR means character(1), that is a varlena type
+-- with a constraint restricting it to one character (not byte)
+
+SELECT char 'c' = char 'c' AS true;
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+--
+-- Build a table for testing
+-- (This temporarily hides the table created in test_setup.sql)
+--
+
+CREATE TEMP TABLE CHAR_TBL(f1 char);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('a');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('A');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- any of the following three input formats are acceptable
+INSERT INTO CHAR_TBL (f1) VALUES ('1');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('3');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- zero-length char
+INSERT INTO CHAR_TBL (f1) VALUES ('');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- try char/* REPLACED */''s of greater than 1 length
+INSERT INTO CHAR_TBL (f1) VALUES ('cd');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO CHAR_TBL (f1) VALUES ('c     ');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+SELECT * FROM CHAR_TBL;
+RESULT:
+	[('a',), ('A',), ('1',), ('2',), ('3',), ('',), ('cd',), ('c     ',)]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 <> 'a';
+RESULT:
+	[('A',), ('1',), ('2',), ('3',), ('',), ('cd',), ('c     ',)]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 = 'a';
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 < 'a';
+RESULT:
+	[('A',), ('1',), ('2',), ('3',), ('',)]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 <= 'a';
+RESULT:
+	[('a',), ('A',), ('1',), ('2',), ('3',), ('',)]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 > 'a';
+RESULT:
+	[('cd',), ('c     ',)]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 >= 'a';
+RESULT:
+	[('a',), ('cd',), ('c     ',)]
+
+-----------
+QUERY:
+
+
+DROP TABLE CHAR_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Now test longer arrays of char
+--
+-- This char_tbl was already created and filled in test_setup.sql.
+-- Here we just try to insert bad values.
+--
+
+INSERT INTO CHAR_TBL (f1) VALUES ('abcde');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM CHAR_TBL;
+RESULT:
+	[('a',), ('ab',), ('abcd',), ('abcd    ',), ('abcde',)]
+
+-----------
+QUERY:
+
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('abcd  ', 'char(4)');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('abcde', 'char(4)');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('abcde', 'char(4)');
+RESULT:
+	ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
+
+
+--
+-- Also test /* REPLACED */''char/* REPLACED */'', which is an ad-hoc one-byte type.  It can only
+-- really store ASCII characters, but we allow high-bit-set characters
+-- to be accessed via bytea-like escapes.
+--
+
+SELECT 'a'::"char";
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+
+SELECT '\101'::"char";
+RESULT:
+	[('\\101',)]
+
+-----------
+QUERY:
+
+SELECT '\377'::"char";
+RESULT:
+	[('\\377',)]
+
+-----------
+QUERY:
+
+SELECT 'a'::"char"::text;
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+
+SELECT '\377'::"char"::text;
+RESULT:
+	[('\\377',)]
+
+-----------
+QUERY:
+
+SELECT '\000'::"char"::text;
+RESULT:
+	[('\\000',)]
+
+-----------
+QUERY:
+
+SELECT 'a'::text::"char";
+RESULT:
+	[('a',)]
+
+-----------
+QUERY:
+
+SELECT '\377'::text::"char";
+RESULT:
+	[('\\377',)]
+
+-----------
+QUERY:
+
+SELECT ''::text::"char";
+RESULT:
+	[('',)]

@@ -1,0 +1,3846 @@
+
+-----------
+QUERY:
+--
+-- TRANSACTIONS
+--
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE xacttest (a smallint, b real);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO xacttest VALUES
+  (56, 7.8),
+  (100, 99.097),
+  (0, 0.09561),
+  (42, 324.78);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO xacttest (a, b) VALUES (777, 777.777);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+END;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- should retrieve one value--
+SELECT a FROM xacttest WHERE a > 100;
+RESULT:
+	postgres: [(777,)]
+
+-----------
+QUERY:
+
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE disappear (a int4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DELETE FROM xacttest;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- should be empty
+SELECT * FROM xacttest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+ABORT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- should not exist
+SELECT oid FROM pg_class WHERE relname = 'disappear';
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+-- should have members again
+SELECT * FROM xacttest;
+RESULT:
+	postgres: [(56, 7.8), (100, 99.097), (0, 0.09561), (42, 324.78), (777, 777.777)]
+
+-----------
+QUERY:
+
+
+-- Test that transaction characteristics cannot be reset.
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM xacttest;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+RESET transaction_isolation;
+RESULT:
+	postgres: parameter "transaction_isolation" cannot be reset
+
+
+-----------
+QUERY:
+ -- error
+END;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM xacttest;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+RESET transaction_read_only;
+RESULT:
+	postgres: parameter "transaction_read_only" cannot be reset
+
+
+-----------
+QUERY:
+ -- error
+END;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN TRANSACTION DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM xacttest;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+RESET transaction_deferrable;
+RESULT:
+	postgres: parameter "transaction_deferrable" cannot be reset
+
+
+-----------
+QUERY:
+ -- error
+END;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION errfunc() RETURNS int LANGUAGE SQL AS 'SELECT 1'
+SET transaction_read_only = on;
+RESULT:
+	postgres: parameter "transaction_read_only" cannot be set locally in functions
+
+
+-----------
+QUERY:
+ -- error
+
+-- Read-only tests
+
+CREATE TABLE writetest (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TEMPORARY TABLE temptest (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY, DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: transaction read-write mode must be set before any query
+
+
+-----------
+QUERY:
+ --fail
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: cannot set transaction read-write mode inside a read-only transaction
+
+
+-----------
+QUERY:
+ --fail
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: cannot set transaction read-write mode inside a read-only transaction
+
+
+-----------
+QUERY:
+ --fail
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ WRITE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+ROLLBACK TO SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+  -- off
+SAVEPOINT y;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+RELEASE SAVEPOINT y;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+  -- off
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP TABLE writetest;
+RESULT:
+	postgres: cannot execute DROP TABLE in a read-only transaction
+
+
+-----------
+QUERY:
+ -- fail
+INSERT INTO writetest VALUES (1);
+RESULT:
+	postgres: cannot execute INSERT in a read-only transaction
+
+
+-----------
+QUERY:
+ -- fail
+SELECT * FROM writetest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+DELETE FROM temptest;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+UPDATE temptest SET a = 0 FROM writetest WHERE temptest.a = 1 AND writetest.a = temptest.a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+PREPARE test AS UPDATE writetest SET a = 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+EXECUTE test;
+RESULT:
+	postgres: cannot execute UPDATE in a read-only transaction
+
+
+-----------
+QUERY:
+ -- fail
+SELECT * FROM writetest, temptest;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+ -- ok
+CREATE TABLE test AS SELECT * FROM writetest;
+RESULT:
+	postgres: cannot execute CREATE TABLE AS in a read-only transaction
+
+
+-----------
+QUERY:
+ -- fail
+
+START TRANSACTION READ WRITE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE writetest;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Subtransactions, basic tests
+-- create & drop tables
+SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE trans_foobar (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	CREATE TABLE trans_foo (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		DROP TABLE trans_foo;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		CREATE TABLE trans_bar (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		CREATE TABLE trans_baz (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	drop TABLE trans_foobar;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	CREATE TABLE trans_barbaz (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- should exist: trans_barbaz, trans_baz, trans_foo
+SELECT * FROM trans_foo;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+		-- should be empty
+SELECT * FROM trans_bar;
+RESULT:
+	postgres: relation "trans_bar" does not exist
+LINE 2: SELECT * FROM trans_bar;
+                      ^
+
+
+-----------
+QUERY:
+		-- shouldn/* REPLACED */''t exist
+SELECT * FROM trans_barbaz;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+	-- should be empty
+SELECT * FROM trans_baz;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+		-- should be empty
+
+-- inserts
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO trans_foo VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT into trans_bar VALUES (1);
+RESULT:
+	postgres: relation "trans_bar" does not exist
+LINE 2:   INSERT into trans_bar VALUES (1);
+                      ^
+
+
+-----------
+QUERY:
+
+	ROLLBACK TO one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT into trans_barbaz VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT three;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SAVEPOINT four;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			INSERT INTO trans_foo VALUES (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		RELEASE SAVEPOINT four;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT three;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT three;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO trans_foo VALUES (3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM trans_foo;
+RESULT:
+	postgres: [(1,), (3,)]
+
+-----------
+QUERY:
+		-- should have 1 and 3
+SELECT * FROM trans_barbaz;
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+	-- should have 1
+
+-- test whole-tree commit
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SELECT trans_foo;
+RESULT:
+	postgres: column "trans_foo" does not exist
+LINE 2:   SELECT trans_foo;
+                 ^
+
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		CREATE TABLE savepoints (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SAVEPOINT three;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			INSERT INTO savepoints VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			SAVEPOINT four;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+				INSERT INTO savepoints VALUES (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+				SAVEPOINT five;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+					INSERT INTO savepoints VALUES (3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+				ROLLBACK TO SAVEPOINT five;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+		-- should not be in a transaction block
+SELECT * FROM savepoints;
+RESULT:
+	postgres: [(1,), (2,)]
+
+-----------
+QUERY:
+
+
+-- test whole-tree rollback
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		DELETE FROM savepoints WHERE a=1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		DELETE FROM savepoints WHERE a=1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SAVEPOINT three;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			DELETE FROM savepoints WHERE a=2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+		-- should not be in a transaction block
+
+SELECT * FROM savepoints;
+RESULT:
+	postgres: [(1,), (2,)]
+
+-----------
+QUERY:
+
+
+-- test whole-tree commit on an aborted subtransaction
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO savepoints VALUES (4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SELECT trans_foo;
+RESULT:
+	postgres: column "trans_foo" does not exist
+LINE 2:   SELECT trans_foo;
+                 ^
+
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT * FROM savepoints;
+RESULT:
+	postgres: [(1,), (2,)]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO savepoints VALUES (6);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (7);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO savepoints VALUES (8);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- rows 6 and 8 should have been created by the same xact
+SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=8;
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+-- rows 6 and 7 should have been created by different xacts
+SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=7;
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO savepoints VALUES (9);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (11);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a FROM savepoints WHERE a in (9, 10, 11);
+RESULT:
+	postgres: [(9,), (11,)]
+
+-----------
+QUERY:
+
+-- rows 9 and 11 should have been created by different xacts
+SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=9 AND b.a=11;
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO savepoints VALUES (12);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (13);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			INSERT INTO savepoints VALUES (14);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (15);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			INSERT INTO savepoints VALUES (16);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			SAVEPOINT three;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+				INSERT INTO savepoints VALUES (17);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17;
+RESULT:
+	postgres: [(12,), (15,), (16,), (17,)]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO savepoints VALUES (18);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (19);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+			INSERT INTO savepoints VALUES (20);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (21);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO savepoints VALUES (22);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a FROM savepoints WHERE a BETWEEN 18 AND 22;
+RESULT:
+	postgres: [(18,), (22,)]
+
+-----------
+QUERY:
+
+
+DROP TABLE savepoints;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- only in a transaction block:
+SAVEPOINT one;
+RESULT:
+	postgres: SAVEPOINT can only be used in transaction blocks
+
+
+-----------
+QUERY:
+
+ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: ROLLBACK TO SAVEPOINT can only be used in transaction blocks
+
+
+-----------
+QUERY:
+
+RELEASE SAVEPOINT one;
+RESULT:
+	postgres: RELEASE SAVEPOINT can only be used in transaction blocks
+
+
+-----------
+QUERY:
+
+
+-- Only /* REPLACED */''rollback to/* REPLACED */'' allowed in aborted state
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+  SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+  SELECT 0/0;
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+  SAVEPOINT two;
+RESULT:
+	postgres: current transaction is aborted, commands ignored until end of transaction block
+
+
+-----------
+QUERY:
+    -- ignored till the end of ...
+  RELEASE SAVEPOINT one;
+RESULT:
+	postgres: current transaction is aborted, commands ignored until end of transaction block
+
+
+-----------
+QUERY:
+      -- ignored till the end of ...
+  ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+  SELECT 1;
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT 1;
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+			-- this should work
+
+-- check non-transactional behavior of cursors
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	DECLARE c CURSOR FOR SELECT unique2 FROM tenk1 ORDER BY unique2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		FETCH 10 FROM c;
+RESULT:
+	postgres: [(0,), (1,), (2,), (3,), (4,), (5,), (6,), (7,), (8,), (9,)]
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		FETCH 10 FROM c;
+RESULT:
+	postgres: [(10,), (11,), (12,), (13,), (14,), (15,), (16,), (17,), (18,), (19,)]
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT one;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	FETCH 10 FROM c;
+RESULT:
+	postgres: [(20,), (21,), (22,), (23,), (24,), (25,), (26,), (27,), (28,), (29,)]
+
+-----------
+QUERY:
+
+	CLOSE c;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	DECLARE c CURSOR FOR SELECT unique2/0 FROM tenk1 ORDER BY unique2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		FETCH 10 FROM c;
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	-- c is now dead to the world ...
+		FETCH 10 FROM c;
+RESULT:
+	postgres: portal "c" cannot be run
+
+
+-----------
+QUERY:
+
+	ROLLBACK TO SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	RELEASE SAVEPOINT two;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	FETCH 10 FROM c;
+RESULT:
+	postgres: portal "c" cannot be run
+
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Check that /* REPLACED */''stable/* REPLACED */'' functions are really stable.  They should not be
+-- able to see the partial results of the calling query.  (Ideally we would
+-- also check that they don/* REPLACED */''t see commits of concurrent transactions, but
+-- that/* REPLACED */''s a mite hard to do within the limitations of pg_regress.)
+--
+select * from xacttest;
+RESULT:
+	postgres: [(56, 7.8), (100, 99.097), (0, 0.09561), (42, 324.78), (777, 777.777)]
+
+-----------
+QUERY:
+
+
+create or replace function max_xacttest() returns smallint language sql as
+'select max(a) from xacttest' stable;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+update xacttest set a = max_xacttest() + 10 where a > 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from xacttest;
+RESULT:
+	postgres: [(0, 0.09561), (787, 7.8), (787, 99.097), (787, 324.78), (787, 777.777)]
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- But a volatile function can see the partial results of the calling query
+create or replace function max_xacttest() returns smallint language sql as
+'select max(a) from xacttest' volatile;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+update xacttest set a = max_xacttest() + 10 where a > 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from xacttest;
+RESULT:
+	postgres: [(0, 0.09561), (787, 7.8), (797, 99.097), (807, 324.78), (817, 777.777)]
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Now the same test with plpgsql (since it depends on SPI which is different)
+create or replace function max_xacttest() returns smallint language plpgsql as
+'begin return max(a) from xacttest;
+RESULT:
+	postgres: unterminated quoted string at or near "'begin return max(a) from xacttest;"
+LINE 5: 'begin return max(a) from xacttest;
+        ^
+
+
+-----------
+QUERY:
+ end' stable;
+RESULT:
+	postgres: unterminated quoted string at or near "' stable;"
+LINE 1:  end' stable;
+            ^
+
+
+-----------
+QUERY:
+
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+update xacttest set a = max_xacttest() + 10 where a > 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from xacttest;
+RESULT:
+	postgres: [(0, 0.09561), (787, 7.8), (797, 99.097), (807, 324.78), (817, 777.777)]
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create or replace function max_xacttest() returns smallint language plpgsql as
+'begin return max(a) from xacttest;
+RESULT:
+	postgres: unterminated quoted string at or near "'begin return max(a) from xacttest;"
+LINE 4: 'begin return max(a) from xacttest;
+        ^
+
+
+-----------
+QUERY:
+ end' volatile;
+RESULT:
+	postgres: unterminated quoted string at or near "' volatile;"
+LINE 1:  end' volatile;
+            ^
+
+
+-----------
+QUERY:
+
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+update xacttest set a = max_xacttest() + 10 where a > 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from xacttest;
+RESULT:
+	postgres: [(0, 0.09561), (787, 7.8), (797, 99.097), (807, 324.78), (817, 777.777)]
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- test case for problems with dropping an open relation during abort
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	savepoint x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		CREATE TABLE koju (a INT UNIQUE);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO koju VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+		INSERT INTO koju VALUES (1);
+RESULT:
+	postgres: duplicate key value violates unique constraint "koju_a_key"
+DETAIL:  Key (a)=(1) already exists.
+
+
+-----------
+QUERY:
+
+	rollback to x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+	CREATE TABLE koju (a INT UNIQUE);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO koju VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+	INSERT INTO koju VALUES (1);
+RESULT:
+	postgres: duplicate key value violates unique constraint "koju_a_key"
+DETAIL:  Key (a)=(1) already exists.
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP TABLE trans_foo;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE trans_baz;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE trans_barbaz;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- test case for problems with revalidating an open relation during abort
+create function inverse(int) returns float8 as
+$$
+begin
+  analyze revalidate_bug;
+  return 1::float8/$1;
+exception
+  when division_by_zero then return 0;
+end$$ language plpgsql volatile;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create table revalidate_bug (c float8 unique);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into revalidate_bug values (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into revalidate_bug values (inverse(0));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+drop table revalidate_bug;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop function inverse(int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- verify that cursors created during an aborted subtransaction are
+-- closed, but that we do not rollback the effect of any FETCHs
+-- performed in the aborted subtransaction
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+savepoint x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create table trans_abc (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into trans_abc values (5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into trans_abc values (10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+declare foo cursor for select * from trans_abc;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+fetch from foo;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+rollback to x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- should fail
+fetch from foo;
+RESULT:
+	postgres: cursor "foo" does not exist
+
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create table trans_abc (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into trans_abc values (5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into trans_abc values (10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into trans_abc values (15);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+declare foo cursor for select * from trans_abc;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+fetch from foo;
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+
+savepoint x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+fetch from foo;
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+rollback to x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+fetch from foo;
+RESULT:
+	postgres: [(15,)]
+
+-----------
+QUERY:
+
+
+abort;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Test for proper cleanup after a failure in a cursor portal
+-- that was created in an outer subtransaction
+CREATE FUNCTION invert(x float8) RETURNS float8 LANGUAGE plpgsql AS
+$$ begin return 1/x; end $$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION create_temp_tab() RETURNS text
+LANGUAGE plpgsql AS $$
+BEGIN
+  CREATE TEMP TABLE new_table (f1 float8);
+  -- case of interest is that we fail while holding an open
+  -- relcache reference to new_table
+  INSERT INTO new_table SELECT invert(0.0);
+  RETURN 'foo';
+END $$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DECLARE ok CURSOR FOR SELECT * FROM int8_tbl;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DECLARE ctt CURSOR FOR SELECT create_temp_tab();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+FETCH ok;
+RESULT:
+	postgres: [(123, 456)]
+
+-----------
+QUERY:
+
+SAVEPOINT s1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+FETCH ok;
+RESULT:
+	postgres: [(123, 4567890123456789)]
+
+-----------
+QUERY:
+  -- should work
+FETCH ctt;
+RESULT:
+	postgres: division by zero
+CONTEXT:  PL/pgSQL function invert(double precision) line 1 at RETURN
+SQL statement "INSERT INTO new_table SELECT invert(0.0)"
+PL/pgSQL function create_temp_tab() line 6 at SQL statement
+
+
+-----------
+QUERY:
+ -- error occurs here
+ROLLBACK TO s1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+FETCH ok;
+RESULT:
+	postgres: [(4567890123456789, 123)]
+
+-----------
+QUERY:
+  -- should work
+FETCH ctt;
+RESULT:
+	postgres: portal "ctt" cannot be run
+
+
+-----------
+QUERY:
+ -- must be rejected
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP FUNCTION create_temp_tab();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP FUNCTION invert(x float8);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Tests for AND CHAIN
+
+CREATE TABLE trans_abc (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- set nondefault value so we have something to override below
+SET default_transaction_read_only = on;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE, DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_END
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES ('error');
+RESULT:
+	postgres: invalid input syntax for type integer: "error"
+LINE 2: INSERT INTO trans_abc VALUES ('error');
+                                      ^
+
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES (3);
+RESULT:
+	postgres: current transaction is aborted, commands ignored until end of transaction block
+
+
+-----------
+QUERY:
+  -- check it/* REPLACED */''s really aborted
+COMMIT AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_ABORT_END
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES (4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE, DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES ('error');
+RESULT:
+	postgres: invalid input syntax for type integer: "error"
+LINE 2: INSERT INTO trans_abc VALUES ('error');
+                                      ^
+
+
+-----------
+QUERY:
+
+COMMIT AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_ABORT_PENDING
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES (5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE, DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_SUBCOMMIT
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('repeatable read',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+START TRANSACTION ISOLATION LEVEL READ COMMITTED, READ WRITE, DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('read committed',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+SAVEPOINT x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+COMMIT AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_SUBCOMMIT
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('read committed',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('on',)]
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- different mix of options just for fun
+START TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('serializable',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES (6);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ROLLBACK AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_ABORT_PENDING
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('serializable',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+INSERT INTO trans_abc VALUES ('error');
+RESULT:
+	postgres: invalid input syntax for type integer: "error"
+LINE 2: INSERT INTO trans_abc VALUES ('error');
+                                      ^
+
+
+-----------
+QUERY:
+
+ROLLBACK AND CHAIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- TBLOCK_ABORT_END
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('serializable',)]
+
+-----------
+QUERY:
+
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+SHOW transaction_deferrable;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- not allowed outside a transaction block
+COMMIT AND CHAIN;
+RESULT:
+	postgres: COMMIT AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- error
+ROLLBACK AND CHAIN;
+RESULT:
+	postgres: ROLLBACK AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- error
+
+SELECT * FROM trans_abc ORDER BY 1;
+RESULT:
+	postgres: [(1,), (2,), (4,), (5,)]
+
+-----------
+QUERY:
+
+
+RESET default_transaction_read_only;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP TABLE trans_abc;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Test assorted behaviors around the implicit transaction block created
+-- when multiple SQL commands are sent in a single Query message.  These
+-- tests rely on the fact that psql will not break SQL commands apart at a
+-- backslash-quoted semicolon, but will send them as one Query.
+
+create temp table i_table (f1 int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- psql will show all results of a multi-statement Query
+SELECT 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: SELECT 1\;
+                ^
+
+
+-----------
+QUERY:
+ SELECT 2\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  SELECT 2\;
+                 ^
+
+
+-----------
+QUERY:
+ SELECT 3;
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+
+-- this implicitly commits:
+insert into i_table values(1)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: insert into i_table values(1)\;
+                                     ^
+
+
+-----------
+QUERY:
+ select * from i_table;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+-- 1/0 error will cause rolling back the whole implicit transaction
+insert into i_table values(2)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: insert into i_table values(2)\;
+                                     ^
+
+
+-----------
+QUERY:
+ select * from i_table\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  select * from i_table\;
+                              ^
+
+
+-----------
+QUERY:
+ select 1/0;
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+select * from i_table;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- we are not in a transaction at this point
+
+-- can use regular begin/commit/rollback within a single Query
+begin\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: begin\;
+             ^
+
+
+-----------
+QUERY:
+ insert into i_table values(3)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  insert into i_table values(3)\;
+                                      ^
+
+
+-----------
+QUERY:
+ commit;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- we are not in a transaction at this point
+begin\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: begin\;
+             ^
+
+
+-----------
+QUERY:
+ insert into i_table values(4)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  insert into i_table values(4)\;
+                                      ^
+
+
+-----------
+QUERY:
+ rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- we are not in a transaction at this point
+
+-- begin converts implicit transaction into a regular one that
+-- can extend past the end of the Query
+select 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 5: select 1\;
+                ^
+
+
+-----------
+QUERY:
+ begin\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  begin\;
+              ^
+
+
+-----------
+QUERY:
+ insert into i_table values(5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: select 1\;
+                ^
+
+
+-----------
+QUERY:
+ begin\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  begin\;
+              ^
+
+
+-----------
+QUERY:
+ insert into i_table values(6);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- commit in implicit-transaction state commits but issues a warning.
+insert into i_table values(7)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: insert into i_table values(7)\;
+                                     ^
+
+
+-----------
+QUERY:
+ commit\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  commit\;
+               ^
+
+
+-----------
+QUERY:
+ insert into i_table values(8)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  insert into i_table values(8)\;
+                                      ^
+
+
+-----------
+QUERY:
+ select 1/0;
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+-- similarly, rollback aborts but issues a warning.
+insert into i_table values(9)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: insert into i_table values(9)\;
+                                     ^
+
+
+-----------
+QUERY:
+ rollback\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  rollback\;
+                 ^
+
+
+-----------
+QUERY:
+ select 2;
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+
+select * from i_table;
+RESULT:
+	postgres: [(5,), (6,)]
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- we are not in a transaction at this point
+
+-- implicit transaction block is still a transaction block, for e.g. VACUUM
+SELECT 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: SELECT 1\;
+                ^
+
+
+-----------
+QUERY:
+ VACUUM;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: SELECT 1\;
+                ^
+
+
+-----------
+QUERY:
+ COMMIT\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  COMMIT\;
+               ^
+
+
+-----------
+QUERY:
+ VACUUM;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- we disallow savepoint-related commands in implicit-transaction state
+SELECT 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: SELECT 1\;
+                ^
+
+
+-----------
+QUERY:
+ SAVEPOINT sp;
+RESULT:
+	postgres: SAVEPOINT can only be used in transaction blocks
+
+
+-----------
+QUERY:
+
+SELECT 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: SELECT 1\;
+                ^
+
+
+-----------
+QUERY:
+ COMMIT\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  COMMIT\;
+               ^
+
+
+-----------
+QUERY:
+ SAVEPOINT sp;
+RESULT:
+	postgres: SAVEPOINT can only be used in transaction blocks
+
+
+-----------
+QUERY:
+
+ROLLBACK TO SAVEPOINT sp\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: ROLLBACK TO SAVEPOINT sp\;
+                                ^
+
+
+-----------
+QUERY:
+ SELECT 2;
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+SELECT 2\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: SELECT 2\;
+                ^
+
+
+-----------
+QUERY:
+ RELEASE SAVEPOINT sp\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  RELEASE SAVEPOINT sp\;
+                             ^
+
+
+-----------
+QUERY:
+ SELECT 3;
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+
+-- but this is OK, because the BEGIN converts it to a regular xact
+SELECT 1\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: SELECT 1\;
+                ^
+
+
+-----------
+QUERY:
+ BEGIN\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  BEGIN\;
+              ^
+
+
+-----------
+QUERY:
+ SAVEPOINT sp\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  SAVEPOINT sp\;
+                     ^
+
+
+-----------
+QUERY:
+ ROLLBACK TO SAVEPOINT sp\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  ROLLBACK TO SAVEPOINT sp\;
+                                 ^
+
+
+-----------
+QUERY:
+ COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Tests for AND CHAIN in implicit transaction blocks
+
+SET TRANSACTION READ ONLY\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 6: SET TRANSACTION READ ONLY\;
+                                 ^
+
+
+-----------
+QUERY:
+ COMMIT AND CHAIN;
+RESULT:
+	postgres: COMMIT AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- error
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+
+SET TRANSACTION READ ONLY\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: SET TRANSACTION READ ONLY\;
+                                 ^
+
+
+-----------
+QUERY:
+ ROLLBACK AND CHAIN;
+RESULT:
+	postgres: ROLLBACK AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- error
+SHOW transaction_read_only;
+RESULT:
+	postgres: [('off',)]
+
+-----------
+QUERY:
+
+
+CREATE TABLE trans_abc (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- COMMIT/ROLLBACK + COMMIT/ROLLBACK AND CHAIN
+INSERT INTO trans_abc VALUES (7)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: INSERT INTO trans_abc VALUES (7)\;
+                                        ^
+
+
+-----------
+QUERY:
+ COMMIT\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  COMMIT\;
+               ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (8)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (8)\;
+                                         ^
+
+
+-----------
+QUERY:
+ COMMIT AND CHAIN;
+RESULT:
+	postgres: COMMIT AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- 7 commit, 8 error
+INSERT INTO trans_abc VALUES (9)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: INSERT INTO trans_abc VALUES (9)\;
+                                        ^
+
+
+-----------
+QUERY:
+ ROLLBACK\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  ROLLBACK\;
+                 ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (10)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (10)\;
+                                          ^
+
+
+-----------
+QUERY:
+ ROLLBACK AND CHAIN;
+RESULT:
+	postgres: ROLLBACK AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- 9 rollback, 10 error
+
+-- COMMIT/ROLLBACK AND CHAIN + COMMIT/ROLLBACK
+INSERT INTO trans_abc VALUES (11)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: INSERT INTO trans_abc VALUES (11)\;
+                                         ^
+
+
+-----------
+QUERY:
+ COMMIT AND CHAIN\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  COMMIT AND CHAIN\;
+                         ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (12)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (12)\;
+                                          ^
+
+
+-----------
+QUERY:
+ COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- 11 error, 12 not reached
+INSERT INTO trans_abc VALUES (13)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 2: INSERT INTO trans_abc VALUES (13)\;
+                                         ^
+
+
+-----------
+QUERY:
+ ROLLBACK AND CHAIN\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  ROLLBACK AND CHAIN\;
+                           ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (14)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (14)\;
+                                          ^
+
+
+-----------
+QUERY:
+ ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- 13 error, 14 not reached
+
+-- START TRANSACTION + COMMIT/ROLLBACK AND CHAIN
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+                                                         ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (15)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (15)\;
+                                          ^
+
+
+-----------
+QUERY:
+ COMMIT AND CHAIN;
+RESULT:
+	postgres: COMMIT AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- 15 ok
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('read committed',)]
+
+-----------
+QUERY:
+  -- transaction is active at this point
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+                                                         ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (16)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (16)\;
+                                          ^
+
+
+-----------
+QUERY:
+ ROLLBACK AND CHAIN;
+RESULT:
+	postgres: ROLLBACK AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- 16 ok
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('read committed',)]
+
+-----------
+QUERY:
+  -- transaction is active at this point
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SET default_transaction_isolation = 'read committed';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- START TRANSACTION + COMMIT/ROLLBACK + COMMIT/ROLLBACK AND CHAIN
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 4: START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+                                                         ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (17)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (17)\;
+                                          ^
+
+
+-----------
+QUERY:
+ COMMIT\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  COMMIT\;
+               ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (18)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (18)\;
+                                          ^
+
+
+-----------
+QUERY:
+ COMMIT AND CHAIN;
+RESULT:
+	postgres: COMMIT AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- 17 commit, 18 error
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('read committed',)]
+
+-----------
+QUERY:
+  -- out of transaction block
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: START TRANSACTION ISOLATION LEVEL REPEATABLE READ\;
+                                                         ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (19)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (19)\;
+                                          ^
+
+
+-----------
+QUERY:
+ ROLLBACK\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  ROLLBACK\;
+                 ^
+
+
+-----------
+QUERY:
+ INSERT INTO trans_abc VALUES (20)\;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 1:  INSERT INTO trans_abc VALUES (20)\;
+                                          ^
+
+
+-----------
+QUERY:
+ ROLLBACK AND CHAIN;
+RESULT:
+	postgres: ROLLBACK AND CHAIN can only be used in transaction blocks
+
+
+-----------
+QUERY:
+  -- 19 rollback, 20 error
+SHOW transaction_isolation;
+RESULT:
+	postgres: [('read committed',)]
+
+-----------
+QUERY:
+  -- out of transaction block
+
+RESET default_transaction_isolation;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT * FROM trans_abc ORDER BY 1;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+DROP TABLE trans_abc;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- TRANSACTION SNAPSHOT
+-- Incorrect identifier.
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION SNAPSHOT 'Incorrect Identifier';
+RESULT:
+	postgres: invalid snapshot identifier: "Incorrect Identifier"
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- Correct identifier, missing file.
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET TRANSACTION SNAPSHOT 'FFF-FFF-F';
+RESULT:
+	postgres: snapshot "FFF-FFF-F" does not exist
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Test for successful cleanup of an aborted transaction at session exit.
+-- THIS MUST BE THE LAST TEST IN THIS FILE.
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select 1/0;
+RESULT:
+	postgres: division by zero
+
+
+-----------
+QUERY:
+
+rollback to X;
+RESULT:
+	postgres: savepoint "x" does not exist
+

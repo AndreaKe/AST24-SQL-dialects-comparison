@@ -1,0 +1,1386 @@
+
+-----------
+QUERY:
+--
+-- CREATE_FUNCTION_SQL
+--
+-- Assorted tests using SQL-language functions
+--
+
+-- All objects made in this test are in temp_func_test schema
+
+CREATE USER regress_unpriv_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE SCHEMA temp_func_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT ALL ON SCHEMA temp_func_test TO public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SCHEMA temp_func_test TO public' at line 1")
+
+-----------
+QUERY:
+
+
+SET search_path TO temp_func_test, public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO temp_func_test, public' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Make sanity checks on the pg_proc entries created by CREATE FUNCTION
+--
+
+--
+-- ARGUMENT and RETURN TYPES
+--
+CREATE FUNCTION functest_A_1(text, date) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 = ''abcd'' AND $2 > ''2001-01-01''';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', date) RETURNS bool LANGUAGE 'sql'\n       AS 'SELECT $1 = ''abcd'' AND $2 > ''2' at line 8")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_A_2(text[]) RETURNS int LANGUAGE 'sql'
+       AS 'SELECT $1[1]::int';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[]) RETURNS int LANGUAGE 'sql'\n       AS 'SELECT $1[1]::int'' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_A_3() RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT false';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''sql'\n       AS 'SELECT false'' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, prorettype::regtype, proargtypes::regtype[] FROM pg_proc
+       WHERE oid in ('functest_A_1'::regproc,
+                     'functest_A_2'::regproc,
+                     'functest_A_3'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype, proargtypes::regtype[] FROM pg_proc\n       WHERE oid in ('functest_A_' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT functest_A_1('abcd', '2020-01-01');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_A_1 does not exist')
+
+-----------
+QUERY:
+
+SELECT functest_A_2(ARRAY['1', '2', '3']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['1', '2', '3'])' at line 1")
+
+-----------
+QUERY:
+
+SELECT functest_A_3();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_A_3 does not exist')
+
+-----------
+QUERY:
+
+
+--
+-- IMMUTABLE | STABLE | VOLATILE
+--
+CREATE FUNCTION functest_B_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       AS 'SELECT $1 > 0'' at line 4")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_B_2(int) RETURNS bool LANGUAGE 'sql'
+       IMMUTABLE AS 'SELECT $1 > 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       IMMUTABLE AS 'SELECT $1 > 0'' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_B_3(int) RETURNS bool LANGUAGE 'sql'
+       STABLE AS 'SELECT $1 = 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       STABLE AS 'SELECT $1 = 0'' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_B_4(int) RETURNS bool LANGUAGE 'sql'
+       VOLATILE AS 'SELECT $1 < 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       VOLATILE AS 'SELECT $1 < 0'' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, provolatile FROM pg_proc
+       WHERE oid in ('functest_B_1'::regproc,
+                     'functest_B_2'::regproc,
+                     'functest_B_3'::regproc,
+		     'functest_B_4'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_B_2'::regproc,\n                     'f' at line 2")
+
+-----------
+QUERY:
+
+
+ALTER FUNCTION functest_B_2(int) VOLATILE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) VOLATILE' at line 1")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_B_3(int) COST 100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) COST 100' at line 1")
+
+-----------
+QUERY:
+	-- unrelated change, no effect
+SELECT proname, provolatile FROM pg_proc
+       WHERE oid in ('functest_B_1'::regproc,
+                     'functest_B_2'::regproc,
+                     'functest_B_3'::regproc,
+		     'functest_B_4'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_B_2'::regproc,\n                     'f' at line 3")
+
+-----------
+QUERY:
+
+
+--
+-- SECURITY DEFINER | INVOKER
+--
+CREATE FUNCTION functest_C_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       AS 'SELECT $1 > 0'' at line 4")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_C_2(int) RETURNS bool LANGUAGE 'sql'
+       SECURITY DEFINER AS 'SELECT $1 = 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       SECURITY DEFINER AS 'SELECT $1 = 0'' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_C_3(int) RETURNS bool LANGUAGE 'sql'
+       SECURITY INVOKER AS 'SELECT $1 < 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       SECURITY INVOKER AS 'SELECT $1 < 0'' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, prosecdef FROM pg_proc
+       WHERE oid in ('functest_C_1'::regproc,
+                     'functest_C_2'::regproc,
+                     'functest_C_3'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_C_2'::regproc,\n                     'f' at line 2")
+
+-----------
+QUERY:
+
+
+ALTER FUNCTION functest_C_1(int) IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) IMMUTABLE' at line 1")
+
+-----------
+QUERY:
+	-- unrelated change, no effect
+ALTER FUNCTION functest_C_2(int) SECURITY INVOKER;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) SECURITY INVOKER' at line 2")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_C_3(int) SECURITY DEFINER;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) SECURITY DEFINER' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, prosecdef FROM pg_proc
+       WHERE oid in ('functest_C_1'::regproc,
+                     'functest_C_2'::regproc,
+                     'functest_C_3'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_C_2'::regproc,\n                     'f' at line 2")
+
+-----------
+QUERY:
+
+
+--
+-- LEAKPROOF
+--
+CREATE FUNCTION functest_E_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 100';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       AS 'SELECT $1 > 100'' at line 4")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_E_2(int) RETURNS bool LANGUAGE 'sql'
+       LEAKPROOF AS 'SELECT $1 > 100';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       LEAKPROOF AS 'SELECT $1 > 100'' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_E_2'::regproc) ORDER BY proname' at line 2")
+
+-----------
+QUERY:
+
+
+ALTER FUNCTION functest_E_1(int) LEAKPROOF;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) LEAKPROOF' at line 1")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_E_2(int) STABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) STABLE' at line 1")
+
+-----------
+QUERY:
+	-- unrelated change, no effect
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_E_2'::regproc) ORDER BY proname' at line 3")
+
+-----------
+QUERY:
+
+
+ALTER FUNCTION functest_E_2(int) NOT LEAKPROOF;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) NOT LEAKPROOF' at line 1")
+
+-----------
+QUERY:
+	-- remove leakproof attribute
+SELECT proname, proleakproof FROM pg_proc
+       WHERE oid in ('functest_E_1'::regproc,
+                     'functest_E_2'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_E_2'::regproc) ORDER BY proname' at line 3")
+
+-----------
+QUERY:
+
+
+-- it takes superuser privilege to turn on leakproof, but not to turn off
+ALTER FUNCTION functest_E_1(int) OWNER TO regress_unpriv_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) OWNER TO regress_unpriv_user' at line 2")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_E_2(int) OWNER TO regress_unpriv_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) OWNER TO regress_unpriv_user' at line 1")
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_unpriv_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_unpriv_user' at line 1")
+
+-----------
+QUERY:
+
+SET search_path TO temp_func_test, public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO temp_func_test, public' at line 1")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_E_1(int) NOT LEAKPROOF;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) NOT LEAKPROOF' at line 1")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_E_2(int) LEAKPROOF;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) LEAKPROOF' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_E_3(int) RETURNS bool LANGUAGE 'sql'
+       LEAKPROOF AS 'SELECT $1 < 200';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       LEAKPROOF AS 'SELECT $1 < 200'' at line 1")
+
+-----------
+QUERY:
+	-- fail
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 3")
+
+-----------
+QUERY:
+
+
+--
+-- CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT
+--
+CREATE FUNCTION functest_F_1(int) RETURNS bool LANGUAGE 'sql'
+       AS 'SELECT $1 > 50';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       AS 'SELECT $1 > 50'' at line 4")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_F_2(int) RETURNS bool LANGUAGE 'sql'
+       CALLED ON NULL INPUT AS 'SELECT $1 = 50';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       CALLED ON NULL INPUT AS 'SELECT $1 = 50'' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_F_3(int) RETURNS bool LANGUAGE 'sql'
+       RETURNS NULL ON NULL INPUT AS 'SELECT $1 < 50';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       RETURNS NULL ON NULL INPUT AS 'SELECT $1' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_F_4(int) RETURNS bool LANGUAGE 'sql'
+       STRICT AS 'SELECT $1 = 50';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS bool LANGUAGE 'sql'\n       STRICT AS 'SELECT $1 = 50'' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, proisstrict FROM pg_proc
+       WHERE oid in ('functest_F_1'::regproc,
+                     'functest_F_2'::regproc,
+                     'functest_F_3'::regproc,
+                     'functest_F_4'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_F_2'::regproc,\n                     'f' at line 2")
+
+-----------
+QUERY:
+
+
+ALTER FUNCTION functest_F_1(int) IMMUTABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) IMMUTABLE' at line 1")
+
+-----------
+QUERY:
+	-- unrelated change, no effect
+ALTER FUNCTION functest_F_2(int) STRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) STRICT' at line 2")
+
+-----------
+QUERY:
+
+ALTER FUNCTION functest_F_3(int) CALLED ON NULL INPUT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int) CALLED ON NULL INPUT' at line 1")
+
+-----------
+QUERY:
+
+SELECT proname, proisstrict FROM pg_proc
+       WHERE oid in ('functest_F_1'::regproc,
+                     'functest_F_2'::regproc,
+                     'functest_F_3'::regproc,
+                     'functest_F_4'::regproc) ORDER BY proname;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc,\n                     'functest_F_2'::regproc,\n                     'f' at line 2")
+
+-----------
+QUERY:
+
+
+
+-- pg_get_functiondef tests
+
+SELECT pg_get_functiondef('functest_A_1'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 3")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_B_3'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_C_3'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_F_2'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+
+
+--
+-- SQL-standard body
+--
+CREATE FUNCTION functest_S_1(a text, b date) RETURNS boolean
+    LANGUAGE SQL
+    RETURN a = 'abcd' AND b > '2001-01-01';
+RESULT:
+	ERROR - (1418, 'This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)')
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_S_2(a text[]) RETURNS int
+    RETURN a[1]::int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[]) RETURNS int\n    RETURN a[1]::int' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_S_3() RETURNS boolean
+    RETURN false;
+RESULT:
+	ERROR - (1418, 'This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)')
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_S_3a() RETURNS boolean
+    BEGIN ATOMIC
+        ;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 2")
+
+-----------
+QUERY:
+;
+RESULT:
+	ERROR - (1065, 'Query was empty')
+
+-----------
+QUERY:
+RETURN false;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURN false' at line 1")
+
+-----------
+QUERY:
+;
+RESULT:
+	ERROR - (1065, 'Query was empty')
+
+-----------
+QUERY:
+
+    END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_S_10(a text, b date) RETURNS boolean
+    LANGUAGE SQL
+    BEGIN ATOMIC
+        SELECT a = 'abcd' AND b > '2001-01-01';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT a = 'abcd' AND b > '2001-01-01'' at line 4")
+
+-----------
+QUERY:
+
+    END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_S_13() RETURNS boolean
+    BEGIN ATOMIC
+        SELECT 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT 1' at line 3")
+
+-----------
+QUERY:
+
+        SELECT false;
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+    END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- check display of function arguments in sub-SELECT
+CREATE TABLE functest1 (i int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_S_16(a int, b int) RETURNS void
+    LANGUAGE SQL
+    BEGIN ATOMIC
+        INSERT INTO functest1 SELECT a + $2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'void\n    LANGUAGE SQL\n    BEGIN ATOMIC\n        INSERT INTO functest1 SELECT a + ' at line 1")
+
+-----------
+QUERY:
+
+    END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+-- error: duplicate function body
+CREATE FUNCTION functest_S_xxx(x int) RETURNS int
+    LANGUAGE SQL
+    AS $$ SELECT x * 2 $$
+    RETURN x * 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS $$ SELECT x * 2 $$\n    RETURN x * 3' at line 4")
+
+-----------
+QUERY:
+
+
+-- polymorphic arguments not allowed in this form
+CREATE FUNCTION functest_S_xx(x anyarray) RETURNS anyelement
+    LANGUAGE SQL
+    RETURN x[1];
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'anyarray) RETURNS anyelement\n    LANGUAGE SQL\n    RETURN x[1]' at line 2")
+
+-----------
+QUERY:
+
+
+-- check reporting of parse-analysis errors
+CREATE FUNCTION functest_S_xx(x date) RETURNS boolean
+    LANGUAGE SQL
+    RETURN x > 1;
+RESULT:
+	ERROR - (1418, 'This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)')
+
+-----------
+QUERY:
+
+
+-- tricky parsing
+CREATE FUNCTION functest_S_15(x int) RETURNS boolean
+LANGUAGE SQL
+BEGIN ATOMIC
+    select case when x % 2 = 0 then true else false end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'select case when x % 2 = 0 then true else false end' at line 5")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT functest_S_1('abcd', '2020-01-01');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_S_1 does not exist')
+
+-----------
+QUERY:
+
+SELECT functest_S_2(ARRAY['1', '2', '3']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['1', '2', '3'])' at line 1")
+
+-----------
+QUERY:
+
+SELECT functest_S_3();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_S_3 does not exist')
+
+-----------
+QUERY:
+
+
+SELECT functest_S_10('abcd', '2020-01-01');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_S_10 does not exist')
+
+-----------
+QUERY:
+
+SELECT functest_S_13();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_S_13 does not exist')
+
+-----------
+QUERY:
+
+
+SELECT pg_get_functiondef('functest_S_1'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_2'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_3'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_3a'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_10'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_13'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_15'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_get_functiondef('functest_S_16'::regproc);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regproc)' at line 1")
+
+-----------
+QUERY:
+
+
+DROP TABLE functest1 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test with views
+CREATE TABLE functest3 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO functest3 VALUES (1), (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW functestv3 AS SELECT * FROM functest3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_S_14() RETURNS bigint
+    RETURN (SELECT count(*) FROM functestv3);
+RESULT:
+	ERROR - (1418, 'This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)')
+
+-----------
+QUERY:
+
+
+SELECT functest_S_14();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_S_14 does not exist')
+
+-----------
+QUERY:
+
+
+DROP TABLE functest3 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- information_schema tests
+
+CREATE FUNCTION functest_IS_1(a int, b int default 1, c text default 'foo')
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1 + $2';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default 1, c text default 'foo')\n    RETURNS int\n    LANGUAGE SQL\n    AS 'SELECT' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_IS_2(out a int, b int default 1)
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'out a int, b int default 1)\n    RETURNS int\n    LANGUAGE SQL\n    AS 'SELECT $1'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_IS_3(a int default 1, out b int)
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT $1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'default 1, out b int)\n    RETURNS int\n    LANGUAGE SQL\n    AS 'SELECT $1'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT routine_name, ordinal_position, parameter_name, parameter_default
+    FROM information_schema.parameters JOIN information_schema.routines USING (specific_schema, specific_name)
+    WHERE routine_schema = 'temp_func_test' AND routine_name ~ '^functest_is_'
+    ORDER BY 1, 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '^functest_is_'\n    ORDER BY 1, 2' at line 3")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION functest_IS_1(int, int, text), functest_IS_2(int), functest_IS_3(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int, int, text), functest_IS_2(int), functest_IS_3(int)' at line 1")
+
+-----------
+QUERY:
+
+
+-- routine usage views
+
+CREATE FUNCTION functest_IS_4a() RETURNS int LANGUAGE SQL AS 'SELECT 1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS 'SELECT 1'' at line 3")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_IS_4b(x int DEFAULT functest_IS_4a()) RETURNS int LANGUAGE SQL AS 'SELECT x';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT functest_IS_4a()) RETURNS int LANGUAGE SQL AS 'SELECT x'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE functest1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE functest1' at line 1")
+
+-----------
+QUERY:
+
+CREATE FUNCTION functest_IS_5(x int DEFAULT nextval('functest1'))
+    RETURNS int
+    LANGUAGE SQL
+    AS 'SELECT x';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT nextval('functest1'))\n    RETURNS int\n    LANGUAGE SQL\n    AS 'SELECT x'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_IS_6()
+    RETURNS int
+    LANGUAGE SQL
+    RETURN nextval('functest1');
+RESULT:
+	ERROR - (1418, 'This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)')
+
+-----------
+QUERY:
+
+
+CREATE TABLE functest2 (a int, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_IS_7()
+    RETURNS int
+    LANGUAGE SQL
+    RETURN (SELECT count(a) FROM functest2);
+RESULT:
+	ERROR - (1418, 'This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)')
+
+-----------
+QUERY:
+
+
+SELECT r0.routine_name, r1.routine_name
+  FROM information_schema.routine_routine_usage rru
+       JOIN information_schema.routines r0 ON r0.specific_name = rru.specific_name
+       JOIN information_schema.routines r1 ON r1.specific_name = rru.routine_name
+  WHERE r0.routine_schema = 'temp_func_test' AND
+        r1.routine_schema = 'temp_func_test'
+  ORDER BY 1, 2;
+RESULT:
+	ERROR - (1109, "Unknown table 'ROUTINE_ROUTINE_USAGE' in information_schema")
+
+-----------
+QUERY:
+
+SELECT routine_name, sequence_name FROM information_schema.routine_sequence_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2;
+RESULT:
+	ERROR - (1109, "Unknown table 'ROUTINE_SEQUENCE_USAGE' in information_schema")
+
+-----------
+QUERY:
+
+SELECT routine_name, table_name, column_name FROM information_schema.routine_column_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2;
+RESULT:
+	ERROR - (1109, "Unknown table 'ROUTINE_COLUMN_USAGE' in information_schema")
+
+-----------
+QUERY:
+
+SELECT routine_name, table_name FROM information_schema.routine_table_usage
+  WHERE routine_schema = 'temp_func_test'
+  ORDER BY 1, 2;
+RESULT:
+	ERROR - (1109, "Unknown table 'ROUTINE_TABLE_USAGE' in information_schema")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION functest_IS_4a CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DROP SEQUENCE functest1 CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE functest1 CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE functest2 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- overload
+CREATE FUNCTION functest_B_2(bigint) RETURNS bool LANGUAGE 'sql'
+       IMMUTABLE AS 'SELECT $1 > 0';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'bigint) RETURNS bool LANGUAGE 'sql'\n       IMMUTABLE AS 'SELECT $1 > 0'' at line 2")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION functest_b_1;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_b_1 does not exist')
+
+-----------
+QUERY:
+
+DROP FUNCTION functest_b_1;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_b_1 does not exist')
+
+-----------
+QUERY:
+  -- error, not found
+DROP FUNCTION functest_b_2;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.functest_b_2 does not exist')
+
+-----------
+QUERY:
+  -- error, ambiguous
+
+
+-- CREATE OR REPLACE tests
+
+CREATE FUNCTION functest1(a int) RETURNS int LANGUAGE SQL AS 'SELECT $1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS 'SELECT $1'' at line 6")
+
+-----------
+QUERY:
+
+CREATE OR REPLACE FUNCTION functest1(a int) RETURNS int LANGUAGE SQL WINDOW AS 'SELECT $1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION functest1(a int) RETURNS int LANGUAGE SQL WINDOW AS 'SELECT $1'' at line 1")
+
+-----------
+QUERY:
+
+CREATE OR REPLACE PROCEDURE functest1(a int) LANGUAGE SQL AS 'SELECT $1';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE functest1(a int) LANGUAGE SQL AS 'SELECT $1'' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION functest1(a int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a int)' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- inlining of set-returning functions
+
+CREATE TABLE functest3 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO functest3 VALUES (1), (2), (3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_sri1() RETURNS SETOF int
+LANGUAGE SQL
+STABLE
+AS '
+    SELECT * FROM functest3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SETOF int\nLANGUAGE SQL\nSTABLE\nAS '\n    SELECT * FROM functest3' at line 1")
+
+-----------
+QUERY:
+
+';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM functest_sri1();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (verbose, costs off) SELECT * FROM functest_sri1();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off) SELECT * FROM functest_sri1()' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION functest_sri2() RETURNS SETOF int
+LANGUAGE SQL
+STABLE
+BEGIN ATOMIC
+    SELECT * FROM functest3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SETOF int\nLANGUAGE SQL\nSTABLE\nBEGIN ATOMIC\n    SELECT * FROM functest3' at line 1")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM functest_sri2();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+EXPLAIN (verbose, costs off) SELECT * FROM functest_sri2();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off) SELECT * FROM functest_sri2()' at line 1")
+
+-----------
+QUERY:
+
+
+DROP TABLE functest3 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Check behavior of VOID-returning SQL functions
+
+CREATE FUNCTION voidtest1(a int) RETURNS VOID LANGUAGE SQL AS
+$$ SELECT a + 1 $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VOID LANGUAGE SQL AS\n$$ SELECT a + 1 $$' at line 3")
+
+-----------
+QUERY:
+
+SELECT voidtest1(42);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.voidtest1 does not exist')
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION voidtest2(a int, b int) RETURNS VOID LANGUAGE SQL AS
+$$ SELECT voidtest1(a + b) $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VOID LANGUAGE SQL AS\n$$ SELECT voidtest1(a + b) $$' at line 1")
+
+-----------
+QUERY:
+
+SELECT voidtest2(11,22);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.voidtest2 does not exist')
+
+-----------
+QUERY:
+
+
+-- currently, we can inline voidtest2 but not voidtest1
+EXPLAIN (verbose, costs off) SELECT voidtest2(11,22);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off) SELECT voidtest2(11,22)' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE sometable(f1 int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE sometable(f1 int)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION voidtest3(a int) RETURNS VOID LANGUAGE SQL AS
+$$ INSERT INTO sometable VALUES(a + 1) $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VOID LANGUAGE SQL AS\n$$ INSERT INTO sometable VALUES(a + 1) $$' at line 1")
+
+-----------
+QUERY:
+
+SELECT voidtest3(17);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.voidtest3 does not exist')
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION voidtest4(a int) RETURNS VOID LANGUAGE SQL AS
+$$ INSERT INTO sometable VALUES(a - 1) RETURNING f1 $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VOID LANGUAGE SQL AS\n$$ INSERT INTO sometable VALUES(a - 1) RETURNING f1 $$' at line 1")
+
+-----------
+QUERY:
+
+SELECT voidtest4(39);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.voidtest4 does not exist')
+
+-----------
+QUERY:
+
+
+TABLE sometable;
+RESULT:
+	ERROR - (1146, "Table 'test.sometable' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION voidtest5(a int) RETURNS SETOF VOID LANGUAGE SQL AS
+$$ SELECT generate_series(1, a) $$ STABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SETOF VOID LANGUAGE SQL AS\n$$ SELECT generate_series(1, a) $$ STABLE' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM voidtest5(3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(3)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Regression tests for bugs:
+
+-- Check that arguments that are R/W expanded datums aren/* REPLACED */''t corrupted by
+-- multiple uses.  This test knows that array_append() returns a R/W datum
+-- and will modify a R/W array input in-place.  We use SETOF to prevent
+-- inlining of the SQL function.
+CREATE FUNCTION double_append(anyarray, anyelement) RETURNS SETOF anyarray
+LANGUAGE SQL IMMUTABLE AS
+$$ SELECT array_append($1, $2) || array_append($1, $2) $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', anyelement) RETURNS SETOF anyarray\nLANGUAGE SQL IMMUTABLE AS\n$$ SELECT array_a' at line 7")
+
+-----------
+QUERY:
+
+
+SELECT double_append(array_append(ARRAY[q1], q2), q3)
+  FROM (VALUES(1,2,3), (4,5,6)) v(q1,q2,q3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[q1], q2), q3)\n  FROM (VALUES(1,2,3), (4,5,6)) v(q1,q2,q3)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Things that shouldn/* REPLACED */''t work:
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT ''not an integer'';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int LANGUAGE SQL\n    AS 'SELECT ''not an integer''' at line 3")
+
+-----------
+QUERY:
+';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'not even SQL';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int LANGUAGE SQL\n    AS 'not even SQL'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT 1, 2, 3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int LANGUAGE SQL\n    AS 'SELECT 1, 2, 3' at line 1")
+
+-----------
+QUERY:
+';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'SELECT $2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int LANGUAGE SQL\n    AS 'SELECT $2' at line 1")
+
+-----------
+QUERY:
+';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+    AS 'a', 'b';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int LANGUAGE SQL\n    AS 'a', 'b'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Cleanup
+DROP SCHEMA temp_func_test CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 2")
+
+-----------
+QUERY:
+
+DROP USER regress_unpriv_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")

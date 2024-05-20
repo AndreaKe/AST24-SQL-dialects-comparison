@@ -1,0 +1,390 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- SELECT_IMPLICIT
+-- Test cases for queries with ordering terms missing from the target list.
+-- This used to be called /* REPLACED */''junkfilter.sql/* REPLACED */''.
+-- The parser uses the term /* REPLACED */''resjunk/* REPLACED */'' to handle these cases.
+-- - thomas 1998-07-09
+--
+
+-- load test data
+CREATE TABLE test_missing_target (a int, b int, c char(8), d char);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (0, 1, 'XXXX', 'A');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (1, 2, 'ABAB', 'b');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (2, 2, 'ABAB', 'c');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (3, 3, 'BBBB', 'D');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (4, 3, 'BBBB', 'e');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (5, 3, 'bbbb', 'F');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (6, 4, 'cccc', 'g');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (7, 4, 'cccc', 'h');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (8, 4, 'CCCC', 'I');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO test_missing_target VALUES (9, 4, 'CCCC', 'j');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+
+--   w/ existing GROUP BY target
+SELECT c, count(*) FROM test_missing_target GROUP BY test_missing_target.c ORDER BY c;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target using a relation name in GROUP BY clause
+SELECT count(*) FROM test_missing_target GROUP BY test_missing_target.c ORDER BY c;
+RESULT: [duckdb: SAME, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target and w/o existing a different ORDER BY target
+--   failure expected
+SELECT count(*) FROM test_missing_target GROUP BY a ORDER BY b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target and w/o existing same ORDER BY target
+SELECT count(*) FROM test_missing_target GROUP BY b ORDER BY b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/ existing GROUP BY target using a relation name in target
+SELECT test_missing_target.b, count(*)
+  FROM test_missing_target GROUP BY b ORDER BY b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target
+SELECT c FROM test_missing_target ORDER BY a;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   w/o existing ORDER BY target
+SELECT count(*) FROM test_missing_target GROUP BY b ORDER BY b desc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   group using reference number
+SELECT count(*) FROM test_missing_target ORDER BY 1 desc;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   order using reference number
+SELECT c, count(*) FROM test_missing_target GROUP BY 1 ORDER BY 1;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   group using reference number out of range
+--   failure expected
+SELECT c, count(*) FROM test_missing_target GROUP BY 3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   group w/o existing GROUP BY and ORDER BY target under ambiguous condition
+--   failure expected
+SELECT count(*) FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY b ORDER BY b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   order w/ target under ambiguous condition
+--   failure NOT expected
+SELECT a, a FROM test_missing_target
+	ORDER BY a;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   order expression w/ target under ambiguous condition
+--   failure NOT expected
+SELECT a/2, a/2 FROM test_missing_target
+	ORDER BY a/2;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   group expression w/ target under ambiguous condition
+--   failure NOT expected
+SELECT a/2, a/2 FROM test_missing_target
+	GROUP BY a/2 ORDER BY a/2;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   group w/ existing GROUP BY target under ambiguous condition
+SELECT x.b, count(*) FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY x.b ORDER BY x.b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   group w/o existing GROUP BY target under ambiguous condition
+SELECT count(*) FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY x.b ORDER BY x.b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   group w/o existing GROUP BY target under ambiguous condition
+--   into a table
+CREATE TABLE test_missing_target2 AS
+SELECT count(*)
+FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY x.b ORDER BY x.b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM test_missing_target2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+
+--  Functions and expressions
+
+--   w/ existing GROUP BY target
+SELECT a%2, count(b) FROM test_missing_target
+GROUP BY test_missing_target.a%2
+ORDER BY test_missing_target.a%2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target using a relation name in GROUP BY clause
+SELECT count(c) FROM test_missing_target
+GROUP BY lower(test_missing_target.c)
+ORDER BY lower(test_missing_target.c);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target and w/o existing a different ORDER BY target
+--   failure expected
+SELECT count(a) FROM test_missing_target GROUP BY a ORDER BY b;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target and w/o existing same ORDER BY target
+SELECT count(b) FROM test_missing_target GROUP BY b/2 ORDER BY b/2;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   w/ existing GROUP BY target using a relation name in target
+SELECT lower(test_missing_target.c), count(c)
+  FROM test_missing_target GROUP BY lower(c) ORDER BY lower(c);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing GROUP BY target
+SELECT a FROM test_missing_target ORDER BY upper(d);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   w/o existing ORDER BY target
+SELECT count(b) FROM test_missing_target
+	GROUP BY (b + 1) / 2 ORDER BY (b + 1) / 2 desc;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   group w/o existing GROUP BY and ORDER BY target under ambiguous condition
+--   failure expected
+SELECT count(x.a) FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY b/2 ORDER BY b/2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   group w/ existing GROUP BY target under ambiguous condition
+SELECT x.b/2, count(x.b) FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY x.b/2 ORDER BY x.b/2;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   group w/o existing GROUP BY target under ambiguous condition
+--   failure expected due to ambiguous b in count(b)
+SELECT count(b) FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY x.b/2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--   group w/o existing GROUP BY target under ambiguous condition
+--   into a table
+CREATE TABLE test_missing_target3 AS
+SELECT count(x.b)
+FROM test_missing_target x, test_missing_target y
+	WHERE x.a = y.a
+	GROUP BY x.b/2 ORDER BY x.b/2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+SELECT * FROM test_missing_target3;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+--   Cleanup
+DROP TABLE test_missing_target;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE test_missing_target2;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP TABLE test_missing_target3;
+RESULT: [duckdb: SAME, mySQL: SAME]
+=========================================
+Summary for test case select_implicit/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 35 queries, which is 79.55%
+DIFFERENT: 9 queries, which is 20.45%
+ERROR: 0 queries, which is 0.00%
+
+=================
+Results for mySQL
+SAME: 34 queries, which is 77.27%
+DIFFERENT: 10 queries, which is 22.73%
+ERROR: 0 queries, which is 0.00%

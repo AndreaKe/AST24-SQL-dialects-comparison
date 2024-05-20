@@ -1,0 +1,2216 @@
+
+-----------
+QUERY:
+--
+-- insert...on conflict do unique index inference
+--
+create table insertconflicttest(key int4, fruit text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Test unique index inference with operator class specifications and
+-- named collations
+--
+create unique index op_index_key on insertconflicttest(key, fruit text_pattern_ops);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
+
+-----------
+QUERY:
+
+create unique index collation_index_key on insertconflicttest(key, fruit collate "C");
+RESULT:
+	ERROR - Not implemented Error: Index with collation not supported yet!
+
+-----------
+QUERY:
+
+create unique index both_index_key on insertconflicttest(key, fruit collate "C" text_pattern_ops);
+RESULT:
+	ERROR - Not implemented Error: Index with collation not supported yet!
+
+-----------
+QUERY:
+
+create unique index both_index_expr_key on insertconflicttest(key, lower(fruit) collate "C" text_pattern_ops);
+RESULT:
+	ERROR - Not implemented Error: Index with collation not supported yet!
+
+-----------
+QUERY:
+
+
+-- fails
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+-- succeeds
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit, key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit), key, lower(fruit), key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do update set fruit = excluded.fruit
+  where exists (select 1 from insertconflicttest ii where ii.key = excluded.key);
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Neither collation nor operator class specifications are required --
+-- supplying them merely *limits* matches to indexes with matching opclasses
+-- used for relevant indexes
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit text_pattern_ops) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Okay, arbitrates using both index where text_pattern_ops opclass does and
+-- does not appear.
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit collate "C") do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Okay, but only accepts the single index where both opclass and collation are
+-- specified
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit collate "C" text_pattern_ops, key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Okay, but only accepts the single index where both opclass and collation are
+-- specified (plus expression variant)
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C", key, key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Attribute appears twice, while not all attributes/expressions on attributes
+-- appearing within index definition match in terms of both opclass and
+-- collation.
+--
+-- Works because every attribute in inference specification needs to be
+-- satisfied once or more by cataloged index attribute, and as always when an
+-- attribute in the cataloged definition has a non-default opclass/collation,
+-- it still satisfied some inference attribute lacking any particular
+-- opclass/collation specification.
+--
+-- The implementation is liberal in accepting inference specifications on the
+-- assumption that multiple inferred unique indexes will prevent problematic
+-- cases.  It rolls with unique indexes where attributes redundantly appear
+-- multiple times, too (which is not tested here).
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit text_pattern_ops, key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C" text_pattern_ops, key, key) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+drop index op_index_key;
+RESULT:
+	ERROR - Catalog Error: Index with name op_index_key does not exist!
+Did you mean "concur_reindex_ind1"?
+
+-----------
+QUERY:
+
+drop index collation_index_key;
+RESULT:
+	ERROR - Catalog Error: Index with name collation_index_key does not exist!
+Did you mean "concur_reindex_ind1"?
+
+-----------
+QUERY:
+
+drop index both_index_key;
+RESULT:
+	ERROR - Catalog Error: Index with name both_index_key does not exist!
+Did you mean "concur_reindex_ind1"?
+
+-----------
+QUERY:
+
+drop index both_index_expr_key;
+RESULT:
+	ERROR - Catalog Error: Index with name both_index_expr_key does not exist!
+Did you mean "concur_reindex_ind1"?
+
+-----------
+QUERY:
+
+
+--
+-- Make sure that cross matching of attribute opclass/collation does not occur
+--
+create unique index cross_match on insertconflicttest(lower(fruit) collate "C", upper(fruit) text_pattern_ops);
+RESULT:
+	ERROR - Not implemented Error: Index with collation not supported yet!
+
+-----------
+QUERY:
+
+
+-- fails:
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) text_pattern_ops, upper(fruit) collate "C") do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- works:
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C", upper(fruit) text_pattern_ops) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+drop index cross_match;
+RESULT:
+	ERROR - Catalog Error: Index with name cross_match does not exist!
+Did you mean "concur_temp_ind_1"?
+
+-----------
+QUERY:
+
+
+--
+-- Single key tests
+--
+create unique index key_index on insertconflicttest(key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Explain tests
+--
+explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Should display qual actually attributable to internal sequential scan:
+explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Cawesh';
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- With EXCLUDED.* expression in scan node:
+explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do update set fruit = excluded.fruit where excluded.fruit != 'Elderberry';
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+-- Does the same, but JSON format shows /* REPLACED */''Conflict Arbiter Index/* REPLACED */'' as JSON array:
+explain (costs off, format json) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Lime' returning *;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+-- Fails (no unique index inference specification, required for do update variant):
+insert into insertconflicttest values (1, 'Apple') on conflict do update set fruit = excluded.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- inference succeeds:
+insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (2, 'Orange') on conflict (key, key, key) do update set fruit = excluded.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Succeed, since multi-assignment does not involve subquery:
+insert into insertconflicttest
+values (1, 'Apple'), (2, 'Orange')
+on conflict (key) do update set (fruit, key) = (excluded.fruit, excluded.key);
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'key' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+
+-- Give good diagnostic message when EXCLUDED.* spuriously referenced from
+-- RETURNING:
+insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruit RETURNING excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: 'excluded' qualified columns are not supported in the RETURNING clause yet
+
+-----------
+QUERY:
+
+
+-- Only suggest <table>.* column when inference element misspelled:
+insert into insertconflicttest values (1, 'Apple') on conflict (keyy) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Table "insertconflicttest" does not have a column with name "keyy"
+
+-----------
+QUERY:
+
+
+-- Have useful HINT for EXCLUDED.* RTE within UPDATE:
+insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruitt;
+RESULT:
+	ERROR - Binder Error: Values list "excluded" does not have a column named "fruitt"
+LINE 4: ...TE:
+insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruitt;
+                                                  ^
+
+-----------
+QUERY:
+
+
+-- inference fails:
+insert into insertconflicttest values (3, 'Kiwi') on conflict (key, fruit) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (4, 'Mango') on conflict (fruit, key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (5, 'Lemon') on conflict (fruit) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (6, 'Passionfruit') on conflict (lower(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+
+-- Check the target relation can be aliased
+insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- ok, no reference to target table
+insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = ict.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- ok, alias
+insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = insertconflicttest.fruit;
+RESULT:
+	ERROR - Binder Error: Referenced table "insertconflicttest" not found!
+Candidate tables: "ict"
+LINE 2: ...ssionfruit') on conflict (key) do update set fruit = insertconflicttest.fruit;
+                                                  ^
+
+-----------
+QUERY:
+ -- error, references aliased away name
+
+-- Check helpful hint when qualifying set column with target table
+insert into insertconflicttest values (3, 'Kiwi') on conflict (key, fruit) do update set insertconflicttest.fruit = 'Mango';
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+
+drop index key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Composite key tests
+--
+create unique index comp_key_index on insertconflicttest(key, fruit);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- inference succeeds:
+insert into insertconflicttest values (7, 'Raspberry') on conflict (key, fruit) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (8, 'Lime') on conflict (fruit, key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+
+-- inference fails:
+insert into insertconflicttest values (9, 'Banana') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (10, 'Blueberry') on conflict (key, key, key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (11, 'Cherry') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (12, 'Date') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+
+drop index comp_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Partial index tests, no inference predicate specified
+--
+create unique index part_comp_key_index on insertconflicttest(key, fruit) where key < 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create unique index expr_part_comp_key_index on insertconflicttest(key, lower(fruit)) where key < 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- inference fails:
+insert into insertconflicttest values (13, 'Grape') on conflict (key, fruit) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (14, 'Raisin') on conflict (fruit, key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (15, 'Cranberry') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (16, 'Melon') on conflict (key, key, key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (17, 'Mulberry') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (18, 'Pineapple') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+
+drop index part_comp_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop index expr_part_comp_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Expression index tests
+--
+create unique index expr_key_index on insertconflicttest(lower(fruit));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- inference succeeds:
+insert into insertconflicttest values (20, 'Quince') on conflict (lower(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (21, 'Pomegranate') on conflict (lower(fruit), lower(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+
+-- inference fails:
+insert into insertconflicttest values (22, 'Apricot') on conflict (upper(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+
+drop index expr_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Expression index tests (with regular column)
+--
+create unique index expr_comp_key_index on insertconflicttest(key, lower(fruit));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create unique index tricky_expr_comp_key_index on insertconflicttest(key, lower(fruit), upper(fruit));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- inference succeeds:
+insert into insertconflicttest values (24, 'Plum') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (25, 'Peach') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+-- Should not infer /* REPLACED */''tricky_expr_comp_key_index/* REPLACED */'' index:
+explain (costs off) insert into insertconflicttest values (26, 'Fig') on conflict (lower(fruit), key, lower(fruit), key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+-- inference fails:
+insert into insertconflicttest values (27, 'Prune') on conflict (key, upper(fruit)) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (28, 'Redcurrant') on conflict (fruit, key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (29, 'Nectarine') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+
+drop index expr_comp_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop index tricky_expr_comp_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Non-spurious duplicate violation tests
+--
+create unique index key_index on insertconflicttest(key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create unique index fruit_index on insertconflicttest(fruit);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- succeeds, since UPDATE happens to update /* REPLACED */''fruit/* REPLACED */'' to existing value:
+insert into insertconflicttest values (26, 'Fig') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+-- fails, since UPDATE is to row with key value 26, and we/* REPLACED */''re updating /* REPLACED */''fruit/* REPLACED */''
+-- to a value that happens to exist in another row (/* REPLACED */''peach/* REPLACED */''):
+insert into insertconflicttest values (26, 'Peach') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+-- succeeds, since /* REPLACED */''key/* REPLACED */'' isn/* REPLACED */''t repeated/referenced in UPDATE, and /* REPLACED */''fruit/* REPLACED */''
+-- arbitrates that statement updates existing /* REPLACED */''Fig/* REPLACED */'' row:
+insert into insertconflicttest values (25, 'Fig') on conflict (fruit) do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: Can not assign to column 'fruit' because it has a UNIQUE/PRIMARY KEY constraint
+
+-----------
+QUERY:
+
+
+drop index key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+drop index fruit_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Test partial unique index inference
+--
+create unique index partial_key_index on insertconflicttest(key) where fruit like '%berry';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Succeeds
+insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' do update set fruit = excluded.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into insertconflicttest as t values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and t.fruit = 'inconsequential' do nothing;
+RESULT:
+	ERROR - Constraint Error: Duplicate key "key: 23" violates unique constraint. If this is an unexpected constraint violation please double check with the known index limitations section in our documentation (https://duckdb.org/docs/sql/indexes).
+
+-----------
+QUERY:
+
+
+-- fails
+insert into insertconflicttest values (23, 'Blackberry') on conflict (key) do update set fruit = excluded.fruit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' or fruit = 'consequential' do nothing;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) where fruit like '%berry' do update set fruit = excluded.fruit;
+RESULT:
+	ERROR - Binder Error: The specified columns as conflict target are not referenced by a UNIQUE/PRIMARY KEY CONSTRAINT
+
+-----------
+QUERY:
+
+
+drop index partial_key_index;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Test that wholerow references to ON CONFLICT/* REPLACED */''s EXCLUDED work
+--
+create unique index plain on insertconflicttest(key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Succeeds, updates existing row:
+insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
+  where i.* != excluded.* returning *;
+RESULT:
+	ERROR - Binder Error: STAR expression is not supported here
+LINE 5:   where i.* != excluded.* returning *;
+                ^
+
+-----------
+QUERY:
+
+-- No update this time, though:
+insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
+  where i.* != excluded.* returning *;
+RESULT:
+	ERROR - Binder Error: STAR expression is not supported here
+LINE 4:   where i.* != excluded.* returning *;
+                ^
+
+-----------
+QUERY:
+
+-- Predicate changed to require match rather than non-match, so updates once more:
+insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
+  where i.* = excluded.* returning *;
+RESULT:
+	ERROR - Binder Error: STAR expression is not supported here
+LINE 4:   where i.* = excluded.* returning *;
+                ^
+
+-----------
+QUERY:
+
+-- Assign:
+insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text
+  returning *;
+RESULT:
+	ERROR - Binder Error: STAR expression is not supported here
+LINE 3: ...'Avocado') on conflict (key) do update set fruit = excluded.*::text
+                                                  ^
+
+-----------
+QUERY:
+
+-- deparse whole row var in WHERE and SET clauses:
+explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.fruit where excluded.* is null;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+drop index plain;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Cleanup
+drop table insertconflicttest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+--
+-- Verify that EXCLUDED does not allow system column references. These
+-- do not make sense because EXCLUDED isn/* REPLACED */''t an already stored tuple
+-- (and thus doesn/* REPLACED */''t have a ctid etc).
+--
+create table syscolconflicttest(key int4, data text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into syscolconflicttest values (1);
+RESULT:
+	ERROR - Binder Error: table syscolconflicttest has 2 columns but 1 values were supplied
+
+-----------
+QUERY:
+
+insert into syscolconflicttest values (1) on conflict (key) do update set data = excluded.ctid::text;
+RESULT:
+	ERROR - Binder Error: table syscolconflicttest has 2 columns but 1 values were supplied
+
+-----------
+QUERY:
+
+drop table syscolconflicttest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Previous tests all managed to not test any expressions requiring
+-- planner preprocessing ...
+--
+create table insertconflict (a bigint, b bigint);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create unique index insertconflicti1 on insertconflict(coalesce(a, 0));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create unique index insertconflicti2 on insertconflict(b)
+  where coalesce(a, 1) > 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+insert into insertconflict values (1, 2)
+on conflict (coalesce(a, 0)) do nothing;
+RESULT:
+	ERROR - Not implemented Error: Non-column index element not supported yet!
+
+-----------
+QUERY:
+
+
+insert into insertconflict values (1, 2)
+on conflict (b) where coalesce(a, 1) > 0 do nothing;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+insert into insertconflict values (1, 2)
+on conflict (b) where coalesce(a, 1) > 1 do nothing;
+RESULT:
+	ERROR - Constraint Error: Duplicate key "COALESCE(a, CAST(0 AS BIGINT)): 1" violates unique constraint. If this is an unexpected constraint violation please double check with the known index limitations section in our documentation (https://duckdb.org/docs/sql/indexes).
+
+-----------
+QUERY:
+
+
+drop table insertconflict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- test insertion through view
+--
+
+create table insertconflict (f1 int primary key, f2 text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create view insertconflictv as
+  select * from insertconflict with cascaded check option;
+RESULT:
+	ERROR - Not implemented Error: VIEW CHECK options
+
+-----------
+QUERY:
+
+
+insert into insertconflictv values (1,'foo')
+  on conflict (f1) do update set f2 = excluded.f2;
+RESULT:
+	ERROR - Catalog Error: Table with name insertconflictv does not exist!
+Did you mean "insertconflict"?
+
+-----------
+QUERY:
+
+select * from insertconflict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into insertconflictv values (1,'bar')
+  on conflict (f1) do update set f2 = excluded.f2;
+RESULT:
+	ERROR - Catalog Error: Table with name insertconflictv does not exist!
+Did you mean "insertconflict"?
+
+-----------
+QUERY:
+
+select * from insertconflict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+drop view insertconflictv;
+RESULT:
+	ERROR - Catalog Error: View with name insertconflictv does not exist!
+Did you mean "insertconflict"?
+
+-----------
+QUERY:
+
+drop table insertconflict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- ******************************************************************
+-- *                                                                *
+-- * Test inheritance (example taken from tutorial)                 *
+-- *                                                                *
+-- ******************************************************************
+create table cities (
+	name		text,
+	population	float8,
+	altitude	int		-- (in ft)
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create table capitals (
+	state		char(2)
+) inherits (cities);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "inherits"
+
+-----------
+QUERY:
+
+
+-- Create unique indexes.  Due to a general limitation of inheritance,
+-- uniqueness is only enforced per-relation.  Unique index inference
+-- specification will do the right thing, though.
+create unique index cities_names_unique on cities (name);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create unique index capitals_names_unique on capitals (name);
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+
+-- prepopulate the tables.
+insert into cities values ('San Francisco', 7.24E+5, 63);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into cities values ('Las Vegas', 2.583E+5, 2174);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into cities values ('Mariposa', 1200, 1953);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+insert into capitals values ('Sacramento', 3.694E+5, 30, 'CA');
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+insert into capitals values ('Madison', 1.913E+5, 845, 'WI');
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+
+-- Tests proper for inheritance:
+select * from capitals;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+
+-- Succeeds:
+insert into cities values ('Las Vegas', 2.583E+5, 2174) on conflict do nothing;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into capitals values ('Sacramento', 4664.E+5, 30, 'CA') on conflict (name) do update set population = excluded.population;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+-- Wrong /* REPLACED */''Sacramento/* REPLACED */'', so do nothing:
+insert into capitals values ('Sacramento', 50, 2267, 'NE') on conflict (name) do nothing;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+select * from capitals;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+insert into cities values ('Las Vegas', 5.83E+5, 2001) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from cities;
+RESULT:
+	ERROR - Binder Error: Referenced column "tableoid" not found in FROM clause!
+Candidate bindings: "cities.name"
+
+-----------
+QUERY:
+
+insert into capitals values ('Las Vegas', 5.83E+5, 2222, 'NV') on conflict (name) do update set population = excluded.population;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+-- Capitals will contain new capital, Las Vegas:
+select * from capitals;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+-- Cities contains two instances of /* REPLACED */''Las Vegas/* REPLACED */'', since unique constraints don/* REPLACED */''t
+-- work across inheritance:
+select tableoid::regclass, * from cities;
+RESULT:
+	ERROR - Binder Error: Referenced column "tableoid" not found in FROM clause!
+Candidate bindings: "cities.name"
+
+-----------
+QUERY:
+
+-- This only affects /* REPLACED */''cities/* REPLACED */'' version of /* REPLACED */''Las Vegas/* REPLACED */'':
+insert into cities values ('Las Vegas', 5.86E+5, 2223) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select tableoid::regclass, * from cities;
+RESULT:
+	ERROR - Binder Error: Referenced column "tableoid" not found in FROM clause!
+Candidate bindings: "cities.name"
+
+-----------
+QUERY:
+
+
+-- clean up
+drop table capitals;
+RESULT:
+	ERROR - Catalog Error: Table with name capitals does not exist!
+Did you mean "cities"?
+
+-----------
+QUERY:
+
+drop table cities;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Make sure a table named excluded is handled properly
+create table excluded(key int primary key, data text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into excluded values(1, '1');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- error, ambiguous
+insert into excluded values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
+RESULT:
+	ERROR - Binder Error: Duplicate alias "excluded" in query!
+
+-----------
+QUERY:
+
+-- ok, aliased
+insert into excluded AS target values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
+RESULT:
+	[(1, '2')]
+
+-----------
+QUERY:
+
+-- ok, aliased
+insert into excluded AS target values(1, '2') on conflict (key) do update set data = target.data RETURNING *;
+RESULT:
+	[(1, '2')]
+
+-----------
+QUERY:
+
+-- make sure excluded isn/* REPLACED */''t a problem in returning clause
+insert into excluded values(1, '2') on conflict (key) do update set data = 3 RETURNING excluded.*;
+RESULT:
+	ERROR - Binder Error: Duplicate alias "excluded" in query!
+
+-----------
+QUERY:
+
+
+-- clean up
+drop table excluded;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- check that references to columns after dropped columns are handled correctly
+create table dropcol(key int primary key, drop1 int, keep1 text, drop2 numeric, keep2 float);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 1, '1', '1', 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- set using excluded
+insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 2, '2', '2', 2) on conflict(key)
+    do update set drop1 = excluded.drop1, keep1 = excluded.keep1, drop2 = excluded.drop2, keep2 = excluded.keep2
+    where excluded.drop1 is not null and excluded.keep1 is not null and excluded.drop2 is not null and excluded.keep2 is not null
+          and dropcol.drop1 is not null and dropcol.keep1 is not null and dropcol.drop2 is not null and dropcol.keep2 is not null
+    returning *;
+RESULT:
+	[(1, 2, '2', Decimal('2.000'), 2.0)]
+
+-----------
+QUERY:
+
+;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- set using existing table
+insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 3, '3', '3', 3) on conflict(key)
+    do update set drop1 = dropcol.drop1, keep1 = dropcol.keep1, drop2 = dropcol.drop2, keep2 = dropcol.keep2
+    returning *;
+RESULT:
+	[(1, 3, '3', Decimal('3.000'), 3.0)]
+
+-----------
+QUERY:
+
+;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table dropcol drop column drop1, drop column drop2;
+RESULT:
+	ERROR - Parser Error: Only one ALTER command per statement is supported
+
+-----------
+QUERY:
+
+-- set using excluded
+insert into dropcol(key, keep1, keep2) values(1, '4', 4) on conflict(key)
+    do update set keep1 = excluded.keep1, keep2 = excluded.keep2
+    where excluded.keep1 is not null and excluded.keep2 is not null
+          and dropcol.keep1 is not null and dropcol.keep2 is not null
+    returning *;
+RESULT:
+	[(1, None, '4', None, 4.0)]
+
+-----------
+QUERY:
+
+;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- set using existing table
+insert into dropcol(key, keep1, keep2) values(1, '5', 5) on conflict(key)
+    do update set keep1 = dropcol.keep1, keep2 = dropcol.keep2
+    returning *;
+RESULT:
+	[(1, None, '5', None, 5.0)]
+
+-----------
+QUERY:
+
+;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE dropcol;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check handling of regular btree constraint along with gist constraint
+
+create table twoconstraints (f1 int unique, f2 box,
+                             exclude using gist(f2 with &&));
+RESULT:
+	ERROR - Parser Error: syntax error at or near "using"
+
+-----------
+QUERY:
+
+insert into twoconstraints values(1, '((0,0),(1,1))');
+RESULT:
+	ERROR - Catalog Error: Table with name twoconstraints does not exist!
+Did you mean "pg_constraint"?
+
+-----------
+QUERY:
+
+insert into twoconstraints values(1, '((2,2),(3,3))');
+RESULT:
+	ERROR - Catalog Error: Table with name twoconstraints does not exist!
+Did you mean "pg_constraint"?
+
+-----------
+QUERY:
+  -- fail on f1
+insert into twoconstraints values(2, '((0,0),(1,2))');
+RESULT:
+	ERROR - Catalog Error: Table with name twoconstraints does not exist!
+Did you mean "pg_constraint"?
+
+-----------
+QUERY:
+  -- fail on f2
+insert into twoconstraints values(2, '((0,0),(1,2))')
+  on conflict on constraint twoconstraints_f1_key do nothing;
+RESULT:
+	ERROR - Not implemented Error: ON CONSTRAINT conflict target is not supported yet
+
+-----------
+QUERY:
+  -- fail on f2
+insert into twoconstraints values(2, '((0,0),(1,2))')
+  on conflict on constraint twoconstraints_f2_excl do nothing;
+RESULT:
+	ERROR - Not implemented Error: ON CONSTRAINT conflict target is not supported yet
+
+-----------
+QUERY:
+  -- do nothing
+select * from twoconstraints;
+RESULT:
+	ERROR - Catalog Error: Table with name twoconstraints does not exist!
+Did you mean "pg_constraint"?
+
+-----------
+QUERY:
+
+drop table twoconstraints;
+RESULT:
+	ERROR - Catalog Error: Table with name twoconstraints does not exist!
+Did you mean "pg_constraint"?
+
+-----------
+QUERY:
+
+
+-- check handling of self-conflicts at various isolation levels
+
+create table selfconflict (f1 int primary key, f2 int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+begin transaction isolation level read committed;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "isolation"
+
+-----------
+QUERY:
+
+insert into selfconflict values (1,1), (1,2) on conflict do nothing;
+RESULT:
+	ERROR - Constraint Error: PRIMARY KEY or UNIQUE constraint violated: duplicate key "1"
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+begin transaction isolation level repeatable read;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "isolation"
+
+-----------
+QUERY:
+
+insert into selfconflict values (2,1), (2,2) on conflict do nothing;
+RESULT:
+	ERROR - Constraint Error: PRIMARY KEY or UNIQUE constraint violated: duplicate key "2"
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+begin transaction isolation level serializable;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "isolation"
+
+-----------
+QUERY:
+
+insert into selfconflict values (3,1), (3,2) on conflict do nothing;
+RESULT:
+	ERROR - Constraint Error: PRIMARY KEY or UNIQUE constraint violated: duplicate key "3"
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+begin transaction isolation level read committed;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "isolation"
+
+-----------
+QUERY:
+
+insert into selfconflict values (4,1), (4,2) on conflict(f1) do update set f2 = 0;
+RESULT:
+	ERROR - Constraint Error: PRIMARY KEY or UNIQUE constraint violated: duplicate key "4"
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+begin transaction isolation level repeatable read;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "isolation"
+
+-----------
+QUERY:
+
+insert into selfconflict values (5,1), (5,2) on conflict(f1) do update set f2 = 0;
+RESULT:
+	ERROR - Constraint Error: PRIMARY KEY or UNIQUE constraint violated: duplicate key "5"
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+begin transaction isolation level serializable;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "isolation"
+
+-----------
+QUERY:
+
+insert into selfconflict values (6,1), (6,2) on conflict(f1) do update set f2 = 0;
+RESULT:
+	ERROR - Constraint Error: PRIMARY KEY or UNIQUE constraint violated: duplicate key "6"
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+
+select * from selfconflict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+drop table selfconflict;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check ON CONFLICT handling with partitioned tables
+create table parted_conflict_test (a int unique, b char) partition by list (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_test_1 partition of parted_conflict_test (b unique) for values in (1, 2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+
+-- no indexes required here
+insert into parted_conflict_test values (1, 'a') on conflict do nothing;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+
+-- index on a required, which does exist in parent
+insert into parted_conflict_test values (1, 'a') on conflict (a) do nothing;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_test values (1, 'a') on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+
+-- targeting partition directly will work
+insert into parted_conflict_test_1 values (1, 'a') on conflict (a) do nothing;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test_1 does not exist!
+Did you mean "concur_temp_tab_1"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_test_1 values (1, 'b') on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test_1 does not exist!
+Did you mean "concur_temp_tab_1"?
+
+-----------
+QUERY:
+
+
+-- index on b required, which doesn/* REPLACED */''t exist in parent
+insert into parted_conflict_test values (2, 'b') on conflict (b) do update set a = excluded.a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+
+-- targeting partition directly will work
+insert into parted_conflict_test_1 values (2, 'b') on conflict (b) do update set a = excluded.a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test_1 does not exist!
+Did you mean "concur_temp_tab_1"?
+
+-----------
+QUERY:
+
+
+-- should see (2, /* REPLACED */''b/* REPLACED */'')
+select * from parted_conflict_test order by a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+
+-- now check that DO UPDATE works correctly for target partition with
+-- different attribute numbers
+create table parted_conflict_test_2 (b char, a int unique);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table parted_conflict_test attach partition parted_conflict_test_2 for values in (3);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "attach"
+
+-----------
+QUERY:
+
+truncate parted_conflict_test;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+LINE 2: truncate parted_conflict_test;
+                 ^
+
+-----------
+QUERY:
+
+insert into parted_conflict_test values (3, 'a') on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_test values (3, 'b') on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- should see (3, /* REPLACED */''b/* REPLACED */'')
+select * from parted_conflict_test order by a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- case where parent will have a dropped column, but the partition won/* REPLACED */''t
+alter table parted_conflict_test drop b, add b char;
+RESULT:
+	ERROR - Parser Error: Only one ALTER command per statement is supported
+
+-----------
+QUERY:
+
+create table parted_conflict_test_3 partition of parted_conflict_test for values in (4);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+truncate parted_conflict_test;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+LINE 2: truncate parted_conflict_test;
+                 ^
+
+-----------
+QUERY:
+
+insert into parted_conflict_test (a, b) values (4, 'a') on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_test (a, b) values (4, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- should see (4, /* REPLACED */''b/* REPLACED */'')
+select * from parted_conflict_test order by a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- case with multi-level partitioning
+create table parted_conflict_test_4 partition of parted_conflict_test for values in (5) partition by list (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_test_4_1 partition of parted_conflict_test_4 for values in (5);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+truncate parted_conflict_test;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+LINE 2: truncate parted_conflict_test;
+                 ^
+
+-----------
+QUERY:
+
+insert into parted_conflict_test (a, b) values (5, 'a') on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_test (a, b) values (5, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- should see (5, /* REPLACED */''b/* REPLACED */'')
+select * from parted_conflict_test order by a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- test with multiple rows
+truncate parted_conflict_test;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+LINE 4: truncate parted_conflict_test;
+                 ^
+
+-----------
+QUERY:
+
+insert into parted_conflict_test (a, b) values (1, 'a'), (2, 'a'), (4, 'a') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_test (a, b) values (1, 'b'), (2, 'c'), (4, 'b') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- should see (1, /* REPLACED */''b/* REPLACED */''), (2, /* REPLACED */''a/* REPLACED */''), (4, /* REPLACED */''b/* REPLACED */'')
+select * from parted_conflict_test order by a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+drop table parted_conflict_test;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_test does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- test behavior of inserting a conflicting tuple into an intermediate
+-- partitioning level
+create table parted_conflict (a int primary key, b text) partition by range (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_1_1 partition of parted_conflict_1 for values from (0) to (500);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+insert into parted_conflict values (40, 'forty');
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_1 values (40, 'cuarenta')
+  on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_1 does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+drop table parted_conflict;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- same thing, but this time try to use an index that/* REPLACED */''s created not in the
+-- partition
+create table parted_conflict (a int, b text) partition by range (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_1_1 partition of parted_conflict_1 for values from (0) to (500);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create unique index on only parted_conflict_1 (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "only"
+
+-----------
+QUERY:
+
+create unique index on only parted_conflict (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "only"
+
+-----------
+QUERY:
+
+alter index parted_conflict_a_idx attach partition parted_conflict_1_a_idx;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "attach"
+
+-----------
+QUERY:
+
+insert into parted_conflict values (40, 'forty');
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+insert into parted_conflict_1 values (40, 'cuarenta')
+  on conflict (a) do update set b = excluded.b;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict_1 does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+drop table parted_conflict;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_test_2"?
+
+-----------
+QUERY:
+
+
+-- test whole-row Vars in ON CONFLICT expressions
+create table parted_conflict (a int, b text, c int) partition by range (a);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "partition"
+
+-----------
+QUERY:
+
+create table parted_conflict_1 (drp text, c int, a int, b text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table parted_conflict_1 drop column drp;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create unique index on parted_conflict (a, b);
+RESULT:
+	ERROR - Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
+
+alter table parted_conflict attach partition parted_conflict_1 for values from (0) to (1000);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "attach"
+
+-----------
+QUERY:
+
+truncate parted_conflict;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+LINE 2: truncate parted_conflict;
+                 ^
+
+-----------
+QUERY:
+
+insert into parted_conflict values (50, 'cincuenta', 1);
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+
+-----------
+QUERY:
+
+insert into parted_conflict values (50, 'cincuenta', 2)
+  on conflict (a, b) do update set (a, b, c) = row(excluded.*)
+  where parted_conflict = (50, text 'cincuenta', 1) and
+        excluded = (50, text 'cincuenta', 2);
+RESULT:
+	ERROR - Parser Error: Could not perform multiple assignment, target expects 3 values, only 1 were provided
+
+-----------
+QUERY:
+
+
+-- should see (50, /* REPLACED */''cincuenta/* REPLACED */'', 2)
+select * from parted_conflict order by a;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+
+-----------
+QUERY:
+
+
+-- test with statement level triggers
+create or replace function parted_conflict_update_func() returns trigger as $$
+declare
+    r record;
+begin
+ for r in select * from inserted loop
+	raise notice 'a = %, b = %, c = %', r.a, r.b, r.c;
+ end loop;
+ return new;
+end;
+$$ language plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "returns"
+
+-----------
+QUERY:
+
+
+create trigger parted_conflict_update
+    after update on parted_conflict
+    referencing new table as inserted
+    for each statement
+    execute procedure parted_conflict_update_func();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "trigger"
+
+-----------
+QUERY:
+
+
+truncate parted_conflict;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+LINE 3: truncate parted_conflict;
+                 ^
+
+-----------
+QUERY:
+
+
+insert into parted_conflict values (0, 'cero', 1);
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+
+-----------
+QUERY:
+
+
+insert into parted_conflict values(0, 'cero', 1)
+  on conflict (a,b) do update set c = parted_conflict.c + 1;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+
+-----------
+QUERY:
+
+
+drop table parted_conflict;
+RESULT:
+	ERROR - Catalog Error: Table with name parted_conflict does not exist!
+Did you mean "parted_conflict_1"?
+
+-----------
+QUERY:
+
+drop function parted_conflict_update_func();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("

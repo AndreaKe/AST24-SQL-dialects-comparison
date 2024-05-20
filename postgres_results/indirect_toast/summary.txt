@@ -1,0 +1,236 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- Tests for external toast datums
+--
+
+-- directory paths and dlsuffix are passed to us in environment variables
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
+
+-- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+
+CREATE FUNCTION make_tuple_indirect (record)
+        RETURNS record
+        AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        LANGUAGE C STRICT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Other compression algorithms may cause the compressed data to be stored
+-- inline.  pglz guarantees that the data is externalized, so stick to it.
+SET default_toast_compression = 'pglz';
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TABLE indtoasttest(descr text, cnt int DEFAULT 0, f1 text, f2 text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+INSERT INTO indtoasttest(descr, f1, f2) VALUES('two-compressed', repeat('1234567890',1000), repeat('1234567890',1000));
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO indtoasttest(descr, f1, f2) VALUES('two-toasted', repeat('1234567890',30000), repeat('1234567890',50000));
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO indtoasttest(descr, f1, f2) VALUES('one-compressed,one-null', NULL, repeat('1234567890',1000));
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+INSERT INTO indtoasttest(descr, f1, f2) VALUES('one-toasted,one-null', NULL, repeat('1234567890',50000));
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- check whether indirect tuples works on the most basic level
+SELECT descr, substring(make_tuple_indirect(indtoasttest)::text, 1, 200) FROM indtoasttest;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- modification without changing varlenas
+UPDATE indtoasttest SET cnt = cnt +1 RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- modification without modifying assigned value
+UPDATE indtoasttest SET cnt = cnt +1, f1 = f1 RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- modification modifying, but effectively not changing
+UPDATE indtoasttest SET cnt = cnt +1, f1 = f1||'' RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+UPDATE indtoasttest SET cnt = cnt +1, f1 = '-'||f1||'-' RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- check we didn/* REPLACED */''t screw with main/toast tuple visibility
+VACUUM FREEZE indtoasttest;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- now create a trigger that forces all Datums to be indirect ones
+CREATE FUNCTION update_using_indirect()
+        RETURNS trigger
+        LANGUAGE plpgsql AS $$
+BEGIN
+    NEW := make_tuple_indirect(NEW);
+    RETURN NEW;
+END$$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER indtoasttest_update_indirect
+        BEFORE INSERT OR UPDATE
+        ON indtoasttest
+        FOR EACH ROW
+        EXECUTE PROCEDURE update_using_indirect();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- modification without changing varlenas
+UPDATE indtoasttest SET cnt = cnt +1 RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- modification without modifying assigned value
+UPDATE indtoasttest SET cnt = cnt +1, f1 = f1 RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- modification modifying, but effectively not changing
+UPDATE indtoasttest SET cnt = cnt +1, f1 = f1||'' RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+UPDATE indtoasttest SET cnt = cnt +1, f1 = '-'||f1||'-' RETURNING substring(indtoasttest::text, 1, 200);
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO indtoasttest(descr, f1, f2) VALUES('one-toasted,one-null, via indirect', repeat('1234567890',30000), NULL);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+-- check we didn/* REPLACED */''t screw with main/toast tuple visibility
+VACUUM FREEZE indtoasttest;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+DROP TABLE indtoasttest;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+DROP FUNCTION update_using_indirect();
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+RESET default_toast_compression;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+=========================================
+Summary for test case indirect_toast/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 7 queries, which is 25.00%
+DIFFERENT: 12 queries, which is 42.86%
+ERROR: 9 queries, which is 32.14%
+
+=================
+Results for mySQL
+SAME: 4 queries, which is 14.29%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 24 queries, which is 85.71%

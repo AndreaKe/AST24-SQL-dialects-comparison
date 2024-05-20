@@ -1,0 +1,358 @@
+
+-----------
+QUERY:
+--
+-- Regression tests for schemas (namespaces)
+--
+
+-- set the whitespace-only search_path to test that the
+-- GUC list syntax is preserved during a schema creation
+SELECT pg_catalog.set_config('search_path', ' ', false);
+RESULT:
+	postgres: [(' ',)]
+
+-----------
+QUERY:
+
+
+CREATE SCHEMA test_ns_schema_1
+       CREATE UNIQUE INDEX abc_a_idx ON abc (a)
+
+       CREATE VIEW abc_view AS
+              SELECT a+1 AS a, b+1 AS b FROM abc
+
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- verify that the correct search_path restored on abort
+SET search_path to public;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET search_path to public, test_ns_schema_1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_ns_schema_2
+       CREATE VIEW abc_view AS SELECT c FROM abc;
+RESULT:
+	postgres: column "c" does not exist
+LINE 3:        CREATE VIEW abc_view AS SELECT c FROM abc;
+                                              ^
+
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	postgres: [('public',)]
+
+-----------
+QUERY:
+
+
+-- verify that the correct search_path preserved
+-- after creating the schema and on commit
+BEGIN;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET search_path to public, test_ns_schema_1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_ns_schema_2
+       CREATE VIEW abc_view AS SELECT a FROM abc;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	postgres: [('public, test_ns_schema_1',)]
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	postgres: [('public, test_ns_schema_1',)]
+
+-----------
+QUERY:
+
+DROP SCHEMA test_ns_schema_2 CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- verify that the objects were created
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_1');
+RESULT:
+	postgres: [(5,)]
+
+-----------
+QUERY:
+
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT * FROM test_ns_schema_1.abc;
+RESULT:
+	postgres: [(1, None), (2, None), (3, None)]
+
+-----------
+QUERY:
+
+SELECT * FROM test_ns_schema_1.abc_view;
+RESULT:
+	postgres: [(2, None), (3, None), (4, None)]
+
+-----------
+QUERY:
+
+
+ALTER SCHEMA test_ns_schema_1 RENAME TO test_ns_schema_renamed;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_1');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+-- test IF NOT EXISTS cases
+CREATE SCHEMA test_ns_schema_renamed;
+RESULT:
+	postgres: schema "test_ns_schema_renamed" already exists
+
+
+-----------
+QUERY:
+ -- fail, already exists
+CREATE SCHEMA IF NOT EXISTS test_ns_schema_renamed;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- ok with notice
+CREATE SCHEMA IF NOT EXISTS test_ns_schema_renamed -- fail, disallowed
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+RESULT:
+	postgres: CREATE SCHEMA IF NOT EXISTS cannot include schema elements
+LINE 3:        CREATE TABLE abc (
+               ^
+
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_ns_schema_renamed CASCADE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- verify that the objects were dropped
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_renamed');
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+--
+-- Verify that search_path is set to a safe value during maintenance
+-- commands.
+--
+
+CREATE SCHEMA test_maint_search_path;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET search_path = test_maint_search_path;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION fn(INT) RETURNS INT IMMUTABLE LANGUAGE plpgsql AS $$
+  BEGIN
+    RAISE NOTICE 'current search_path: %', current_setting('search_path');
+    RETURN $1;
+  END;
+$$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_maint(i INT);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO test_maint VALUES (1), (2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW test_maint_mv AS SELECT fn(i) FROM test_maint;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- the following commands should see search_path as pg_catalog, pg_temp
+
+CREATE INDEX test_maint_idx ON test_maint_search_path.test_maint (fn(i));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+REINDEX TABLE test_maint_search_path.test_maint;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ANALYZE test_maint_search_path.test_maint;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+VACUUM FULL test_maint_search_path.test_maint;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CLUSTER test_maint_search_path.test_maint USING test_maint_idx;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW test_maint_search_path.test_maint_mv;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+RESET search_path;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_maint_search_path CASCADE;
+RESULT:
+	postgres: None

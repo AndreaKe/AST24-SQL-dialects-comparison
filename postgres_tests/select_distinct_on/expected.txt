@@ -1,0 +1,94 @@
+
+-----------
+QUERY:
+--
+-- SELECT_DISTINCT_ON
+--
+
+SELECT DISTINCT ON (string4) string4, two, ten
+   FROM onek
+   ORDER BY string4 using <, two using >, ten using <;
+RESULT:
+	postgres: [('AAAAxx', 1, 1), ('HHHHxx', 1, 1), ('OOOOxx', 1, 1), ('VVVVxx', 1, 1)]
+
+-----------
+QUERY:
+
+
+-- this will fail due to conflict of ordering requirements
+SELECT DISTINCT ON (string4, ten) string4, two, ten
+   FROM onek
+   ORDER BY string4 using <, two using <, ten using <;
+RESULT:
+	postgres: SELECT DISTINCT ON expressions must match initial ORDER BY expressions
+LINE 4: SELECT DISTINCT ON (string4, ten) string4, two, ten
+                                     ^
+
+
+-----------
+QUERY:
+
+
+SELECT DISTINCT ON (string4, ten) string4, ten, two
+   FROM onek
+   ORDER BY string4 using <, ten using >, two using <;
+RESULT:
+	postgres: [('AAAAxx', 9, 1), ('AAAAxx', 8, 0), ('AAAAxx', 7, 1), ('AAAAxx', 6, 0), ('AAAAxx', 5, 1), ('AAAAxx', 4, 0), ('AAAAxx', 3, 1), ('AAAAxx', 2, 0), ('AAAAxx', 1, 1), ('AAAAxx', 0, 0), ('HHHHxx', 9, 1), ('HHHHxx', 8, 0), ('HHHHxx', 7, 1), ('HHHHxx', 6, 0), ('HHHHxx', 5, 1), ('HHHHxx', 4, 0), ('HHHHxx', 3, 1), ('HHHHxx', 2, 0), ('HHHHxx', 1, 1), ('HHHHxx', 0, 0), ('OOOOxx', 9, 1), ('OOOOxx', 8, 0), ('OOOOxx', 7, 1), ('OOOOxx', 6, 0), ('OOOOxx', 5, 1), ('OOOOxx', 4, 0), ('OOOOxx', 3, 1), ('OOOOxx', 2, 0), ('OOOOxx', 1, 1), ('OOOOxx', 0, 0), ('VVVVxx', 9, 1), ('VVVVxx', 8, 0), ('VVVVxx', 7, 1), ('VVVVxx', 6, 0), ('VVVVxx', 5, 1), ('VVVVxx', 4, 0), ('VVVVxx', 3, 1), ('VVVVxx', 2, 0), ('VVVVxx', 1, 1), ('VVVVxx', 0, 0)]
+
+-----------
+QUERY:
+
+
+-- bug #5049: early 8.4.x chokes on volatile DISTINCT ON clauses
+select distinct on (1) floor(random()) as r, f1 from int4_tbl order by 1,2;
+RESULT:
+	postgres: [(0.0, -2147483647)]
+
+-----------
+QUERY:
+
+
+--
+-- Test the planner/* REPLACED */''s ability to use a LIMIT 1 instead of a Unique node when
+-- all of the distinct_pathkeys have been marked as redundant
+--
+
+-- Ensure we also get a LIMIT plan with DISTINCT ON
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT ON (four) four,two
+   FROM tenk1 WHERE four = 0 ORDER BY 1;
+RESULT:
+	postgres: [('Result',), ('  ->  Limit',), ('        ->  Seq Scan on tenk1',), ('              Filter: (four = 0)',)]
+
+-----------
+QUERY:
+
+
+-- and check the result of the above query is correct
+SELECT DISTINCT ON (four) four,two
+   FROM tenk1 WHERE four = 0 ORDER BY 1;
+RESULT:
+	postgres: [(0, 0)]
+
+-----------
+QUERY:
+
+
+-- Ensure a Sort -> Limit is used when the ORDER BY contains additional cols
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT ON (four) four,two
+   FROM tenk1 WHERE four = 0 ORDER BY 1,2;
+RESULT:
+	postgres: [('Limit',), ('  ->  Sort',), ('        Sort Key: two',), ('        ->  Seq Scan on tenk1',), ('              Filter: (four = 0)',)]
+
+-----------
+QUERY:
+
+
+-- Same again but use a column that is indexed so that we get an index scan
+-- then a limit
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT ON (four) four,hundred
+   FROM tenk1 WHERE four = 0 ORDER BY 1,2;
+RESULT:
+	postgres: [('Result',), ('  ->  Limit',), ('        ->  Index Scan using tenk1_hundred on tenk1',), ('              Filter: (four = 0)',)]

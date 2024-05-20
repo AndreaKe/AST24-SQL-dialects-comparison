@@ -1,0 +1,669 @@
+
+-----------
+QUERY:
+-- \set HIDE_TOAST_COMPRESSION false
+
+-- ensure we get stable results regardless of installation/* REPLACED */''s default
+SET default_toast_compression = 'pglz';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'default_toast_compression'")
+
+-----------
+QUERY:
+
+
+-- test creating table with compression method
+CREATE TABLE cmdata(f1 text COMPRESSION pglz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz)' at line 2")
+
+-----------
+QUERY:
+
+CREATE INDEX idx ON cmdata(f1);
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO cmdata VALUES(repeat('1234567890', 1000));
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+-- \d+ cmdata
+CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION lz4)' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+-- \d+ cmdata1
+
+-- verify stored compression method in the data
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- decompress data slice
+SELECT SUBSTR(f1, 200, 5) FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT SUBSTR(f1, 2000, 50) FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- copy with table creation
+SELECT * INTO cmmove1 FROM cmdata;
+RESULT:
+	ERROR - (1327, 'Undeclared variable: cmmove1')
+
+-----------
+QUERY:
+
+-- \d+ cmmove1
+SELECT pg_column_compression(f1) FROM cmmove1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- copy to existing table
+CREATE TABLE cmmove3(f1 text COMPRESSION pglz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz)' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO cmmove3 SELECT * FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove3' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO cmmove3 SELECT * FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmmove3;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove3' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test LIKE INCLUDING COMPRESSION
+CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INCLUDING COMPRESSION)' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+DROP TABLE cmdata2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.cmdata2'")
+
+-----------
+QUERY:
+
+
+-- try setting compression for incompressible data type
+CREATE TABLE cmdata2 (f1 int COMPRESSION pglz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz)' at line 2")
+
+-----------
+QUERY:
+
+
+-- update using datum from different table
+CREATE TABLE cmmove2(f1 text COMPRESSION pglz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz)' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO cmmove2 VALUES (repeat('1234567890', 1004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmmove2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove2' doesn't exist")
+
+-----------
+QUERY:
+
+UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FROM cmdata1' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmmove2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove2' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test externally stored compressed data
+CREATE OR REPLACE FUNCTION large_val() RETURNS TEXT LANGUAGE SQL AS
+'select array_agg(fipshash(g::text))::text from generate_series(1, 256) g';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION large_val() RETURNS TEXT LANGUAGE SQL AS\n'select array_agg(fipshash(g::' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE cmdata2 (f1 text COMPRESSION pglz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO cmdata2 SELECT large_val() || repeat('a', 4000);
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata2' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000);
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT SUBSTR(f1, 200, 5) FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT SUBSTR(f1, 200, 5) FROM cmdata2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata2' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE cmdata2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.cmdata2'")
+
+-----------
+QUERY:
+
+
+--test column type update varlena/non-varlena
+CREATE TABLE cmdata2 (f1 int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--test column type update varlena/non-varlena\nCREATE TABLE cmdata2 (f1 int)' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE varchar' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE int USING f1::integer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE int USING f1::integer' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+
+--changing column storage should not impact the compression method
+--but the data should not be compressed
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--changing column storage should not impact the compression method\n--but the dat' at line 3")
+
+-----------
+QUERY:
+
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION pglz;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET STORAGE plain;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'STORAGE plain' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+INSERT INTO cmdata2 VALUES (repeat('123456789', 800));
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata2' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test compression with materialized view
+CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ compressmv
+SELECT pg_column_compression(f1) FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(x) FROM compressmv;
+RESULT:
+	ERROR - (1146, "Table 'test.compressmv' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test compression with partition
+CREATE TABLE cmpart(f1 text COMPRESSION lz4) PARTITION BY HASH(f1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION lz4) PARTITION BY HASH(f1)' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE cmpart1 PARTITION OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE cmpart2(f1 text COMPRESSION pglz);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz)' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE cmpart ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO cmpart VALUES (repeat('123456789', 1004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO cmpart VALUES (repeat('123456789', 4004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart2' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test compression with inheritance, error
+CREATE TABLE cminh() INHERITS(cmdata, cmdata1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') INHERITS(cmdata, cmdata1)' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE cminh(f1 TEXT COMPRESSION lz4) INHERITS(cmdata);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION lz4) INHERITS(cmdata)' at line 1")
+
+-----------
+QUERY:
+
+
+-- test default_toast_compression GUC
+SET default_toast_compression = '';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'default_toast_compression'")
+
+-----------
+QUERY:
+
+SET default_toast_compression = 'I do not exist compression';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'default_toast_compression'")
+
+-----------
+QUERY:
+
+SET default_toast_compression = 'lz4';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'default_toast_compression'")
+
+-----------
+QUERY:
+
+SET default_toast_compression = 'pglz';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'default_toast_compression'")
+
+-----------
+QUERY:
+
+
+-- test alter compression method
+ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION lz4' at line 2")
+
+-----------
+QUERY:
+
+INSERT INTO cmdata VALUES (repeat('123456789', 4004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+-- \d+ cmdata
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION default;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION default' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+
+-- test alter compression method for materialized views
+ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4' at line 4")
+
+-----------
+QUERY:
+
+-- \d+ compressmv
+
+-- test alter compression method for partitioned tables
+ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz' at line 4")
+
+-----------
+QUERY:
+
+ALTER TABLE cmpart2 ALTER COLUMN f1 SET COMPRESSION lz4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION lz4' at line 1")
+
+-----------
+QUERY:
+
+
+-- new data should be compressed with the current compression method
+INSERT INTO cmpart VALUES (repeat('123456789', 1004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO cmpart VALUES (repeat('123456789', 4004));
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmpart2' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- VACUUM FULL does not recompress
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+VACUUM FULL cmdata;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM FULL cmdata' at line 1")
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test expression index
+DROP TABLE cmdata2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.cmdata2'")
+
+-----------
+QUERY:
+
+CREATE TABLE cmdata2 (f1 TEXT COMPRESSION pglz, f2 TEXT COMPRESSION lz4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION pglz, f2 TEXT COMPRESSION lz4)' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX idx1 ON cmdata2 ((f1 || f2));
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata2' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO cmdata2 VALUES((SELECT array_agg(fipshash(g::TEXT))::TEXT FROM
+generate_series(1, 50) g), VERSION());
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::TEXT))::TEXT FROM\ngenerate_series(1, 50) g), VERSION())' at line 1")
+
+-----------
+QUERY:
+
+
+-- check data is ok
+SELECT length(f1) FROM cmdata;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT length(f1) FROM cmdata1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmdata1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT length(f1) FROM cmmove1;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT length(f1) FROM cmmove2;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT length(f1) FROM cmmove3;
+RESULT:
+	ERROR - (1146, "Table 'test.cmmove3' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION I_Do_Not_Exist_Compression)' at line 1")
+
+-----------
+QUERY:
+ -- fails
+CREATE TABLE badcompresstbl (a text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMPRESSION I_Do_Not_Exist_Compression' at line 1")
+
+-----------
+QUERY:
+ -- fails
+DROP TABLE badcompresstbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set HIDE_TOAST_COMPRESSION true
+
+RESULT:
+	[]

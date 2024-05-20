@@ -1,0 +1,683 @@
+
+-----------
+QUERY:
+--
+-- CREATE_AGGREGATE
+--
+
+-- all functions CREATEd
+CREATE AGGREGATE newavg (
+   sfunc = int4_avg_accum, basetype = int4, stype = _int8,
+   finalfunc = int8_avg,
+   initcond1 = '{0,0}'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'newavg (\n   sfunc = int4_avg_accum, basetype = int4, stype = _int8,\n   finalfunc' at line 6")
+
+-----------
+QUERY:
+
+
+-- test comments
+COMMENT ON AGGREGATE newavg_wrong (int4) IS 'an agg comment';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON AGGREGATE newavg_wrong (int4) IS 'an agg comment'' at line 2")
+
+-----------
+QUERY:
+
+COMMENT ON AGGREGATE newavg (int4) IS 'an agg comment';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON AGGREGATE newavg (int4) IS 'an agg comment'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON AGGREGATE newavg (int4) IS NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON AGGREGATE newavg (int4) IS NULL' at line 1")
+
+-----------
+QUERY:
+
+
+-- without finalfunc /* REPLACED */, test obsolete spellings /* REPLACED */''sfunc1/* REPLACED */'' etc
+CREATE AGGREGATE newsum (
+   sfunc1 = int4pl, basetype = int4, stype1 = int4,
+   initcond1 = '0'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'newsum (\n   sfunc1 = int4pl, basetype = int4, stype1 = int4,\n   initcond1 = '0'\n' at line 2")
+
+-----------
+QUERY:
+
+
+-- zero-argument aggregate
+CREATE AGGREGATE newcnt (*) (
+   sfunc = int8inc, stype = int8,
+   initcond = '0', parallel = safe
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'newcnt (*) (\n   sfunc = int8inc, stype = int8,\n   initcond = '0', parallel = saf' at line 2")
+
+-----------
+QUERY:
+
+
+-- old-style spelling of same (except without parallel-safe /* REPLACED */, that/* REPLACED */''s too new)
+CREATE AGGREGATE oldcnt (
+   sfunc = int8inc, basetype = 'ANY', stype = int8,
+   initcond = '0'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'oldcnt (\n   sfunc = int8inc, basetype = 'ANY', stype = int8,\n   initcond = '0'\n)' at line 2")
+
+-----------
+QUERY:
+
+
+-- aggregate that only cares about null/nonnull input
+CREATE AGGREGATE newcnt ("any") (
+   sfunc = int8inc_any, stype = int8,
+   initcond = '0'
+);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'newcnt ("any") (\n   sfunc = int8inc_any, stype = int8,\n   initcond = \'0\'\n)\' at line 2')
+
+-----------
+QUERY:
+
+
+COMMENT ON AGGREGATE nosuchagg (*) IS 'should fail';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON AGGREGATE nosuchagg (*) IS 'should fail'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON AGGREGATE newcnt (*) IS 'an agg(*) comment';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON AGGREGATE newcnt (*) IS 'an agg(*) comment'' at line 1")
+
+-----------
+QUERY:
+
+COMMENT ON AGGREGATE newcnt ("any") IS 'an agg(any) comment';
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COMMENT ON AGGREGATE newcnt ("any") IS \'an agg(any) comment\'\' at line 1')
+
+-----------
+QUERY:
+
+
+-- multi-argument aggregate
+create function sum3(int8,int8,int8) returns int8 as
+'select $1 + $2 + $3' language sql strict immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8,int8,int8) returns int8 as\n'select $1 + $2 + $3' language sql strict immuta' at line 2")
+
+-----------
+QUERY:
+
+
+create aggregate sum2(int8,int8) (
+   sfunc = sum3, stype = int8,
+   initcond = '0'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sum2(int8,int8) (\n   sfunc = sum3, stype = int8,\n   initcond = '0'\n)' at line 1")
+
+-----------
+QUERY:
+
+
+-- multi-argument aggregates sensitive to distinct/order, strict/nonstrict
+create type aggtype as (a integer, b integer, c text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type aggtype as (a integer, b integer, c text)' at line 2")
+
+-----------
+QUERY:
+
+
+create function aggf_trans(aggtype[],integer,integer,text) returns aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::aggtype)'
+language sql strict immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[],integer,integer,text) returns aggtype[]\nas 'select array_append($1,ROW($2,$3,' at line 1")
+
+-----------
+QUERY:
+
+
+create function aggfns_trans(aggtype[],integer,integer,text) returns aggtype[]
+as 'select array_append($1,ROW($2,$3,$4)::aggtype)'
+language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[],integer,integer,text) returns aggtype[]\nas 'select array_append($1,ROW($2,$3,' at line 1")
+
+-----------
+QUERY:
+
+
+create aggregate aggfstr(integer,integer,text) (
+   sfunc = aggf_trans, stype = aggtype[],
+   initcond = '{}'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggfstr(integer,integer,text) (\n   sfunc = aggf_trans, stype = aggtype[],\n   ini' at line 1")
+
+-----------
+QUERY:
+
+
+create aggregate aggfns(integer,integer,text) (
+   sfunc = aggfns_trans, stype = aggtype[], sspace = 10000,
+   initcond = '{}'
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggfns(integer,integer,text) (\n   sfunc = aggfns_trans, stype = aggtype[], sspac' at line 1")
+
+-----------
+QUERY:
+
+
+-- check error cases that would require run-time type coercion
+create function least_accum(int8, int8) returns int8 language sql as
+  'select least($1, $2)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8, int8) returns int8 language sql as\n  'select least($1, $2)'' at line 2")
+
+-----------
+QUERY:
+
+
+create aggregate least_agg(int4) (
+  stype = int8, sfunc = least_accum
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'least_agg(int4) (\n  stype = int8, sfunc = least_accum\n)' at line 1")
+
+-----------
+QUERY:
+  -- fails
+
+drop function least_accum(int8, int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8, int8)' at line 3")
+
+-----------
+QUERY:
+
+
+create function least_accum(anycompatible, anycompatible)
+returns anycompatible language sql as
+  'select least($1, $2)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', anycompatible)\nreturns anycompatible language sql as\n  'select least($1, $2)'' at line 1")
+
+-----------
+QUERY:
+
+
+create aggregate least_agg(int4) (
+  stype = int8, sfunc = least_accum
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'least_agg(int4) (\n  stype = int8, sfunc = least_accum\n)' at line 1")
+
+-----------
+QUERY:
+  -- fails
+
+create aggregate least_agg(int8) (
+  stype = int8, sfunc = least_accum
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'least_agg(int8) (\n  stype = int8, sfunc = least_accum\n)' at line 3")
+
+-----------
+QUERY:
+
+
+drop function least_accum(anycompatible, anycompatible) cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(anycompatible, anycompatible) cascade' at line 1")
+
+-----------
+QUERY:
+
+
+-- variadic aggregates
+create function least_accum(anyelement, variadic anyarray)
+returns anyelement language sql as
+  'select least($1, min($2[i])) from generate_subscripts($2,1) g(i)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', variadic anyarray)\nreturns anyelement language sql as\n  'select least($1, min(' at line 2")
+
+-----------
+QUERY:
+
+
+create aggregate least_agg(variadic items anyarray) (
+  stype = anyelement, sfunc = least_accum
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'least_agg(variadic items anyarray) (\n  stype = anyelement, sfunc = least_accum\n)' at line 1")
+
+-----------
+QUERY:
+
+
+create function cleast_accum(anycompatible, variadic anycompatiblearray)
+returns anycompatible language sql as
+  'select least($1, min($2[i])) from generate_subscripts($2,1) g(i)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', variadic anycompatiblearray)\nreturns anycompatible language sql as\n  'select l' at line 1")
+
+-----------
+QUERY:
+
+
+create aggregate cleast_agg(variadic items anycompatiblearray) (
+  stype = anycompatible, sfunc = cleast_accum
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cleast_agg(variadic items anycompatiblearray) (\n  stype = anycompatible, sfunc =' at line 1")
+
+-----------
+QUERY:
+
+
+-- test ordered-set aggs using built-in support functions
+create aggregate my_percentile_disc(float8 ORDER BY anyelement) (
+  stype = internal,
+  sfunc = ordered_set_transition,
+  finalfunc = percentile_disc_final,
+  finalfunc_extra = true,
+  finalfunc_modify = read_write
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'my_percentile_disc(float8 ORDER BY anyelement) (\n  stype = internal,\n  sfunc = o' at line 2")
+
+-----------
+QUERY:
+
+
+create aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any") (
+  stype = internal,
+  sfunc = ordered_set_transition_multi,
+  finalfunc = rank_final,
+  finalfunc_extra = true,
+  hypothetical
+);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'my_rank(VARIADIC "any" ORDER BY VARIADIC "any") (\n  stype = internal,\n  sfunc = \' at line 1')
+
+-----------
+QUERY:
+
+
+alter aggregate my_percentile_disc(float8 ORDER BY anyelement)
+  rename to test_percentile_disc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate my_percentile_disc(float8 ORDER BY anyelement)\n  rename to test_percen' at line 1")
+
+-----------
+QUERY:
+
+alter aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any")
+  rename to test_rank;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any")\n  rename to test_rank\' at line 1')
+
+-----------
+QUERY:
+
+
+-- \da test_*
+
+-- moving-aggregate options
+
+CREATE AGGREGATE sumdouble (float8)
+(
+    stype = float8,
+    sfunc = float8pl,
+    mstype = float8,
+    msfunc = float8pl,
+    minvfunc = float8mi
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sumdouble (float8)\n(\n    stype = float8,\n    sfunc = float8pl,\n    mstype = floa' at line 5")
+
+-----------
+QUERY:
+
+
+-- aggregate combine and serialization functions
+
+-- can/* REPLACED */''t specify just one of serialfunc and deserialfunc
+CREATE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	serialfunc = numeric_avg_serialize
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tserialfunc = n' at line 4")
+
+-----------
+QUERY:
+
+
+-- serialfunc must have correct parameters
+CREATE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	serialfunc = numeric_avg_deserialize,
+	deserialfunc = numeric_avg_deserialize
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tserialfunc = n' at line 2")
+
+-----------
+QUERY:
+
+
+-- deserialfunc must have correct parameters
+CREATE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	serialfunc = numeric_avg_serialize,
+	deserialfunc = numeric_avg_serialize
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tserialfunc = n' at line 2")
+
+-----------
+QUERY:
+
+
+-- ensure combine function parameters are checked
+CREATE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	serialfunc = numeric_avg_serialize,
+	deserialfunc = numeric_avg_deserialize,
+	combinefunc = int4larger
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tserialfunc = n' at line 2")
+
+-----------
+QUERY:
+
+
+-- ensure create aggregate works.
+CREATE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	finalfunc = numeric_avg,
+	serialfunc = numeric_avg_serialize,
+	deserialfunc = numeric_avg_deserialize,
+	combinefunc = numeric_avg_combine,
+	finalfunc_modify = shareable  -- just to test a non-default setting
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tfinalfunc = nu' at line 2")
+
+-----------
+QUERY:
+
+
+-- Ensure all these functions made it into the catalog
+SELECT aggfnoid, aggtransfn, aggcombinefn, aggtranstype::regtype,
+       aggserialfn, aggdeserialfn, aggfinalmodify
+FROM pg_aggregate
+WHERE aggfnoid = 'myavg'::REGPROC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype,\n       aggserialfn, aggdeserialfn, aggfinalmodify\nFROM pg_aggregate\nW' at line 2")
+
+-----------
+QUERY:
+
+
+DROP AGGREGATE myavg (numeric);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE myavg (numeric)' at line 1")
+
+-----------
+QUERY:
+
+
+-- create or replace aggregate
+CREATE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	finalfunc = numeric_avg
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tfinalfunc = nu' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE AGGREGATE myavg (numeric)
+(
+	stype = internal,
+	sfunc = numeric_avg_accum,
+	finalfunc = numeric_avg,
+	serialfunc = numeric_avg_serialize,
+	deserialfunc = numeric_avg_deserialize,
+	combinefunc = numeric_avg_combine,
+	finalfunc_modify = shareable  -- just to test a non-default setting
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE myavg (numeric)\n(\n\tstype = internal,\n\tsfunc = numeric_avg_accum,\n\tfina' at line 1")
+
+-----------
+QUERY:
+
+
+-- Ensure all these functions made it into the catalog again
+SELECT aggfnoid, aggtransfn, aggcombinefn, aggtranstype::regtype,
+       aggserialfn, aggdeserialfn, aggfinalmodify
+FROM pg_aggregate
+WHERE aggfnoid = 'myavg'::REGPROC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype,\n       aggserialfn, aggdeserialfn, aggfinalmodify\nFROM pg_aggregate\nW' at line 2")
+
+-----------
+QUERY:
+
+
+-- can change stype:
+CREATE OR REPLACE AGGREGATE myavg (numeric)
+(
+	stype = numeric,
+	sfunc = numeric_add
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE myavg (numeric)\n(\n\tstype = numeric,\n\tsfunc = numeric_add\n)' at line 2")
+
+-----------
+QUERY:
+
+SELECT aggfnoid, aggtransfn, aggcombinefn, aggtranstype::regtype,
+       aggserialfn, aggdeserialfn, aggfinalmodify
+FROM pg_aggregate
+WHERE aggfnoid = 'myavg'::REGPROC;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regtype,\n       aggserialfn, aggdeserialfn, aggfinalmodify\nFROM pg_aggregate\nW' at line 1")
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t change return type:
+CREATE OR REPLACE AGGREGATE myavg (numeric)
+(
+	stype = numeric,
+	sfunc = numeric_add,
+	finalfunc = numeric_out
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE myavg (numeric)\n(\n\tstype = numeric,\n\tsfunc = numeric_add,\n\tfinalfunc =' at line 2")
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t change to a different kind:
+CREATE OR REPLACE AGGREGATE myavg (order by numeric)
+(
+	stype = numeric,
+	sfunc = numeric_add
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE myavg (order by numeric)\n(\n\tstype = numeric,\n\tsfunc = numeric_add\n)' at line 2")
+
+-----------
+QUERY:
+
+
+-- can/* REPLACED */''t change plain function to aggregate:
+create function sum4(int8,int8,int8,int8) returns int8 as
+'select $1 + $2 + $3 + $4' language sql strict immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8,int8,int8,int8) returns int8 as\n'select $1 + $2 + $3 + $4' language sql str' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE AGGREGATE sum3 (int8,int8,int8)
+(
+	stype = int8,
+	sfunc = sum4
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE sum3 (int8,int8,int8)\n(\n\tstype = int8,\n\tsfunc = sum4\n)' at line 1")
+
+-----------
+QUERY:
+
+
+drop function sum4(int8,int8,int8,int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8,int8,int8,int8)' at line 1")
+
+-----------
+QUERY:
+
+
+DROP AGGREGATE myavg (numeric);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AGGREGATE myavg (numeric)' at line 1")
+
+-----------
+QUERY:
+
+
+-- invalid: bad parallel-safety marking
+CREATE AGGREGATE mysum (int)
+(
+	stype = int,
+	sfunc = int4pl,
+	parallel = pear
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'mysum (int)\n(\n\tstype = int,\n\tsfunc = int4pl,\n\tparallel = pear\n)' at line 2")
+
+-----------
+QUERY:
+
+
+-- invalid: nonstrict inverse with strict forward function
+
+CREATE FUNCTION float8mi_n(float8, float8) RETURNS float8 AS
+$$ SELECT $1 - $2; $$
+LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'float8, float8) RETURNS float8 AS\n$$ SELECT $1 - $2; $$\nLANGUAGE SQL' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE AGGREGATE invalidsumdouble (float8)
+(
+    stype = float8,
+    sfunc = float8pl,
+    mstype = float8,
+    msfunc = float8pl,
+    minvfunc = float8mi_n
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'invalidsumdouble (float8)\n(\n    stype = float8,\n    sfunc = float8pl,\n    mstype' at line 1")
+
+-----------
+QUERY:
+
+
+-- invalid: non-matching result types
+
+CREATE FUNCTION float8mi_int(float8, float8) RETURNS int AS
+$$ SELECT CAST($1 - $2 AS INT); $$
+LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'float8, float8) RETURNS int AS\n$$ SELECT CAST($1 - $2 AS INT); $$\nLANGUAGE SQL' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE AGGREGATE wrongreturntype (float8)
+(
+    stype = float8,
+    sfunc = float8pl,
+    mstype = float8,
+    msfunc = float8pl,
+    minvfunc = float8mi_int
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'wrongreturntype (float8)\n(\n    stype = float8,\n    sfunc = float8pl,\n    mstype ' at line 1")
+
+-----------
+QUERY:
+
+
+-- invalid: non-lowercase quoted identifiers
+
+CREATE AGGREGATE case_agg ( -- old syntax
+	"Sfunc1" = int4pl,
+	"Basetype" = int4,
+	"Stype1" = int4,
+	"Initcond1" = '0',
+	"Parallel" = safe
+);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'case_agg ( -- old syntax\n\t"Sfunc1" = int4pl,\n\t"Basetype" = int4,\n\t"Stype1" = int\' at line 3')
+
+-----------
+QUERY:
+
+
+CREATE AGGREGATE case_agg(float8)
+(
+	"Stype" = internal,
+	"Sfunc" = ordered_set_transition,
+	"Finalfunc" = percentile_disc_final,
+	"Finalfunc_extra" = true,
+	"Finalfunc_modify" = read_write,
+	"Parallel" = safe
+);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'case_agg(float8)\n(\n\t"Stype" = internal,\n\t"Sfunc" = ordered_set_transition,\n\t"Fin\' at line 1')

@@ -1,0 +1,3794 @@
+
+-----------
+QUERY:
+--
+-- INTERVAL
+--
+
+SET DATESTYLE = 'ISO';
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "DATESTYLE"
+
+Did you mean: "user"
+
+-----------
+QUERY:
+
+SET IntervalStyle to postgres;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+
+-- check acceptance of /* REPLACED */''time zone style/* REPLACED */''
+SELECT INTERVAL '01:00' AS "One hour";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '01:00' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '+02:00' AS "Two hours";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '+02:00' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '-08:00' AS "Eight hours";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-08:00' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '-1 +02:03' AS "22 hours ago...";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-1 +02:03' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '-1 days +02:03' AS "22 hours ago...";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-1 days +02:03' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '1.5 weeks' AS "Ten days twelve hours";
+RESULT:
+	[(datetime.timedelta(days=10, seconds=43200),)]
+
+-----------
+QUERY:
+
+SELECT INTERVAL '1.5 months' AS "One month 15 days";
+RESULT:
+	[(datetime.timedelta(days=45),)]
+
+-----------
+QUERY:
+
+SELECT INTERVAL '10 years -11 month -12 days +13:14' AS "9 years...";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '10 years -11 month -12 days +13:14' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'infinity' AS "eternity";
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '-infinity' AS "beginning of time";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+
+CREATE TABLE INTERVAL_TBL (f1 interval);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 1 minute');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 5 hour');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 10 day');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 34 year');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 3 months');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 14 seconds ago');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('1 day 2 hours 3 minutes 4 seconds');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('6 years');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('5 months');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('5 months 12 hours');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('infinity');
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+LINE 2: INSERT INTO INTERVAL_TBL (f1) VALUES ('infinity');
+                                              ^
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('-infinity');
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+LINE 2: INSERT INTO INTERVAL_TBL (f1) VALUES ('-infinity');
+                                              ^
+
+-----------
+QUERY:
+
+
+-- badly formatted interval
+INSERT INTO INTERVAL_TBL (f1) VALUES ('badly formatted interval');
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'badly formatted interval' to INTERVAL
+LINE 4: INSERT INTO INTERVAL_TBL (f1) VALUES ('badly formatted interval');
+                                              ^
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 30 eons ago');
+RESULT:
+	ERROR - Conversion Error: extract specifier "eons" not recognized
+
+-----------
+QUERY:
+
+
+-- Test non-error-throwing API
+SELECT pg_input_is_valid('1.5 weeks', 'interval');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('garbage', 'interval');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('@ 30 eons ago', 'interval');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('garbage', 'interval');
+RESULT:
+	ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('@ 30 eons ago', 'interval');
+RESULT:
+	ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
+
+
+-- test interval operators
+
+SELECT * FROM INTERVAL_TBL;
+RESULT:
+	[(datetime.timedelta(seconds=60),), (datetime.timedelta(seconds=18000),), (datetime.timedelta(days=10),), (datetime.timedelta(days=12240),), (datetime.timedelta(days=90),), (datetime.timedelta(days=-1, seconds=86386),), (datetime.timedelta(days=1, seconds=7384),), (datetime.timedelta(days=2160),), (datetime.timedelta(days=150),), (datetime.timedelta(days=150, seconds=43200),)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL
+   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days';
+RESULT:
+	[(datetime.timedelta(seconds=60),), (datetime.timedelta(seconds=18000),), (datetime.timedelta(days=12240),), (datetime.timedelta(days=90),), (datetime.timedelta(days=-1, seconds=86386),), (datetime.timedelta(days=1, seconds=7384),), (datetime.timedelta(days=2160),), (datetime.timedelta(days=150),), (datetime.timedelta(days=150, seconds=43200),)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL
+   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours';
+RESULT:
+	[(datetime.timedelta(seconds=60),), (datetime.timedelta(seconds=18000),), (datetime.timedelta(days=-1, seconds=86386),)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL
+   WHERE INTERVAL_TBL.f1 < interval '@ 1 day';
+RESULT:
+	[(datetime.timedelta(seconds=60),), (datetime.timedelta(seconds=18000),), (datetime.timedelta(days=-1, seconds=86386),)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL
+   WHERE INTERVAL_TBL.f1 = interval '@ 34 years';
+RESULT:
+	[(datetime.timedelta(days=12240),)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL
+   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month';
+RESULT:
+	[(datetime.timedelta(days=12240),), (datetime.timedelta(days=90),), (datetime.timedelta(days=2160),), (datetime.timedelta(days=150),), (datetime.timedelta(days=150, seconds=43200),)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL
+   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago';
+RESULT:
+	[(datetime.timedelta(seconds=60),), (datetime.timedelta(seconds=18000),), (datetime.timedelta(days=10),), (datetime.timedelta(days=12240),), (datetime.timedelta(days=90),), (datetime.timedelta(days=1, seconds=7384),), (datetime.timedelta(days=2160),), (datetime.timedelta(days=150),), (datetime.timedelta(days=150, seconds=43200),)]
+
+-----------
+QUERY:
+
+
+SELECT r1.*, r2.*
+   FROM INTERVAL_TBL r1, INTERVAL_TBL r2
+   WHERE r1.f1 > r2.f1
+   ORDER BY r1.f1, r2.f1;
+RESULT:
+	[(datetime.timedelta(seconds=60), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(seconds=18000), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(seconds=18000), datetime.timedelta(seconds=60)), (datetime.timedelta(days=1, seconds=7384), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=1, seconds=7384), datetime.timedelta(seconds=60)), (datetime.timedelta(days=1, seconds=7384), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=10), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=10), datetime.timedelta(seconds=60)), (datetime.timedelta(days=10), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=10), datetime.timedelta(days=1, seconds=7384)), (datetime.timedelta(days=90), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=90), datetime.timedelta(seconds=60)), (datetime.timedelta(days=90), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=90), datetime.timedelta(days=1, seconds=7384)), (datetime.timedelta(days=90), datetime.timedelta(days=10)), (datetime.timedelta(days=150), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=150), datetime.timedelta(seconds=60)), (datetime.timedelta(days=150), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=150), datetime.timedelta(days=1, seconds=7384)), (datetime.timedelta(days=150), datetime.timedelta(days=10)), (datetime.timedelta(days=150), datetime.timedelta(days=90)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(seconds=60)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=1, seconds=7384)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=10)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=90)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=150)), (datetime.timedelta(days=2160), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=2160), datetime.timedelta(seconds=60)), (datetime.timedelta(days=2160), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=2160), datetime.timedelta(days=1, seconds=7384)), (datetime.timedelta(days=2160), datetime.timedelta(days=10)), (datetime.timedelta(days=2160), datetime.timedelta(days=90)), (datetime.timedelta(days=2160), datetime.timedelta(days=150)), (datetime.timedelta(days=2160), datetime.timedelta(days=150, seconds=43200)), (datetime.timedelta(days=12240), datetime.timedelta(days=-1, seconds=86386)), (datetime.timedelta(days=12240), datetime.timedelta(seconds=60)), (datetime.timedelta(days=12240), datetime.timedelta(seconds=18000)), (datetime.timedelta(days=12240), datetime.timedelta(days=1, seconds=7384)), (datetime.timedelta(days=12240), datetime.timedelta(days=10)), (datetime.timedelta(days=12240), datetime.timedelta(days=90)), (datetime.timedelta(days=12240), datetime.timedelta(days=150)), (datetime.timedelta(days=12240), datetime.timedelta(days=150, seconds=43200)), (datetime.timedelta(days=12240), datetime.timedelta(days=2160))]
+
+-----------
+QUERY:
+
+
+-- test unary minus
+
+SELECT f1, -f1 FROM INTERVAL_TBL;
+RESULT:
+	[(datetime.timedelta(seconds=60), datetime.timedelta(days=-1, seconds=86340)), (datetime.timedelta(seconds=18000), datetime.timedelta(days=-1, seconds=68400)), (datetime.timedelta(days=10), datetime.timedelta(days=-10)), (datetime.timedelta(days=12240), datetime.timedelta(days=-12240)), (datetime.timedelta(days=90), datetime.timedelta(days=-90)), (datetime.timedelta(days=-1, seconds=86386), datetime.timedelta(seconds=14)), (datetime.timedelta(days=1, seconds=7384), datetime.timedelta(days=-2, seconds=79016)), (datetime.timedelta(days=2160), datetime.timedelta(days=-2160)), (datetime.timedelta(days=150), datetime.timedelta(days=-150)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=-151, seconds=43200))]
+
+-----------
+QUERY:
+
+SELECT -('-2147483648 months'::interval);
+RESULT:
+	ERROR - Out of Range Error: Overflow in negation of integer!
+
+-----------
+QUERY:
+ -- should fail
+SELECT -('-2147483647 months'::interval);
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+ -- ok
+SELECT -('-2147483648 days'::interval);
+RESULT:
+	ERROR - Out of Range Error: Overflow in negation of integer!
+
+-----------
+QUERY:
+ -- should fail
+SELECT -('-2147483647 days'::interval);
+RESULT:
+	ERROR - days=2147483647; must have magnitude <= 999999999
+
+-----------
+QUERY:
+ -- ok
+SELECT -('-9223372036854775808 us'::interval);
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+ -- should fail
+SELECT -('-9223372036854775807 us'::interval);
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775807),)]
+
+-----------
+QUERY:
+ -- ok
+SELECT -('-2147483647 months -2147483647 days -9223372036854775807 us'::interval);
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+ -- should fail
+
+-- Test intervals that are large enough to overflow 64 bits in comparisons
+CREATE TEMP TABLE INTERVAL_TBL_OF (f1 interval);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL_OF (f1) VALUES
+  ('2147483647 days 2147483647 months'),
+  ('2147483647 days -2147483648 months'),
+  ('1 year'),
+  ('-2147483648 days 2147483647 months'),
+  ('-2147483648 days -2147483648 months');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- these should fail as out-of-range
+INSERT INTO INTERVAL_TBL_OF (f1) VALUES ('2147483648 days');
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 2147483648 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL_OF (f1) VALUES ('-2147483649 days');
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -2147483649 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL_OF (f1) VALUES ('2147483647 years');
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+INSERT INTO INTERVAL_TBL_OF (f1) VALUES ('-2147483648 years');
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+
+-- Test edge-case overflow detection in interval multiplication
+select extract(epoch from '256 microseconds'::interval * (2^55)::float8);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, DOUBLE)'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+
+SELECT r1.*, r2.*
+   FROM INTERVAL_TBL_OF r1, INTERVAL_TBL_OF r2
+   WHERE r1.f1 > r2.f1
+   ORDER BY r1.f1, r2.f1;
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+
+CREATE INDEX ON INTERVAL_TBL_OF USING btree (f1);
+RESULT:
+	ERROR - Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
+
+SET enable_seqscan TO false;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF)
+SELECT f1 FROM INTERVAL_TBL_OF r1 ORDER BY f1;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+
+SELECT f1 FROM INTERVAL_TBL_OF r1 ORDER BY f1;
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
+
+-- subtracting about-to-overflow values should result in 0
+SELECT f1 - f1 FROM INTERVAL_TBL_OF;
+RESULT:
+	[(datetime.timedelta(0),), (datetime.timedelta(0),), (datetime.timedelta(0),), (datetime.timedelta(0),), (datetime.timedelta(0),)]
+
+-----------
+QUERY:
+
+
+DROP TABLE INTERVAL_TBL_OF;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test multiplication and division with intervals.
+-- Floating point arithmetic rounding errors can lead to unexpected results,
+-- though the code attempts to do the right thing and round up to days and
+-- minutes to avoid results such as /* REPLACED */''3 days 24:00 hours/* REPLACED */'' or /* REPLACED */''14:20:60/* REPLACED */''.
+-- Note that it is expected for some day components to be greater than 29 and
+-- some time components be greater than 23:59:59 due to how intervals are
+-- stored internally.
+
+CREATE TABLE INTERVAL_MULDIV_TBL (span interval);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY INTERVAL_MULDIV_TBL FROM STDIN;
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+41 mon 12 days 360:00
+-41 mon -12 days +360:00
+-12 days
+9 mon -27 days 12:34:56
+-3 years 482 days 76:54:32.189
+4 mon
+14 mon
+999 mon 999 days
+\.
+
+SELECT span * 0.3 AS product
+FROM INTERVAL_MULDIV_TBL;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "41"
+
+-----------
+QUERY:
+
+
+SELECT span * 8.2 AS product
+FROM INTERVAL_MULDIV_TBL;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, DECIMAL(2,1))'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+
+SELECT span / 10 AS quotient
+FROM INTERVAL_MULDIV_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT span / 100 AS quotient
+FROM INTERVAL_MULDIV_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE INTERVAL_MULDIV_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SET DATESTYLE = 'postgres';
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "DATESTYLE"
+
+Did you mean: "user"
+
+-----------
+QUERY:
+
+SET IntervalStyle to postgres_verbose;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+
+SELECT * FROM INTERVAL_TBL;
+RESULT:
+	[(datetime.timedelta(seconds=60),), (datetime.timedelta(seconds=18000),), (datetime.timedelta(days=10),), (datetime.timedelta(days=12240),), (datetime.timedelta(days=90),), (datetime.timedelta(days=-1, seconds=86386),), (datetime.timedelta(days=1, seconds=7384),), (datetime.timedelta(days=2160),), (datetime.timedelta(days=150),), (datetime.timedelta(days=150, seconds=43200),)]
+
+-----------
+QUERY:
+
+
+-- multiplication and division overflow test cases
+SELECT '3000000 months'::interval * 1000;
+RESULT:
+	ERROR - Out of Range Error: Overflow in multiplication of INT32 (3000000 * 1000)!
+
+-----------
+QUERY:
+
+SELECT '3000000 months'::interval / 0.001;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '/(INTERVAL, DECIMAL(4,3))'. You might need to add explicit type casts.
+	Candidate functions:
+	/(FLOAT, FLOAT) -> FLOAT
+	/(DOUBLE, DOUBLE) -> DOUBLE
+	/(INTERVAL, BIGINT) -> INTERVAL
+
+
+-----------
+QUERY:
+
+SELECT '3000000 days'::interval * 1000;
+RESULT:
+	ERROR - Out of Range Error: Overflow in multiplication of INT32 (3000000 * 1000)!
+
+-----------
+QUERY:
+
+SELECT '3000000 days'::interval / 0.001;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '/(INTERVAL, DECIMAL(4,3))'. You might need to add explicit type casts.
+	Candidate functions:
+	/(FLOAT, FLOAT) -> FLOAT
+	/(DOUBLE, DOUBLE) -> DOUBLE
+	/(INTERVAL, BIGINT) -> INTERVAL
+
+
+-----------
+QUERY:
+
+SELECT '1 month 2146410 days'::interval * 1000.5002;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, DECIMAL(8,4))'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+SELECT '4611686018427387904 usec'::interval / 0.1;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '/(INTERVAL, DECIMAL(2,1))'. You might need to add explicit type casts.
+	Candidate functions:
+	/(FLOAT, FLOAT) -> FLOAT
+	/(DOUBLE, DOUBLE) -> DOUBLE
+	/(INTERVAL, BIGINT) -> INTERVAL
+
+
+-----------
+QUERY:
+
+
+-- test avg(interval), which is somewhat fragile since people have been
+-- known to change the allowed input syntax for type interval without
+-- updating pg_aggregate.agginitval
+
+select avg(f1) from interval_tbl where isfinite(f1);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'isfinite(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	isfinite(FLOAT) -> BOOLEAN
+	isfinite(DOUBLE) -> BOOLEAN
+	isfinite(DATE) -> BOOLEAN
+	isfinite(TIMESTAMP) -> BOOLEAN
+	isfinite(TIMESTAMP WITH TIME ZONE) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+-- test long interval input
+select '4 millenniums 5 centuries 4 decades 1 year 4 months 4 days 17 minutes 31 seconds'::interval;
+RESULT:
+	[(datetime.timedelta(days=1634884, seconds=1051),)]
+
+-----------
+QUERY:
+
+
+-- test long interval output
+-- Note: the actual maximum length of the interval output is longer,
+-- but we need the test to work for both integer and floating-point
+-- timestamps.
+select '100000000y 10mon -1000000000d -100000h -10min -10.000001s ago'::interval;
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+
+-- test justify_hours() and justify_days()
+
+SELECT justify_hours(interval '6 months 3 days 52 hours 3 minutes 2 seconds') as "6 mons 5 days 4 hours 3 mins 2 seconds";
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_hours does not exist!
+Did you mean "to_hours"?
+
+-----------
+QUERY:
+
+SELECT justify_days(interval '6 months 36 days 5 hours 4 minutes 3 seconds') as "7 mons 6 days 5 hours 4 mins 3 seconds";
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_days does not exist!
+Did you mean "to_days"?
+
+-----------
+QUERY:
+
+
+SELECT justify_hours(interval '2147483647 days 24 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_hours does not exist!
+Did you mean "to_hours"?
+
+-----------
+QUERY:
+
+SELECT justify_days(interval '2147483647 months 30 days');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_days does not exist!
+Did you mean "to_days"?
+
+-----------
+QUERY:
+
+
+-- test justify_interval()
+
+SELECT justify_interval(interval '1 month -1 hour') as "1 month -1 hour";
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+
+SELECT justify_interval(interval '2147483647 days 24 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '-2147483648 days -24 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '2147483647 months 30 days');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '-2147483648 months -30 days');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '2147483647 months 30 days -24 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '-2147483648 months -30 days 24 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '2147483647 months -30 days 1440 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+SELECT justify_interval(interval '-2147483648 months 30 days -1440 hrs');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name justify_interval does not exist!
+Did you mean "filter"?
+
+-----------
+QUERY:
+
+
+-- test fractional second input, and detection of duplicate units
+SET DATESTYLE = 'ISO';
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "DATESTYLE"
+
+Did you mean: "user"
+
+-----------
+QUERY:
+
+SET IntervalStyle TO postgres;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+
+SELECT '1 millisecond'::interval, '1 microsecond'::interval,
+       '500 seconds 99 milliseconds 51 microseconds'::interval;
+RESULT:
+	[(datetime.timedelta(microseconds=1000), datetime.timedelta(microseconds=1), datetime.timedelta(seconds=500, microseconds=99051))]
+
+-----------
+QUERY:
+
+SELECT '3 days 5 milliseconds'::interval;
+RESULT:
+	[(datetime.timedelta(days=3, microseconds=5000),)]
+
+-----------
+QUERY:
+
+
+SELECT '1 second 2 seconds'::interval;
+RESULT:
+	[(datetime.timedelta(seconds=3),)]
+
+-----------
+QUERY:
+              -- error
+SELECT '10 milliseconds 20 milliseconds'::interval;
+RESULT:
+	[(datetime.timedelta(microseconds=30000),)]
+
+-----------
+QUERY:
+ -- error
+SELECT '5.5 seconds 3 milliseconds'::interval;
+RESULT:
+	[(datetime.timedelta(seconds=5, microseconds=503000),)]
+
+-----------
+QUERY:
+      -- error
+SELECT '1:20:05 5 microseconds'::interval;
+RESULT:
+	[(datetime.timedelta(seconds=4805),)]
+
+-----------
+QUERY:
+          -- error
+SELECT '1 day 1 day'::interval;
+RESULT:
+	[(datetime.timedelta(days=2),)]
+
+-----------
+QUERY:
+                     -- error
+SELECT interval '1-2';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '1-2' to INTERVAL
+
+-----------
+QUERY:
+  -- SQL year-month literal
+SELECT interval '999' second;
+RESULT:
+	[(datetime.timedelta(seconds=999),)]
+
+-----------
+QUERY:
+  -- oversize leading field is ok
+SELECT interval '999' minute;
+RESULT:
+	[(datetime.timedelta(seconds=59940),)]
+
+-----------
+QUERY:
+
+SELECT interval '999' hour;
+RESULT:
+	[(datetime.timedelta(days=41, seconds=54000),)]
+
+-----------
+QUERY:
+
+SELECT interval '999' day;
+RESULT:
+	[(datetime.timedelta(days=999),)]
+
+-----------
+QUERY:
+
+SELECT interval '999' month;
+RESULT:
+	[(datetime.timedelta(days=29970),)]
+
+-----------
+QUERY:
+
+
+-- test SQL-spec syntaxes for restricted field sets
+SELECT interval '1' year;
+RESULT:
+	[(datetime.timedelta(days=360),)]
+
+-----------
+QUERY:
+
+SELECT interval '2' month;
+RESULT:
+	[(datetime.timedelta(days=60),)]
+
+-----------
+QUERY:
+
+SELECT interval '3' day;
+RESULT:
+	[(datetime.timedelta(days=3),)]
+
+-----------
+QUERY:
+
+SELECT interval '4' hour;
+RESULT:
+	[(datetime.timedelta(seconds=14400),)]
+
+-----------
+QUERY:
+
+SELECT interval '5' minute;
+RESULT:
+	[(datetime.timedelta(seconds=300),)]
+
+-----------
+QUERY:
+
+SELECT interval '6' second;
+RESULT:
+	[(datetime.timedelta(seconds=6),)]
+
+-----------
+QUERY:
+
+SELECT interval '1' year to month;
+RESULT:
+	ERROR - Parser Error: YEAR TO MONTH is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1-2' year to month;
+RESULT:
+	ERROR - Parser Error: YEAR TO MONTH is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2' day to hour;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' day to hour;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04' day to hour;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2' day to minute;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' day to minute;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04' day to minute;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2' day to second;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' day to second;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04' day to second;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2' hour to minute;
+RESULT:
+	ERROR - Parser Error: HOUR TO MINUTE is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' hour to minute;
+RESULT:
+	ERROR - Parser Error: HOUR TO MINUTE is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04' hour to minute;
+RESULT:
+	ERROR - Parser Error: HOUR TO MINUTE is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2' hour to second;
+RESULT:
+	ERROR - Parser Error: HOUR TO MINUTE is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' hour to second;
+RESULT:
+	ERROR - Parser Error: HOUR TO MINUTE is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04' hour to second;
+RESULT:
+	ERROR - Parser Error: HOUR TO MINUTE is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 +2:03' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 +2:03:04' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 -2:03' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '1 -2:03:04' minute to second;
+RESULT:
+	ERROR - Parser Error: MINUTE TO SECOND is not supported
+
+-----------
+QUERY:
+
+SELECT interval '123 11' day to hour;
+RESULT:
+	ERROR - Parser Error: DAY TO HOUR is not supported
+
+-----------
+QUERY:
+ -- ok
+SELECT interval '123 11' day;
+RESULT:
+	ERROR - Conversion Error: Could not convert string '123 11' to DOUBLE
+
+-----------
+QUERY:
+ -- not ok
+SELECT interval '123 11';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '123 11' to INTERVAL
+
+-----------
+QUERY:
+ -- not ok, too ambiguous
+SELECT interval '123 2:03 -2:04';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '123 2:03 -2:04' to INTERVAL
+
+-----------
+QUERY:
+ -- not ok, redundant hh:mm fields
+
+-- test syntaxes for restricted precision
+SELECT interval(0) '1 day 01:23:45.6789';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'1 day 01:23:45.6789'"
+
+-----------
+QUERY:
+
+SELECT interval(2) '1 day 01:23:45.6789';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "'1 day 01:23:45.6789'"
+
+-----------
+QUERY:
+
+SELECT interval '12:34.5678' minute to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+  -- per SQL spec
+SELECT interval '1.234' second;
+RESULT:
+	[(datetime.timedelta(seconds=1, microseconds=234000),)]
+
+-----------
+QUERY:
+
+SELECT interval '1.234' second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2.345' day to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03' day to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03.4567' day to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04.5678' day to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2.345' hour to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03.45678' hour to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04.5678' hour to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2.3456' minute to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03.5678' minute to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '1 2:03:04.5678' minute to second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+SELECT interval '2562047788:00:54.775807' second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+  -- out of range
+SELECT interval '-2562047788:00:54.775807' second(2);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+  -- out of range
+
+-- test casting to restricted precision (bug #14479)
+SELECT f1, f1::INTERVAL DAY TO MINUTE AS "minutes",
+  (f1 + INTERVAL '1 month')::INTERVAL MONTH::INTERVAL YEAR AS "years"
+  FROM interval_tbl;
+RESULT:
+	[(datetime.timedelta(seconds=60), datetime.timedelta(seconds=60), datetime.timedelta(days=30, seconds=60)), (datetime.timedelta(seconds=18000), datetime.timedelta(seconds=18000), datetime.timedelta(days=30, seconds=18000)), (datetime.timedelta(days=10), datetime.timedelta(days=10), datetime.timedelta(days=40)), (datetime.timedelta(days=12240), datetime.timedelta(days=12240), datetime.timedelta(days=12270)), (datetime.timedelta(days=90), datetime.timedelta(days=90), datetime.timedelta(days=120)), (datetime.timedelta(days=-1, seconds=86386), datetime.timedelta(days=-1, seconds=86386), datetime.timedelta(days=29, seconds=86386)), (datetime.timedelta(days=1, seconds=7384), datetime.timedelta(days=1, seconds=7384), datetime.timedelta(days=31, seconds=7384)), (datetime.timedelta(days=2160), datetime.timedelta(days=2160), datetime.timedelta(days=2190)), (datetime.timedelta(days=150), datetime.timedelta(days=150), datetime.timedelta(days=180)), (datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=150, seconds=43200), datetime.timedelta(days=180, seconds=43200))]
+
+-----------
+QUERY:
+
+
+-- test inputting and outputting SQL standard interval literals
+SET IntervalStyle TO sql_standard;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+SELECT  interval '0'                       AS "zero",
+        interval '1-2' year to month       AS "year-month",
+        interval '1 2:03:04' day to second AS "day-time",
+        - interval '1-2'                   AS "negative year-month",
+        - interval '1 2:03:04'             AS "negative day-time";
+RESULT:
+	ERROR - Parser Error: YEAR TO MONTH is not supported
+
+-----------
+QUERY:
+
+
+-- test input of some not-quite-standard interval values in the sql style
+SET IntervalStyle TO postgres;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+SELECT  interval '+1 -1:00:00',
+        interval '-1 +1:00:00',
+        interval '+1-2 -3 +4:05:06.789',
+        interval '-1-2 +3 -4:05:06.789';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '+1 -1:00:00' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- cases that trigger sign-matching rules in the sql style
+SELECT  interval '-23 hours 45 min 12.34 sec',
+        interval '-1 day 23 hours 45 min 12.34 sec',
+        interval '-1 year 2 months 1 day 23 hours 45 min 12.34 sec',
+        interval '-1 year 2 months 1 day 23 hours 45 min +12.34 sec';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-1 year 2 months 1 day 23 hours 45 min +12.34 sec' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- test output of couple non-standard interval values in the sql style
+SET IntervalStyle TO sql_standard;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+SELECT  interval '1 day -1 hours',
+        interval '-1 days +1 hours',
+        interval '1 years 2 months -3 days 4 hours 5 minutes 6.789 seconds',
+        - interval '1 years 2 months -3 days 4 hours 5 minutes 6.789 seconds';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-1 days +1 hours' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- cases that trigger sign-matching rules in the sql style
+SELECT  interval '-23 hours 45 min 12.34 sec',
+        interval '-1 day 23 hours 45 min 12.34 sec',
+        interval '-1 year 2 months 1 day 23 hours 45 min 12.34 sec',
+        interval '-1 year 2 months 1 day 23 hours 45 min +12.34 sec';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-1 year 2 months 1 day 23 hours 45 min +12.34 sec' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- edge case for sign-matching rules
+SELECT  interval '';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '' to INTERVAL
+
+-----------
+QUERY:
+  -- error
+
+-- test outputting iso8601 intervals
+SET IntervalStyle to iso_8601;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select  interval '0'                                AS "zero",
+        interval '1-2'                              AS "a year 2 months",
+        interval '1 2:03:04'                        AS "a bit over a day",
+        interval '2:03:04.45679'                    AS "a bit over 2 hours",
+        (interval '1-2' + interval '3 4:05:06.7')   AS "all fields",
+        (interval '1-2' - interval '3 4:05:06.7')   AS "mixed sign",
+        (- interval '1-2' + interval '3 4:05:06.7') AS "negative";
+RESULT:
+	ERROR - Conversion Error: Could not convert string '1-2' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- test inputting ISO 8601 4.4.2.1 /* REPLACED */''Format With Time Unit Designators/* REPLACED */''
+SET IntervalStyle to sql_standard;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select  interval 'P0Y'                    AS "zero",
+        interval 'P1Y2M'                  AS "a year 2 months",
+        interval 'P1W'                    AS "a week",
+        interval 'P1DT2H3M4S'             AS "a bit over a day",
+        interval 'P1Y2M3DT4H5M6.7S'       AS "all fields",
+        interval 'P-1Y-2M-3DT-4H-5M-6.7S' AS "negative",
+        interval 'PT-0.1S'                AS "fractional second";
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0Y' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- test inputting ISO 8601 4.4.2.2 /* REPLACED */''Alternative Format/* REPLACED */''
+SET IntervalStyle to postgres;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select  interval 'P00021015T103020'       AS "ISO8601 Basic Format",
+        interval 'P0002-10-15T10:30:20'   AS "ISO8601 Extended Format";
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P00021015T103020' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- Make sure optional ISO8601 alternative format fields are optional.
+select  interval 'P0002'                  AS "year only",
+        interval 'P0002-10'               AS "year month",
+        interval 'P0002-10-15'            AS "year month day",
+        interval 'P0002T1S'               AS "year only plus time",
+        interval 'P0002-10T1S'            AS "year month plus time",
+        interval 'P0002-10-15T1S'         AS "year month day plus time",
+        interval 'PT10'                   AS "hour only",
+        interval 'PT10:30'                AS "hour minute";
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0002' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- Check handling of fractional fields in ISO8601 format.
+select interval 'P1Y0M3DT4H5M6S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P1Y0M3DT4H5M6S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P1.0Y0M3DT4H5M6S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P1.0Y0M3DT4H5M6S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P1.1Y0M3DT4H5M6S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P1.1Y0M3DT4H5M6S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P1.Y0M3DT4H5M6S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P1.Y0M3DT4H5M6S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P.1Y0M3DT4H5M6S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P.1Y0M3DT4H5M6S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P10.5e4Y';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P10.5e4Y' to INTERVAL
+
+-----------
+QUERY:
+  -- not per spec, but we/* REPLACED */''ve historically taken it
+select interval 'P.Y0M3DT4H5M6S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P.Y0M3DT4H5M6S' to INTERVAL
+
+-----------
+QUERY:
+  -- error
+
+-- test a couple rounding cases that changed since 8.3 w/ HAVE_INT64_TIMESTAMP.
+SET IntervalStyle to postgres_verbose;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select interval '-10 mons -3 days +03:55:06.70';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-10 mons -3 days +03:55:06.70' to INTERVAL
+
+-----------
+QUERY:
+
+select interval '1 year 2 mons 3 days 04:05:06.699999';
+RESULT:
+	[(datetime.timedelta(days=423, seconds=14706, microseconds=699999),)]
+
+-----------
+QUERY:
+
+select interval '0:0:0.7', interval '@ 0.70 secs', interval '0.7 seconds';
+RESULT:
+	[(datetime.timedelta(microseconds=700000), datetime.timedelta(microseconds=700000), datetime.timedelta(microseconds=700000))]
+
+-----------
+QUERY:
+
+
+-- test time fields using entire 64 bit microseconds range
+select interval '2562047788.01521550194 hours';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=774000),)]
+
+-----------
+QUERY:
+
+select interval '-2562047788.01521550222 hours';
+RESULT:
+	[(datetime.timedelta(days=-106751992, seconds=71945, microseconds=226000),)]
+
+-----------
+QUERY:
+
+select interval '153722867280.912930117 minutes';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775800),)]
+
+-----------
+QUERY:
+
+select interval '-153722867280.912930133 minutes';
+RESULT:
+	[(datetime.timedelta(days=-106751992, seconds=71945, microseconds=224200),)]
+
+-----------
+QUERY:
+
+select interval '9223372036854.775807 seconds';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775807),)]
+
+-----------
+QUERY:
+
+select interval '-9223372036854.775808 seconds';
+RESULT:
+	[(datetime.timedelta(days=-106751992, seconds=71945, microseconds=224192),)]
+
+-----------
+QUERY:
+
+select interval '9223372036854775.807 milliseconds';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775807),)]
+
+-----------
+QUERY:
+
+select interval '-9223372036854775.808 milliseconds';
+RESULT:
+	[(datetime.timedelta(days=-106751992, seconds=71945, microseconds=224192),)]
+
+-----------
+QUERY:
+
+select interval '9223372036854775807 microseconds';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775807),)]
+
+-----------
+QUERY:
+
+select interval '-9223372036854775808 microseconds';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+
+select interval 'PT2562047788H54.775807S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788H54.775807S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT-2562047788H-54.775808S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT-2562047788H-54.775808S' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'PT2562047788:00:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788:00:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'PT2562047788.0152155019444';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788.0152155019444' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT-2562047788.0152155022222';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT-2562047788.0152155022222' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- overflow each date/time field
+select interval '2147483648 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483649 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803788 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483648 months';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 2147483648 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483649 months';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -2147483649 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483648 days';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 2147483648 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483649 days';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -2147483649 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2562047789 hours';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-2562047789 hours';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '153722867281 minutes';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-153722867281 minutes';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '9223372036855 seconds';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-9223372036855 seconds';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '9223372036854777 millisecond';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-9223372036854777 millisecond';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '9223372036854775808 microsecond';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+select interval '-9223372036854775809 microsecond';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775809' to INT64
+
+-----------
+QUERY:
+
+
+select interval 'P2147483648';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P2147483648' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-2147483649';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-2147483649' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P1-2147483647-2147483647';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P1-2147483647-2147483647' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT2562047789';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047789' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT-2562047789';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT-2562047789' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- overflow with date/time unit aliases
+select interval '2147483647 weeks';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 15032385529 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 weeks';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -15032385536 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483647 decades';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 257698037640 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 decades';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -257698037760 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483647 centuries';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 2576980376400 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 centuries';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -2576980377600 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483647 millennium';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764000 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 millennium';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776000 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+
+select interval '1 week 2147483647 days';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-1 week -2147483648 days';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '2147483647 days 1 week';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 days -1 week';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+
+select interval 'P1W2147483647D';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P1W2147483647D' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-1W-2147483648D';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-1W-2147483648D' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P2147483647D1W';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P2147483647D1W' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-2147483648D-1W';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-2147483648D-1W' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval '1 decade 2147483647 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '1 century 2147483647 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '1 millennium 2147483647 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-1 decade -2147483648 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-1 century -2147483648 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-1 millennium -2147483648 years';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+
+select interval '2147483647 years 1 decade';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483647 years 1 century';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '2147483647 years 1 millennium';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value 25769803764 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 years -1 decade';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 years -1 century';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+select interval '-2147483648 years -1 millennium';
+RESULT:
+	ERROR - Invalid Input Error: Type INT64 with value -25769803776 can't be cast because the value is out of range for the destination type INT32
+
+-----------
+QUERY:
+
+
+-- overflowing with fractional fields - postgres format
+select interval '0.1 millennium 2147483647 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '0.1 centuries 2147483647 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '0.1 decades 2147483647 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '0.1 yrs 2147483647 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 millennium -2147483648 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 centuries -2147483648 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 decades -2147483648 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 yrs -2147483648 months';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+
+select interval '2147483647 months 0.1 millennium';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '2147483647 months 0.1 centuries';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '2147483647 months 0.1 decades';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '2147483647 months 0.1 yrs';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 months -0.1 millennium';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 months -0.1 centuries';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 months -0.1 decades';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 months -0.1 yrs';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+
+select interval '0.1 months 2147483647 days';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 months -2147483648 days';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '2147483647 days 0.1 months';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 days -0.1 months';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+
+select interval '0.5 weeks 2147483647 days';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.5 weeks -2147483648 days';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '2147483647 days 0.5 weeks';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-2147483648 days -0.5 weeks';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+
+select interval '0.01 months 9223372036854775807 microseconds';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775807),)]
+
+-----------
+QUERY:
+
+select interval '-0.01 months -9223372036854775808 microseconds';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+select interval '9223372036854775807 microseconds 0.01 months';
+RESULT:
+	[(datetime.timedelta(days=106751991, seconds=14454, microseconds=775807),)]
+
+-----------
+QUERY:
+
+select interval '-9223372036854775808 microseconds -0.01 months';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+
+select interval '0.1 weeks 9223372036854775807 microseconds';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 weeks -9223372036854775808 microseconds';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+select interval '9223372036854775807 microseconds 0.1 weeks';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-9223372036854775808 microseconds -0.1 weeks';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+
+select interval '0.1 days 9223372036854775807 microseconds';
+RESULT:
+	ERROR - Out of Range Error: interval value is out of range
+
+-----------
+QUERY:
+
+select interval '-0.1 days -9223372036854775808 microseconds';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+select interval '9223372036854775807 microseconds 0.1 days';
+RESULT:
+	ERROR - Out of Range Error: interval fraction is out of range
+
+-----------
+QUERY:
+
+select interval '-9223372036854775808 microseconds -0.1 days';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+
+-- overflowing with fractional fields - ISO8601 format
+select interval 'P0.1Y2147483647M';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0.1Y2147483647M' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-0.1Y-2147483648M';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-0.1Y-2147483648M' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P2147483647M0.1Y';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P2147483647M0.1Y' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-2147483648M-0.1Y';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-2147483648M-0.1Y' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'P0.1M2147483647D';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0.1M2147483647D' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-0.1M-2147483648D';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-0.1M-2147483648D' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P2147483647D0.1M';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P2147483647D0.1M' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-2147483648D-0.1M';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-2147483648D-0.1M' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'P0.5W2147483647D';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0.5W2147483647D' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-0.5W-2147483648D';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-0.5W-2147483648D' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P2147483647D0.5W';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P2147483647D0.5W' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-2147483648D-0.5W';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-2147483648D-0.5W' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'P0.01MT2562047788H54.775807S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0.01MT2562047788H54.775807S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-0.01MT-2562047788H-54.775808S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-0.01MT-2562047788H-54.775808S' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'P0.1DT2562047788H54.775807S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0.1DT2562047788H54.775807S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P-0.1DT-2562047788H-54.775808S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P-0.1DT-2562047788H-54.775808S' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'PT2562047788.1H54.775807S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788.1H54.775807S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT-2562047788.1H-54.775808S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT-2562047788.1H-54.775808S' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval 'PT2562047788H0.1M54.775807S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788H0.1M54.775807S' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT-2562047788H-0.1M-54.775808S';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT-2562047788H-0.1M-54.775808S' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- overflowing with fractional fields - ISO8601 alternative format
+select interval 'P0.1-2147483647-00';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P0.1-2147483647-00' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P00-0.1-2147483647';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P00-0.1-2147483647' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P00-0.01-00T2562047788:00:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P00-0.01-00T2562047788:00:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'P00-00-0.1T2562047788:00:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'P00-00-0.1T2562047788:00:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT2562047788.1:00:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788.1:00:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+select interval 'PT2562047788:01.:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'PT2562047788:01.:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- overflowing with fractional fields - SQL standard format
+select interval '0.1 2562047788:0:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '0.1 2562047788:0:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+select interval '0.1 2562047788:0:54.775808 ago';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '0.1 2562047788:0:54.775808 ago' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval '2562047788.1:0:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '2562047788.1:0:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+select interval '2562047788.1:0:54.775808 ago';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '2562047788.1:0:54.775808 ago' to INTERVAL
+
+-----------
+QUERY:
+
+
+select interval '2562047788:0.1:54.775807';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '2562047788:0.1:54.775807' to INTERVAL
+
+-----------
+QUERY:
+
+select interval '2562047788:0.1:54.775808 ago';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '2562047788:0.1:54.775808 ago' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- overflowing using AGO with INT_MIN
+select interval '-2147483648 months ago';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+select interval '-2147483648 days ago';
+RESULT:
+	ERROR - days=-2147483648; must have magnitude <= 999999999
+
+-----------
+QUERY:
+
+select interval '-9223372036854775808 microseconds ago';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+select interval '-2147483648 months -2147483648 days -9223372036854775808 microseconds ago';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+
+-- overflowing using make_interval
+select make_interval(years := 178956971);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(years := -178956971);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(years := 1, months := 2147483647);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(years := -1, months := -2147483648);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(weeks := 306783379);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(weeks := -306783379);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(weeks := 1, days := 2147483647);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(weeks := -1, days := -2147483648);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(secs := 1e308);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(secs := 1e18);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(secs := -1e18);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(mins := 1, secs := 9223372036800.0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(mins := -1, secs := -9223372036800.0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+
+-- test that INT_MIN number is formatted properly
+SET IntervalStyle to postgres;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select interval '-2147483647 months -2147483648 days -9223372036854775808 us';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+SET IntervalStyle to sql_standard;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select interval '-2147483647 months -2147483648 days -9223372036854775808 us';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+SET IntervalStyle to iso_8601;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select interval '-2147483647 months -2147483648 days -9223372036854775808 us';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+SET IntervalStyle to postgres_verbose;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "IntervalStyle"
+
+Did you mean: "threads"
+
+-----------
+QUERY:
+
+select interval '-2147483647 months -2147483648 days -9223372036854775808 us';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+
+-- check that /* REPLACED */''30 days/* REPLACED */'' equals /* REPLACED */''1 month/* REPLACED */'' according to the hash function
+select '30 days'::interval = '1 month'::interval as t;
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select interval_hash('30 days'::interval) = interval_hash('1 month'::interval) as t;
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name interval_hash does not exist!
+Did you mean "hash"?
+
+-----------
+QUERY:
+
+
+-- numeric constructor
+select make_interval(years := 2);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(years := 1, months := 6);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(years := 1, months := -1, weeks := 5, days := -7, hours := 25, mins := -180);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+
+select make_interval() = make_interval(years := 0, months := 0, weeks := 0, days := 0, mins := 0, secs := 0.0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(hours := -2, mins := -10, secs := -25.3);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+
+select make_interval(years := 'inf'::float::int);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(months := 'NaN'::float::int);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(secs := 'inf');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(secs := 'NaN');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+select make_interval(secs := 7e12);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name make_interval does not exist!
+Did you mean "make_date"?
+
+-----------
+QUERY:
+
+
+--
+-- test EXTRACT
+--
+SELECT f1,
+    EXTRACT(MICROSECOND FROM f1) AS MICROSECOND,
+    EXTRACT(MILLISECOND FROM f1) AS MILLISECOND,
+    EXTRACT(SECOND FROM f1) AS SECOND,
+    EXTRACT(MINUTE FROM f1) AS MINUTE,
+    EXTRACT(HOUR FROM f1) AS HOUR,
+    EXTRACT(DAY FROM f1) AS DAY,
+    EXTRACT(MONTH FROM f1) AS MONTH,
+    EXTRACT(QUARTER FROM f1) AS QUARTER,
+    EXTRACT(YEAR FROM f1) AS YEAR,
+    EXTRACT(DECADE FROM f1) AS DECADE,
+    EXTRACT(CENTURY FROM f1) AS CENTURY,
+    EXTRACT(MILLENNIUM FROM f1) AS MILLENNIUM,
+    EXTRACT(EPOCH FROM f1) AS EPOCH
+    FROM INTERVAL_TBL;
+RESULT:
+	[(datetime.timedelta(seconds=60), 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 60.0), (datetime.timedelta(seconds=18000), 0, 0, 0, 0, 5, 0, 0, 1, 0, 0, 0, 0, 18000.0), (datetime.timedelta(days=10), 0, 0, 0, 0, 0, 10, 0, 1, 0, 0, 0, 0, 864000.0), (datetime.timedelta(days=12240), 0, 0, 0, 0, 0, 0, 0, 1, 34, 3, 0, 0, 1072958400.0), (datetime.timedelta(days=90), 0, 0, 0, 0, 0, 0, 3, 2, 0, 0, 0, 0, 7776000.0), (datetime.timedelta(days=-1, seconds=86386), -14000000, -14000, -14, 0, 0, 0, 0, 1, 0, 0, 0, 0, -14.0), (datetime.timedelta(days=1, seconds=7384), 4000000, 4000, 4, 3, 2, 1, 0, 1, 0, 0, 0, 0, 93784.0), (datetime.timedelta(days=2160), 0, 0, 0, 0, 0, 0, 0, 1, 6, 0, 0, 0, 189345600.0), (datetime.timedelta(days=150), 0, 0, 0, 0, 0, 0, 5, 2, 0, 0, 0, 0, 12960000.0), (datetime.timedelta(days=150, seconds=43200), 0, 0, 0, 0, 12, 0, 5, 2, 0, 0, 0, 0, 13003200.0)]
+
+-----------
+QUERY:
+
+
+SELECT EXTRACT(FORTNIGHT FROM INTERVAL '2 days');
+RESULT:
+	ERROR - Conversion Error: extract specifier "FORTNIGHT" not recognized
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(TIMEZONE FROM INTERVAL '2 days');
+RESULT:
+	ERROR - Not implemented Error: "interval" units "timezone" not recognized
+
+-----------
+QUERY:
+  -- error
+
+SELECT EXTRACT(DECADE FROM INTERVAL '100 y');
+RESULT:
+	[(10,)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(DECADE FROM INTERVAL '99 y');
+RESULT:
+	[(9,)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(DECADE FROM INTERVAL '-99 y');
+RESULT:
+	[(-9,)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(DECADE FROM INTERVAL '-100 y');
+RESULT:
+	[(-10,)]
+
+-----------
+QUERY:
+
+
+SELECT EXTRACT(CENTURY FROM INTERVAL '100 y');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(CENTURY FROM INTERVAL '99 y');
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(CENTURY FROM INTERVAL '-99 y');
+RESULT:
+	[(0,)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(CENTURY FROM INTERVAL '-100 y');
+RESULT:
+	[(-1,)]
+
+-----------
+QUERY:
+
+
+-- date_part implementation is mostly the same as extract, so only
+-- test a few cases for additional coverage.
+SELECT f1,
+    date_part('microsecond', f1) AS microsecond,
+    date_part('millisecond', f1) AS millisecond,
+    date_part('second', f1) AS second,
+    date_part('epoch', f1) AS epoch
+    FROM INTERVAL_TBL;
+RESULT:
+	[(datetime.timedelta(seconds=60), 0, 0, 0, 60.0), (datetime.timedelta(seconds=18000), 0, 0, 0, 18000.0), (datetime.timedelta(days=10), 0, 0, 0, 864000.0), (datetime.timedelta(days=12240), 0, 0, 0, 1072958400.0), (datetime.timedelta(days=90), 0, 0, 0, 7776000.0), (datetime.timedelta(days=-1, seconds=86386), -14000000, -14000, -14, -14.0), (datetime.timedelta(days=1, seconds=7384), 4000000, 4000, 4, 93784.0), (datetime.timedelta(days=2160), 0, 0, 0, 189345600.0), (datetime.timedelta(days=150), 0, 0, 0, 12960000.0), (datetime.timedelta(days=150, seconds=43200), 0, 0, 0, 13003200.0)]
+
+-----------
+QUERY:
+
+
+-- internal overflow test case
+SELECT extract(epoch from interval '1000000000 days');
+RESULT:
+	[(86400000000000.0,)]
+
+-----------
+QUERY:
+
+
+--
+-- test infinite intervals
+--
+
+-- largest finite intervals
+SELECT interval '-2147483648 months -2147483648 days -9223372036854775807 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+SELECT interval '2147483647 months 2147483647 days 9223372036854775806 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+
+-- infinite intervals
+SELECT interval '-2147483648 months -2147483648 days -9223372036854775808 us';
+RESULT:
+	ERROR - Invalid Input Error: Could not convert string '9223372036854775808' to INT64
+
+-----------
+QUERY:
+
+SELECT interval '2147483647 months 2147483647 days 9223372036854775807 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+
+CREATE TABLE INFINITE_INTERVAL_TBL (i interval);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INFINITE_INTERVAL_TBL VALUES ('infinity'), ('-infinity'), ('1 year 2 days 3 hours');
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+LINE 2: ...SERT INTO INFINITE_INTERVAL_TBL VALUES ('infinity'), ('-infinity'), ('1 year 2...
+                                                  ^
+
+-----------
+QUERY:
+
+
+SELECT i, isfinite(i) FROM INFINITE_INTERVAL_TBL;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'isfinite(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	isfinite(FLOAT) -> BOOLEAN
+	isfinite(DOUBLE) -> BOOLEAN
+	isfinite(DATE) -> BOOLEAN
+	isfinite(TIMESTAMP) -> BOOLEAN
+	isfinite(TIMESTAMP WITH TIME ZONE) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+-- test basic arithmetic
+CREATE FUNCTION eval(expr text)
+RETURNS text AS
+$$
+DECLARE
+  result text;
+BEGIN
+  EXECUTE 'select '||expr INTO result;
+  RETURN result;
+EXCEPTION WHEN OTHERS THEN
+  RETURN SQLERRM;
+END
+$$
+LANGUAGE plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "text"
+
+-----------
+QUERY:
+
+
+SELECT d AS date, i AS interval,
+       eval(format('date %L + interval %L', d, i)) AS plus,
+       eval(format('date %L - interval %L', d, i)) AS minus
+FROM (VALUES (date '-infinity'),
+             (date '1995-08-06'),
+             (date 'infinity')) AS t1(d),
+     (VALUES (interval '-infinity'),
+             (interval 'infinity')) AS t2(i);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name eval does not exist!
+Did you mean "era"?
+
+-----------
+QUERY:
+
+
+SELECT i1 AS interval1, i2 AS interval2,
+       eval(format('interval %L + interval %L', i1, i2)) AS plus,
+       eval(format('interval %L - interval %L', i1, i2)) AS minus
+FROM (VALUES (interval '-infinity'),
+             (interval '2 months'),
+             (interval 'infinity')) AS t1(i1),
+     (VALUES (interval '-infinity'),
+             (interval '10 days'),
+             (interval 'infinity')) AS t2(i2);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name eval does not exist!
+Did you mean "era"?
+
+-----------
+QUERY:
+
+
+SELECT interval '2147483646 months 2147483646 days 9223372036854775806 us' + interval '1 month 1 day 1 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+SELECT interval '-2147483647 months -2147483647 days -9223372036854775807 us' + interval '-1 month -1 day -1 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+SELECT interval '2147483646 months 2147483646 days 9223372036854775806 us' - interval '-1 month -1 day -1 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+SELECT interval '-2147483647 months -2147483647 days -9223372036854775807 us' - interval '1 month 1 day 1 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+
+SELECT t AS timestamp, i AS interval,
+       eval(format('timestamp %L + interval %L', t, i)) AS plus,
+       eval(format('timestamp %L - interval %L', t, i)) AS minus
+FROM (VALUES (timestamp '-infinity'),
+             (timestamp '1995-08-06 12:30:15'),
+             (timestamp 'infinity')) AS t1(t),
+     (VALUES (interval '-infinity'),
+             (interval 'infinity')) AS t2(i);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name eval does not exist!
+Did you mean "era"?
+
+-----------
+QUERY:
+
+
+SELECT t AT TIME ZONE 'GMT' AS timestamptz, i AS interval,
+       eval(format('timestamptz %L + interval %L', t, i)) AS plus,
+       eval(format('timestamptz %L - interval %L', t, i)) AS minus
+FROM (VALUES (timestamptz '-infinity'),
+             (timestamptz '1995-08-06 12:30:15 GMT'),
+             (timestamptz 'infinity')) AS t1(t),
+     (VALUES (interval '-infinity'),
+             (interval 'infinity')) AS t2(i);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name eval does not exist!
+Did you mean "era"?
+
+-----------
+QUERY:
+
+
+-- time +/- infinite interval not supported
+SELECT time '11:27:42' + interval 'infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT time '11:27:42' + interval '-infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT time '11:27:42' - interval 'infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT time '11:27:42' - interval '-infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT timetz '11:27:42' + interval 'infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT timetz '11:27:42' + interval '-infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT timetz '11:27:42' - interval 'infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT timetz '11:27:42' - interval '-infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+
+SELECT lhst.i lhs,
+    rhst.i rhs,
+    lhst.i < rhst.i AS lt,
+    lhst.i <= rhst.i AS le,
+    lhst.i = rhst.i AS eq,
+    lhst.i > rhst.i AS gt,
+    lhst.i >= rhst.i AS ge,
+    lhst.i <> rhst.i AS ne
+    FROM INFINITE_INTERVAL_TBL lhst CROSS JOIN INFINITE_INTERVAL_TBL rhst
+    WHERE NOT isfinite(lhst.i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'isfinite(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	isfinite(FLOAT) -> BOOLEAN
+	isfinite(DOUBLE) -> BOOLEAN
+	isfinite(DATE) -> BOOLEAN
+	isfinite(TIMESTAMP) -> BOOLEAN
+	isfinite(TIMESTAMP WITH TIME ZONE) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+SELECT i AS interval,
+    -i AS um,
+    i * 2.0 AS mul,
+    i * -2.0 AS mul_neg,
+    i * 'infinity' AS mul_inf,
+    i * '-infinity' AS mul_inf_neg,
+    i / 3.0 AS div,
+    i / -3.0 AS div_neg
+    FROM INFINITE_INTERVAL_TBL
+    WHERE NOT isfinite(i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'isfinite(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	isfinite(FLOAT) -> BOOLEAN
+	isfinite(DOUBLE) -> BOOLEAN
+	isfinite(DATE) -> BOOLEAN
+	isfinite(TIMESTAMP) -> BOOLEAN
+	isfinite(TIMESTAMP WITH TIME ZONE) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+SELECT -interval '-2147483647 months -2147483647 days -9223372036854775807 us';
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+SELECT interval 'infinity' * 'nan';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-infinity' * 'nan';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-1073741824 months -1073741824 days -4611686018427387904 us' * 2;
+RESULT:
+	ERROR - Python int too large to convert to C int
+
+-----------
+QUERY:
+
+SELECT interval 'infinity' * 0;
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-infinity' * 0;
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '0 days' * 'infinity'::float;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, FLOAT)'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+SELECT interval '0 days' * '-infinity'::float;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, FLOAT)'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+SELECT interval '5 days' * 'infinity'::float;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, FLOAT)'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+SELECT interval '5 days' * '-infinity'::float;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '*(INTERVAL, FLOAT)'. You might need to add explicit type casts.
+	Candidate functions:
+	*(TINYINT, TINYINT) -> TINYINT
+	*(SMALLINT, SMALLINT) -> SMALLINT
+	*(INTEGER, INTEGER) -> INTEGER
+	*(BIGINT, BIGINT) -> BIGINT
+	*(HUGEINT, HUGEINT) -> HUGEINT
+	*(FLOAT, FLOAT) -> FLOAT
+	*(DOUBLE, DOUBLE) -> DOUBLE
+	*(DECIMAL, DECIMAL) -> DECIMAL
+	*(UTINYINT, UTINYINT) -> UTINYINT
+	*(USMALLINT, USMALLINT) -> USMALLINT
+	*(UINTEGER, UINTEGER) -> UINTEGER
+	*(UBIGINT, UBIGINT) -> UBIGINT
+	*(UHUGEINT, UHUGEINT) -> UHUGEINT
+	*(INTERVAL, BIGINT) -> INTERVAL
+	*(BIGINT, INTERVAL) -> INTERVAL
+
+
+-----------
+QUERY:
+
+
+SELECT interval 'infinity' / 'infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval 'infinity' / '-infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval 'infinity' / 'nan';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-infinity' / 'infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-infinity' / '-infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-infinity' / 'nan';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT interval '-1073741824 months -1073741824 days -4611686018427387904 us' / 0.5;
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types '/(INTERVAL, DECIMAL(2,1))'. You might need to add explicit type casts.
+	Candidate functions:
+	/(FLOAT, FLOAT) -> FLOAT
+	/(DOUBLE, DOUBLE) -> DOUBLE
+	/(INTERVAL, BIGINT) -> INTERVAL
+
+
+-----------
+QUERY:
+
+
+SELECT date_bin('infinity', timestamp '2001-02-16 20:38:40', timestamp '2001-02-16 20:05:00');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name date_bin does not exist!
+Did you mean "date_sub"?
+
+-----------
+QUERY:
+
+SELECT date_bin('-infinity', timestamp '2001-02-16 20:38:40', timestamp '2001-02-16 20:05:00');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name date_bin does not exist!
+Did you mean "date_sub"?
+
+-----------
+QUERY:
+
+
+SELECT i AS interval, date_trunc('hour', i)
+    FROM INFINITE_INTERVAL_TBL
+    WHERE NOT isfinite(i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'isfinite(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	isfinite(FLOAT) -> BOOLEAN
+	isfinite(DOUBLE) -> BOOLEAN
+	isfinite(DATE) -> BOOLEAN
+	isfinite(TIMESTAMP) -> BOOLEAN
+	isfinite(TIMESTAMP WITH TIME ZONE) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+SELECT i AS interval, justify_days(i), justify_hours(i), justify_interval(i)
+    FROM INFINITE_INTERVAL_TBL
+    WHERE NOT isfinite(i);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'isfinite(INTERVAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	isfinite(FLOAT) -> BOOLEAN
+	isfinite(DOUBLE) -> BOOLEAN
+	isfinite(DATE) -> BOOLEAN
+	isfinite(TIMESTAMP) -> BOOLEAN
+	isfinite(TIMESTAMP WITH TIME ZONE) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+SELECT timezone('infinity'::interval, '1995-08-06 12:12:12'::timestamp);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'timezone(INTERVAL, TIMESTAMP)'. You might need to add explicit type casts.
+	Candidate functions:
+	timezone(DATE) -> BIGINT
+	timezone(TIMESTAMP) -> BIGINT
+	timezone(INTERVAL) -> BIGINT
+	timezone(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	timezone(TIMESTAMP WITH TIME ZONE) -> BIGINT
+	timezone(VARCHAR, TIMESTAMP) -> TIMESTAMP WITH TIME ZONE
+	timezone(VARCHAR, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP
+	timezone(VARCHAR, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+
+
+-----------
+QUERY:
+
+SELECT timezone('-infinity'::interval, '1995-08-06 12:12:12'::timestamp);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'timezone(INTERVAL, TIMESTAMP)'. You might need to add explicit type casts.
+	Candidate functions:
+	timezone(DATE) -> BIGINT
+	timezone(TIMESTAMP) -> BIGINT
+	timezone(INTERVAL) -> BIGINT
+	timezone(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	timezone(TIMESTAMP WITH TIME ZONE) -> BIGINT
+	timezone(VARCHAR, TIMESTAMP) -> TIMESTAMP WITH TIME ZONE
+	timezone(VARCHAR, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP
+	timezone(VARCHAR, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+
+
+-----------
+QUERY:
+
+SELECT timezone('infinity'::interval, '1995-08-06 12:12:12'::timestamptz);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'timezone(INTERVAL, TIMESTAMP WITH TIME ZONE)'. You might need to add explicit type casts.
+	Candidate functions:
+	timezone(DATE) -> BIGINT
+	timezone(TIMESTAMP) -> BIGINT
+	timezone(INTERVAL) -> BIGINT
+	timezone(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	timezone(TIMESTAMP WITH TIME ZONE) -> BIGINT
+	timezone(VARCHAR, TIMESTAMP) -> TIMESTAMP WITH TIME ZONE
+	timezone(VARCHAR, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP
+	timezone(VARCHAR, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+
+
+-----------
+QUERY:
+
+SELECT timezone('-infinity'::interval, '1995-08-06 12:12:12'::timestamptz);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'timezone(INTERVAL, TIMESTAMP WITH TIME ZONE)'. You might need to add explicit type casts.
+	Candidate functions:
+	timezone(DATE) -> BIGINT
+	timezone(TIMESTAMP) -> BIGINT
+	timezone(INTERVAL) -> BIGINT
+	timezone(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	timezone(TIMESTAMP WITH TIME ZONE) -> BIGINT
+	timezone(VARCHAR, TIMESTAMP) -> TIMESTAMP WITH TIME ZONE
+	timezone(VARCHAR, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP
+	timezone(VARCHAR, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+
+
+-----------
+QUERY:
+
+SELECT timezone('infinity'::interval, '12:12:12'::time);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'timezone(INTERVAL, TIME)'. You might need to add explicit type casts.
+	Candidate functions:
+	timezone(DATE) -> BIGINT
+	timezone(TIMESTAMP) -> BIGINT
+	timezone(INTERVAL) -> BIGINT
+	timezone(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	timezone(TIMESTAMP WITH TIME ZONE) -> BIGINT
+	timezone(VARCHAR, TIMESTAMP) -> TIMESTAMP WITH TIME ZONE
+	timezone(VARCHAR, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP
+	timezone(VARCHAR, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+
+
+-----------
+QUERY:
+
+SELECT timezone('-infinity'::interval, '12:12:12'::time);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'timezone(INTERVAL, TIME)'. You might need to add explicit type casts.
+	Candidate functions:
+	timezone(DATE) -> BIGINT
+	timezone(TIMESTAMP) -> BIGINT
+	timezone(INTERVAL) -> BIGINT
+	timezone(INTERVAL, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+	timezone(TIMESTAMP WITH TIME ZONE) -> BIGINT
+	timezone(VARCHAR, TIMESTAMP) -> TIMESTAMP WITH TIME ZONE
+	timezone(VARCHAR, TIMESTAMP WITH TIME ZONE) -> TIMESTAMP
+	timezone(VARCHAR, TIME WITH TIME ZONE) -> TIME WITH TIME ZONE
+
+
+-----------
+QUERY:
+
+SELECT timezone('infinity'::interval, '12:12:12'::timetz);
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT timezone('-infinity'::interval, '12:12:12'::timetz);
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+
+SELECT 'infinity'::interval::time;
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT '-infinity'::interval::time;
+RESULT:
+	ERROR - Conversion Error: Could not convert string '-infinity' to INTERVAL
+
+-----------
+QUERY:
+
+
+SELECT to_char('infinity'::interval, 'YYYY');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_char does not exist!
+Did you mean "chr"?
+
+-----------
+QUERY:
+
+SELECT to_char('-infinity'::interval, 'YYYY');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name to_char does not exist!
+Did you mean "chr"?
+
+-----------
+QUERY:
+
+
+-- /* REPLACED */''ago/* REPLACED */'' can only appear once at the end of an interval.
+SELECT INTERVAL '42 days 2 seconds ago ago';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '42 days 2 seconds ago ago' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '2 minutes ago 5 days';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '2 minutes ago 5 days' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- consecutive and dangling units are not allowed.
+SELECT INTERVAL 'hour 5 months';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'hour 5 months' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '1 year months days 5 hours';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '1 year months days 5 hours' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- unacceptable reserved words in interval. Only /* REPLACED */''infinity/* REPLACED */'', /* REPLACED */''+infinity/* REPLACED */'' and
+-- /* REPLACED */''-infinity/* REPLACED */'' are allowed.
+SELECT INTERVAL 'now';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'now' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'today';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'today' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'tomorrow';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'tomorrow' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'allballs';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'allballs' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'epoch';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'epoch' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'yesterday';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'yesterday' to INTERVAL
+
+-----------
+QUERY:
+
+
+-- infinity specification should be the only thing
+SELECT INTERVAL 'infinity years';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity years' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL 'infinity ago';
+RESULT:
+	ERROR - Conversion Error: Could not convert string 'infinity ago' to INTERVAL
+
+-----------
+QUERY:
+
+SELECT INTERVAL '+infinity -infinity';
+RESULT:
+	ERROR - Conversion Error: Could not convert string '+infinity -infinity' to INTERVAL

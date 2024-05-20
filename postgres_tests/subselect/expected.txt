@@ -1,0 +1,2561 @@
+
+-----------
+QUERY:
+--
+-- SUBSELECT
+--
+
+SELECT 1 AS one WHERE 1 IN (SELECT 1);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+
+SELECT 1 AS zero WHERE 1 NOT IN (SELECT 1);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+SELECT 1 AS zero WHERE 1 IN (SELECT 2);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+-- Check grammar/* REPLACED */''s handling of extra parens in assorted contexts
+
+SELECT * FROM (SELECT 1 AS x) ss;
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT * FROM ((SELECT 1 AS x)) ss;
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM ((SELECT 1 AS x)), ((SELECT * FROM ((SELECT 2 AS y))));
+RESULT:
+	postgres: [(1, 2)]
+
+-----------
+QUERY:
+
+
+(SELECT 2) UNION SELECT 2;
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+((SELECT 2)) UNION SELECT 2;
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+
+SELECT ((SELECT 2) UNION SELECT 2);
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+SELECT (((SELECT 2)) UNION SELECT 2);
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+
+SELECT (SELECT ARRAY[1,2,3])[1];
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT ((SELECT ARRAY[1,2,3]))[2];
+RESULT:
+	postgres: [(2,)]
+
+-----------
+QUERY:
+
+SELECT (((SELECT ARRAY[1,2,3])))[3];
+RESULT:
+	postgres: [(3,)]
+
+-----------
+QUERY:
+
+
+-- Set up some simple test tables
+
+CREATE TABLE SUBSELECT_TBL (
+  f1 integer,
+  f2 integer,
+  f3 float
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO SUBSELECT_TBL VALUES (1, 2, 3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (2, 3, 4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (3, 4, 5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (1, 1, 1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (2, 2, 2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (3, 3, 3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (6, 7, 8);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO SUBSELECT_TBL VALUES (8, 9, NULL);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT * FROM SUBSELECT_TBL;
+RESULT:
+	postgres: [(1, 2, 3.0), (2, 3, 4.0), (3, 4, 5.0), (1, 1, 1.0), (2, 2, 2.0), (3, 3, 3.0), (6, 7, 8.0), (8, 9, None)]
+
+-----------
+QUERY:
+
+
+-- Uncorrelated subselects
+
+SELECT f1 AS "Constant Select" FROM SUBSELECT_TBL
+  WHERE f1 IN (SELECT 1);
+RESULT:
+	postgres: [(1,), (1,)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Uncorrelated Field" FROM SUBSELECT_TBL
+  WHERE f1 IN (SELECT f2 FROM SUBSELECT_TBL);
+RESULT:
+	postgres: [(1,), (2,), (3,), (1,), (2,), (3,)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Uncorrelated Field" FROM SUBSELECT_TBL
+  WHERE f1 IN (SELECT f2 FROM SUBSELECT_TBL WHERE
+    f2 IN (SELECT f1 FROM SUBSELECT_TBL));
+RESULT:
+	postgres: [(1,), (2,), (3,), (1,), (2,), (3,)]
+
+-----------
+QUERY:
+
+
+SELECT f1, f2
+  FROM SUBSELECT_TBL
+  WHERE (f1, f2) NOT IN (SELECT f2, CAST(f3 AS int4) FROM SUBSELECT_TBL
+                         WHERE f3 IS NOT NULL);
+RESULT:
+	postgres: [(1, 2), (6, 7), (8, 9)]
+
+-----------
+QUERY:
+
+
+-- Correlated subselects
+
+SELECT f1 AS "Correlated Field", f2 AS "Second Field"
+  FROM SUBSELECT_TBL upper
+  WHERE f1 IN (SELECT f2 FROM SUBSELECT_TBL WHERE f1 = upper.f1);
+RESULT:
+	postgres: [(1, 2), (2, 3), (3, 4), (1, 1), (2, 2), (3, 3)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Correlated Field", f3 AS "Second Field"
+  FROM SUBSELECT_TBL upper
+  WHERE f1 IN
+    (SELECT f2 FROM SUBSELECT_TBL WHERE CAST(upper.f2 AS float) = f3);
+RESULT:
+	postgres: [(2, 4.0), (3, 5.0), (1, 1.0), (2, 2.0), (3, 3.0)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Correlated Field", f3 AS "Second Field"
+  FROM SUBSELECT_TBL upper
+  WHERE f3 IN (SELECT upper.f1 + f2 FROM SUBSELECT_TBL
+               WHERE f2 = CAST(f3 AS integer));
+RESULT:
+	postgres: [(1, 3.0), (2, 4.0), (3, 5.0), (6, 8.0)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Correlated Field"
+  FROM SUBSELECT_TBL
+  WHERE (f1, f2) IN (SELECT f2, CAST(f3 AS int4) FROM SUBSELECT_TBL
+                     WHERE f3 IS NOT NULL);
+RESULT:
+	postgres: [(2,), (3,), (1,), (2,), (3,)]
+
+-----------
+QUERY:
+
+
+-- Check ROWCOMPARE cases, both correlated and not
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT ROW(1, 2) = (SELECT f1, f2) AS eq FROM SUBSELECT_TBL;
+RESULT:
+	postgres: [('Seq Scan on public.subselect_tbl',), ('  Output: (((1 = (SubPlan 1).col1) AND (2 = (SubPlan 1).col2)))',), ('  SubPlan 1',), ('    ->  Result',), ('          Output: subselect_tbl.f1, subselect_tbl.f2',)]
+
+-----------
+QUERY:
+
+
+SELECT ROW(1, 2) = (SELECT f1, f2) AS eq FROM SUBSELECT_TBL;
+RESULT:
+	postgres: [(True,), (False,), (False,), (False,), (False,), (False,), (False,), (False,)]
+
+-----------
+QUERY:
+
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT ROW(1, 2) = (SELECT 3, 4) AS eq FROM SUBSELECT_TBL;
+RESULT:
+	postgres: [('Seq Scan on public.subselect_tbl',), ('  Output: ((1 = (InitPlan 1).col1) AND (2 = (InitPlan 1).col2))',), ('  InitPlan 1',), ('    ->  Result',), ('          Output: 3, 4',)]
+
+-----------
+QUERY:
+
+
+SELECT ROW(1, 2) = (SELECT 3, 4) AS eq FROM SUBSELECT_TBL;
+RESULT:
+	postgres: [(False,), (False,), (False,), (False,), (False,), (False,), (False,), (False,)]
+
+-----------
+QUERY:
+
+
+SELECT ROW(1, 2) = (SELECT f1, f2 FROM SUBSELECT_TBL);
+RESULT:
+	postgres: more than one row returned by a subquery used as an expression
+
+
+-----------
+QUERY:
+  -- error
+
+-- Subselects without aliases
+
+SELECT count FROM (SELECT COUNT(DISTINCT name) FROM road);
+RESULT:
+	postgres: [(2911,)]
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM (SELECT DISTINCT name FROM road);
+RESULT:
+	postgres: [(2911,)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM (SELECT * FROM int4_tbl), (VALUES (123456)) WHERE f1 = column1;
+RESULT:
+	postgres: [(123456, 123456)]
+
+-----------
+QUERY:
+
+
+CREATE VIEW view_unnamed_ss AS
+SELECT * FROM (SELECT * FROM (SELECT abs(f1) AS a1 FROM int4_tbl)),
+              (SELECT * FROM int8_tbl)
+  WHERE a1 < 10 AND q1 > a1 ORDER BY q1, q2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT * FROM view_unnamed_ss;
+RESULT:
+	postgres: [(0, 123, 456), (0, 123, 4567890123456789), (0, 4567890123456789, -4567890123456789), (0, 4567890123456789, 123), (0, 4567890123456789, 4567890123456789)]
+
+-----------
+QUERY:
+
+
+\sv view_unnamed_ss
+
+DROP VIEW view_unnamed_ss;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: \sv view_unnamed_ss
+        ^
+
+
+-----------
+QUERY:
+
+
+-- Test matching of locking clause to correct alias
+
+CREATE VIEW view_unnamed_ss_locking AS
+SELECT * FROM (SELECT * FROM int4_tbl), int8_tbl AS unnamed_subquery
+  WHERE f1 = q1
+  FOR UPDATE OF unnamed_subquery;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+\sv view_unnamed_ss_locking
+
+DROP VIEW view_unnamed_ss_locking;
+RESULT:
+	postgres: syntax error at or near "\"
+LINE 3: \sv view_unnamed_ss_locking
+        ^
+
+
+-----------
+QUERY:
+
+
+--
+-- Use some existing tables in the regression test
+--
+
+SELECT ss.f1 AS "Correlated Field", ss.f3 AS "Second Field"
+  FROM SUBSELECT_TBL ss
+  WHERE f1 NOT IN (SELECT f1+1 FROM INT4_TBL
+                   WHERE f1 != ss.f1 AND f1 < 2147483647);
+RESULT:
+	postgres: [(2, 4.0), (3, 5.0), (2, 2.0), (3, 3.0), (6, 8.0), (8, None)]
+
+-----------
+QUERY:
+
+
+select q1, float8(count(*)) / (select count(*) from int8_tbl)
+from int8_tbl group by q1 order by q1;
+RESULT:
+	postgres: [(123, 0.4), (4567890123456789, 0.6)]
+
+-----------
+QUERY:
+
+
+-- Unspecified-type literals in output columns should resolve as text
+
+SELECT *, pg_typeof(f1) FROM
+  (SELECT 'foo' AS f1 FROM generate_series(1,3)) ss ORDER BY 1;
+RESULT:
+	postgres: [('foo', 'text'), ('foo', 'text'), ('foo', 'text')]
+
+-----------
+QUERY:
+
+
+-- ... unless there/* REPLACED */''s context to suggest differently
+
+explain (verbose, costs off) select '42' union all select '43';
+RESULT:
+	postgres: [('Append',), ('  ->  Result',), ("        Output: '42'::text",), ('  ->  Result',), ("        Output: '43'::text",)]
+
+-----------
+QUERY:
+
+explain (verbose, costs off) select '42' union all select 43;
+RESULT:
+	postgres: [('Append',), ('  ->  Result',), ('        Output: 42',), ('  ->  Result',), ('        Output: 43',)]
+
+-----------
+QUERY:
+
+
+-- check materialization of an initplan reference (bug #14524)
+explain (verbose, costs off)
+select 1 = all (select (select 1));
+RESULT:
+	postgres: [('Result',), ('  Output: (ALL (1 = (SubPlan 2).col1))',), ('  SubPlan 2',), ('    ->  Materialize',), ('          Output: ((InitPlan 1).col1)',), ('          InitPlan 1',), ('            ->  Result',), ('                  Output: 1',), ('          ->  Result',), ('                Output: (InitPlan 1).col1',)]
+
+-----------
+QUERY:
+
+select 1 = all (select (select 1));
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+--
+-- Check EXISTS simplification with LIMIT
+--
+explain (costs off)
+select * from int4_tbl o where exists
+  (select 1 from int4_tbl i where i.f1=o.f1 limit null);
+RESULT:
+	postgres: [('Hash Semi Join',), ('  Hash Cond: (o.f1 = i.f1)',), ('  ->  Seq Scan on int4_tbl o',), ('  ->  Hash',), ('        ->  Seq Scan on int4_tbl i',)]
+
+-----------
+QUERY:
+
+explain (costs off)
+select * from int4_tbl o where not exists
+  (select 1 from int4_tbl i where i.f1=o.f1 limit 1);
+RESULT:
+	postgres: [('Hash Anti Join',), ('  Hash Cond: (o.f1 = i.f1)',), ('  ->  Seq Scan on int4_tbl o',), ('  ->  Hash',), ('        ->  Seq Scan on int4_tbl i',)]
+
+-----------
+QUERY:
+
+explain (costs off)
+select * from int4_tbl o where exists
+  (select 1 from int4_tbl i where i.f1=o.f1 limit 0);
+RESULT:
+	postgres: [('Seq Scan on int4_tbl o',), ('  Filter: EXISTS(SubPlan 1)',), ('  SubPlan 1',), ('    ->  Limit',), ('          ->  Seq Scan on int4_tbl i',), ('                Filter: (f1 = o.f1)',)]
+
+-----------
+QUERY:
+
+
+--
+-- Test cases to catch unpleasant interactions between IN-join processing
+-- and subquery pullup.
+--
+
+select count(*) from
+  (select 1 from tenk1 a
+   where unique1 IN (select hundred from tenk1 b)) ss;
+RESULT:
+	postgres: [(100,)]
+
+-----------
+QUERY:
+
+select count(distinct ss.ten) from
+  (select ten from tenk1 a
+   where unique1 IN (select hundred from tenk1 b)) ss;
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+select count(*) from
+  (select 1 from tenk1 a
+   where unique1 IN (select distinct hundred from tenk1 b)) ss;
+RESULT:
+	postgres: [(100,)]
+
+-----------
+QUERY:
+
+select count(distinct ss.ten) from
+  (select ten from tenk1 a
+   where unique1 IN (select distinct hundred from tenk1 b)) ss;
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test cases to check for overenthusiastic optimization of
+-- /* REPLACED */''IN (SELECT DISTINCT ...)/* REPLACED */'' and related cases.  Per example from
+-- Luca Pireddu and Michael Fuhr.
+--
+
+CREATE TEMP TABLE foo (id integer);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE bar (id1 integer, id2 integer);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO foo VALUES (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO bar VALUES (1, 1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO bar VALUES (2, 2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO bar VALUES (3, 1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- These cases require an extra level of distinct-ing above subquery s
+SELECT * FROM foo WHERE id IN
+    (SELECT id2 FROM (SELECT DISTINCT id1, id2 FROM bar) AS s);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT * FROM foo WHERE id IN
+    (SELECT id2 FROM (SELECT id1,id2 FROM bar GROUP BY id1,id2) AS s);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT * FROM foo WHERE id IN
+    (SELECT id2 FROM (SELECT id1, id2 FROM bar UNION
+                      SELECT id1, id2 FROM bar) AS s);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+
+-- These cases do not
+SELECT * FROM foo WHERE id IN
+    (SELECT id2 FROM (SELECT DISTINCT ON (id2) id1, id2 FROM bar) AS s);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT * FROM foo WHERE id IN
+    (SELECT id2 FROM (SELECT id2 FROM bar GROUP BY id2) AS s);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+SELECT * FROM foo WHERE id IN
+    (SELECT id2 FROM (SELECT id2 FROM bar UNION
+                      SELECT id2 FROM bar) AS s);
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test case to catch problems with multiply nested sub-SELECTs not getting
+-- recalculated properly.  Per bug report from Didier Moens.
+--
+
+CREATE TABLE orderstest (
+    approver_ref integer,
+    po_ref integer,
+    ordercanceled boolean
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO orderstest VALUES (1, 1, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 5, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 6, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 7, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 1, true);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 8, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 1, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (77, 1, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (1, 1, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (66, 1, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO orderstest VALUES (1, 1, false);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE VIEW orders_view AS
+SELECT *,
+(SELECT CASE
+   WHEN ord.approver_ref=1 THEN '---' ELSE 'Approved'
+ END) AS "Approved",
+(SELECT CASE
+ WHEN ord.ordercanceled
+ THEN 'Canceled'
+ ELSE
+  (SELECT CASE
+		WHEN ord.po_ref=1
+		THEN
+		 (SELECT CASE
+				WHEN ord.approver_ref=1
+				THEN '---'
+				ELSE 'Approved'
+			END)
+		ELSE 'PO'
+	END)
+END) AS "Status",
+(CASE
+ WHEN ord.ordercanceled
+ THEN 'Canceled'
+ ELSE
+  (CASE
+		WHEN ord.po_ref=1
+		THEN
+		 (CASE
+				WHEN ord.approver_ref=1
+				THEN '---'
+				ELSE 'Approved'
+			END)
+		ELSE 'PO'
+	END)
+END) AS "Status_OK"
+FROM orderstest ord;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT * FROM orders_view;
+RESULT:
+	postgres: [(1, 1, False, '---', '---', '---'), (66, 5, False, 'Approved', 'PO', 'PO'), (66, 6, False, 'Approved', 'PO', 'PO'), (66, 7, False, 'Approved', 'PO', 'PO'), (66, 1, True, 'Approved', 'Canceled', 'Canceled'), (66, 8, False, 'Approved', 'PO', 'PO'), (66, 1, False, 'Approved', 'Approved', 'Approved'), (77, 1, False, 'Approved', 'Approved', 'Approved'), (1, 1, False, '---', '---', '---'), (66, 1, False, 'Approved', 'Approved', 'Approved'), (1, 1, False, '---', '---', '---')]
+
+-----------
+QUERY:
+
+
+DROP TABLE orderstest cascade;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Test cases to catch situations where rule rewriter fails to propagate
+-- hasSubLinks flag correctly.  Per example from Kyle Bateman.
+--
+
+create temp table parts (
+    partnum     text,
+    cost        float8
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp table shipped (
+    ttype       char(2),
+    ordnum      int4,
+    partnum     text,
+    value       float8
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp view shipped_view as
+    select * from shipped where ttype = 'wt';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create rule shipped_view_insert as on insert to shipped_view do instead
+    insert into shipped values('wt', new.ordnum, new.partnum, new.value);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+insert into parts (partnum, cost) values (1, 1234.56);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+insert into shipped_view (ordnum, partnum, value)
+    values (0, 1, (select cost from parts where partnum = '1'));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from shipped_view;
+RESULT:
+	postgres: [('wt', 0, '1', 1234.56)]
+
+-----------
+QUERY:
+
+
+create rule shipped_view_update as on update to shipped_view do instead
+    update shipped set partnum = new.partnum, value = new.value
+        where ttype = new.ttype and ordnum = new.ordnum;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+update shipped_view set value = 11
+    from int4_tbl a join int4_tbl b
+      on (a.f1 = (select f1 from int4_tbl c where c.f1=b.f1))
+    where ordnum = a.f1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from shipped_view;
+RESULT:
+	postgres: [('wt', 0, '1', 11.0)]
+
+-----------
+QUERY:
+
+
+select f1, ss1 as relabel from
+    (select *, (select sum(f1) from int4_tbl b where f1 >= a.f1) as ss1
+     from int4_tbl a) ss;
+RESULT:
+	postgres: [(0, 2147607103), (123456, 2147607103), (-123456, 2147483647), (2147483647, 2147483647), (-2147483647, 0)]
+
+-----------
+QUERY:
+
+
+--
+-- Test cases involving PARAM_EXEC parameters and min/max index optimizations.
+-- Per bug report from David Sanchez i Gregori.
+--
+
+select * from (
+  select max(unique1) from tenk1 as a
+  where exists (select 1 from tenk1 as b where b.thousand = a.unique2)
+) ss;
+RESULT:
+	postgres: [(9997,)]
+
+-----------
+QUERY:
+
+
+select * from (
+  select min(unique1) from tenk1 as a
+  where not exists (select 1 from tenk1 as b where b.unique2 = 10000)
+) ss;
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test that an IN implemented using a UniquePath does unique-ification
+-- with the right semantics, as per bug #4113.  (Unfortunately we have
+-- no simple way to ensure that this test case actually chooses that type
+-- of plan, but it does in releases 7.4-8.3.  Note that an ordering difference
+-- here might mean that some other plan type is being used, rendering the test
+-- pointless.)
+--
+
+create temp table numeric_table (num_col numeric);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into numeric_table values (1), (1.000000000000000000001), (2), (3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp table float_table (float_col float8);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into float_table values (1), (2), (3);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from float_table
+  where float_col in (select num_col from numeric_table);
+RESULT:
+	postgres: [(1.0,), (2.0,), (3.0,)]
+
+-----------
+QUERY:
+
+
+select * from numeric_table
+  where num_col in (select float_col from float_table);
+RESULT:
+	postgres: [(Decimal('1'),), (Decimal('1.000000000000000000001'),), (Decimal('2'),), (Decimal('3'),)]
+
+-----------
+QUERY:
+
+
+--
+-- Test case for bug #4290: bogus calculation of subplan param sets
+--
+
+create temp table ta (id int primary key, val int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+insert into ta values(1,1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into ta values(2,2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp table tb (id int primary key, aval int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+insert into tb values(1,1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into tb values(2,1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into tb values(3,2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into tb values(4,2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp table tc (id int primary key, aid int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+insert into tc values(1,1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into tc values(2,2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select
+  ( select min(tb.id) from tb
+    where tb.aval = (select ta.val from ta where ta.id = tc.aid) ) as min_tb_id
+from tc;
+RESULT:
+	postgres: [(1,), (3,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test case for 8.3 /* REPLACED */''failed to locate grouping columns/* REPLACED */'' bug
+--
+
+create temp table t1 (f1 numeric(14,0), f2 varchar(30));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from
+  (select distinct f1, f2, (select f2 from t1 x where x.f1 = up.f1) as fs
+   from t1 up) ss
+group by f1,f2,fs;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+--
+-- Test case for bug #5514 (mishandling of whole-row Vars in subselects)
+--
+
+create temp table table_a(id integer);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into table_a values (42);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp view view_a as select * from table_a;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select view_a from view_a;
+RESULT:
+	postgres: [('(42)',)]
+
+-----------
+QUERY:
+
+select (select view_a) from view_a;
+RESULT:
+	postgres: [('(42)',)]
+
+-----------
+QUERY:
+
+select (select (select view_a)) from view_a;
+RESULT:
+	postgres: [('(42)',)]
+
+-----------
+QUERY:
+
+select (select (a.*)::text) from view_a a;
+RESULT:
+	postgres: [('(42)',)]
+
+-----------
+QUERY:
+
+
+--
+-- Check that whole-row Vars reading the result of a subselect don/* REPLACED */''t include
+-- any junk columns therein
+--
+
+select q from (select max(f1) from int4_tbl group by f1 order by f1) q;
+RESULT:
+	postgres: [('(-2147483647)',), ('(-123456)',), ('(0)',), ('(123456)',), ('(2147483647)',)]
+
+-----------
+QUERY:
+
+with q as (select max(f1) from int4_tbl group by f1 order by f1)
+  select q from q;
+RESULT:
+	postgres: [('(-2147483647)',), ('(-123456)',), ('(0)',), ('(123456)',), ('(2147483647)',)]
+
+-----------
+QUERY:
+
+
+--
+-- Test case for sublinks pulled up into joinaliasvars lists in an
+-- inherited update/delete query
+--
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  --  this shouldn/* REPLACED */''t delete anything, but be safe
+
+delete from road
+where exists (
+  select 1
+  from
+    int4_tbl cross join
+    ( select f1, array(select q1 from int8_tbl) as arr
+      from text_tbl ) ss
+  where road.name = ss.f1 );
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Test case for sublinks pushed down into subselects via join alias expansion
+--
+
+select
+  (select sq1) as qq1
+from
+  (select exists(select 1 from int4_tbl where f1 = q2) as sq1, 42 as dummy
+   from int8_tbl) sq0
+  join
+  int4_tbl i4 on dummy = i4.f1;
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+--
+-- Test case for subselect within UPDATE of INSERT...ON CONFLICT DO UPDATE
+--
+create temp table upsert(key int4 primary key, val text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into upsert values(1, 'val') on conflict (key) do update set val = 'not seen';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into upsert values(1, 'val') on conflict (key) do update set val = 'seen with subselect ' || (select f1 from int4_tbl where f1 != 0 limit 1)::text;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from upsert;
+RESULT:
+	postgres: [(1, 'seen with subselect 123456')]
+
+-----------
+QUERY:
+
+
+with aa as (select 'int4_tbl' u from int4_tbl limit 1)
+insert into upsert values (1, 'x'), (999, 'y')
+on conflict (key) do update set val = (select u from aa)
+returning *;
+RESULT:
+	postgres: [(1, 'int4_tbl'), (999, 'y')]
+
+-----------
+QUERY:
+
+
+--
+-- Test case for cross-type partial matching in hashed subplan (bug #7597)
+--
+
+create temp table outer_7597 (f1 int4, f2 int4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_7597 values (0, 0);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_7597 values (1, 0);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_7597 values (0, null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_7597 values (1, null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp table inner_7597(c1 int8, c2 int8);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into inner_7597 values(0, null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from outer_7597 where (f1, f2) not in (select * from inner_7597);
+RESULT:
+	postgres: [(1, 0), (1, None)]
+
+-----------
+QUERY:
+
+
+--
+-- Similar test case using text that verifies that collation
+-- information is passed through by execTuplesEqual() in nodeSubplan.c
+-- (otherwise it would error in texteq())
+--
+
+create temp table outer_text (f1 text, f2 text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_text values ('a', 'a');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_text values ('b', 'a');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_text values ('a', null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into outer_text values ('b', null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create temp table inner_text (c1 text, c2 text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into inner_text values ('a', null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into inner_text values ('123', '456');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from outer_text where (f1, f2) not in (select * from inner_text);
+RESULT:
+	postgres: [('b', 'a'), ('b', None)]
+
+-----------
+QUERY:
+
+
+--
+-- Another test case for cross-type hashed subplans: comparison of
+-- inner-side values must be done with appropriate operator
+--
+
+explain (verbose, costs off)
+select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
+RESULT:
+	postgres: [('Result',), ("  Output: (ANY ('foo'::text = (hashed SubPlan 1).col1))",), ('  SubPlan 1',), ('    ->  Append',), ('          ->  Result',), ("                Output: 'bar'::name",), ('          ->  Result',), ("                Output: 'bar'::name",)]
+
+-----------
+QUERY:
+
+
+select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test that we don/* REPLACED */''t try to hash nested records (bug #17363)
+-- (Hashing could be supported, but for now we don/* REPLACED */''t)
+--
+
+explain (verbose, costs off)
+select row(row(row(1))) = any (select row(row(1)));
+RESULT:
+	postgres: [('Result',), ('  Output: (ANY (\'("(1)")\'::record = (SubPlan 1).col1))',), ('  SubPlan 1',), ('    ->  Materialize',), ('          Output: \'("(1)")\'::record',), ('          ->  Result',), ('                Output: \'("(1)")\'::record',)]
+
+-----------
+QUERY:
+
+
+select row(row(row(1))) = any (select row(row(1)));
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test case for premature memory release during hashing of subplan output
+--
+
+select '1'::text in (select '1'::name union all select '1'::name);
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test that we don/* REPLACED */''t try to use a hashed subplan if the simplified
+-- testexpr isn/* REPLACED */''t of the right shape
+--
+
+-- this fails by default, of course
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: operator does not exist: bigint = text
+LINE 9: select * from int8_tbl where q1 in (select c1 from inner_tex...
+                                        ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- make an operator to allow it to succeed
+create function bogus_int8_text_eq(int8, text) returns boolean
+language sql as 'select $1::text = $2';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create operator = (procedure=bogus_int8_text_eq, leftarg=int8, rightarg=text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: [('Seq Scan on int8_tbl',), ('  Filter: (ANY ((q1)::text = (hashed SubPlan 1).col1))',), ('  SubPlan 1',), ('    ->  Seq Scan on inner_text',)]
+
+-----------
+QUERY:
+
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: [(123, 456), (123, 4567890123456789)]
+
+-----------
+QUERY:
+
+
+-- inlining of this function results in unusual number of hash clauses,
+-- which we can still cope with
+create or replace function bogus_int8_text_eq(int8, text) returns boolean
+language sql as 'select $1::text = $2 and $1::text = $2';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: [('Seq Scan on int8_tbl',), ('  Filter: (ANY (((q1)::text = (hashed SubPlan 1).col1) AND ((q1)::text = (hashed SubPlan 1).col1)))',), ('  SubPlan 1',), ('    ->  Seq Scan on inner_text',)]
+
+-----------
+QUERY:
+
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: [(123, 456), (123, 4567890123456789)]
+
+-----------
+QUERY:
+
+
+-- inlining of this function causes LHS and RHS to be switched,
+-- which we can/* REPLACED */''t cope with, so hashing should be abandoned
+create or replace function bogus_int8_text_eq(int8, text) returns boolean
+language sql as 'select $2 = $1::text';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: [('Seq Scan on int8_tbl',), ('  Filter: (ANY ((SubPlan 1).col1 = (q1)::text))',), ('  SubPlan 1',), ('    ->  Materialize',), ('          ->  Seq Scan on inner_text',)]
+
+-----------
+QUERY:
+
+select * from int8_tbl where q1 in (select c1 from inner_text);
+RESULT:
+	postgres: [(123, 456), (123, 4567890123456789)]
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+  -- to get rid of the bogus operator
+
+--
+-- Test resolution of hashed vs non-hashed implementation of EXISTS subplan
+--
+explain (costs off)
+select count(*) from tenk1 t
+where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0);
+RESULT:
+	postgres: [('Aggregate',), ('  ->  Seq Scan on tenk1 t',), ('        Filter: ((ANY (unique2 = (hashed SubPlan 2).col1)) OR (ten < 0))',), ('        SubPlan 2',), ('          ->  Index Only Scan using tenk1_unique1 on tenk1 k',)]
+
+-----------
+QUERY:
+
+select count(*) from tenk1 t
+where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0);
+RESULT:
+	postgres: [(10000,)]
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select count(*) from tenk1 t
+where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0)
+  and thousand = 1;
+RESULT:
+	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on tenk1 t',), ('        Recheck Cond: (thousand = 1)',), ('        Filter: (EXISTS(SubPlan 1) OR (ten < 0))',), ('        ->  Bitmap Index Scan on tenk1_thous_tenthous',), ('              Index Cond: (thousand = 1)',), ('        SubPlan 1',), ('          ->  Index Only Scan using tenk1_unique1 on tenk1 k',), ('                Index Cond: (unique1 = t.unique2)',)]
+
+-----------
+QUERY:
+
+select count(*) from tenk1 t
+where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0)
+  and thousand = 1;
+RESULT:
+	postgres: [(10,)]
+
+-----------
+QUERY:
+
+
+-- It/* REPLACED */''s possible for the same EXISTS to get resolved both ways
+create temp table exists_tbl (c1 int, c2 int, c3 int) partition by list (c1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create temp table exists_tbl_null partition of exists_tbl for values in (null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create temp table exists_tbl_def partition of exists_tbl default;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into exists_tbl select x, x/2, x+1 from generate_series(0,10) x;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+analyze exists_tbl;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+explain (costs off)
+select * from exists_tbl t1
+  where (exists(select 1 from exists_tbl t2 where t1.c1 = t2.c2) or c3 < 0);
+RESULT:
+	postgres: [('Append',), ('  ->  Seq Scan on exists_tbl_null t1_1',), ('        Filter: (EXISTS(SubPlan 1) OR (c3 < 0))',), ('        SubPlan 1',), ('          ->  Append',), ('                ->  Seq Scan on exists_tbl_null t2_1',), ('                      Filter: (t1_1.c1 = c2)',), ('                ->  Seq Scan on exists_tbl_def t2_2',), ('                      Filter: (t1_1.c1 = c2)',), ('  ->  Seq Scan on exists_tbl_def t1_2',), ('        Filter: ((ANY (c1 = (hashed SubPlan 2).col1)) OR (c3 < 0))',), ('        SubPlan 2',), ('          ->  Append',), ('                ->  Seq Scan on exists_tbl_null t2_4',), ('                ->  Seq Scan on exists_tbl_def t2_5',)]
+
+-----------
+QUERY:
+
+select * from exists_tbl t1
+  where (exists(select 1 from exists_tbl t2 where t1.c1 = t2.c2) or c3 < 0);
+RESULT:
+	postgres: [(0, 0, 1), (1, 0, 2), (2, 1, 3), (3, 1, 4), (4, 2, 5), (5, 2, 6)]
+
+-----------
+QUERY:
+
+
+--
+-- Test case for planner bug with nested EXISTS handling
+--
+select a.thousand from tenk1 a, tenk1 b
+where a.thousand = b.thousand
+  and exists ( select 1 from tenk1 c where b.hundred = c.hundred
+                   and not exists ( select 1 from tenk1 d
+                                    where a.thousand = d.thousand ) );
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+--
+-- Check that nested sub-selects are not pulled up if they contain volatiles
+--
+explain (verbose, costs off)
+  select x, x from
+    (select (select now()) as x from (values(1),(2)) v(y)) ss;
+RESULT:
+	postgres: [('Values Scan on "*VALUES*"',), ('  Output: (InitPlan 1).col1, (InitPlan 2).col1',), ('  InitPlan 1',), ('    ->  Result',), ('          Output: now()',), ('  InitPlan 2',), ('    ->  Result',), ('          Output: now()',)]
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+  select x, x from
+    (select (select random()) as x from (values(1),(2)) v(y)) ss;
+RESULT:
+	postgres: [('Subquery Scan on ss',), ('  Output: ss.x, ss.x',), ('  ->  Values Scan on "*VALUES*"',), ('        Output: (InitPlan 1).col1',), ('        InitPlan 1',), ('          ->  Result',), ('                Output: random()',)]
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+  select x, x from
+    (select (select now() where y=y) as x from (values(1),(2)) v(y)) ss;
+RESULT:
+	postgres: [('Values Scan on "*VALUES*"',), ('  Output: (SubPlan 1), (SubPlan 2)',), ('  SubPlan 1',), ('    ->  Result',), ('          Output: now()',), ('          One-Time Filter: ("*VALUES*".column1 = "*VALUES*".column1)',), ('  SubPlan 2',), ('    ->  Result',), ('          Output: now()',), ('          One-Time Filter: ("*VALUES*".column1 = "*VALUES*".column1)',)]
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+  select x, x from
+    (select (select random() where y=y) as x from (values(1),(2)) v(y)) ss;
+RESULT:
+	postgres: [('Subquery Scan on ss',), ('  Output: ss.x, ss.x',), ('  ->  Values Scan on "*VALUES*"',), ('        Output: (SubPlan 1)',), ('        SubPlan 1',), ('          ->  Result',), ('                Output: random()',), ('                One-Time Filter: ("*VALUES*".column1 = "*VALUES*".column1)',)]
+
+-----------
+QUERY:
+
+
+--
+-- Test rescan of a hashed subplan (the use of random() is to prevent the
+-- sub-select from being pulled up, which would result in not hashing)
+--
+explain (verbose, costs off)
+select sum(ss.tst::int) from
+  onek o cross join lateral (
+  select i.ten in (select f1 from int4_tbl where f1 <= o.hundred) as tst,
+         random() as r
+  from onek i where i.unique1 = o.unique1 ) ss
+where o.ten = 0;
+RESULT:
+	postgres: [('Aggregate',), ('  Output: sum((((ANY (i.ten = (hashed SubPlan 1).col1))))::integer)',), ('  ->  Nested Loop',), ('        Output: ((ANY (i.ten = (hashed SubPlan 1).col1)))',), ('        ->  Seq Scan on public.onek o',), ('              Output: o.unique1, o.unique2, o.two, o.four, o.ten, o.twenty, o.hundred, o.thousand, o.twothousand, o.fivethous, o.tenthous, o.odd, o.even, o.stringu1, o.stringu2, o.string4',), ('              Filter: (o.ten = 0)',), ('        ->  Index Scan using onek_unique1 on public.onek i',), ('              Output: (ANY (i.ten = (hashed SubPlan 1).col1)), random()',), ('              Index Cond: (i.unique1 = o.unique1)',), ('              SubPlan 1',), ('                ->  Seq Scan on public.int4_tbl',), ('                      Output: int4_tbl.f1',), ('                      Filter: (int4_tbl.f1 <= o.hundred)',)]
+
+-----------
+QUERY:
+
+
+select sum(ss.tst::int) from
+  onek o cross join lateral (
+  select i.ten in (select f1 from int4_tbl where f1 <= o.hundred) as tst,
+         random() as r
+  from onek i where i.unique1 = o.unique1 ) ss
+where o.ten = 0;
+RESULT:
+	postgres: [(100,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test rescan of a SetOp node
+--
+explain (costs off)
+select count(*) from
+  onek o cross join lateral (
+    select * from onek i1 where i1.unique1 = o.unique1
+    except
+    select * from onek i2 where i2.unique1 = o.unique2
+  ) ss
+where o.ten = 1;
+RESULT:
+	postgres: [('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on onek o',), ('              Filter: (ten = 1)',), ('        ->  Subquery Scan on ss',), ('              ->  HashSetOp Except',), ('                    ->  Append',), ('                          ->  Subquery Scan on "*SELECT* 1"',), ('                                ->  Index Scan using onek_unique1 on onek i1',), ('                                      Index Cond: (unique1 = o.unique1)',), ('                          ->  Subquery Scan on "*SELECT* 2"',), ('                                ->  Index Scan using onek_unique1 on onek i2',), ('                                      Index Cond: (unique1 = o.unique2)',)]
+
+-----------
+QUERY:
+
+
+select count(*) from
+  onek o cross join lateral (
+    select * from onek i1 where i1.unique1 = o.unique1
+    except
+    select * from onek i2 where i2.unique1 = o.unique2
+  ) ss
+where o.ten = 1;
+RESULT:
+	postgres: [(100,)]
+
+-----------
+QUERY:
+
+
+--
+-- Test rescan of a RecursiveUnion node
+--
+explain (costs off)
+select sum(o.four), sum(ss.a) from
+  onek o cross join lateral (
+    with recursive x(a) as
+      (select o.four as a
+       union
+       select a + 1 from x
+       where a < 10)
+    select * from x
+  ) ss
+where o.ten = 1;
+RESULT:
+	postgres: [('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on onek o',), ('              Filter: (ten = 1)',), ('        ->  Memoize',), ('              Cache Key: o.four',), ('              Cache Mode: binary',), ('              ->  CTE Scan on x',), ('                    CTE x',), ('                      ->  Recursive Union',), ('                            ->  Result',), ('                            ->  WorkTable Scan on x x_1',), ('                                  Filter: (a < 10)',)]
+
+-----------
+QUERY:
+
+
+select sum(o.four), sum(ss.a) from
+  onek o cross join lateral (
+    with recursive x(a) as
+      (select o.four as a
+       union
+       select a + 1 from x
+       where a < 10)
+    select * from x
+  ) ss
+where o.ten = 1;
+RESULT:
+	postgres: [(1700, 5350)]
+
+-----------
+QUERY:
+
+
+--
+-- Check we don/* REPLACED */''t misoptimize a NOT IN where the subquery returns no rows.
+--
+create temp table notinouter (a int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create temp table notininner (b int not null);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into notinouter values (null), (1);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from notinouter where a not in (select b from notininner);
+RESULT:
+	postgres: [(None,), (1,)]
+
+-----------
+QUERY:
+
+
+--
+-- Check we behave sanely in corner case of empty SELECT list (bug #8648)
+--
+create temp table nocolumns();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select exists(select * from nocolumns);
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+--
+-- Check behavior with a SubPlan in VALUES (bug #14924)
+--
+select val.x
+  from generate_series(1,10) as s(i),
+  lateral (
+    values ((select s.i + 1)), (s.i + 101)
+  ) as val(x)
+where s.i < 10 and (select val.x) < 110;
+RESULT:
+	postgres: [(2,), (102,), (3,), (103,), (4,), (104,), (5,), (105,), (6,), (106,), (7,), (107,), (8,), (108,), (9,), (109,), (10,)]
+
+-----------
+QUERY:
+
+
+-- another variant of that (bug #16213)
+explain (verbose, costs off)
+select * from
+(values
+  (3 not in (select * from (values (1), (2)) ss1)),
+  (false)
+) ss;
+RESULT:
+	postgres: [('Values Scan on "*VALUES*"',), ('  Output: "*VALUES*".column1',), ('  SubPlan 1',), ('    ->  Values Scan on "*VALUES*_1"',), ('          Output: "*VALUES*_1".column1',)]
+
+-----------
+QUERY:
+
+
+select * from
+(values
+  (3 not in (select * from (values (1), (2)) ss1)),
+  (false)
+) ss;
+RESULT:
+	postgres: [(True,), (False,)]
+
+-----------
+QUERY:
+
+
+--
+-- Check sane behavior with nested IN SubLinks
+--
+explain (verbose, costs off)
+select * from int4_tbl where
+  (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in
+  (select ten from tenk1 b);
+RESULT:
+	postgres: [('Nested Loop Semi Join',), ('  Output: int4_tbl.f1',), ('  Join Filter: (CASE WHEN (ANY (int4_tbl.f1 = (hashed SubPlan 1).col1)) THEN int4_tbl.f1 ELSE NULL::integer END = b.ten)',), ('  ->  Seq Scan on public.int4_tbl',), ('        Output: int4_tbl.f1',), ('  ->  Seq Scan on public.tenk1 b',), ('        Output: b.unique1, b.unique2, b.two, b.four, b.ten, b.twenty, b.hundred, b.thousand, b.twothousand, b.fivethous, b.tenthous, b.odd, b.even, b.stringu1, b.stringu2, b.string4',), ('  SubPlan 1',), ('    ->  Index Only Scan using tenk1_unique1 on public.tenk1 a',), ('          Output: a.unique1',)]
+
+-----------
+QUERY:
+
+select * from int4_tbl where
+  (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in
+  (select ten from tenk1 b);
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+--
+-- Check for incorrect optimization when IN subquery contains a SRF
+--
+explain (verbose, costs off)
+select * from int4_tbl o where (f1, f1) in
+  (select f1, generate_series(1,50) / 10 g from int4_tbl i group by f1);
+RESULT:
+	postgres: [('Nested Loop Semi Join',), ('  Output: o.f1',), ('  Join Filter: (o.f1 = "ANY_subquery".f1)',), ('  ->  Seq Scan on public.int4_tbl o',), ('        Output: o.f1',), ('  ->  Materialize',), ('        Output: "ANY_subquery".f1, "ANY_subquery".g',), ('        ->  Subquery Scan on "ANY_subquery"',), ('              Output: "ANY_subquery".f1, "ANY_subquery".g',), ('              Filter: ("ANY_subquery".f1 = "ANY_subquery".g)',), ('              ->  Result',), ('                    Output: i.f1, ((generate_series(1, 50)) / 10)',), ('                    ->  ProjectSet',), ('                          Output: generate_series(1, 50), i.f1',), ('                          ->  HashAggregate',), ('                                Output: i.f1',), ('                                Group Key: i.f1',), ('                                ->  Seq Scan on public.int4_tbl i',), ('                                      Output: i.f1',)]
+
+-----------
+QUERY:
+
+select * from int4_tbl o where (f1, f1) in
+  (select f1, generate_series(1,50) / 10 g from int4_tbl i group by f1);
+RESULT:
+	postgres: [(0,)]
+
+-----------
+QUERY:
+
+
+--
+-- check for over-optimization of whole-row Var referencing an Append plan
+--
+select (select q from
+         (select 1,2,3 where f1 > 0
+          union all
+          select 4,5,6.0 where f1 <= 0
+         ) q )
+from int4_tbl;
+RESULT:
+	postgres: [('(4,5,6.0)',), ('(1,2,3)',), ('(4,5,6.0)',), ('(1,2,3)',), ('(4,5,6.0)',)]
+
+-----------
+QUERY:
+
+
+--
+-- Check for sane handling of a lateral reference in a subquery/* REPLACED */''s quals
+-- (most of the complication here is to prevent the test case from being
+-- flattened too much)
+--
+explain (verbose, costs off)
+select * from
+    int4_tbl i4,
+    lateral (
+        select i4.f1 > 1 as b, 1 as id
+        from (select random() order by 1) as t1
+      union all
+        select true as b, 2 as id
+    ) as t2
+where b and f1 >= 0;
+RESULT:
+	postgres: [('Nested Loop',), ('  Output: i4.f1, ((i4.f1 > 1)), (1)',), ('  ->  Seq Scan on public.int4_tbl i4',), ('        Output: i4.f1',), ('        Filter: (i4.f1 >= 0)',), ('  ->  Append',), ('        ->  Subquery Scan on t1',), ('              Output: (i4.f1 > 1), 1',), ('              Filter: (i4.f1 > 1)',), ('              ->  Sort',), ('                    Output: (random())',), ('                    Sort Key: (random())',), ('                    ->  Result',), ('                          Output: random()',), ('        ->  Result',), ('              Output: true, 2',)]
+
+-----------
+QUERY:
+
+
+select * from
+    int4_tbl i4,
+    lateral (
+        select i4.f1 > 1 as b, 1 as id
+        from (select random() order by 1) as t1
+      union all
+        select true as b, 2 as id
+    ) as t2
+where b and f1 >= 0;
+RESULT:
+	postgres: [(0, True, 2), (123456, True, 1), (123456, True, 2), (2147483647, True, 1), (2147483647, True, 2)]
+
+-----------
+QUERY:
+
+
+--
+-- Check that volatile quals aren/* REPLACED */''t pushed down past a DISTINCT:
+-- nextval() should not be called more than the nominal number of times
+--
+create temp sequence ts1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from
+  (select distinct ten from tenk1) ss
+  where ten < 10 + nextval('ts1')
+  order by 1;
+RESULT:
+	postgres: [(0,), (1,), (2,), (3,), (4,), (5,), (6,), (7,), (8,), (9,)]
+
+-----------
+QUERY:
+
+
+select nextval('ts1');
+RESULT:
+	postgres: [(11,)]
+
+-----------
+QUERY:
+
+
+--
+-- Check that volatile quals aren/* REPLACED */''t pushed down past a set-returning function /* REPLACED */,
+-- while a nonvolatile qual can be, if it doesn/* REPLACED */''t reference the SRF.
+--
+create function tattle(x int, y int) returns bool
+volatile language plpgsql as $$
+begin
+  raise notice 'x = %, y = %', x, y;
+  return x > y;
+end$$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select * from
+  (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
+  where tattle(x, 8);
+RESULT:
+	postgres: [('Subquery Scan on ss',), ('  Output: ss.x, ss.u',), ('  Filter: tattle(ss.x, 8)',), ('  ->  ProjectSet',), ("        Output: 9, unnest('{1,2,3,11,12,13}'::integer[])",), ('        ->  Result',)]
+
+-----------
+QUERY:
+
+
+select * from
+  (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
+  where tattle(x, 8);
+RESULT:
+	postgres: [(9, 1), (9, 2), (9, 3), (9, 11), (9, 12), (9, 13)]
+
+-----------
+QUERY:
+
+
+-- if we pretend it/* REPLACED */''s stable, we get different results:
+alter function tattle(x int, y int) stable;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select * from
+  (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
+  where tattle(x, 8);
+RESULT:
+	postgres: [('ProjectSet',), ("  Output: 9, unnest('{1,2,3,11,12,13}'::integer[])",), ('  ->  Result',), ('        One-Time Filter: tattle(9, 8)',)]
+
+-----------
+QUERY:
+
+
+select * from
+  (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
+  where tattle(x, 8);
+RESULT:
+	postgres: [(9, 1), (9, 2), (9, 3), (9, 11), (9, 12), (9, 13)]
+
+-----------
+QUERY:
+
+
+-- although even a stable qual should not be pushed down if it references SRF
+explain (verbose, costs off)
+select * from
+  (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
+  where tattle(x, u);
+RESULT:
+	postgres: [('Subquery Scan on ss',), ('  Output: ss.x, ss.u',), ('  Filter: tattle(ss.x, ss.u)',), ('  ->  ProjectSet',), ("        Output: 9, unnest('{1,2,3,11,12,13}'::integer[])",), ('        ->  Result',)]
+
+-----------
+QUERY:
+
+
+select * from
+  (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
+  where tattle(x, u);
+RESULT:
+	postgres: [(9, 1), (9, 2), (9, 3)]
+
+-----------
+QUERY:
+
+
+drop function tattle(x int, y int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Test that LIMIT can be pushed to SORT through a subquery that just projects
+-- columns.  We check for that having happened by looking to see if EXPLAIN
+-- ANALYZE shows that a top-N sort was used.  We must suppress or filter away
+-- all the non-invariant parts of the EXPLAIN ANALYZE output.
+--
+create table sq_limit (pk int primary key, c1 int, c2 int);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into sq_limit values
+    (1, 1, 1),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (5, 1, 1),
+    (6, 2, 2),
+    (7, 3, 3),
+    (8, 4, 4);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create function explain_sq_limit() returns setof text language plpgsql as
+$$
+declare ln text;
+begin
+    for ln in
+        explain (analyze, summary off, timing off, costs off)
+        select * from (select pk,c2 from sq_limit order by c1,pk) as x limit 3
+    loop
+        ln := regexp_replace(ln, 'Memory: \S*',  'Memory: xxx');
+        return next ln;
+    end loop;
+end;
+$$;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from explain_sq_limit();
+RESULT:
+	postgres: [('Limit (actual rows=3 loops=1)',), ('  ->  Subquery Scan on x (actual rows=3 loops=1)',), ('        ->  Sort (actual rows=3 loops=1)',), ('              Sort Key: sq_limit.c1, sq_limit.pk',), ('              Sort Method: top-N heapsort  Memory: xxx',), ('              ->  Seq Scan on sq_limit (actual rows=8 loops=1)',)]
+
+-----------
+QUERY:
+
+
+select * from (select pk,c2 from sq_limit order by c1,pk) as x limit 3;
+RESULT:
+	postgres: [(1, 1), (5, 1), (2, 2)]
+
+-----------
+QUERY:
+
+
+drop function explain_sq_limit();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+drop table sq_limit;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Ensure that backward scan direction isn/* REPLACED */''t propagated into
+-- expression subqueries (bug #15336)
+--
+
+begin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+declare c1 scroll cursor for
+ select * from generate_series(1,4) i
+  where i <> all (values (2),(3));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+move forward all in c1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+fetch backward all in c1;
+RESULT:
+	postgres: [(4,), (1,)]
+
+-----------
+QUERY:
+
+
+commit;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Tests for CTE inlining behavior
+--
+
+-- Basic subquery that can be inlined
+explain (verbose, costs off)
+with x as (select * from (select f1 from subselect_tbl) ss)
+select * from x where f1 = 1;
+RESULT:
+	postgres: [('Seq Scan on public.subselect_tbl',), ('  Output: subselect_tbl.f1',), ('  Filter: (subselect_tbl.f1 = 1)',)]
+
+-----------
+QUERY:
+
+
+-- Explicitly request materialization
+explain (verbose, costs off)
+with x as materialized (select * from (select f1 from subselect_tbl) ss)
+select * from x where f1 = 1;
+RESULT:
+	postgres: [('CTE Scan on x',), ('  Output: x.f1',), ('  Filter: (x.f1 = 1)',), ('  CTE x',), ('    ->  Seq Scan on public.subselect_tbl',), ('          Output: subselect_tbl.f1',)]
+
+-----------
+QUERY:
+
+
+-- Stable functions are safe to inline
+explain (verbose, costs off)
+with x as (select * from (select f1, now() from subselect_tbl) ss)
+select * from x where f1 = 1;
+RESULT:
+	postgres: [('Seq Scan on public.subselect_tbl',), ('  Output: subselect_tbl.f1, now()',), ('  Filter: (subselect_tbl.f1 = 1)',)]
+
+-----------
+QUERY:
+
+
+-- Volatile functions prevent inlining
+explain (verbose, costs off)
+with x as (select * from (select f1, random() from subselect_tbl) ss)
+select * from x where f1 = 1;
+RESULT:
+	postgres: [('CTE Scan on x',), ('  Output: x.f1, x.random',), ('  Filter: (x.f1 = 1)',), ('  CTE x',), ('    ->  Seq Scan on public.subselect_tbl',), ('          Output: subselect_tbl.f1, random()',)]
+
+-----------
+QUERY:
+
+
+-- SELECT FOR UPDATE cannot be inlined
+explain (verbose, costs off)
+with x as (select * from (select f1 from subselect_tbl for update) ss)
+select * from x where f1 = 1;
+RESULT:
+	postgres: [('CTE Scan on x',), ('  Output: x.f1',), ('  Filter: (x.f1 = 1)',), ('  CTE x',), ('    ->  Subquery Scan on ss',), ('          Output: ss.f1',), ('          ->  LockRows',), ('                Output: subselect_tbl.f1, subselect_tbl.ctid',), ('                ->  Seq Scan on public.subselect_tbl',), ('                      Output: subselect_tbl.f1, subselect_tbl.ctid',)]
+
+-----------
+QUERY:
+
+
+-- Multiply-referenced CTEs are inlined only when requested
+explain (verbose, costs off)
+with x as (select * from (select f1, now() as n from subselect_tbl) ss)
+select * from x, x x2 where x.n = x2.n;
+RESULT:
+	postgres: [('Merge Join',), ('  Output: x.f1, x.n, x2.f1, x2.n',), ('  Merge Cond: (x.n = x2.n)',), ('  CTE x',), ('    ->  Seq Scan on public.subselect_tbl',), ('          Output: subselect_tbl.f1, now()',), ('  ->  Sort',), ('        Output: x.f1, x.n',), ('        Sort Key: x.n',), ('        ->  CTE Scan on x',), ('              Output: x.f1, x.n',), ('  ->  Sort',), ('        Output: x2.f1, x2.n',), ('        Sort Key: x2.n',), ('        ->  CTE Scan on x x2',), ('              Output: x2.f1, x2.n',)]
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+with x as not materialized (select * from (select f1, now() as n from subselect_tbl) ss)
+select * from x, x x2 where x.n = x2.n;
+RESULT:
+	postgres: [('Result',), ('  Output: subselect_tbl.f1, now(), subselect_tbl_1.f1, now()',), ('  One-Time Filter: (now() = now())',), ('  ->  Nested Loop',), ('        Output: subselect_tbl.f1, subselect_tbl_1.f1',), ('        ->  Seq Scan on public.subselect_tbl',), ('              Output: subselect_tbl.f1, subselect_tbl.f2, subselect_tbl.f3',), ('        ->  Materialize',), ('              Output: subselect_tbl_1.f1',), ('              ->  Seq Scan on public.subselect_tbl subselect_tbl_1',), ('                    Output: subselect_tbl_1.f1',)]
+
+-----------
+QUERY:
+
+
+-- Multiply-referenced CTEs can/* REPLACED */''t be inlined if they contain outer self-refs
+explain (verbose, costs off)
+with recursive x(a) as
+  ((values ('a'), ('b'))
+   union all
+   (with z as not materialized (select * from x)
+    select z.a || z1.a as a from z cross join z as z1
+    where length(z.a || z1.a) < 5))
+select * from x;
+RESULT:
+	postgres: [('CTE Scan on x',), ('  Output: x.a',), ('  CTE x',), ('    ->  Recursive Union',), ('          ->  Values Scan on "*VALUES*"',), ('                Output: "*VALUES*".column1',), ('          ->  Nested Loop',), ('                Output: (z.a || z1.a)',), ('                Join Filter: (length((z.a || z1.a)) < 5)',), ('                CTE z',), ('                  ->  WorkTable Scan on x x_1',), ('                        Output: x_1.a',), ('                ->  CTE Scan on z',), ('                      Output: z.a',), ('                ->  CTE Scan on z z1',), ('                      Output: z1.a',)]
+
+-----------
+QUERY:
+
+
+with recursive x(a) as
+  ((values ('a'), ('b'))
+   union all
+   (with z as not materialized (select * from x)
+    select z.a || z1.a as a from z cross join z as z1
+    where length(z.a || z1.a) < 5))
+select * from x;
+RESULT:
+	postgres: [('a',), ('b',), ('aa',), ('ab',), ('ba',), ('bb',), ('aaaa',), ('aaab',), ('aaba',), ('aabb',), ('abaa',), ('abab',), ('abba',), ('abbb',), ('baaa',), ('baab',), ('baba',), ('babb',), ('bbaa',), ('bbab',), ('bbba',), ('bbbb',)]
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+with recursive x(a) as
+  ((values ('a'), ('b'))
+   union all
+   (with z as not materialized (select * from x)
+    select z.a || z.a as a from z
+    where length(z.a || z.a) < 5))
+select * from x;
+RESULT:
+	postgres: [('CTE Scan on x',), ('  Output: x.a',), ('  CTE x',), ('    ->  Recursive Union',), ('          ->  Values Scan on "*VALUES*"',), ('                Output: "*VALUES*".column1',), ('          ->  WorkTable Scan on x x_1',), ('                Output: (x_1.a || x_1.a)',), ('                Filter: (length((x_1.a || x_1.a)) < 5)',)]
+
+-----------
+QUERY:
+
+
+with recursive x(a) as
+  ((values ('a'), ('b'))
+   union all
+   (with z as not materialized (select * from x)
+    select z.a || z.a as a from z
+    where length(z.a || z.a) < 5))
+select * from x;
+RESULT:
+	postgres: [('a',), ('b',), ('aa',), ('bb',), ('aaaa',), ('bbbb',)]
+
+-----------
+QUERY:
+
+
+-- Check handling of outer references
+explain (verbose, costs off)
+with x as (select * from int4_tbl)
+select * from (with y as (select * from x) select * from y) ss;
+RESULT:
+	postgres: [('Seq Scan on public.int4_tbl',), ('  Output: int4_tbl.f1',)]
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+with x as materialized (select * from int4_tbl)
+select * from (with y as (select * from x) select * from y) ss;
+RESULT:
+	postgres: [('CTE Scan on x',), ('  Output: x.f1',), ('  CTE x',), ('    ->  Seq Scan on public.int4_tbl',), ('          Output: int4_tbl.f1',)]
+
+-----------
+QUERY:
+
+
+-- Ensure that we inline the correct CTE when there are
+-- multiple CTEs with the same name
+explain (verbose, costs off)
+with x as (select 1 as y)
+select * from (with x as (select 2 as y) select * from x) ss;
+RESULT:
+	postgres: [('Result',), ('  Output: 2',)]
+
+-----------
+QUERY:
+
+
+-- Row marks are not pushed into CTEs
+explain (verbose, costs off)
+with x as (select * from subselect_tbl)
+select * from x for update;
+RESULT:
+	postgres: [('Seq Scan on public.subselect_tbl',), ('  Output: subselect_tbl.f1, subselect_tbl.f2, subselect_tbl.f3',)]
+
+-----------
+QUERY:
+
+
+-- Pull-up the direct-correlated ANY_SUBLINK
+explain (costs off)
+select * from tenk1 A where hundred in (select hundred from tenk2 B where B.odd = A.odd);
+RESULT:
+	postgres: [('Hash Join',), ('  Hash Cond: ((a.odd = b.odd) AND (a.hundred = b.hundred))',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Hash',), ('        ->  HashAggregate',), ('              Group Key: b.odd, b.hundred',), ('              ->  Seq Scan on tenk2 b',)]
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select * from tenk1 A where exists
+(select 1 from tenk2 B
+where A.hundred in (select C.hundred FROM tenk2 C
+WHERE c.odd = b.odd));
+RESULT:
+	postgres: [('Nested Loop Semi Join',), ('  Join Filter: (ANY (a.hundred = (SubPlan 1).col1))',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Materialize',), ('        ->  Seq Scan on tenk2 b',), ('  SubPlan 1',), ('    ->  Seq Scan on tenk2 c',), ('          Filter: (odd = b.odd)',)]
+
+-----------
+QUERY:
+
+
+-- we should only try to pull up the sublink into RHS of a left join
+-- but a.hundred is not avaiable.
+explain (costs off)
+SELECT * FROM tenk1 A LEFT JOIN tenk2 B
+ON A.hundred in (SELECT c.hundred FROM tenk2 C WHERE c.odd = b.odd);
+RESULT:
+	postgres: [('Nested Loop Left Join',), ('  Join Filter: (ANY (a.hundred = (SubPlan 1).col1))',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Materialize',), ('        ->  Seq Scan on tenk2 b',), ('  SubPlan 1',), ('    ->  Seq Scan on tenk2 c',), ('          Filter: (odd = b.odd)',)]
+
+-----------
+QUERY:
+
+
+-- we should only try to pull up the sublink into RHS of a left join
+-- but a.odd is not avaiable for this.
+explain (costs off)
+SELECT * FROM tenk1 A LEFT JOIN tenk2 B
+ON B.hundred in (SELECT c.hundred FROM tenk2 C WHERE c.odd = a.odd);
+RESULT:
+	postgres: [('Nested Loop Left Join',), ('  Join Filter: (ANY (b.hundred = (SubPlan 1).col1))',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Materialize',), ('        ->  Seq Scan on tenk2 b',), ('  SubPlan 1',), ('    ->  Seq Scan on tenk2 c',), ('          Filter: (odd = a.odd)',)]
+
+-----------
+QUERY:
+
+
+-- should be able to pull up since all the references is available
+explain (costs off)
+SELECT * FROM tenk1 A LEFT JOIN tenk2 B
+ON B.hundred in (SELECT c.hundred FROM tenk2 C WHERE c.odd = b.odd);
+RESULT:
+	postgres: [('Nested Loop Left Join',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Materialize',), ('        ->  Hash Join',), ('              Hash Cond: ((b.odd = c.odd) AND (b.hundred = c.hundred))',), ('              ->  Seq Scan on tenk2 b',), ('              ->  Hash',), ('                    ->  HashAggregate',), ('                          Group Key: c.odd, c.hundred',), ('                          ->  Seq Scan on tenk2 c',)]
+
+-----------
+QUERY:
+
+
+-- we can pull up the sublink into the inner JoinExpr.
+explain (costs off)
+SELECT * FROM tenk1 A INNER JOIN tenk2 B
+ON A.hundred in (SELECT c.hundred FROM tenk2 C WHERE c.odd = b.odd);
+RESULT:
+	postgres: [('Hash Join',), ('  Hash Cond: (c.odd = b.odd)',), ('  ->  Hash Join',), ('        Hash Cond: (a.hundred = c.hundred)',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Hash',), ('              ->  HashAggregate',), ('                    Group Key: c.odd, c.hundred',), ('                    ->  Seq Scan on tenk2 c',), ('  ->  Hash',), ('        ->  Seq Scan on tenk2 b',)]
+
+-----------
+QUERY:
+
+
+-- we can pull up the aggregate sublink into RHS of a left join.
+explain (costs off)
+SELECT * FROM tenk1 A LEFT JOIN tenk2 B
+ON B.hundred in (SELECT min(c.hundred) FROM tenk2 C WHERE c.odd = b.odd);
+RESULT:
+	postgres: [('Nested Loop Left Join',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Materialize',), ('        ->  Nested Loop',), ('              ->  Seq Scan on tenk2 b',), ('              ->  Memoize',), ('                    Cache Key: b.hundred, b.odd',), ('                    Cache Mode: binary',), ('                    ->  Subquery Scan on "ANY_subquery"',), ('                          Filter: (b.hundred = "ANY_subquery".min)',), ('                          ->  Result',), ('                                InitPlan 1',), ('                                  ->  Limit',), ('                                        ->  Index Scan using tenk2_hundred on tenk2 c',), ('                                              Index Cond: (hundred IS NOT NULL)',), ('                                              Filter: (odd = b.odd)',)]

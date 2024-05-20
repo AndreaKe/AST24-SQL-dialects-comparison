@@ -1,41 +1,66 @@
+
+-----------
+QUERY:
 --
 -- Verify that index scans encountering dead rows produced by an
 -- aborted subtransaction of the current transaction can utilize the
 -- kill_prior_tuple optimization
 --
 -- NB: The table size is currently *not* expected to stay the same, we
--- don''t have logic to trigger opportunistic pruning in cases like
+-- don/* REPLACED */''t have logic to trigger opportunistic pruning in cases like
 -- this.
-BEGIN
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET LOCAL enable_seqscan = false
-ERROR: 
+SET LOCAL enable_seqscan = false;
+RESULT:
+	ERROR - Not implemented Error: SET LOCAL is not implemented.
 
-SET LOCAL enable_seqscan = false
+-----------
+QUERY:
 
-Not implemented Error: SET LOCAL is not implemented.
+SET LOCAL enable_indexonlyscan = false;
+RESULT:
+	ERROR - Not implemented Error: SET LOCAL is not implemented.
 
-SET LOCAL enable_indexonlyscan = false
-ERROR: 
-SET LOCAL enable_indexonlyscan = false
+-----------
+QUERY:
 
-Not implemented Error: SET LOCAL is not implemented.
+SET LOCAL enable_bitmapscan = false;
+RESULT:
+	ERROR - Not implemented Error: SET LOCAL is not implemented.
 
-SET LOCAL enable_bitmapscan = false
-ERROR: 
-SET LOCAL enable_bitmapscan = false
-
-Not implemented Error: SET LOCAL is not implemented.
+-----------
+QUERY:
 
 
--- Can''t easily use a unique index, since dead tuples can be found
+-- Can/* REPLACED */''t easily use a unique index, since dead tuples can be found
 -- independent of the kill_prior_tuples optimization.
-CREATE TABLE clean_aborted_self(key int, data text)
+CREATE TABLE clean_aborted_self(key int, data text);
+RESULT:
+	[]
 
-CREATE INDEX clean_aborted_self_key ON clean_aborted_self(key)
+-----------
+QUERY:
 
-INSERT INTO clean_aborted_self (key, data) VALUES (-1, 'just to allocate metapage')
+CREATE INDEX clean_aborted_self_key ON clean_aborted_self(key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO clean_aborted_self (key, data) VALUES (-1, 'just to allocate metapage');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- save index size from before the changes, for comparison
@@ -51,47 +76,28 @@ BEGIN
 	        RAISE data_corrupted USING MESSAGE = 'these rows should not exist';
             END IF;
             INSERT INTO clean_aborted_self SELECT g.i, 'rolling back in a sec' FROM generate_series(1, 100) g(i);
-	    -- just some error that''s not normally thrown
+	    -- just some error that/* REPLACED */''s not normally thrown
 	    RAISE reading_sql_data_not_permitted USING MESSAGE = 'round and round again';
 	EXCEPTION WHEN reading_sql_data_not_permitted THEN END;
     END LOOP;
-END;$$
-ERROR: 
+END;$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
 
--- save index size from before the changes, for comparison
-SELECT pg_relation_size('clean_aborted_self_key') AS clean_aborted_self_key_before \gset
-
-DO $$
-BEGIN
-    -- iterate often enough to see index growth even on larger-than-default page sizes
-    FOR i IN 1..100 LOOP
-        BEGIN
-	    -- perform index scan over all the inserted keys to get them to be seen as dead
-            IF EXISTS(SELECT * FROM clean_aborted_self WHERE key > 0 AND key < 100) THEN
-	        RAISE data_corrupted USING MESSAGE = 'these rows should not exist';
-            END IF;
-            INSERT INTO clean_aborted_self SELECT g.i, 'rolling back in a sec' FROM generate_series(1, 100) g(i);
-	    -- just some error that''s not normally thrown
-	    RAISE reading_sql_data_not_permitted USING MESSAGE = 'round and round again';
-	EXCEPTION WHEN reading_sql_data_not_permitted THEN END;
-    END LOOP;
-END;$$
-
-Parser Error: syntax error at or near "\"
+-----------
+QUERY:
 
 
 -- show sizes only if they differ
 SELECT :clean_aborted_self_key_before AS size_before, pg_relation_size('clean_aborted_self_key') size_after
-WHERE :clean_aborted_self_key_before != pg_relation_size('clean_aborted_self_key')
-ERROR: 
+WHERE :clean_aborted_self_key_before != pg_relation_size('clean_aborted_self_key');
+RESULT:
+	ERROR - Parser Error: syntax error at or near ":"
 
--- show sizes only if they differ
-SELECT :clean_aborted_self_key_before AS size_before, pg_relation_size('clean_aborted_self_key') size_after
-WHERE :clean_aborted_self_key_before != pg_relation_size('clean_aborted_self_key')
-
-Parser Error: syntax error at or near ":"
+-----------
+QUERY:
 
 
-ROLLBACK
-
-
+ROLLBACK;
+RESULT:
+	[]

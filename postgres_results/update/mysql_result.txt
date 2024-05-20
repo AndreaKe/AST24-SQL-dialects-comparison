@@ -1,0 +1,2483 @@
+
+-----------
+QUERY:
+--
+-- UPDATE syntax tests
+--
+
+CREATE TABLE update_test (
+    a   INT DEFAULT 10,
+    b   INT,
+    c   TEXT
+);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+CREATE TABLE upsert_test (
+    a   INT PRIMARY KEY,
+    b   TEXT
+);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO update_test VALUES (5, 10, 'foo');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO update_test(b, a) VALUES (15, 10);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((5, 10, 'foo'), (10, 15, None))
+
+-----------
+QUERY:
+
+
+UPDATE update_test SET a = DEFAULT, b = DEFAULT;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, None, 'foo'), (10, None, None))
+
+-----------
+QUERY:
+
+
+-- aliases for the UPDATE target table
+UPDATE update_test AS t SET b = 10 WHERE t.a = 10;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 10, 'foo'), (10, 10, None))
+
+-----------
+QUERY:
+
+
+UPDATE update_test t SET b = t.b + 10 WHERE t.a = 10;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 20, 'foo'), (10, 20, None))
+
+-----------
+QUERY:
+
+
+-- error, you/* REPLACED */''re not supposed to qualify the target column
+UPDATE update_test t SET t.b = t.b + 10 WHERE t.a = 10;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+--
+-- Test VALUES in FROM
+--
+
+UPDATE update_test SET a=v.i FROM (VALUES(100, 20)) AS v(i, j)
+  WHERE update_test.b = v.j;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FROM (VALUES(100, 20)) AS v(i, j)\n  WHERE update_test.b = v.j' at line 5")
+
+-----------
+QUERY:
+
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None))
+
+-----------
+QUERY:
+
+
+-- fail, wrong data type:
+UPDATE update_test SET a = v.* FROM (VALUES(100, 20)) AS v(i, j)
+  WHERE update_test.b = v.j;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '* FROM (VALUES(100, 20)) AS v(i, j)\n  WHERE update_test.b = v.j' at line 2")
+
+-----------
+QUERY:
+
+
+--
+-- Test multiple-set-clause syntax
+--
+
+INSERT INTO update_test SELECT a,b+1,c FROM update_test;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None), (10, 31, 'foo'), (10, 31, None))
+
+-----------
+QUERY:
+
+
+UPDATE update_test SET (c,b,a) = ('bugle', b+11, DEFAULT) WHERE c = 'foo';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(c,b,a) = ('bugle', b+11, DEFAULT) WHERE c = 'foo'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None), (10, 31, 'foo'), (10, 31, None))
+
+-----------
+QUERY:
+
+UPDATE update_test SET (c,b) = ('car', a+b), a = a + 1 WHERE a = 10;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(c,b) = ('car', a+b), a = a + 1 WHERE a = 10' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None), (10, 31, 'foo'), (10, 31, None))
+
+-----------
+QUERY:
+
+-- fail, multi assignment to same column:
+UPDATE update_test SET (c,b) = ('car', a+b), b = a + 1 WHERE a = 10;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(c,b) = ('car', a+b), b = a + 1 WHERE a = 10' at line 2")
+
+-----------
+QUERY:
+
+
+-- uncorrelated sub-select:
+UPDATE update_test
+  SET (b,a) = (select a,b from update_test where b = 41 and c = 'car')
+  WHERE a = 100 AND b = 20;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(b,a) = (select a,b from update_test where b = 41 and c = 'car')\n  WHERE a = 100' at line 3")
+
+-----------
+QUERY:
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None), (10, 31, 'foo'), (10, 31, None))
+
+-----------
+QUERY:
+
+-- correlated sub-select:
+UPDATE update_test o
+  SET (b,a) = (select a+1,b from update_test i
+               where i.a=o.a and i.b=o.b and i.c is not distinct from o.c);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(b,a) = (select a+1,b from update_test i\n               where i.a=o.a and i.b=o.' at line 3")
+
+-----------
+QUERY:
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None), (10, 31, 'foo'), (10, 31, None))
+
+-----------
+QUERY:
+
+-- fail, multiple rows supplied:
+UPDATE update_test SET (b,a) = (select a+1,b from update_test);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(b,a) = (select a+1,b from update_test)' at line 2")
+
+-----------
+QUERY:
+
+-- set to null if no rows supplied:
+UPDATE update_test SET (b,a) = (select a+1,b from update_test where a = 1000)
+  WHERE a = 11;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(b,a) = (select a+1,b from update_test where a = 1000)\n  WHERE a = 11' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 'foo'), (10, 30, None), (10, 31, 'foo'), (10, 31, None))
+
+-----------
+QUERY:
+
+-- *-expansion should work in this context:
+UPDATE update_test SET (a,b) = ROW(v.*) FROM (VALUES(21, 100)) AS v(i, j)
+  WHERE update_test.a = v.i;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b) = ROW(v.*) FROM (VALUES(21, 100)) AS v(i, j)\n  WHERE update_test.a = v.i' at line 2")
+
+-----------
+QUERY:
+
+-- you might expect this to work, but syntactically it/* REPLACED */''s not a RowExpr:
+UPDATE update_test SET (a,b) = (v.*) FROM (VALUES(21, 101)) AS v(i, j)
+  WHERE update_test.a = v.i;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a,b) = (v.*) FROM (VALUES(21, 101)) AS v(i, j)\n  WHERE update_test.a = v.i' at line 2")
+
+-----------
+QUERY:
+
+
+-- if an alias for the target table is specified, don/* REPLACED */''t allow references
+-- to the original table name
+UPDATE update_test AS t SET b = update_test.b + 10 WHERE t.a = 10;
+RESULT:
+	mySQL: ERROR - (1054, "Unknown column 'update_test.b' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- Make sure that we can update to a TOASTed value.
+UPDATE update_test SET c = repeat('x', 10000) WHERE c = 'car';
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT a, b, char_length(c) FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 3), (10, 30, None), (10, 31, 3), (10, 31, None))
+
+-----------
+QUERY:
+
+
+-- Check multi-assignment with a Result node to handle a one-time filter.
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE update_test t
+  SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
+  WHERE CURRENT_USER = SESSION_USER;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE, COSTS OFF)\nUPDATE update_test t\n  SET (a, b) = (SELECT b, a FROM update' at line 2")
+
+-----------
+QUERY:
+
+UPDATE update_test t
+  SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
+  WHERE CURRENT_USER = SESSION_USER;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)\n  WHERE CURRENT_USER =' at line 2")
+
+-----------
+QUERY:
+
+SELECT a, b, char_length(c) FROM update_test;
+RESULT:
+	mySQL: ((10, 30, 3), (10, 30, None), (10, 31, 3), (10, 31, None))
+
+-----------
+QUERY:
+
+
+-- Test ON CONFLICT DO UPDATE
+
+INSERT INTO upsert_test VALUES(1, 'Boo'), (3, 'Zoo');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+-- uncorrelated  sub-select:
+WITH aaa AS (SELECT 1 AS a, 'Foo' AS b) INSERT INTO upsert_test
+  VALUES (1, 'Bar') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT b, a FROM aaa) RETURNING *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INSERT INTO upsert_test\n  VALUES (1, 'Bar') ON CONFLICT(a)\n  DO UPDATE SET (b, a' at line 2")
+
+-----------
+QUERY:
+
+-- correlated sub-select:
+INSERT INTO upsert_test VALUES (1, 'Baz'), (3, 'Zaz') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT b || ', Correlated', a from upsert_test i WHERE i.a = upsert_test.a)
+  RETURNING *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CONFLICT(a)\n  DO UPDATE SET (b, a) = (SELECT b || ', Correlated', a from upsert_' at line 2")
+
+-----------
+QUERY:
+
+-- correlated sub-select (EXCLUDED.* alias):
+INSERT INTO upsert_test VALUES (1, 'Bat'), (3, 'Zot') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
+  RETURNING *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CONFLICT(a)\n  DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_te' at line 2")
+
+-----------
+QUERY:
+
+
+-- ON CONFLICT using system attributes in RETURNING, testing both the
+-- inserting and updating paths. See bug report at:
+-- https://www.postgresql.org/message-id/73436355-6432-49B1-92ED-1FE4F7E7E100%40finefun.com.au
+INSERT INTO upsert_test VALUES (2, 'Beeble') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
+  RETURNING tableoid::regclass, xmin = pg_current_xact_id()::xid AS xmin_correct, xmax = 0 AS xmax_correct;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CONFLICT(a)\n  DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_te' at line 4")
+
+-----------
+QUERY:
+
+-- currently xmax is set after a conflict - that/* REPLACED */''s probably not good,
+-- but it seems worthwhile to have to be explicit if that changes.
+INSERT INTO upsert_test VALUES (2, 'Brox') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
+  RETURNING tableoid::regclass, xmin = pg_current_xact_id()::xid AS xmin_correct, xmax = pg_current_xact_id()::xid AS xmax_correct;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CONFLICT(a)\n  DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_te' at line 3")
+
+-----------
+QUERY:
+
+
+DROP TABLE update_test;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+DROP TABLE upsert_test;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- Test ON CONFLICT DO UPDATE with partitioned table and non-identical children
+
+CREATE TABLE upsert_test (
+    a   INT PRIMARY KEY,
+    b   TEXT
+) PARTITION BY LIST (a);
+RESULT:
+	mySQL: ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+
+CREATE TABLE upsert_test_1 PARTITION OF upsert_test FOR VALUES IN (1);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF upsert_test FOR VALUES IN (1)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE upsert_test_2 (b TEXT, a INT PRIMARY KEY);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+ALTER TABLE upsert_test ATTACH PARTITION upsert_test_2 FOR VALUES IN (2);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION upsert_test_2 FOR VALUES IN (2)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO upsert_test VALUES(1, 'Boo'), (2, 'Zoo');
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.upsert_test' doesn't exist")
+
+-----------
+QUERY:
+
+-- uncorrelated sub-select:
+WITH aaa AS (SELECT 1 AS a, 'Foo' AS b) INSERT INTO upsert_test
+  VALUES (1, 'Bar') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT b, a FROM aaa) RETURNING *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INSERT INTO upsert_test\n  VALUES (1, 'Bar') ON CONFLICT(a)\n  DO UPDATE SET (b, a' at line 2")
+
+-----------
+QUERY:
+
+-- correlated sub-select:
+WITH aaa AS (SELECT 1 AS ctea, ' Foo' AS cteb) INSERT INTO upsert_test
+  VALUES (1, 'Bar'), (2, 'Baz') ON CONFLICT(a)
+  DO UPDATE SET (b, a) = (SELECT upsert_test.b||cteb, upsert_test.a FROM aaa) RETURNING *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INSERT INTO upsert_test\n  VALUES (1, 'Bar'), (2, 'Baz') ON CONFLICT(a)\n  DO UPDA' at line 2")
+
+-----------
+QUERY:
+
+
+DROP TABLE upsert_test;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.upsert_test'")
+
+-----------
+QUERY:
+
+
+
+---------------------------
+-- UPDATE with row movement
+---------------------------
+
+-- When a partitioned table receives an UPDATE to the partitioned key and the
+-- new values no longer meet the partition/* REPLACED */''s bound, the row must be moved to
+-- the correct partition for the new partition key (if one exists). We must
+-- also ensure that updatable views on partitioned tables properly enforce any
+-- WITH CHECK OPTION that is defined. The situation with triggers in this case
+-- also requires thorough testing as partition key updates causing row
+-- movement convert UPDATEs into DELETE+INSERT.
+
+CREATE TABLE range_parted (
+	a text,
+	b bigint,
+	c numeric,
+	d int,
+	e varchar
+) PARTITION BY RANGE (a, b);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '---------------------------\n-- UPDATE with row movement\n------------------------' at line 1")
+
+-----------
+QUERY:
+
+
+-- Create partitions intentionally in descending bound order, so as to test
+-- that update-row-movement works with the leaf partitions not in bound order.
+CREATE TABLE part_b_20_b_30 (e varchar, c numeric, a text, b bigint, d int);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', c numeric, a text, b bigint, d int)' at line 3")
+
+-----------
+QUERY:
+
+ALTER TABLE range_parted ATTACH PARTITION part_b_20_b_30 FOR VALUES FROM ('b', 20) TO ('b', 30);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION part_b_20_b_30 FOR VALUES FROM ('b', 20) TO ('b', 30)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE part_b_10_b_20 (e varchar, c numeric, a text, b bigint, d int) PARTITION BY RANGE (c);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', c numeric, a text, b bigint, d int) PARTITION BY RANGE (c)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE part_b_1_b_10 PARTITION OF range_parted FOR VALUES FROM ('b', 1) TO ('b', 10);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF range_parted FOR VALUES FROM ('b', 1) TO ('b', 10)' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE range_parted ATTACH PARTITION part_b_10_b_20 FOR VALUES FROM ('b', 10) TO ('b', 20);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION part_b_10_b_20 FOR VALUES FROM ('b', 10) TO ('b', 20)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE part_a_10_a_20 PARTITION OF range_parted FOR VALUES FROM ('a', 10) TO ('a', 20);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF range_parted FOR VALUES FROM ('a', 10) TO ('a', 20)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE part_a_1_a_10 PARTITION OF range_parted FOR VALUES FROM ('a', 1) TO ('a', 10);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF range_parted FOR VALUES FROM ('a', 1) TO ('a', 10)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check that partition-key UPDATE works sanely on a partitioned table that
+-- does not have any child partitions.
+UPDATE part_b_10_b_20 set b = b - 6;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_b_10_b_20' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Create some more partitions following the above pattern of descending bound
+-- order, but let/* REPLACED */''s make the situation a bit more complex by having the
+-- attribute numbers of the columns vary from their parent partition.
+CREATE TABLE part_c_100_200 (e varchar, c numeric, a text, b bigint, d int) PARTITION BY range (abs(d));
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', c numeric, a text, b bigint, d int) PARTITION BY range (abs(d))' at line 4")
+
+-----------
+QUERY:
+
+ALTER TABLE part_c_100_200 DROP COLUMN e, DROP COLUMN c, DROP COLUMN a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_c_100_200' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER TABLE part_c_100_200 ADD COLUMN c numeric, ADD COLUMN e varchar, ADD COLUMN a text;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', ADD COLUMN a text' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE part_c_100_200 DROP COLUMN b;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_c_100_200' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER TABLE part_c_100_200 ADD COLUMN b bigint;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_c_100_200' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE TABLE part_d_1_15 PARTITION OF part_c_100_200 FOR VALUES FROM (1) TO (15);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF part_c_100_200 FOR VALUES FROM (1) TO (15)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE part_d_15_20 PARTITION OF part_c_100_200 FOR VALUES FROM (15) TO (20);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF part_c_100_200 FOR VALUES FROM (15) TO (20)' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_100_200 FOR VALUES FROM (100) TO (200);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION part_c_100_200 FOR VALUES FROM (100) TO (200)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE part_c_1_100 (e varchar, d int, c numeric, b bigint, a text);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', d int, c numeric, b bigint, a text)' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_1_100 FOR VALUES FROM (1) TO (100);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION part_c_1_100 FOR VALUES FROM (1) TO (100)' at line 1")
+
+-----------
+QUERY:
+
+
+-- \set init_range_parted 'truncate range_parted;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)'
+-- \set show_data 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- The order of subplans should be in bound order
+EXPLAIN (costs off) UPDATE range_parted set c = c - 50 WHERE c > 97;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) UPDATE range_parted set c = c - 50 WHERE c > 97' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail, row movement happens only within the partition subtree.
+UPDATE part_c_100_200 set c = c - 20, d = c WHERE c = 105;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_c_100_200' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail, no partition key update, so no attempt to move tuple,
+-- but /* REPLACED */''a = /* REPLACED */''a/* REPLACED */''/* REPLACED */'' violates partition constraint enforced by root partition)
+UPDATE part_b_10_b_20 set a = 'a';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_b_10_b_20' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok, partition key update, no constraint violation
+UPDATE range_parted set d = d - 10 WHERE d > 10;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok, no partition key update, no constraint violation
+UPDATE range_parted set e = d;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- No row found
+UPDATE part_c_1_100 set c = c + 20 WHERE c = 98;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_c_1_100' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok, row movement
+UPDATE part_b_10_b_20 set c = c + 20 returning c, b, a;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning c, b, a' at line 2")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- fail, row movement happens only within the partition subtree.
+UPDATE part_b_10_b_20 set b = b - 6 WHERE c > 116 returning *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning *' at line 2")
+
+-----------
+QUERY:
+
+-- ok, row movement, with subset of rows moved into different partition.
+UPDATE range_parted set b = b - 6 WHERE c > 116 returning a, b + c;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning a, b + c' at line 2")
+
+-----------
+QUERY:
+
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- Common table needed for multiple test scenarios.
+CREATE TABLE mintab(c1 int);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT into mintab VALUES (120);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- update partition key using updatable view.
+CREATE VIEW upview AS SELECT * FROM range_parted WHERE (select c > c1 FROM mintab) WITH CHECK OPTION;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+UPDATE upview set c = 199 WHERE b = 4;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.upview' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail, check option violation
+UPDATE upview set c = 120 WHERE b = 4;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.upview' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail, row movement with check option violation
+UPDATE upview set a = 'b', b = 15, c = 120 WHERE b = 4;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.upview' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok, row movement, check option passes
+UPDATE upview set a = 'b', b = 15 WHERE b = 4;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.upview' doesn't exist")
+
+-----------
+QUERY:
+
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- cleanup
+DROP VIEW upview;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.upview'")
+
+-----------
+QUERY:
+
+
+-- RETURNING having whole-row vars.
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 2")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+UPDATE range_parted set c = 95 WHERE a = 'b' and b > 10 and c > 100 returning (range_parted), *;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning (range_parted), *' at line 1")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+
+-- Transition tables with update row movement
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 2")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION trans_updatetrigfunc() RETURNS trigger LANGUAGE plpgsql AS
+$$
+  begin
+    raise notice 'trigger = %, old table = %, new table = %',
+                 TG_NAME,
+                 (select string_agg(old_table::text, ', ' ORDER BY a) FROM old_table),
+                 (select string_agg(new_table::text, ', ' ORDER BY a) FROM new_table);
+    return null;
+  end;
+$$;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger LANGUAGE plpgsql AS\n$$\n  begin\n    raise notice 'trigger = %, old table ' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER trans_updatetrig
+  AFTER UPDATE ON range_parted REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
+  FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table\n  FOR EACH STATEMENT E' at line 2")
+
+-----------
+QUERY:
+
+
+UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end ) WHERE a = 'b' and b > 10 and c >= 96;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+
+-- Enabling OLD TABLE capture for both DELETE as well as UPDATE stmt triggers
+-- should not cause DELETEd rows to be captured twice. Similar thing for
+-- INSERT triggers and inserted rows.
+CREATE TRIGGER trans_deletetrig
+  AFTER DELETE ON range_parted REFERENCING OLD TABLE AS old_table
+  FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFERENCING OLD TABLE AS old_table\n  FOR EACH STATEMENT EXECUTE PROCEDURE trans_' at line 5")
+
+-----------
+QUERY:
+
+CREATE TRIGGER trans_inserttrig
+  AFTER INSERT ON range_parted REFERENCING NEW TABLE AS new_table
+  FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFERENCING NEW TABLE AS new_table\n  FOR EACH STATEMENT EXECUTE PROCEDURE trans_' at line 2")
+
+-----------
+QUERY:
+
+UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+DROP TRIGGER trans_deletetrig ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER trans_inserttrig ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+-- Don/* REPLACED */''t drop trans_updatetrig yet. It is required below.
+
+-- Test with transition tuple conversion happening for rows moved into the
+-- new partition. This requires a trigger that references transition table
+-- (we already have trans_updatetrig). For inserted rows, the conversion
+-- is not usually needed, because the original tuple is already compatible with
+-- the desired transition tuple format. But conversion happens when there is a
+-- BR trigger because the trigger can change the inserted row. So install a
+-- BR triggers on those child partitions where the rows will be moved.
+CREATE FUNCTION func_parted_mod_b() RETURNS trigger AS $$
+BEGIN
+   NEW.b = NEW.b + 1;
+   return NEW;
+END $$ language plpgsql;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger AS $$\nBEGIN\n   NEW.b = NEW.b + 1;\n   return NEW;\nEND $$ language plpgsql' at line 10")
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_c1_100 BEFORE UPDATE OR INSERT ON part_c_1_100
+   FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OR INSERT ON part_c_1_100\n   FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b()' at line 1")
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_d1_15 BEFORE UPDATE OR INSERT ON part_d_1_15
+   FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OR INSERT ON part_d_1_15\n   FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b()' at line 1")
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_d15_20 BEFORE UPDATE OR INSERT ON part_d_15_20
+   FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OR INSERT ON part_d_15_20\n   FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b()' at line 1")
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end) WHERE a = 'b' and b > 10 and c >= 96;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- Case where per-partition tuple conversion map array is allocated, but the
+-- map is not required for the particular tuple that is routed, thanks to
+-- matching table attributes of the partition and the target table.
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 4")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+UPDATE range_parted set b = 15 WHERE b = 1;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+DROP TRIGGER trans_updatetrig ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER trig_c1_100 ON part_c_1_100;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_c_1_100' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER trig_d1_15 ON part_d_1_15;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_1_15' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER trig_d15_20 ON part_d_15_20;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_15_20' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- RLS policies with update-row-movement
+-----------------------------------------
+
+ALTER TABLE range_parted ENABLE ROW LEVEL SECURITY;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-----------------------------------------\n\nALTER TABLE range_parted ENABLE ROW L' at line 2")
+
+-----------
+QUERY:
+
+CREATE USER regress_range_parted_user;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+GRANT ALL ON range_parted, mintab TO regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', mintab TO regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+CREATE POLICY seeall ON range_parted AS PERMISSIVE FOR SELECT USING (true);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY seeall ON range_parted AS PERMISSIVE FOR SELECT USING (true)' at line 1")
+
+-----------
+QUERY:
+
+CREATE POLICY policy_range_parted ON range_parted for UPDATE USING (true) WITH CHECK (c % 2 = 0);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY policy_range_parted ON range_parted for UPDATE USING (true) WITH CHECK (c' at line 1")
+
+-----------
+QUERY:
+
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+-- This should fail with RLS violation error while moving row from
+-- part_a_10_a_20 to part_d_1_15, because we are setting /* REPLACED */''c/* REPLACED */'' to an odd number.
+UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+-- Create a trigger on part_d_1_15
+CREATE FUNCTION func_d_1_15() RETURNS trigger AS $$
+BEGIN
+   NEW.c = NEW.c + 1; -- Make even numbers odd, or vice versa
+   return NEW;
+END $$ LANGUAGE plpgsql;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger AS $$\nBEGIN\n   NEW.c = NEW.c + 1; -- Make even numbers odd, or vice vers' at line 2")
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_d_1_15 BEFORE INSERT ON part_d_1_15
+   FOR EACH ROW EXECUTE PROCEDURE func_d_1_15();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'PROCEDURE func_d_1_15()' at line 2")
+
+-----------
+QUERY:
+
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+
+-- Here, RLS checks should succeed while moving row from part_a_10_a_20 to
+-- part_d_1_15. Even though the UPDATE is setting /* REPLACED */''c/* REPLACED */'' to an odd number, the
+-- trigger at the destination partition again makes it an even number.
+UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+-- This should fail with RLS violation error. Even though the UPDATE is setting
+-- /* REPLACED */''c/* REPLACED */'' to an even number, the trigger at the destination partition again makes
+-- it an odd number.
+UPDATE range_parted set a = 'b', c = 150 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Cleanup
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+DROP TRIGGER trig_d_1_15 ON part_d_1_15;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_1_15' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION func_d_1_15();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- Policy expression contains SubPlan
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+CREATE POLICY policy_range_parted_subplan on range_parted
+    AS RESTRICTIVE for UPDATE USING (true)
+    WITH CHECK ((SELECT range_parted.c <= c1 FROM mintab));
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY policy_range_parted_subplan on range_parted\n    AS RESTRICTIVE for UPDATE' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+-- fail, mintab has row with c1 = 120
+UPDATE range_parted set a = 'b', c = 122 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+UPDATE range_parted set a = 'b', c = 120 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- RLS policy expression contains whole row.
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 3")
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+CREATE POLICY policy_range_parted_wholerow on range_parted AS RESTRICTIVE for UPDATE USING (true)
+   WITH CHECK (range_parted = row('b', 10, 112, 1, NULL)::range_parted);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY policy_range_parted_wholerow on range_parted AS RESTRICTIVE for UPDATE US' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+-- ok, should pass the RLS check
+UPDATE range_parted set a = 'b', c = 112 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 1")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+-- fail, the whole row RLS check should fail
+UPDATE range_parted set a = 'b', c = 116 WHERE a = 'a' and c = 200;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Cleanup
+RESET SESSION AUTHORIZATION;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+DROP POLICY policy_range_parted ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY policy_range_parted ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP POLICY policy_range_parted_subplan ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY policy_range_parted_subplan ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP POLICY policy_range_parted_wholerow ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'POLICY policy_range_parted_wholerow ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+REVOKE ALL ON range_parted, mintab FROM regress_range_parted_user;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', mintab FROM regress_range_parted_user' at line 1")
+
+-----------
+QUERY:
+
+DROP USER regress_range_parted_user;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+DROP TABLE mintab;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+
+-- statement triggers with update row movement
+---------------------------------------------------
+
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '---------------------------------------------------\n\n/* REPLACED */'truncate ran' at line 2")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION trigfunc() returns trigger language plpgsql as
+$$
+  begin
+    raise notice 'trigger = % fired on table % during %',
+                 TG_NAME, TG_TABLE_NAME, TG_OP;
+    return null;
+  end;
+$$;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger language plpgsql as\n$$\n  begin\n    raise notice 'trigger = % fired on ta' at line 1")
+
+-----------
+QUERY:
+
+-- Triggers on root partition
+CREATE TRIGGER parent_delete_trig
+  AFTER DELETE ON range_parted for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 3")
+
+-----------
+QUERY:
+
+CREATE TRIGGER parent_update_trig
+  AFTER UPDATE ON range_parted for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+CREATE TRIGGER parent_insert_trig
+  AFTER INSERT ON range_parted for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+
+-- Triggers on leaf partition part_c_1_100
+CREATE TRIGGER c1_delete_trig
+  AFTER DELETE ON part_c_1_100 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 3")
+
+-----------
+QUERY:
+
+CREATE TRIGGER c1_update_trig
+  AFTER UPDATE ON part_c_1_100 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+CREATE TRIGGER c1_insert_trig
+  AFTER INSERT ON part_c_1_100 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+
+-- Triggers on leaf partition part_d_1_15
+CREATE TRIGGER d1_delete_trig
+  AFTER DELETE ON part_d_1_15 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 3")
+
+-----------
+QUERY:
+
+CREATE TRIGGER d1_update_trig
+  AFTER UPDATE ON part_d_1_15 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+CREATE TRIGGER d1_insert_trig
+  AFTER INSERT ON part_d_1_15 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+-- Triggers on leaf partition part_d_15_20
+CREATE TRIGGER d15_delete_trig
+  AFTER DELETE ON part_d_15_20 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 3")
+
+-----------
+QUERY:
+
+CREATE TRIGGER d15_update_trig
+  AFTER UPDATE ON part_d_15_20 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+CREATE TRIGGER d15_insert_trig
+  AFTER INSERT ON part_d_15_20 for each statement execute procedure trigfunc();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'statement execute procedure trigfunc()' at line 2")
+
+-----------
+QUERY:
+
+
+-- Move all rows from part_c_100_200 to part_c_1_100. None of the delete or
+-- insert statement triggers should be fired.
+UPDATE range_parted set c = c - 50 WHERE c > 97;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+DROP TRIGGER parent_delete_trig ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER parent_update_trig ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER parent_insert_trig ON range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON range_parted' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER c1_delete_trig ON part_c_1_100;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_c_1_100' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER c1_update_trig ON part_c_1_100;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_c_1_100' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER c1_insert_trig ON part_c_1_100;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_c_1_100' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER d1_delete_trig ON part_d_1_15;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_1_15' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER d1_update_trig ON part_d_1_15;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_1_15' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER d1_insert_trig ON part_d_1_15;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_1_15' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER d15_delete_trig ON part_d_15_20;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_15_20' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER d15_update_trig ON part_d_15_20;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_15_20' at line 1")
+
+-----------
+QUERY:
+
+DROP TRIGGER d15_insert_trig ON part_d_15_20;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON part_d_15_20' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Creating default partition for range
+/* REPLACED */'truncate range_parted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''truncate range_parted' at line 2")
+
+-----------
+QUERY:
+ insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b' at line 1")
+
+-----------
+QUERY:
+
+create table part_def partition of range_parted default;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of range_parted default' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ part_def
+insert into range_parted values ('c', 9);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+update part_def set a = 'd' where a = 'c';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_def' doesn't exist")
+
+-----------
+QUERY:
+
+-- fail
+update part_def set a = 'a' where a = 'd';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_def' doesn't exist")
+
+-----------
+QUERY:
+
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- Update row movement from non-default to default partition.
+-- fail, default partition is not under part_a_10_a_20 /* REPLACED */,
+UPDATE part_a_10_a_20 set a = 'ad' WHERE a = 'a';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.part_a_10_a_20' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+UPDATE range_parted set a = 'ad' WHERE a = 'a';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+UPDATE range_parted set a = 'bd' WHERE a = 'b';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+-- Update row movement from default to non-default partitions.
+-- ok
+UPDATE range_parted set a = 'a' WHERE a = 'ad';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+UPDATE range_parted set a = 'b' WHERE a = 'bd';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.range_parted' doesn't exist")
+
+-----------
+QUERY:
+
+/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER\' at line 1')
+
+-----------
+QUERY:
+
+
+-- Cleanup: range_parted no longer needed.
+DROP TABLE range_parted;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.range_parted'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE list_parted (
+	a text,
+	b int
+) PARTITION BY list (a);
+RESULT:
+	mySQL: ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE list_part1  PARTITION OF list_parted for VALUES in ('a', 'b');
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF list_parted for VALUES in ('a', 'b')' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE list_default PARTITION OF list_parted default;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF list_parted default' at line 1")
+
+-----------
+QUERY:
+
+INSERT into list_part1 VALUES ('a', 1);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_part1' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT into list_default VALUES ('d', 10);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_default' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- fail
+UPDATE list_default set a = 'a' WHERE a = 'd';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_default' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+UPDATE list_default set a = 'x' WHERE a = 'd';
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_default' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE list_parted;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.list_parted'")
+
+-----------
+QUERY:
+
+
+-- Test retrieval of system columns with non-consistent partition row types.
+-- This is only partially supported, as seen in the results.
+
+create table utrtest (a int, b text) partition by list (a);
+RESULT:
+	mySQL: ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+create table utr1 (a int check (a in (1)), q text, b text);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+create table utr2 (a int check (a in (2)), b text);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+alter table utr1 drop column q;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+alter table utrtest attach partition utr1 for values in (1);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition utr1 for values in (1)' at line 1")
+
+-----------
+QUERY:
+
+alter table utrtest attach partition utr2 for values in (2);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'attach partition utr2 for values in (2)' at line 1")
+
+-----------
+QUERY:
+
+
+insert into utrtest values (1, 'foo')
+  returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok' at line 2")
+
+-----------
+QUERY:
+
+insert into utrtest values (2, 'bar')
+  returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok' at line 2")
+
+-----------
+QUERY:
+  -- fails
+insert into utrtest values (2, 'bar')
+  returning *, tableoid::regclass;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'returning *, tableoid::regclass' at line 3")
+
+-----------
+QUERY:
+
+
+update utrtest set b = b || b from (values (1), (2)) s(x) where a = s.x
+  returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from (values (1), (2)) s(x) where a = s.x\n  returning *, tableoid::regclass, xmi' at line 1")
+
+-----------
+QUERY:
+
+
+update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
+  returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from (values (1), (2)) s(x) where a = s.x\n  returning *, tableoid::regclass, xmi' at line 1")
+
+-----------
+QUERY:
+  -- fails
+
+update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
+  returning *, tableoid::regclass;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from (values (1), (2)) s(x) where a = s.x\n  returning *, tableoid::regclass' at line 3")
+
+-----------
+QUERY:
+
+
+delete from utrtest
+  returning *, tableoid::regclass, xmax = pg_current_xact_id()::xid as xmax_ok;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '*, tableoid::regclass, xmax = pg_current_xact_id()::xid as xmax_ok' at line 2")
+
+-----------
+QUERY:
+
+
+drop table utrtest;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.utrtest'")
+
+-----------
+QUERY:
+
+
+
+--------------
+-- Some more update-partition-key test scenarios below. This time use list
+-- partitions.
+--------------
+
+-- Setup for list partitions
+CREATE TABLE list_parted (a numeric, b int, c int8) PARTITION BY list (a);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--------------\n-- Some more update-partition-key test scenarios below. This time' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE sub_parted PARTITION OF list_parted for VALUES in (1) PARTITION BY list (b);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF list_parted for VALUES in (1) PARTITION BY list (b)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE sub_part1(b int, c int8, a numeric);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+ALTER TABLE sub_parted ATTACH PARTITION sub_part1 for VALUES in (1);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION sub_part1 for VALUES in (1)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE sub_part2(b int, c int8, a numeric);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+ALTER TABLE sub_parted ATTACH PARTITION sub_part2 for VALUES in (2);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION sub_part2 for VALUES in (2)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE list_part1(a numeric, b int, c int8);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+ALTER TABLE list_parted ATTACH PARTITION list_part1 for VALUES in (2,3);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ATTACH PARTITION list_part1 for VALUES in (2,3)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT into list_parted VALUES (2,5,50);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT into list_parted VALUES (3,6,60);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT into sub_parted VALUES (1,1,60);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.sub_parted' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT into sub_parted VALUES (1,2,10);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.sub_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test partition constraint violation when intermediate ancestor is used and
+-- constraint is inherited from upper root.
+UPDATE sub_parted set a = 2 WHERE c = 10;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.sub_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test update-partition-key, where the unpruned partitions do not have their
+-- partition keys updated.
+SELECT tableoid::regclass::text, * FROM list_parted WHERE a = 2 ORDER BY 1;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted WHERE a = 2 ORDER BY 1' at line 3")
+
+-----------
+QUERY:
+
+UPDATE list_parted set b = c + a WHERE a = 2;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT tableoid::regclass::text, * FROM list_parted WHERE a = 2 ORDER BY 1;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted WHERE a = 2 ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- Test the case where BR UPDATE triggers change the partition key.
+CREATE FUNCTION func_parted_mod_b() returns trigger as $$
+BEGIN
+   NEW.b = 2; -- This is changing partition key column.
+   return NEW;
+END $$ LANGUAGE plpgsql;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger as $$\nBEGIN\n   NEW.b = 2; -- This is changing partition key column.\n   r' at line 2")
+
+-----------
+QUERY:
+
+CREATE TRIGGER parted_mod_b before update on sub_part1
+   for each row execute procedure func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure func_parted_mod_b()' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4' at line 1")
+
+-----------
+QUERY:
+
+
+-- This should do the tuple routing even though there is no explicit
+-- partition-key update, because there is a trigger on sub_part1.
+UPDATE list_parted set c = 70 WHERE b  = 1;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4' at line 1")
+
+-----------
+QUERY:
+
+
+DROP TRIGGER parted_mod_b ON sub_part1;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON sub_part1' at line 1")
+
+-----------
+QUERY:
+
+
+-- If BR DELETE trigger prevented DELETE from happening, we should also skip
+-- the INSERT if that delete is part of UPDATE=>DELETE+INSERT.
+CREATE OR REPLACE FUNCTION func_parted_mod_b() returns trigger as $$
+BEGIN
+   raise notice 'Trigger: Got OLD row %, but returning NULL', OLD;
+   return NULL;
+END $$ LANGUAGE plpgsql;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION func_parted_mod_b() returns trigger as $$\nBEGIN\n   raise notice 'Trigge' at line 3")
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_skip_delete before delete on sub_part2
+   for each row execute procedure func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure func_parted_mod_b()' at line 2")
+
+-----------
+QUERY:
+
+UPDATE list_parted set b = 1 WHERE c = 70;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4' at line 1")
+
+-----------
+QUERY:
+
+-- Drop the trigger. Now the row should be moved.
+DROP TRIGGER trig_skip_delete ON sub_part2;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON sub_part2' at line 2")
+
+-----------
+QUERY:
+
+UPDATE list_parted set b = 1 WHERE c = 70;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.list_parted' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION func_parted_mod_b();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- UPDATE partition-key with FROM clause. If join produces multiple output
+-- rows for the same row to be modified, we should tuple-route the row only
+-- once. There should not be any rows inserted.
+CREATE TABLE non_parted (id int);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT into non_parted VALUES (1), (1), (1), (2), (2), (2), (3), (3), (3);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+UPDATE list_parted t1 set a = 2 FROM non_parted t2 WHERE t1.a = t2.id and a = 1;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FROM non_parted t2 WHERE t1.a = t2.id and a = 1' at line 1")
+
+-----------
+QUERY:
+
+SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE non_parted;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- Cleanup: list_parted no longer needed.
+DROP TABLE list_parted;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.list_parted'")
+
+-----------
+QUERY:
+
+
+-- create custom operator class and hash function, for the same reason
+-- explained in alter_table.sql
+create or replace function dummy_hashint4(a int4, seed int8) returns int8 as
+$$ begin return (a + seed); end; $$ language 'plpgsql' immutable;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function dummy_hashint4(a int4, seed int8) returns int8 as\n$$ begin return (a + ' at line 3")
+
+-----------
+QUERY:
+
+create operator class custom_opclass for type int4 using hash as
+operator 1 = , function 2 dummy_hashint4(int4, int8);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator class custom_opclass for type int4 using hash as\noperator 1 = , functio' at line 1")
+
+-----------
+QUERY:
+
+
+create table hash_parted (
+	a int,
+	b int
+) partition by hash (a custom_opclass, b custom_opclass);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'custom_opclass, b custom_opclass)' at line 4")
+
+-----------
+QUERY:
+
+create table hpart1 partition of hash_parted for values with (modulus 2, remainder 1);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 2, remainder 1)' at line 1")
+
+-----------
+QUERY:
+
+create table hpart2 partition of hash_parted for values with (modulus 4, remainder 2);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 4, remainder 2)' at line 1")
+
+-----------
+QUERY:
+
+create table hpart3 partition of hash_parted for values with (modulus 8, remainder 0);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 8, remainder 0)' at line 1")
+
+-----------
+QUERY:
+
+create table hpart4 partition of hash_parted for values with (modulus 8, remainder 4);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of hash_parted for values with (modulus 8, remainder 4)' at line 1")
+
+-----------
+QUERY:
+
+insert into hpart1 values (1, 1);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.hpart1' doesn't exist")
+
+-----------
+QUERY:
+
+insert into hpart2 values (2, 5);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.hpart2' doesn't exist")
+
+-----------
+QUERY:
+
+insert into hpart4 values (3, 4);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.hpart4' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- fail
+update hpart1 set a = 3, b=4 where a = 1;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.hpart1' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok, row movement
+update hash_parted set b = b - 1 where b = 1;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.hash_parted' doesn't exist")
+
+-----------
+QUERY:
+
+-- ok
+update hash_parted set b = b + 8 where b = 1;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.hash_parted' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- cleanup
+drop table hash_parted;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.hash_parted'")
+
+-----------
+QUERY:
+
+drop operator class custom_opclass using hash;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator class custom_opclass using hash' at line 1")
+
+-----------
+QUERY:
+
+drop function dummy_hashint4(a int4, seed int8);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(a int4, seed int8)' at line 1")

@@ -1,0 +1,1486 @@
+
+-----------
+QUERY:
+-- Test basic TRUNCATE functionality.
+CREATE TABLE truncate_a (col1 integer primary key);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (2);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ((1,), (2,))
+
+-----------
+QUERY:
+
+-- Roll truncate back
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+-- Commit the truncate this time
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+
+-- Test foreign-key checks
+CREATE TABLE trunc_b (a int REFERENCES truncate_a);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_c (a serial PRIMARY KEY);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_d (a int REFERENCES trunc_c);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_e (a int REFERENCES truncate_a, b int REFERENCES trunc_c);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE truncate_a;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE truncate_a,trunc_b;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_b' at line 2")
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE truncate_a,trunc_b,trunc_e;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_b,trunc_e' at line 2")
+
+-----------
+QUERY:
+	-- ok
+TRUNCATE TABLE truncate_a,trunc_e;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_e' at line 2")
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c,trunc_d;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_d' at line 2")
+
+-----------
+QUERY:
+		-- fail
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_d,trunc_e' at line 2")
+
+-----------
+QUERY:
+	-- ok
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_d,trunc_e,truncate_a' at line 2")
+
+-----------
+QUERY:
+	-- fail
+TRUNCATE TABLE trunc_c,trunc_d,trunc_e,truncate_a,trunc_b;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',trunc_d,trunc_e,truncate_a,trunc_b' at line 2")
+
+-----------
+QUERY:
+	-- ok
+
+TRUNCATE TABLE truncate_a RESTRICT;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 3")
+
+-----------
+QUERY:
+ -- fail
+TRUNCATE TABLE truncate_a CASCADE;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 2")
+
+-----------
+QUERY:
+  -- ok
+
+-- circular references
+ALTER TABLE truncate_a ADD FOREIGN KEY (col1) REFERENCES trunc_c;
+RESULT:
+	mySQL: ERROR - (1239, "Incorrect foreign key definition for 'foreign key without name': Key reference and table reference don't match")
+
+-----------
+QUERY:
+
+
+-- Add some data to verify that truncating actually works ...
+INSERT INTO trunc_c VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_b VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_d VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_e VALUES (1,1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',truncate_a' at line 1")
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',truncate_a,trunc_d' at line 1")
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',truncate_a,trunc_d,trunc_e' at line 1")
+
+-----------
+QUERY:
+
+TRUNCATE TABLE trunc_c,truncate_a,trunc_d,trunc_e,trunc_b;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',truncate_a,trunc_d,trunc_e,trunc_b' at line 1")
+
+-----------
+QUERY:
+
+
+-- Verify that truncating did actually work
+SELECT * FROM truncate_a
+   UNION ALL
+ SELECT * FROM trunc_c
+   UNION ALL
+ SELECT * FROM trunc_b
+   UNION ALL
+ SELECT * FROM trunc_d;
+RESULT:
+	mySQL: ((Decimal('1'),), (Decimal('1'),), (Decimal('1'),))
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_e;
+RESULT:
+	mySQL: ((1, 1),)
+
+-----------
+QUERY:
+
+
+-- Add data again to test TRUNCATE ... CASCADE
+INSERT INTO trunc_c VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a VALUES (1);
+RESULT:
+	mySQL: ERROR - (1062, "Duplicate entry '1' for key 'truncate_a.PRIMARY'")
+
+-----------
+QUERY:
+
+INSERT INTO trunc_b VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_d VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_e VALUES (1,1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_c CASCADE;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+  -- ok
+
+SELECT * FROM truncate_a
+   UNION ALL
+ SELECT * FROM trunc_c
+   UNION ALL
+ SELECT * FROM trunc_b
+   UNION ALL
+ SELECT * FROM trunc_d;
+RESULT:
+	mySQL: ((Decimal('1'),), (Decimal('1'),), (Decimal('1'),), (Decimal('1'),), (Decimal('1'),), (Decimal('1'),))
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_e;
+RESULT:
+	mySQL: ((1, 1), (1, 1))
+
+-----------
+QUERY:
+
+
+DROP TABLE truncate_a,trunc_c,trunc_b,trunc_d,trunc_e CASCADE;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- Test TRUNCATE with inheritance
+
+CREATE TABLE trunc_f (col1 integer primary key);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_f VALUES (1);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO trunc_f VALUES (2);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_fa (col2a text) INHERITS (trunc_f);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (trunc_f)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO trunc_fa VALUES (3, 'three');
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_fa' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_fb (col2b int) INHERITS (trunc_f);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (trunc_f)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO trunc_fb VALUES (4, 444);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_fb' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE trunc_faa (col3 text) INHERITS (trunc_fa);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (trunc_fa)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO trunc_faa VALUES (5, 'five', 'FIVE');
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_faa' doesn't exist")
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ((1,), (2,))
+
+-----------
+QUERY:
+
+TRUNCATE trunc_f;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_f;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trunc_f' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_fa' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_faa' doesn't exist")
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_fb, ONLY trunc_fa;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trunc_fb, ONLY trunc_fa' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_fa' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_faa' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_fa' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_faa' doesn't exist")
+
+-----------
+QUERY:
+
+TRUNCATE ONLY trunc_fb, trunc_fa;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trunc_fb, trunc_fa' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_f;
+RESULT:
+	mySQL: ()
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_fa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_fa' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_faa;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_faa' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_f CASCADE;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- Test ON TRUNCATE triggers
+
+CREATE TABLE trunc_trigger_test (f1 int, f2 text, f3 text);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_trigger_log (tgop text, tglevel text, tgwhen text,
+        tgargv text, tgtable name, rowcount bigint);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'name, rowcount bigint)' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION trunctrigger() RETURNS trigger as $$
+declare c bigint;
+begin
+    execute 'select count(*) from ' || quote_ident(tg_table_name) into c;
+    insert into trunc_trigger_log values
+      (TG_OP, TG_LEVEL, TG_WHEN, TG_ARGV[0], tg_table_name, c);
+    return null;
+end;
+$$ LANGUAGE plpgsql;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger as $$\ndeclare c bigint;\nbegin\n    execute 'select count(*) from ' || quo' at line 1")
+
+-----------
+QUERY:
+
+
+-- basic before trigger
+INSERT INTO trunc_trigger_test VALUES(1, 'foo', 'bar'), (2, 'baz', 'quux');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER t
+BEFORE TRUNCATE ON trunc_trigger_test
+FOR EACH STATEMENT
+EXECUTE PROCEDURE trunctrigger('before trigger truncate');
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRUNCATE ON trunc_trigger_test\nFOR EACH STATEMENT\nEXECUTE PROCEDURE trunctrigger' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	mySQL: ((2,),)
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_trigger_log' doesn't exist")
+
+-----------
+QUERY:
+
+TRUNCATE trunc_trigger_test;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	mySQL: ((0,),)
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_trigger_log' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TRIGGER t ON trunc_trigger_test;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ON trunc_trigger_test' at line 1")
+
+-----------
+QUERY:
+
+
+truncate trunc_trigger_log;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_trigger_log' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- same test with an after trigger
+INSERT INTO trunc_trigger_test VALUES(1, 'foo', 'bar'), (2, 'baz', 'quux');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER tt
+AFTER TRUNCATE ON trunc_trigger_test
+FOR EACH STATEMENT
+EXECUTE PROCEDURE trunctrigger('after trigger truncate');
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRUNCATE ON trunc_trigger_test\nFOR EACH STATEMENT\nEXECUTE PROCEDURE trunctrigger' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	mySQL: ((2,),)
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_trigger_log' doesn't exist")
+
+-----------
+QUERY:
+
+TRUNCATE trunc_trigger_test;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+SELECT count(*) as "Row count in test table" FROM trunc_trigger_test;
+RESULT:
+	mySQL: ((0,),)
+
+-----------
+QUERY:
+
+SELECT * FROM trunc_trigger_log;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_trigger_log' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_trigger_test;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+DROP TABLE trunc_trigger_log;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.trunc_trigger_log'")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION trunctrigger();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- test TRUNCATE ... RESTART IDENTITY
+CREATE SEQUENCE truncate_a_id1 START WITH 33;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE truncate_a_id1 START WITH 33' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE truncate_a (id serial,
+                         id1 integer default nextval('truncate_a_id1'));
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'nextval('truncate_a_id1'))' at line 2")
+
+-----------
+QUERY:
+
+ALTER SEQUENCE truncate_a_id1 OWNED BY truncate_a.id1;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE truncate_a_id1 OWNED BY truncate_a.id1' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_a RESTART IDENTITY;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTART IDENTITY' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE truncate_b (id int GENERATED ALWAYS AS IDENTITY (START WITH 44));
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IDENTITY (START WITH 44))' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_b' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_b;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_b' doesn't exist")
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_b' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE truncate_b RESTART IDENTITY;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTART IDENTITY' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_b DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_b;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_b' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- check rollback of a RESTART IDENTITY operation
+BEGIN;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+TRUNCATE truncate_a RESTART IDENTITY;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTART IDENTITY' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_a' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncate_a DEFAULT VALUES;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM truncate_a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncate_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE truncate_a;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.truncate_a'")
+
+-----------
+QUERY:
+
+
+SELECT nextval('truncate_a_id1');
+RESULT:
+	mySQL: ERROR - (1305, 'FUNCTION test.nextval does not exist')
+
+-----------
+QUERY:
+ -- fail, seq should have been dropped
+
+-- partitioned table
+CREATE TABLE truncparted (a int, b char) PARTITION BY LIST (a);
+RESULT:
+	mySQL: ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+-- error, can/* REPLACED */''t truncate a partitioned table
+TRUNCATE ONLY truncparted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'truncparted' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE truncparted1 PARTITION OF truncparted FOR VALUES IN (1);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF truncparted FOR VALUES IN (1)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO truncparted VALUES (1, 'a');
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncparted' doesn't exist")
+
+-----------
+QUERY:
+
+-- error, must truncate partitions
+TRUNCATE ONLY truncparted;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'truncparted' at line 2")
+
+-----------
+QUERY:
+
+TRUNCATE truncparted;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncparted' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE truncparted;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.truncparted'")
+
+-----------
+QUERY:
+
+
+-- foreign key on partitioned table: partition key is referencing column.
+-- Make sure truncate did execute on all tables
+CREATE FUNCTION tp_ins_data() RETURNS void LANGUAGE plpgsql AS $$
+  BEGIN
+	INSERT INTO truncprim VALUES (1), (100), (150);
+	INSERT INTO truncpart VALUES (1), (100), (150);
+  END
+$$;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'void LANGUAGE plpgsql AS $$\n  BEGIN\n\tINSERT INTO truncprim VALUES (1), (100), (1' at line 3")
+
+-----------
+QUERY:
+
+CREATE FUNCTION tp_chk_data(OUT pktb regclass, OUT pkval int, OUT fktb regclass, OUT fkval int)
+  RETURNS SETOF record LANGUAGE plpgsql AS $$
+  BEGIN
+    RETURN QUERY SELECT
+      pk.tableoid::regclass, pk.a, fk.tableoid::regclass, fk.a
+    FROM truncprim pk FULL JOIN truncpart fk USING (a)
+    ORDER BY 2, 4;
+  END
+$$;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OUT pktb regclass, OUT pkval int, OUT fktb regclass, OUT fkval int)\n  RETURNS SE' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE truncprim (a int PRIMARY KEY);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart (a int REFERENCES truncprim)
+  PARTITION BY RANGE (a);
+RESULT:
+	mySQL: ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_1 PARTITION OF truncpart FOR VALUES FROM (0) TO (100);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF truncpart FOR VALUES FROM (0) TO (100)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2 PARTITION OF truncpart FOR VALUES FROM (100) TO (200)
+  PARTITION BY RANGE (a);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF truncpart FOR VALUES FROM (100) TO (200)\n  PARTITION BY RANGE (a)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2_1 PARTITION OF truncpart_2 FOR VALUES FROM (100) TO (150);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF truncpart_2 FOR VALUES FROM (100) TO (150)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE truncpart_2_d PARTITION OF truncpart_2 DEFAULT;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF truncpart_2 DEFAULT' at line 1")
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE truncprim;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+	-- should fail
+
+select tp_ins_data();
+RESULT:
+	mySQL: ERROR - (1305, 'FUNCTION test.tp_ins_data does not exist')
+
+-----------
+QUERY:
+
+-- should truncate everything
+TRUNCATE TABLE truncprim, truncpart;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', truncpart' at line 2")
+
+-----------
+QUERY:
+
+select * from tp_chk_data();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+select tp_ins_data();
+RESULT:
+	mySQL: ERROR - (1305, 'FUNCTION test.tp_ins_data does not exist')
+
+-----------
+QUERY:
+
+-- should truncate everything
+TRUNCATE TABLE truncprim CASCADE;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM tp_chk_data();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT tp_ins_data();
+RESULT:
+	mySQL: ERROR - (1305, 'FUNCTION test.tp_ins_data does not exist')
+
+-----------
+QUERY:
+
+-- should truncate all partitions
+TRUNCATE TABLE truncpart;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.truncpart' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM tp_chk_data();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE truncprim, truncpart;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.truncpart'")
+
+-----------
+QUERY:
+
+DROP FUNCTION tp_ins_data(), tp_chk_data();
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(), tp_chk_data()' at line 1")
+
+-----------
+QUERY:
+
+
+-- test cascade when referencing a partitioned table
+CREATE TABLE trunc_a (a INT PRIMARY KEY) PARTITION BY RANGE (a);
+RESULT:
+	mySQL: ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a1 PARTITION OF trunc_a FOR VALUES FROM (0) TO (10);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF trunc_a FOR VALUES FROM (0) TO (10)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a2 PARTITION OF trunc_a FOR VALUES FROM (10) TO (20)
+  PARTITION BY RANGE (a);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF trunc_a FOR VALUES FROM (10) TO (20)\n  PARTITION BY RANGE (a)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a21 PARTITION OF trunc_a2 FOR VALUES FROM (10) TO (12);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF trunc_a2 FOR VALUES FROM (10) TO (12)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a22 PARTITION OF trunc_a2 FOR VALUES FROM (12) TO (16);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF trunc_a2 FOR VALUES FROM (12) TO (16)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a2d PARTITION OF trunc_a2 DEFAULT;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF trunc_a2 DEFAULT' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE trunc_a3 PARTITION OF trunc_a FOR VALUES FROM (20) TO (30);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF trunc_a FOR VALUES FROM (20) TO (30)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO trunc_a VALUES (0), (5), (10), (15), (20), (25);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- truncate a partition cascading to a table
+CREATE TABLE ref_b (
+    b INT PRIMARY KEY,
+    a INT REFERENCES trunc_a(a) ON DELETE CASCADE
+);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+INSERT INTO ref_b VALUES (10, 0), (50, 5), (100, 10), (150, 15);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_a1 CASCADE;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+SELECT a FROM ref_b;
+RESULT:
+	mySQL: ((0,), (5,), (10,), (15,))
+
+-----------
+QUERY:
+
+
+DROP TABLE ref_b;
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- truncate a partition cascading to a partitioned table
+CREATE TABLE ref_c (
+    c INT PRIMARY KEY,
+    a INT REFERENCES trunc_a(a) ON DELETE CASCADE
+) PARTITION BY RANGE (c);
+RESULT:
+	mySQL: ERROR - (1492, 'For RANGE partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE ref_c1 PARTITION OF ref_c FOR VALUES FROM (100) TO (200);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ref_c FOR VALUES FROM (100) TO (200)' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE ref_c2 PARTITION OF ref_c FOR VALUES FROM (200) TO (300);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF ref_c FOR VALUES FROM (200) TO (300)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO ref_c VALUES (100, 10), (150, 15), (200, 20), (250, 25);
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.ref_c' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE trunc_a21 CASCADE;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+SELECT a as "from table ref_c" FROM ref_c;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.ref_c' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a as "from table trunc_a" FROM trunc_a ORDER BY a;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.trunc_a' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE trunc_a, ref_c;
+RESULT:
+	mySQL: ERROR - (1051, "Unknown table 'test.trunc_a,test.ref_c'")

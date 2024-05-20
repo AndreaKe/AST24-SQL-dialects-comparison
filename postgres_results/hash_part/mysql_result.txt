@@ -1,0 +1,257 @@
+
+-----------
+QUERY:
+--
+-- Hash partitioning.
+--
+
+-- Use hand-rolled hash functions and operator classes to get predictable
+-- result on different machines.  See the definitions of
+-- part_test_int4_ops and part_test_text_ops in test_setup.sql.
+
+CREATE TABLE mchash (a int, b text, c jsonb)
+  PARTITION BY HASH (a part_test_int4_ops, b part_test_text_ops);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'jsonb)\n  PARTITION BY HASH (a part_test_int4_ops, b part_test_text_ops)' at line 9")
+
+-----------
+QUERY:
+
+CREATE TABLE mchash1
+  PARTITION OF mchash FOR VALUES WITH (MODULUS 4, REMAINDER 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OF mchash FOR VALUES WITH (MODULUS 4, REMAINDER 0)' at line 2")
+
+-----------
+QUERY:
+
+
+-- invalid OID, no such table
+SELECT satisfies_hash_partition(0, 4, 0, NULL);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.satisfies_hash_partition does not exist')
+
+-----------
+QUERY:
+
+
+-- not partitioned
+SELECT satisfies_hash_partition('tenk1'::regclass, 4, 0, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- partition rather than the parent
+SELECT satisfies_hash_partition('mchash1'::regclass, 4, 0, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- invalid modulus
+SELECT satisfies_hash_partition('mchash'::regclass, 0, 0, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 0, 0, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- remainder too small
+SELECT satisfies_hash_partition('mchash'::regclass, 1, -1, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 1, -1, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- remainder too large
+SELECT satisfies_hash_partition('mchash'::regclass, 1, 1, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 1, 1, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- modulus is null
+SELECT satisfies_hash_partition('mchash'::regclass, NULL, 0, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, NULL, 0, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- remainder is null
+SELECT satisfies_hash_partition('mchash'::regclass, 4, NULL, NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, NULL, NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- too many arguments
+SELECT satisfies_hash_partition('mchash'::regclass, 4, 0, NULL::int, NULL::text, NULL::json);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0, NULL::int, NULL::text, NULL::json)' at line 2")
+
+-----------
+QUERY:
+
+
+-- too few arguments
+SELECT satisfies_hash_partition('mchash'::regclass, 3, 1, NULL::int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 3, 1, NULL::int)' at line 2")
+
+-----------
+QUERY:
+
+
+-- wrong argument type
+SELECT satisfies_hash_partition('mchash'::regclass, 2, 1, NULL::int, NULL::int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 2, 1, NULL::int, NULL::int)' at line 2")
+
+-----------
+QUERY:
+
+
+-- ok, should be false
+SELECT satisfies_hash_partition('mchash'::regclass, 4, 0, 0, ''::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0, 0, ''::text)' at line 2")
+
+-----------
+QUERY:
+
+
+-- ok, should be true
+SELECT satisfies_hash_partition('mchash'::regclass, 4, 0, 2, ''::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0, 2, ''::text)' at line 2")
+
+-----------
+QUERY:
+
+
+-- argument via variadic syntax, should fail because not all partitioning
+-- columns are of the correct type
+SELECT satisfies_hash_partition('mchash'::regclass, 2, 1,
+								variadic array[1,2]::int[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 2, 1,\n\t\t\t\t\t\t\t\tvariadic array[1,2]::int[])' at line 3")
+
+-----------
+QUERY:
+
+
+-- multiple partitioning columns of the same type
+CREATE TABLE mcinthash (a int, b int, c jsonb)
+  PARTITION BY HASH (a part_test_int4_ops, b part_test_int4_ops);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'jsonb)\n  PARTITION BY HASH (a part_test_int4_ops, b part_test_int4_ops)' at line 2")
+
+-----------
+QUERY:
+
+
+-- now variadic should work, should be false
+SELECT satisfies_hash_partition('mcinthash'::regclass, 4, 0,
+								variadic array[0, 0]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0,\n\t\t\t\t\t\t\t\tvariadic array[0, 0])' at line 2")
+
+-----------
+QUERY:
+
+
+-- should be true
+SELECT satisfies_hash_partition('mcinthash'::regclass, 4, 0,
+								variadic array[0, 1]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0,\n\t\t\t\t\t\t\t\tvariadic array[0, 1])' at line 2")
+
+-----------
+QUERY:
+
+
+-- wrong length
+SELECT satisfies_hash_partition('mcinthash'::regclass, 4, 0,
+								variadic array[]::int[]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0,\n\t\t\t\t\t\t\t\tvariadic array[]::int[])' at line 2")
+
+-----------
+QUERY:
+
+
+-- wrong type
+SELECT satisfies_hash_partition('mcinthash'::regclass, 4, 0,
+								variadic array[now(), now()]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 4, 0,\n\t\t\t\t\t\t\t\tvariadic array[now(), now()])' at line 2")
+
+-----------
+QUERY:
+
+
+-- check satisfies_hash_partition passes correct collation
+create table text_hashp (a text) partition by hash (a);
+RESULT:
+	ERROR - (1502, 'A BLOB field is not allowed in partition function')
+
+-----------
+QUERY:
+
+create table text_hashp0 partition of text_hashp for values with (modulus 2, remainder 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of text_hashp for values with (modulus 2, remainder 0)' at line 1")
+
+-----------
+QUERY:
+
+create table text_hashp1 partition of text_hashp for values with (modulus 2, remainder 1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'of text_hashp for values with (modulus 2, remainder 1)' at line 1")
+
+-----------
+QUERY:
+
+-- The result here should always be true, because /* REPLACED */''xxx/* REPLACED */'' must belong to
+-- one of the two defined partitions
+select satisfies_hash_partition('text_hashp'::regclass, 2, 0, 'xxx'::text) OR
+	   satisfies_hash_partition('text_hashp'::regclass, 2, 1, 'xxx'::text) AS satisfies;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass, 2, 0, 'xxx'::text) OR\n\t   satisfies_hash_partition('text_hashp'::reg' at line 3")
+
+-----------
+QUERY:
+
+
+-- cleanup
+DROP TABLE mchash;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mchash'")
+
+-----------
+QUERY:
+
+DROP TABLE mcinthash;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.mcinthash'")
+
+-----------
+QUERY:
+
+DROP TABLE text_hashp;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.text_hashp'")

@@ -1,3 +1,6 @@
+
+-----------
+QUERY:
 CREATE TABLE brintest_bloom (byteacol bytea,
 	charcol "char",
 	namecol name,
@@ -21,7 +24,12 @@ CREATE TABLE brintest_bloom (byteacol bytea,
 	numericcol numeric,
 	uuidcol uuid,
 	lsncol pg_lsn
-) WITH (fillfactor=10)
+) WITH (fillfactor=10);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brintest_bloom SELECT
@@ -47,58 +55,61 @@ INSERT INTO brintest_bloom SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 100
+FROM tenk1 ORDER BY unique2 LIMIT 100;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
--- throw in some NULL''s and different values
+-- throw in some NULL/* REPLACED */''s and different values
 INSERT INTO brintest_bloom (inetcol, cidrcol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
-FROM tenk1 ORDER BY thousand, tenthous LIMIT 25
+FROM tenk1 ORDER BY thousand, tenthous LIMIT 25;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test bloom specific index options
 -- ndistinct must be >= -1.0
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	byteacol bytea_bloom_ops(n_distinct_per_range = -1.1)
-)
-ERROR: 
-
--- test bloom specific index options
--- ndistinct must be >= -1.0
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(n_distinct_per_range = -1.1)
-)
-
-value -1.1 out of bounds for option "n_distinct_per_range"
+);
+RESULT:
+	ERROR - value -1.1 out of bounds for option "n_distinct_per_range"
 DETAIL:  Valid values are between "-1.000000" and "2147483647.000000".
 
 
+-----------
+QUERY:
+
 -- false_positive_rate must be between 0.0001 and 0.25
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	byteacol bytea_bloom_ops(false_positive_rate = 0.00009)
-)
-ERROR: 
--- false_positive_rate must be between 0.0001 and 0.25
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(false_positive_rate = 0.00009)
-)
-
-value 0.00009 out of bounds for option "false_positive_rate"
+);
+RESULT:
+	ERROR - value 0.00009 out of bounds for option "false_positive_rate"
 DETAIL:  Valid values are between "0.000100" and "0.250000".
 
 
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(false_positive_rate = 0.26)
-)
-ERROR: 
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(false_positive_rate = 0.26)
-)
+-----------
+QUERY:
 
-value 0.26 out of bounds for option "false_positive_rate"
+CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
+	byteacol bytea_bloom_ops(false_positive_rate = 0.26)
+);
+RESULT:
+	ERROR - value 0.26 out of bounds for option "false_positive_rate"
 DETAIL:  Valid values are between "0.000100" and "0.250000".
 
+
+-----------
+QUERY:
 
 
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
@@ -125,13 +136,23 @@ CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	numericcol numeric_bloom_ops,
 	uuidcol uuid_bloom_ops,
 	lsncol pg_lsn_bloom_ops
-) with (pages_per_range = 1)
+) with (pages_per_range = 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 CREATE TABLE brinopers_bloom (colname name, typ text,
 	op text[], value text[], matches int[],
 	check (cardinality(op) = cardinality(value)),
-	check (cardinality(op) = cardinality(matches)))
+	check (cardinality(op) = cardinality(matches)));
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brinopers_bloom VALUES
@@ -242,425 +263,488 @@ INSERT INTO brinopers_bloom VALUES
 	('lsncol', 'pg_lsn',
 	 '{=, IS, IS NOT}',
 	 '{44/455222, NULL, NULL}',
-	 '{1, 25, 100}')
+	 '{1, 25, 100}');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 DO $x$
 DECLARE
-	r record
-ProgrammingError: 
-
-DO $x$
+	r record;
+RESULT:
+	ERROR - unterminated dollar-quoted string at or near "$x$
 DECLARE
-	r record
-
-unterminated dollar-quoted string at or near "$x$
-DECLARE
-	r record
-"
+	r record;"
 LINE 3: DO $x$
            ^
 
 
-	r2 record
-ProgrammingError: 
-	r2 record
+-----------
+QUERY:
 
-syntax error at or near "r2"
-LINE 2:  r2 record
+	r2 record;
+RESULT:
+	ERROR - syntax error at or near "r2"
+LINE 2:  r2 record;
          ^
 
 
-	cond text
-ProgrammingError: 
-	cond text
+-----------
+QUERY:
 
-syntax error at or near "cond"
-LINE 2:  cond text
+	cond text;
+RESULT:
+	ERROR - syntax error at or near "cond"
+LINE 2:  cond text;
          ^
 
 
-	idx_ctids tid[]
-ProgrammingError: 
-	idx_ctids tid[]
+-----------
+QUERY:
 
-syntax error at or near "idx_ctids"
-LINE 2:  idx_ctids tid[]
+	idx_ctids tid[];
+RESULT:
+	ERROR - syntax error at or near "idx_ctids"
+LINE 2:  idx_ctids tid[];
          ^
 
 
-	ss_ctids tid[]
-ProgrammingError: 
-	ss_ctids tid[]
+-----------
+QUERY:
 
-syntax error at or near "ss_ctids"
-LINE 2:  ss_ctids tid[]
+	ss_ctids tid[];
+RESULT:
+	ERROR - syntax error at or near "ss_ctids"
+LINE 2:  ss_ctids tid[];
          ^
 
 
-	count int
-ProgrammingError: 
-	count int
+-----------
+QUERY:
 
-syntax error at or near "count"
-LINE 2:  count int
+	count int;
+RESULT:
+	ERROR - syntax error at or near "count"
+LINE 2:  count int;
          ^
 
 
-	plan_ok bool
-ProgrammingError: 
-	plan_ok bool
+-----------
+QUERY:
 
-syntax error at or near "plan_ok"
-LINE 2:  plan_ok bool
+	plan_ok bool;
+RESULT:
+	ERROR - syntax error at or near "plan_ok"
+LINE 2:  plan_ok bool;
          ^
 
 
-	plan_line text
-ProgrammingError: 
-	plan_line text
+-----------
+QUERY:
 
-syntax error at or near "plan_line"
-LINE 2:  plan_line text
+	plan_line text;
+RESULT:
+	ERROR - syntax error at or near "plan_line"
+LINE 2:  plan_line text;
          ^
 
+
+-----------
+QUERY:
 
 BEGIN
 	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_bloom, unnest(op) WITH ORDINALITY AS oper LOOP
 
 		-- prepare the condition
 		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-ProgrammingError: 
-BEGIN
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_bloom, unnest(op) WITH ORDINALITY AS oper LOOP
-
-		-- prepare the condition
-		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-
-syntax error at or near "FOR"
+			cond := format('%I %s %L', r.colname, r.oper, r.value);
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 3:  FOR r IN SELECT colname, oper, typ, value[ordinality], matc...
          ^
 
 
-		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
-ProgrammingError: 
-		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
+-----------
+QUERY:
 
-syntax error at or near "ELSE"
+		ELSE
+			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ);
+RESULT:
+	ERROR - syntax error at or near "ELSE"
 LINE 2:   ELSE
           ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
+
+-----------
+QUERY:
 
 
 		-- run the query using the brin index
-		SET enable_seqscan = 0
+		SET enable_seqscan = 0;
+RESULT:
+	[]
 
-		SET enable_bitmapscan = 1
+-----------
+QUERY:
+
+		SET enable_bitmapscan = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-		plan_ok := false
-ProgrammingError: 
-
-		plan_ok := false
-
-syntax error at or near "plan_ok"
-LINE 3:   plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - syntax error at or near "plan_ok"
+LINE 3:   plan_ok := false;
           ^
 
 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Bitmap Heap Scan on brintest_bloom%' THEN
-				plan_ok := true
-ProgrammingError: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Bitmap Heap Scan on brintest_bloom%' THEN
-				plan_ok := true
+-----------
+QUERY:
 
-syntax error at or near "FOR"
+		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
+			IF plan_line LIKE '%Bitmap Heap Scan on brintest_bloom%' THEN
+				plan_ok := true;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:   FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_ag...
           ^
 
 
-			END IF
-ProgrammingError: 
-			END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:    END IF
+			END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:    END IF;
                ^
 
 
-		END LOOP
-ProgrammingError: 
-		END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:   END LOOP
+		END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:   END LOOP;
               ^
 
 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
-ProgrammingError: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
+-----------
+QUERY:
 
-syntax error at or near "IF"
+		IF NOT plan_ok THEN
+			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 2:   IF NOT plan_ok THEN
           ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
 
+-----------
+QUERY:
+
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO idx_ctids
-ProgrammingError: 
-
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO idx_ctids
-
-syntax error at or near "INTO"
-LINE 4:    INTO idx_ctids
+			INTO idx_ctids;
+RESULT:
+	ERROR - syntax error at or near "INTO"
+LINE 4:    INTO idx_ctids;
            ^
 
+
+-----------
+QUERY:
 
 
 		-- run the query using a seqscan
-		SET enable_seqscan = 1
+		SET enable_seqscan = 1;
+RESULT:
+	[]
 
-		SET enable_bitmapscan = 0
+-----------
+QUERY:
+
+		SET enable_bitmapscan = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-		plan_ok := false
-ProgrammingError: 
-
-		plan_ok := false
-
-syntax error at or near "plan_ok"
-LINE 3:   plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - syntax error at or near "plan_ok"
+LINE 3:   plan_ok := false;
           ^
 
 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Seq Scan on brintest_bloom%' THEN
-				plan_ok := true
-ProgrammingError: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Seq Scan on brintest_bloom%' THEN
-				plan_ok := true
+-----------
+QUERY:
 
-syntax error at or near "FOR"
+		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
+			IF plan_line LIKE '%Seq Scan on brintest_bloom%' THEN
+				plan_ok := true;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:   FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_ag...
           ^
 
 
-			END IF
-ProgrammingError: 
-			END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:    END IF
+			END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:    END IF;
                ^
 
 
-		END LOOP
-ProgrammingError: 
-		END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:   END LOOP
+		END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:   END LOOP;
               ^
 
 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
-ProgrammingError: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
+-----------
+QUERY:
 
-syntax error at or near "IF"
+		IF NOT plan_ok THEN
+			RAISE WARNING 'did not get seqscan plan for %', r;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 2:   IF NOT plan_ok THEN
           ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
 
+-----------
+QUERY:
+
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO ss_ctids
-ProgrammingError: 
-
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO ss_ctids
-
-syntax error at or near "INTO"
-LINE 4:    INTO ss_ctids
+			INTO ss_ctids;
+RESULT:
+	ERROR - syntax error at or near "INTO"
+LINE 4:    INTO ss_ctids;
            ^
 
 
+-----------
+QUERY:
+
 
 		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
-ProgrammingError: 
-
-		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
-
-syntax error at or near "count"
-LINE 4:   count := array_length(idx_ctids, 1)
+		count := array_length(idx_ctids, 1);
+RESULT:
+	ERROR - syntax error at or near "count"
+LINE 4:   count := array_length(idx_ctids, 1);
           ^
 
 
+-----------
+QUERY:
+
 
 		IF NOT (count = array_length(ss_ctids, 1) AND
 				idx_ctids @> ss_ctids AND
 				idx_ctids <@ ss_ctids) THEN
 			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
-ProgrammingError: 
-
-		IF NOT (count = array_length(ss_ctids, 1) AND
-				idx_ctids @> ss_ctids AND
-				idx_ctids <@ ss_ctids) THEN
-			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
-
-syntax error at or near "IF"
+			RAISE WARNING 'something not right in %: count %', r, count;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 3:   IF NOT (count = array_length(ss_ctids, 1) AND
           ^
 
 
-			SET enable_seqscan = 1
+-----------
+QUERY:
 
-			SET enable_bitmapscan = 0
+			SET enable_seqscan = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-ProgrammingError: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-
-syntax error at or near "FOR"
+				RAISE NOTICE 'seqscan: %', r2;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:    FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brinte...
            ^
 
 
-			END LOOP
-ProgrammingError: 
-			END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:    END LOOP
+			END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:    END LOOP;
                ^
 
 
+-----------
+QUERY:
 
-			SET enable_seqscan = 0
 
-			SET enable_bitmapscan = 1
+			SET enable_seqscan = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
-ProgrammingError: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
-
-syntax error at or near "FOR"
+				RAISE NOTICE 'bitmapscan: %', r2;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:    FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brinte...
            ^
 
 
-			END LOOP
-ProgrammingError: 
-			END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:    END LOOP
+			END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:    END LOOP;
                ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
 
+-----------
+QUERY:
+
 
 		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
-ProgrammingError: 
-
-		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
-
-syntax error at or near "IF"
+		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 4:   IF count != r.matches THEN RAISE WARNING 'unexpected numbe...
           ^
 
- END IF
-ProgrammingError:  END IF
 
-syntax error at or near "IF"
-LINE 1:  END IF
+-----------
+QUERY:
+ END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 1:  END IF;
              ^
 
 
-	END LOOP
-ProgrammingError: 
-	END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:  END LOOP
+	END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:  END LOOP;
              ^
 
 
-END
+-----------
+QUERY:
 
-$x$
-ProgrammingError: 
-$x$
+END;
+RESULT:
+	[]
 
-unterminated dollar-quoted string at or near "$x$
-"
-LINE 2: $x$
+-----------
+QUERY:
+
+$x$;
+RESULT:
+	ERROR - unterminated dollar-quoted string at or near "$x$;"
+LINE 2: $x$;
         ^
 
 
+-----------
+QUERY:
 
-RESET enable_seqscan
 
-RESET enable_bitmapscan
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brintest_bloom SELECT
@@ -686,72 +770,116 @@ INSERT INTO brintest_bloom SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5
+FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-RESULT: 
+SELECT brin_desummarize_range('brinidx_bloom', 0);
+RESULT:
 	[('',)]
 
-VACUUM brintest_bloom
+-----------
+QUERY:
+
+VACUUM brintest_bloom;
+RESULT:
+	[]
+
+-----------
+QUERY:
   -- force a summarization cycle in brinidx
 
-UPDATE brintest_bloom SET int8col = int8col * int4col
+UPDATE brintest_bloom SET int8col = int8col * int4col;
+RESULT:
+	[]
 
-UPDATE brintest_bloom SET textcol = '' WHERE textcol IS NOT NULL
+-----------
+QUERY:
+
+UPDATE brintest_bloom SET textcol = '' WHERE textcol IS NOT NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_bloom')
-ProgrammingError: 
+SELECT brin_summarize_new_values('brintest_bloom');
+RESULT:
+	ERROR - "brintest_bloom" is not an index
 
--- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_bloom')
 
-"brintest_bloom" is not an index
-
+-----------
+QUERY:
  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
-ProgrammingError:  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
+SELECT brin_summarize_new_values('tenk1_unique1');
+RESULT:
+	ERROR - "tenk1_unique1" is not a BRIN index
 
-"tenk1_unique1" is not a BRIN index
 
+-----------
+QUERY:
  -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_bloom')
-RESULT: 
+SELECT brin_summarize_new_values('brinidx_bloom');
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
  -- ok, no change expected
 
 -- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_bloom', -1)
-ERROR:  -- ok, no change expected
+SELECT brin_desummarize_range('brinidx_bloom', -1);
+RESULT:
+	ERROR - block number out of range: -1
 
--- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_bloom', -1)
 
-block number out of range: -1
-
+-----------
+QUERY:
  -- error, invalid range
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-RESULT: 
+SELECT brin_desummarize_range('brinidx_bloom', 0);
+RESULT:
 	[('',)]
 
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-RESULT: 
+-----------
+QUERY:
+
+SELECT brin_desummarize_range('brinidx_bloom', 0);
+RESULT:
 	[('',)]
 
-SELECT brin_desummarize_range('brinidx_bloom', 100000000)
-RESULT: 
+-----------
+QUERY:
+
+SELECT brin_desummarize_range('brinidx_bloom', 100000000);
+RESULT:
 	[('',)]
+
+-----------
+QUERY:
 
 
 -- Test brin_summarize_range
 CREATE TABLE brin_summarize_bloom (
     value int
-) WITH (fillfactor=10, autovacuum_enabled=false)
+) WITH (fillfactor=10, autovacuum_enabled=false);
+RESULT:
+	[]
 
-CREATE INDEX brin_summarize_bloom_idx ON brin_summarize_bloom USING brin (value) WITH (pages_per_range=2)
+-----------
+QUERY:
+
+CREATE INDEX brin_summarize_bloom_idx ON brin_summarize_bloom USING brin (value) WITH (pages_per_range=2);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- Fill a few pages
 DO $$
@@ -762,67 +890,111 @@ BEGIN
     EXIT WHEN curtid > tid '(2, 0)';
   END LOOP;
 END;
-$$
+$$;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 0)
-RESULT: 
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 0);
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 -- nothing: already summarized
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 1)
-RESULT: 
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 1);
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 2)
-RESULT: 
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 2);
+RESULT:
 	[(1,)]
 
--- nothing: page doesn''t exist in table
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967295)
-RESULT: 
+-----------
+QUERY:
+
+-- nothing: page doesn/* REPLACED */''t exist in table
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967295);
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
+
 -- invalid block number values
-SELECT brin_summarize_range('brin_summarize_bloom_idx', -1)
-ERROR: 
--- invalid block number values
-SELECT brin_summarize_range('brin_summarize_bloom_idx', -1)
-
-block number out of range: -1
+SELECT brin_summarize_range('brin_summarize_bloom_idx', -1);
+RESULT:
+	ERROR - block number out of range: -1
 
 
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967296)
-ERROR: 
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967296)
+-----------
+QUERY:
 
-block number out of range: 4294967296
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967296);
+RESULT:
+	ERROR - block number out of range: 4294967296
 
+
+-----------
+QUERY:
 
 
 
 -- test brin cost estimates behave sanely based on correlation of values
-CREATE TABLE brin_test_bloom (a INT, b INT)
+CREATE TABLE brin_test_bloom (a INT, b INT);
+RESULT:
+	[]
 
-INSERT INTO brin_test_bloom SELECT x/100,x%100 FROM generate_series(1,10000) x(x)
+-----------
+QUERY:
 
-CREATE INDEX brin_test_bloom_a_idx ON brin_test_bloom USING brin (a) WITH (pages_per_range = 2)
+INSERT INTO brin_test_bloom SELECT x/100,x%100 FROM generate_series(1,10000) x(x);
+RESULT:
+	[]
 
-CREATE INDEX brin_test_bloom_b_idx ON brin_test_bloom USING brin (b) WITH (pages_per_range = 2)
+-----------
+QUERY:
 
-VACUUM ANALYZE brin_test_bloom
+CREATE INDEX brin_test_bloom_a_idx ON brin_test_bloom USING brin (a) WITH (pages_per_range = 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX brin_test_bloom_b_idx ON brin_test_bloom USING brin (b) WITH (pages_per_range = 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+VACUUM ANALYZE brin_test_bloom;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Ensure brin index is used when columns are perfectly correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE a = 1
-RESULT: 
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE a = 1;
+RESULT:
 	[('Bitmap Heap Scan on brin_test_bloom',), ('  Recheck Cond: (a = 1)',), ('  ->  Bitmap Index Scan on brin_test_bloom_a_idx',), ('        Index Cond: (a = 1)',)]
 
+-----------
+QUERY:
+
 -- Ensure brin index is not used when values are not correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE b = 1
-RESULT: 
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE b = 1;
+RESULT:
 	[('Seq Scan on brin_test_bloom',), ('  Filter: (b = 1)',)]
-
-

@@ -1,0 +1,209 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- CREATE_CAST
+--
+
+-- Create some types to test with
+CREATE TYPE casttesttype;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION casttesttype_in(cstring)
+   RETURNS casttesttype
+   AS 'textin'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+CREATE FUNCTION casttesttype_out(casttesttype)
+   RETURNS cstring
+   AS 'textout'
+   LANGUAGE internal STRICT IMMUTABLE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE TYPE casttesttype (
+   internallength = variable,
+   input = casttesttype_in,
+   output = casttesttype_out,
+   alignment = int4
+);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- a dummy function to test with
+CREATE FUNCTION casttestfunc(casttesttype) RETURNS int4 LANGUAGE SQL AS
+$$ SELECT 1; $$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+SELECT casttestfunc('foo'::text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- fails, as there/* REPLACED */''s no cast
+
+-- Try binary coercion cast
+CREATE CAST (text AS casttesttype) WITHOUT FUNCTION;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT casttestfunc('foo'::text);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- doesn/* REPLACED */''t work, as the cast is explicit
+SELECT casttestfunc('foo'::text::casttesttype);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- should work
+DROP CAST (text AS casttesttype);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- cleanup
+
+-- Try IMPLICIT binary coercion cast
+CREATE CAST (text AS casttesttype) WITHOUT FUNCTION AS IMPLICIT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT casttestfunc('foo'::text);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should work now
+
+-- Try I/O conversion cast.
+SELECT 1234::int4::casttesttype;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+ -- No cast yet, should fail
+
+CREATE CAST (int4 AS casttesttype) WITH INOUT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT 1234::int4::casttesttype;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should work now
+
+DROP CAST (int4 AS casttesttype);
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Try cast with a function
+
+CREATE FUNCTION int4_casttesttype(int4) RETURNS casttesttype LANGUAGE SQL AS
+$$ SELECT ('foo'::text || $1::text)::casttesttype; $$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE CAST (int4 AS casttesttype) WITH FUNCTION int4_casttesttype(int4) AS IMPLICIT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT 1234::int4::casttesttype;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should work now
+
+DROP FUNCTION int4_casttesttype(int4) CASCADE;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Try it with a function that requires an implicit cast
+
+CREATE FUNCTION bar_int4_text(int4) RETURNS text LANGUAGE SQL AS
+$$ SELECT ('bar'::text || $1::text); $$;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+CREATE CAST (int4 AS casttesttype) WITH FUNCTION bar_int4_text(int4) AS IMPLICIT;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT 1234::int4::casttesttype;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+ -- Should work now
+
+-- check dependencies generated for that
+SELECT pg_describe_object(classid, objid, objsubid) as obj,
+       pg_describe_object(refclassid, refobjid, refobjsubid) as objref,
+       deptype
+FROM pg_depend
+WHERE classid = 'pg_cast'::regclass AND
+      objid = (SELECT oid FROM pg_cast
+               WHERE castsource = 'int4'::regtype
+                 AND casttarget = 'casttesttype'::regtype)
+ORDER BY refclassid;
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+=========================================
+Summary for test case create_cast/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 3 queries, which is 12.50%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 21 queries, which is 87.50%
+
+=================
+Results for mySQL
+SAME: 3 queries, which is 12.50%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 21 queries, which is 87.50%

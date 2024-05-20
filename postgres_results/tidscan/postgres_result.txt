@@ -1,0 +1,338 @@
+
+-----------
+QUERY:
+-- tests for tidscans
+
+CREATE TABLE tidscan(id integer)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- only insert a few rows, we don/* REPLACED */''t want to spill onto a second table page
+INSERT INTO tidscan VALUES (1), (2), (3)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- show ctids
+SELECT ctid, * FROM tidscan
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,2)', 2), ('(0,3)', 3)]
+
+-----------
+QUERY:
+-- ctid equality - implemented as tidscan
+EXPLAIN (COSTS OFF)
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,1)'
+RESULT:
+	postgres: [('Tid Scan on tidscan',), ("  TID Cond: (ctid = '(0,1)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,1)'
+RESULT:
+	postgres: [('(0,1)', 1)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid, * FROM tidscan WHERE '(0,1)' = ctid
+RESULT:
+	postgres: [('Tid Scan on tidscan',), ("  TID Cond: ('(0,1)'::tid = ctid)",)]
+
+-----------
+QUERY:
+SELECT ctid, * FROM tidscan WHERE '(0,1)' = ctid
+RESULT:
+	postgres: [('(0,1)', 1)]
+
+-----------
+QUERY:
+-- OR/* REPLACED */''d clauses
+EXPLAIN (COSTS OFF)
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,2)' OR '(0,1)' = ctid
+RESULT:
+	postgres: [('Tid Scan on tidscan',), ("  TID Cond: ((ctid = '(0,2)'::tid) OR ('(0,1)'::tid = ctid))",)]
+
+-----------
+QUERY:
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,2)' OR '(0,1)' = ctid
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,2)', 2)]
+
+-----------
+QUERY:
+-- ctid = ScalarArrayOp - implemented as tidscan
+EXPLAIN (COSTS OFF)
+SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[])
+RESULT:
+	postgres: [('Tid Scan on tidscan',), ('  TID Cond: (ctid = ANY (\'{"(0,1)","(0,2)"}\'::tid[]))',)]
+
+-----------
+QUERY:
+SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[])
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,2)', 2)]
+
+-----------
+QUERY:
+-- ctid != ScalarArrayOp - can/* REPLACED */''t be implemented as tidscan
+EXPLAIN (COSTS OFF)
+SELECT ctid, * FROM tidscan WHERE ctid != ANY(ARRAY['(0,1)', '(0,2)']::tid[])
+RESULT:
+	postgres: [('Seq Scan on tidscan',), ('  Filter: (ctid <> ANY (\'{"(0,1)","(0,2)"}\'::tid[]))',)]
+
+-----------
+QUERY:
+SELECT ctid, * FROM tidscan WHERE ctid != ANY(ARRAY['(0,1)', '(0,2)']::tid[])
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,2)', 2), ('(0,3)', 3)]
+
+-----------
+QUERY:
+-- tid equality extracted from sub-AND clauses
+EXPLAIN (COSTS OFF)
+SELECT ctid, * FROM tidscan
+WHERE (id = 3 AND ctid IN ('(0,2)', '(0,3)')) OR (ctid = '(0,1)' AND id = 1)
+RESULT:
+	postgres: [('Tid Scan on tidscan',), ('  TID Cond: ((ctid = ANY (\'{"(0,2)","(0,3)"}\'::tid[])) OR (ctid = \'(0,1)\'::tid))',), ('  Filter: (((id = 3) AND (ctid = ANY (\'{"(0,2)","(0,3)"}\'::tid[]))) OR ((ctid = \'(0,1)\'::tid) AND (id = 1)))',)]
+
+-----------
+QUERY:
+SELECT ctid, * FROM tidscan
+WHERE (id = 3 AND ctid IN ('(0,2)', '(0,3)')) OR (ctid = '(0,1)' AND id = 1)
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,3)', 3)]
+
+-----------
+QUERY:
+-- nestloop-with-inner-tidscan joins on tid
+SET enable_hashjoin TO off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- otherwise hash join might win
+EXPLAIN (COSTS OFF)
+SELECT t1.ctid, t1.*, t2.ctid, t2.*
+FROM tidscan t1 JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
+RESULT:
+	postgres: [('Nested Loop',), ('  ->  Seq Scan on tidscan t1',), ('        Filter: (id = 1)',), ('  ->  Tid Scan on tidscan t2',), ('        TID Cond: (t1.ctid = ctid)',)]
+
+-----------
+QUERY:
+SELECT t1.ctid, t1.*, t2.ctid, t2.*
+FROM tidscan t1 JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
+RESULT:
+	postgres: [('(0,1)', 1, '(0,1)', 1)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT t1.ctid, t1.*, t2.ctid, t2.*
+FROM tidscan t1 LEFT JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
+RESULT:
+	postgres: [('Nested Loop Left Join',), ('  ->  Seq Scan on tidscan t1',), ('        Filter: (id = 1)',), ('  ->  Tid Scan on tidscan t2',), ('        TID Cond: (t1.ctid = ctid)',)]
+
+-----------
+QUERY:
+SELECT t1.ctid, t1.*, t2.ctid, t2.*
+FROM tidscan t1 LEFT JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
+RESULT:
+	postgres: [('(0,1)', 1, '(0,1)', 1)]
+
+-----------
+QUERY:
+RESET enable_hashjoin
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- exercise backward scan and rewind
+BEGIN
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+DECLARE c CURSOR FOR
+SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[])
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+FETCH ALL FROM c
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,2)', 2)]
+
+-----------
+QUERY:
+FETCH BACKWARD 1 FROM c
+RESULT:
+	postgres: [('(0,2)', 2)]
+
+-----------
+QUERY:
+FETCH FIRST FROM c
+RESULT:
+	postgres: [('(0,1)', 1)]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- tidscan via CURRENT OF
+BEGIN
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+DECLARE c CURSOR FOR SELECT ctid, * FROM tidscan
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+FETCH NEXT FROM c
+RESULT:
+	postgres: [('(0,1)', 1)]
+
+-----------
+QUERY:
+-- skip one row
+FETCH NEXT FROM c
+RESULT:
+	postgres: [('(0,2)', 2)]
+
+-----------
+QUERY:
+-- perform update
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *
+RESULT:
+	postgres: [('Update on tidscan (actual rows=1 loops=1)',), ('  ->  Tid Scan on tidscan (actual rows=1 loops=1)',), ('        TID Cond: CURRENT OF c',)]
+
+-----------
+QUERY:
+FETCH NEXT FROM c
+RESULT:
+	postgres: [('(0,3)', 3)]
+
+-----------
+QUERY:
+-- perform update
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *
+RESULT:
+	postgres: [('Update on tidscan (actual rows=1 loops=1)',), ('  ->  Tid Scan on tidscan (actual rows=1 loops=1)',), ('        TID Cond: CURRENT OF c',)]
+
+-----------
+QUERY:
+SELECT * FROM tidscan
+RESULT:
+	postgres: [(1,), (-2,), (-3,)]
+
+-----------
+QUERY:
+-- position cursor past any rows
+FETCH NEXT FROM c
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- should error out
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *
+RESULT:
+	postgres: cursor "c" is not positioned on a row
+
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- bulk joins on CTID
+-- (these plans don/* REPLACED */''t use TID scans, but this still seems like an
+-- appropriate place for these tests)
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
+RESULT:
+	postgres: [('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (t1.ctid = t2.ctid)',), ('        ->  Seq Scan on tenk1 t1',), ('        ->  Hash',), ('              ->  Seq Scan on tenk1 t2',)]
+
+-----------
+QUERY:
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
+RESULT:
+	postgres: [(10000,)]
+
+-----------
+QUERY:
+SET enable_hashjoin TO off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
+RESULT:
+	postgres: [('Aggregate',), ('  ->  Merge Join',), ('        Merge Cond: (t1.ctid = t2.ctid)',), ('        ->  Sort',), ('              Sort Key: t1.ctid',), ('              ->  Seq Scan on tenk1 t1',), ('        ->  Sort',), ('              Sort Key: t2.ctid',), ('              ->  Seq Scan on tenk1 t2',)]
+
+-----------
+QUERY:
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
+RESULT:
+	postgres: [(10000,)]
+
+-----------
+QUERY:
+RESET enable_hashjoin
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- check predicate lock on CTID
+BEGIN ISOLATION LEVEL SERIALIZABLE
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+SELECT * FROM tidscan WHERE ctid = '(0,1)'
+RESULT:
+	postgres: [(1,)]
+
+-----------
+QUERY:
+-- locktype should be /* REPLACED */''tuple/* REPLACED */''
+SELECT locktype, mode FROM pg_locks WHERE pid = pg_backend_pid() AND mode = 'SIReadLock'
+RESULT:
+	postgres: [('tuple', 'SIReadLock')]
+
+-----------
+QUERY:
+ROLLBACK
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+DROP TABLE tidscan
+RESULT:
+	postgres: None

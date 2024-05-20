@@ -1,0 +1,985 @@
+
+-----------
+QUERY:
+--
+-- Test the LOCK statement
+--
+
+-- directory paths and dlsuffix are passed to us in environment variables
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
+
+-- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+
+-- Setup
+CREATE SCHEMA lock_schema1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path = lock_schema1;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+CREATE TABLE lock_tbl1 (a BIGINT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE lock_tbl1a (a BIGINT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view1 AS SELECT * FROM lock_tbl1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view2(a,b) AS SELECT * FROM lock_tbl1, lock_tbl1a;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view3 AS SELECT * from lock_view2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view4 AS SELECT (select a from lock_tbl1a limit 1) from lock_tbl1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view5 AS SELECT * from lock_tbl1 where a in (select * from lock_tbl1a);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view6 AS SELECT * from (select * from lock_tbl1) sub;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER ROLE regress_rol_lock1 SET search_path = lock_schema1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE regress_rol_lock1 SET search_path = lock_schema1' at line 1")
+
+-----------
+QUERY:
+
+GRANT USAGE ON SCHEMA lock_schema1 TO regress_rol_lock1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SCHEMA lock_schema1 TO regress_rol_lock1' at line 1")
+
+-----------
+QUERY:
+
+
+-- Try all valid lock options /* REPLACED */, also try omitting the optional TABLE keyword.
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ACCESS SHARE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ACCESS SHARE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK lock_tbl1 IN ROW SHARE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'lock_tbl1 IN ROW SHARE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ROW EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ROW EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN SHARE UPDATE EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN SHARE UPDATE EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN SHARE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN SHARE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK lock_tbl1 IN SHARE ROW EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'lock_tbl1 IN SHARE ROW EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ACCESS EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ACCESS EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Try using NOWAIT along with valid options.
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ACCESS SHARE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ACCESS SHARE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ROW SHARE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ROW SHARE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ROW EXCLUSIVE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ROW EXCLUSIVE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN SHARE UPDATE EXCLUSIVE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN SHARE UPDATE EXCLUSIVE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN SHARE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN SHARE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN SHARE ROW EXCLUSIVE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN EXCLUSIVE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 IN ACCESS EXCLUSIVE MODE NOWAIT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ACCESS EXCLUSIVE MODE NOWAIT' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Verify that we can lock views.
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 2")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view1 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view1 and lock_tbl1 are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'ExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view2 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view1, lock_tbl1, and lock_tbl1a are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'ExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view3 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view3, lock_view2, lock_tbl1, and lock_tbl1a are locked recursively.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'ExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view4 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view4, lock_tbl1, and lock_tbl1a are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'ExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view5 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view5, lock_tbl1, and lock_tbl1a are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'ExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view6 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view6 an lock_tbl1 are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'ExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Verify that we cope with infinite recursion in view definitions.
+CREATE OR REPLACE VIEW lock_view2 AS SELECT * from lock_view3;
+RESULT:
+	ERROR - (1146, "Table 'test.lock_view2' doesn't exist")
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view2 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW lock_view7 AS SELECT * from lock_view2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view7 IN EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Verify that we can lock a table with inheritance children.
+CREATE TABLE lock_tbl2 (b BIGINT) INHERITS (lock_tbl1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (lock_tbl1)' at line 2")
+
+-----------
+QUERY:
+
+CREATE TABLE lock_tbl3 () INHERITS (lock_tbl2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') INHERITS (lock_tbl2)' at line 1")
+
+-----------
+QUERY:
+
+BEGIN TRANSACTION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TRANSACTION' at line 1")
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 * IN ACCESS EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '* IN ACCESS EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Child tables are locked without granting explicit permission to do so as
+-- long as we have permission to lock the parent.
+GRANT UPDATE ON TABLE lock_tbl1 TO regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET ROLE regress_rol_lock1;
+RESULT:
+	ERROR - (3530, '`regress_rol_lock1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- fail when child locked directly
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_tbl1 * IN ACCESS EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '* IN ACCESS EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE ONLY lock_tbl1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+REVOKE UPDATE ON TABLE lock_tbl1 FROM regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Tables referred to by views are locked without explicit permission to do so
+-- as long as we have permission to lock the view itself.
+SET ROLE regress_rol_lock1;
+RESULT:
+	ERROR - (3530, '`regress_rol_lock1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- fail without permissions on the view
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+GRANT UPDATE ON TABLE lock_view1 TO regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET ROLE regress_rol_lock1;
+RESULT:
+	ERROR - (3530, '`regress_rol_lock1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view1 IN ACCESS EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ACCESS EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view1 and lock_tbl1 (plus children lock_tbl2 and lock_tbl3) are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'AccessExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+REVOKE UPDATE ON TABLE lock_view1 FROM regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Tables referred to by security invoker views require explicit permission to
+-- be locked.
+CREATE VIEW lock_view8 WITH (security_invoker) AS SELECT * FROM lock_tbl1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WITH (security_invoker) AS SELECT * FROM lock_tbl1' at line 3")
+
+-----------
+QUERY:
+
+SET ROLE regress_rol_lock1;
+RESULT:
+	ERROR - (3530, '`regress_rol_lock1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- fail without permissions on the view
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+GRANT UPDATE ON TABLE lock_view8 TO regress_rol_lock1;
+RESULT:
+	ERROR - (1146, "Table 'test.lock_view8' doesn't exist")
+
+-----------
+QUERY:
+
+SET ROLE regress_rol_lock1;
+RESULT:
+	ERROR - (3530, '`regress_rol_lock1`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+-- fail without permissions on the table referenced by the view
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+GRANT UPDATE ON TABLE lock_tbl1 TO regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+LOCK TABLE lock_view8 IN ACCESS EXCLUSIVE MODE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ACCESS EXCLUSIVE MODE' at line 1")
+
+-----------
+QUERY:
+
+-- lock_view8 and lock_tbl1 (plus children lock_tbl2 and lock_tbl3) are locked.
+select relname from pg_locks l, pg_class c
+ where l.relation = c.oid and relname like '%lock_%' and mode = 'AccessExclusiveLock'
+ order by relname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_locks' doesn't exist")
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+REVOKE UPDATE ON TABLE lock_view8 FROM regress_rol_lock1;
+RESULT:
+	ERROR - (1147, "There is no such grant defined for user 'regress_rol_lock1' on host '%' on table 'lock_view8'")
+
+-----------
+QUERY:
+
+
+--
+-- Clean up
+--
+DROP VIEW lock_view8;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.lock_view8'")
+
+-----------
+QUERY:
+
+DROP VIEW lock_view7;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP VIEW lock_view6;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP VIEW lock_view5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP VIEW lock_view4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP VIEW lock_view3 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP VIEW lock_view1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE lock_tbl3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.lock_tbl3'")
+
+-----------
+QUERY:
+
+DROP TABLE lock_tbl2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.lock_tbl2'")
+
+-----------
+QUERY:
+
+DROP TABLE lock_tbl1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE lock_tbl1a;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP SCHEMA lock_schema1 CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+DROP ROLE regress_rol_lock1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- atomic ops tests
+RESET search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION test_atomic_ops()
+    RETURNS bool
+    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+    LANGUAGE C;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT test_atomic_ops();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.test_atomic_ops does not exist')

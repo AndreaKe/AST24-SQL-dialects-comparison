@@ -1,0 +1,456 @@
+
+-----------
+QUERY:
+-- from http://www.depesz.com/index.php/2010/04/19/getting-unique-elements/
+
+CREATE TEMP TABLE articles (
+    id int CONSTRAINT articles_pkey PRIMARY KEY,
+    keywords text,
+    title text UNIQUE NOT NULL,
+    body text UNIQUE,
+    created date
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE articles (\n    id int CONSTRAINT articles_pkey PRIMARY KEY,\n    keywo' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE articles_in_category (
+    article_id int,
+    category_id int,
+    changed date,
+    PRIMARY KEY (article_id, category_id)
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE articles_in_category (\n    article_id int,\n    category_id int,\n    c' at line 1")
+
+-----------
+QUERY:
+
+
+-- test functional dependencies based on primary keys/unique constraints
+
+-- base tables
+
+-- group by primary key (OK)
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by unique not null (fail/todo)
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY title;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by unique nullable (fail)
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY body;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by something else (fail)
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY keywords;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- multiple tables
+
+-- group by primary key (OK)
+SELECT a.id, a.keywords, a.title, a.body, a.created
+FROM articles AS a, articles_in_category AS aic
+WHERE a.id = aic.article_id AND aic.category_id in (14,62,70,53,138)
+GROUP BY a.id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by something else (fail)
+SELECT a.id, a.keywords, a.title, a.body, a.created
+FROM articles AS a, articles_in_category AS aic
+WHERE a.id = aic.article_id AND aic.category_id in (14,62,70,53,138)
+GROUP BY aic.article_id, aic.category_id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- JOIN syntax
+
+-- group by left table/* REPLACED */''s primary key (OK)
+SELECT a.id, a.keywords, a.title, a.body, a.created
+FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
+WHERE aic.category_id in (14,62,70,53,138)
+GROUP BY a.id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by something else (fail)
+SELECT a.id, a.keywords, a.title, a.body, a.created
+FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
+WHERE aic.category_id in (14,62,70,53,138)
+GROUP BY aic.article_id, aic.category_id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by right table/* REPLACED */''s (composite) primary key (OK)
+SELECT aic.changed
+FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
+WHERE aic.category_id in (14,62,70,53,138)
+GROUP BY aic.category_id, aic.article_id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- group by right table/* REPLACED */''s partial primary key (fail)
+SELECT aic.changed
+FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
+WHERE aic.category_id in (14,62,70,53,138)
+GROUP BY aic.article_id;
+RESULT:
+	ERROR - (1146, "Table 'test.articles' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- example from documentation
+
+CREATE TEMP TABLE products (product_id int, name text, price numeric);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE products (product_id int, name text, price numeric)' at line 3")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE sales (product_id int, units int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE sales (product_id int, units int)' at line 1")
+
+-----------
+QUERY:
+
+
+-- OK
+SELECT product_id, p.name, (sum(s.units) * p.price) AS sales
+    FROM products p LEFT JOIN sales s USING (product_id)
+    GROUP BY product_id, p.name, p.price;
+RESULT:
+	ERROR - (1146, "Table 'test.products' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- fail
+SELECT product_id, p.name, (sum(s.units) * p.price) AS sales
+    FROM products p LEFT JOIN sales s USING (product_id)
+    GROUP BY product_id;
+RESULT:
+	ERROR - (1146, "Table 'test.products' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE products ADD PRIMARY KEY (product_id);
+RESULT:
+	ERROR - (1146, "Table 'test.products' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- OK now
+SELECT product_id, p.name, (sum(s.units) * p.price) AS sales
+    FROM products p LEFT JOIN sales s USING (product_id)
+    GROUP BY product_id;
+RESULT:
+	ERROR - (1146, "Table 'test.products' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- Drupal example, http://drupal.org/node/555530
+
+CREATE TEMP TABLE node (
+    nid SERIAL,
+    vid integer NOT NULL default '0',
+    type varchar(32) NOT NULL default '',
+    title varchar(128) NOT NULL default '',
+    uid integer NOT NULL default '0',
+    status integer NOT NULL default '1',
+    created integer NOT NULL default '0',
+    -- snip
+    PRIMARY KEY (nid, vid)
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE node (\n    nid SERIAL,\n    vid integer NOT NULL default '0',\n    type' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE users (
+    uid integer NOT NULL default '0',
+    name varchar(60) NOT NULL default '',
+    pass varchar(32) NOT NULL default '',
+    -- snip
+    PRIMARY KEY (uid),
+    UNIQUE (name)
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE users (\n    uid integer NOT NULL default '0',\n    name varchar(60) NO' at line 1")
+
+-----------
+QUERY:
+
+
+-- OK
+SELECT u.uid, u.name FROM node n
+INNER JOIN users u ON u.uid = n.uid
+WHERE n.type = 'blog' AND n.status = 1
+GROUP BY u.uid, u.name;
+RESULT:
+	ERROR - (1146, "Table 'test.node' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- OK
+SELECT u.uid, u.name FROM node n
+INNER JOIN users u ON u.uid = n.uid
+WHERE n.type = 'blog' AND n.status = 1
+GROUP BY u.uid;
+RESULT:
+	ERROR - (1146, "Table 'test.node' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- Check views and dependencies
+
+-- fail
+CREATE TEMP VIEW fdv1 AS
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY body;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW fdv1 AS\nSELECT id, keywords, title, body, created\nFROM articles\nGROUP ' at line 4")
+
+-----------
+QUERY:
+
+
+-- OK
+CREATE TEMP VIEW fdv1 AS
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW fdv1 AS\nSELECT id, keywords, title, body, created\nFROM articles\nGROUP ' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail
+ALTER TABLE articles DROP CONSTRAINT articles_pkey RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 2")
+
+-----------
+QUERY:
+
+
+DROP VIEW fdv1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.fdv1'")
+
+-----------
+QUERY:
+
+
+
+-- multiple dependencies
+CREATE TEMP VIEW fdv2 AS
+SELECT a.id, a.keywords, a.title, aic.category_id, aic.changed
+FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
+WHERE aic.category_id in (14,62,70,53,138)
+GROUP BY a.id, aic.category_id, aic.article_id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW fdv2 AS\nSELECT a.id, a.keywords, a.title, aic.category_id, aic.changed' at line 2")
+
+-----------
+QUERY:
+
+
+ALTER TABLE articles DROP CONSTRAINT articles_pkey RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 1")
+
+-----------
+QUERY:
+ -- fail
+ALTER TABLE articles_in_category DROP CONSTRAINT articles_in_category_pkey RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 2")
+
+-----------
+QUERY:
+ --fail
+
+DROP VIEW fdv2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--fail\n\nDROP VIEW fdv2' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- nested queries
+
+CREATE TEMP VIEW fdv3 AS
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY id
+UNION
+SELECT id, keywords, title, body, created
+FROM articles
+GROUP BY id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW fdv3 AS\nSELECT id, keywords, title, body, created\nFROM articles\nGROUP ' at line 3")
+
+-----------
+QUERY:
+
+
+ALTER TABLE articles DROP CONSTRAINT articles_pkey RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 1")
+
+-----------
+QUERY:
+ -- fail
+
+DROP VIEW fdv3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.fdv3'")
+
+-----------
+QUERY:
+
+
+
+CREATE TEMP VIEW fdv4 AS
+SELECT * FROM articles WHERE title IN (SELECT title FROM articles GROUP BY id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW fdv4 AS\nSELECT * FROM articles WHERE title IN (SELECT title FROM artic' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE articles DROP CONSTRAINT articles_pkey RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 1")
+
+-----------
+QUERY:
+ -- fail
+
+DROP VIEW fdv4;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.fdv4'")
+
+-----------
+QUERY:
+
+
+
+-- prepared query plans: this results in failure on reuse
+
+PREPARE foo AS
+  SELECT id, keywords, title, body, created
+  FROM articles
+  GROUP BY id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS\n  SELECT id, keywords, title, body, created\n  FROM articles\n  GROUP BY id' at line 3")
+
+-----------
+QUERY:
+
+
+EXECUTE foo;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (foo) given to EXECUTE')
+
+-----------
+QUERY:
+
+
+ALTER TABLE articles DROP CONSTRAINT articles_pkey RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RESTRICT' at line 1")
+
+-----------
+QUERY:
+
+
+EXECUTE foo;
+RESULT:
+	ERROR - (1243, 'Unknown prepared statement handler (foo) given to EXECUTE')
+
+-----------
+QUERY:
+  -- fail
+
+RESULT:
+	[]

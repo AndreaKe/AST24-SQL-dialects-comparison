@@ -1,0 +1,237 @@
+
+-----------
+QUERY:
+SELECT size, pg_size_pretty(size), pg_size_pretty(-1 * size) FROM
+    (VALUES (10::bigint), (1000::bigint), (1000000::bigint),
+            (1000000000::bigint), (1000000000000::bigint),
+            (1000000000000000::bigint)) x(size);
+RESULT:
+	[(10, '10 bytes', '-10 bytes'), (1000, '1000 bytes', '-1000 bytes'), (1000000, '976.5 KiB', '-976.5 KiB'), (1000000000, '953.6 MiB', '-953.6 MiB'), (1000000000000, '931.3 GiB', '-931.3 GiB'), (1000000000000000, '909.4 TiB', '-909.4 TiB')]
+
+-----------
+QUERY:
+
+
+SELECT size, pg_size_pretty(size), pg_size_pretty(-1 * size) FROM
+    (VALUES (10::numeric), (1000::numeric), (1000000::numeric),
+            (1000000000::numeric), (1000000000000::numeric),
+            (1000000000000000::numeric),
+            (10.5::numeric), (1000.5::numeric), (1000000.5::numeric),
+            (1000000000.5::numeric), (1000000000000.5::numeric),
+            (1000000000000000.5::numeric)) x(size);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'format_bytes(DECIMAL(18,3))'. You might need to add explicit type casts.
+	Candidate functions:
+	format_bytes(BIGINT) -> VARCHAR
+
+
+-----------
+QUERY:
+
+
+-- test where units change up
+SELECT size, pg_size_pretty(size), pg_size_pretty(-1 * size) FROM
+    (VALUES (10239::bigint), (10240::bigint),
+            (10485247::bigint), (10485248::bigint),
+            (10736893951::bigint), (10736893952::bigint),
+            (10994579406847::bigint), (10994579406848::bigint),
+            (11258449312612351::bigint), (11258449312612352::bigint)) x(size);
+RESULT:
+	[(10239, '9.9 KiB', '-9.9 KiB'), (10240, '10.0 KiB', '-10.0 KiB'), (10485247, '9.9 MiB', '-9.9 MiB'), (10485248, '9.9 MiB', '-9.9 MiB'), (10736893951, '9.9 GiB', '-9.9 GiB'), (10736893952, '9.9 GiB', '-9.9 GiB'), (10994579406847, '9.9 TiB', '-9.9 TiB'), (10994579406848, '9.9 TiB', '-9.9 TiB'), (11258449312612351, '9.9 PiB', '-9.9 PiB'), (11258449312612352, '9.9 PiB', '-9.9 PiB')]
+
+-----------
+QUERY:
+
+
+SELECT size, pg_size_pretty(size), pg_size_pretty(-1 * size) FROM
+    (VALUES (10239::numeric), (10240::numeric),
+            (10485247::numeric), (10485248::numeric),
+            (10736893951::numeric), (10736893952::numeric),
+            (10994579406847::numeric), (10994579406848::numeric),
+            (11258449312612351::numeric), (11258449312612352::numeric),
+            (11528652096115048447::numeric), (11528652096115048448::numeric)) x(size);
+RESULT:
+	ERROR - Binder Error: No function matches the given name and argument types 'format_bytes(DECIMAL(18,3))'. You might need to add explicit type casts.
+	Candidate functions:
+	format_bytes(BIGINT) -> VARCHAR
+
+
+-----------
+QUERY:
+
+
+-- pg_size_bytes() tests
+SELECT size, pg_size_bytes(size) FROM
+    (VALUES ('1'), ('123bytes'), ('256 B'), ('1kB'), ('1MB'), (' 1 GB'), ('1.5 GB '),
+            ('1TB'), ('3000 TB'), ('1e6 MB'), ('99 PB')) x(size);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+
+-- case-insensitive units are supported
+SELECT size, pg_size_bytes(size) FROM
+    (VALUES ('1'), ('123bYteS'), ('1kb'), ('1mb'), (' 1 Gb'), ('1.5 gB '),
+            ('1tb'), ('3000 tb'), ('1e6 mb'), ('99 pb')) x(size);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+
+-- negative numbers are supported
+SELECT size, pg_size_bytes(size) FROM
+    (VALUES ('-1'), ('-123bytes'), ('-1kb'), ('-1mb'), (' -1 Gb'), ('-1.5 gB '),
+            ('-1tb'), ('-3000 TB'), ('-10e-1 MB'), ('-99 PB')) x(size);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+
+-- different cases with allowed points
+SELECT size, pg_size_bytes(size) FROM
+     (VALUES ('-1.'), ('-1.kb'), ('-1. kb'), ('-0. gb'),
+             ('-.1'), ('-.1kb'), ('-.1 kb'), ('-.0 gb')) x(size);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+
+-- invalid inputs
+SELECT pg_size_bytes('1 AB');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('1 AB A');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('1 AB A    ');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('9223372036854775807.9');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('1e100');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('1e1000000000000000000');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('1 byte');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+  -- the singular /* REPLACED */''byte/* REPLACED */'' is not supported
+SELECT pg_size_bytes('');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+
+SELECT pg_size_bytes('kb');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('..');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('-.');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('-.kb');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('-. kb');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+
+SELECT pg_size_bytes('.+912');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('+912+ kB');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?
+
+-----------
+QUERY:
+
+SELECT pg_size_bytes('++123 kB');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name pg_size_bytes does not exist!
+Did you mean "pg_size_pretty"?

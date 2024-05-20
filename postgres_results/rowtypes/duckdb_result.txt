@@ -1,0 +1,2081 @@
+
+-----------
+QUERY:
+--
+-- ROWTYPES
+--
+
+-- Make both a standalone composite type and a table rowtype
+
+create type complex as (r float8, i float8);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+create temp table fullname (first text, last text);
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+-- Nested composite
+
+create type quad as (c1 complex, c2 complex);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+-- Some simple tests of I/O conversions and row construction
+
+select (1.1,2.2)::complex, row((3.3,4.4),(5.5,null))::quad;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name complex does not exist!
+Did you mean "map"?
+
+-----------
+QUERY:
+
+
+select row('Joe', 'Blow')::fullname, '(Joe,Blow)'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+
+
+select '(Joe,von Blow)'::fullname, '(Joe,d''Blow)'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+
+
+select '(Joe,"von""Blow")'::fullname, E'(Joe,d\\\\Blow)'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+
+
+select '(Joe,"Blow,Jr")'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+
+
+select '(Joe,)'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+	-- ok, null 2nd column
+select '(Joe)'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+	-- bad
+select '(Joe,,)'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+	-- bad
+select '[]'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+          -- bad
+select ' (Joe,Blow)  '::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+  -- ok, extra whitespace
+select '(Joe,Blow) /'::fullname;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+  -- bad
+
+-- test non-error-throwing API
+SELECT pg_input_is_valid('(1,2)', 'complex');
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('(1,2', 'complex');
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('(1,zed)', 'complex');
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name pg_input_is_valid does not exist!
+Did you mean "json_valid"?
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('(1,zed)', 'complex');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('(1,1e400)', 'complex');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
+Did you mean "pragma_storage_info"?
+
+-----------
+QUERY:
+
+
+create temp table quadtable(f1 int, q quad);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name quad does not exist!
+Did you mean "guid"?
+
+-----------
+QUERY:
+
+
+insert into quadtable values (1, ((3.3,4.4),(5.5,6.6)));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+insert into quadtable values (2, ((null,4.4),(5.5,6.6)));
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+select * from quadtable;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+select f1, q.c1 from quadtable;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+		-- fails, q is a table reference
+
+select f1, (q).c1, (qq.q).c1.i from quadtable qq;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+create temp table people (fn fullname, bd date);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name fullname does not exist!
+Did you mean "null"?
+
+-----------
+QUERY:
+
+
+insert into people values ('(Joe,Blow)', '1984-01-10');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+select * from people;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- at the moment this will not work due to ALTER TABLE inadequacy:
+alter table fullname add column suffix text default '';
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+-- but this should work:
+alter table fullname add column suffix text default null;
+RESULT:
+	duckdb: ERROR - Catalog Error: Column with name suffix already exists!
+
+-----------
+QUERY:
+
+
+select * from people;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+-- test insertion/updating of subfields
+update people set fn.suffix = 'Jr';
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pg_depend"?
+LINE 4: update people set fn.suffix = 'Jr';
+               ^
+
+-----------
+QUERY:
+
+
+select * from people;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pg_depend"?
+
+-----------
+QUERY:
+
+
+insert into quadtable (f1, q.c1.r, q.c2.i) values(44,55,66);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+update quadtable set q.c1.r = 12 where f1 = 2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+LINE 3: update quadtable set q.c1.r = 12 where f1 = 2;
+               ^
+
+-----------
+QUERY:
+
+
+update quadtable set q.c1 = 12;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+LINE 3: update quadtable set q.c1 = 12;
+               ^
+
+-----------
+QUERY:
+  -- error, type mismatch
+
+select * from quadtable;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name quadtable does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+
+-- The object here is to ensure that toasted references inside
+-- composite values don/* REPLACED */''t cause problems.  The large f1 value will
+-- be toasted inside pp, it must still work after being copied to people.
+
+create temp table pp (f1 text);
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+insert into pp values (repeat('abcdefghijkl', 100000));
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+insert into people select ('Jim', f1, null)::fullname, current_date from pp;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+select (fn).first, substr((fn).last, 1, 20), length((fn).last) from people;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+-- try an update on a toasted composite value, too
+update people set fn.first = 'Jack';
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pp"?
+LINE 4: update people set fn.first = 'Jack';
+               ^
+
+-----------
+QUERY:
+
+
+select (fn).first, substr((fn).last, 1, 20), length((fn).last) from people;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name people does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+-- Test row comparison semantics.  Prior to PG 8.2 we did this in a totally
+-- non-spec-compliant way.
+
+select ROW(1,2) < ROW(1,3) as true;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select ROW(1,2) < ROW(1,1) as false;
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+
+select ROW(1,2) < ROW(1,NULL) as null;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select ROW(1,2,3) < ROW(1,3,NULL) as true;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+ -- the NULL is not examined
+select ROW(11,'ABC') < ROW(11,'DEF') as true;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select ROW(11,'ABC') > ROW(11,'DEF') as false;
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+
+select ROW(12,'ABC') > ROW(11,'DEF') as true;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+
+-- = and <> have different NULL-behavior than < etc
+select ROW(1,2,3) < ROW(1,NULL,4) as null;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select ROW(1,2,3) = ROW(1,NULL,4) as false;
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+
+select ROW(1,2,3) <> ROW(1,NULL,4) as true;
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+
+-- We allow operators beyond the six standard ones, if they have btree
+-- operator classes.
+select ROW('ABC','DEF') ~<=~ ROW('DEF','ABC') as true;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name ~<=~ does not exist!
+Did you mean "~~"?
+
+-----------
+QUERY:
+
+select ROW('ABC','DEF') ~>=~ ROW('DEF','ABC') as false;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name ~>=~ does not exist!
+Did you mean "~~"?
+
+-----------
+QUERY:
+
+select ROW('ABC','DEF') ~~ ROW('DEF','ABC') as fail;
+RESULT:
+	duckdb: ERROR - Binder Error: No function matches the given name and argument types '~~(STRUCT(VARCHAR, VARCHAR), STRUCT(VARCHAR, VARCHAR))'. You might need to add explicit type casts.
+	Candidate functions:
+	~~(VARCHAR, VARCHAR) -> BOOLEAN
+
+
+-----------
+QUERY:
+
+
+-- Comparisons of ROW() expressions can cope with some type mismatches
+select ROW(1,2) = ROW(1,2::int8);
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select ROW(1,2) in (ROW(3,4), ROW(1,2));
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select ROW(1,2) in (ROW(3,4), ROW(1,2::int8));
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+
+-- Check row comparison with a subselect
+select unique1, unique2 from tenk1
+where (unique1, unique2) < any (select ten, ten from tenk1 where hundred < 3)
+      and unique1 <= 20
+order by 1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+-- Also check row comparison with an indexable condition
+explain (costs off)
+select thousand, tenthous from tenk1
+where (thousand, tenthous) >= (997, 5000)
+order by thousand, tenthous;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+select thousand, tenthous from tenk1
+where (thousand, tenthous) >= (997, 5000)
+order by thousand, tenthous;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select thousand, tenthous, four from tenk1
+where (thousand, tenthous, four) > (998, 5000, 3)
+order by thousand, tenthous;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+select thousand, tenthous, four from tenk1
+where (thousand, tenthous, four) > (998, 5000, 3)
+order by thousand, tenthous;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select thousand, tenthous from tenk1
+where (998, 5000) < (thousand, tenthous)
+order by thousand, tenthous;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+select thousand, tenthous from tenk1
+where (998, 5000) < (thousand, tenthous)
+order by thousand, tenthous;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select thousand, hundred from tenk1
+where (998, 5000) < (thousand, hundred)
+order by thousand, hundred;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+select thousand, hundred from tenk1
+where (998, 5000) < (thousand, hundred)
+order by thousand, hundred;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+-- Test case for bug #14010: indexed row comparisons fail with nulls
+create temp table test_table (a text, b text);
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+insert into test_table values ('a', 'b');
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+insert into test_table select 'a', null from generate_series(1,1000);
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+insert into test_table values ('b', 'a');
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+create index on test_table (a,b);
+RESULT:
+	duckdb: ERROR - Not implemented Error: Please provide an index name, e.g., CREATE INDEX my_name ...
+
+-----------
+QUERY:
+
+set enable_sort = off;
+RESULT:
+	duckdb: ERROR - Catalog Error: unrecognized configuration parameter "enable_sort"
+
+Did you mean: "enable_fsst_vectors"
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select a,b from test_table where (a,b) > ('a','a') order by a,b;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+select a,b from test_table where (a,b) > ('a','a') order by a,b;
+RESULT:
+	duckdb: [('a', 'b'), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('a', None), ('b', 'a')]
+
+-----------
+QUERY:
+
+
+reset enable_sort;
+RESULT:
+	duckdb: ERROR - Catalog Error: unrecognized configuration parameter "enable_sort"
+
+Did you mean: "enable_fsst_vectors"
+
+-----------
+QUERY:
+
+
+-- Check row comparisons with IN
+select * from int8_tbl i8 where i8 in (row(123,456));
+RESULT:
+	duckdb: [(123, 456)]
+
+-----------
+QUERY:
+  -- fail, type mismatch
+
+explain (costs off)
+select * from int8_tbl i8
+where i8 in (row(123,456)::int8_tbl, '(4567890123456789,123)');
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+
+select * from int8_tbl i8
+where i8 in (row(123,456)::int8_tbl, '(4567890123456789,123)');
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name int8_tbl does not exist!
+Did you mean "int8"?
+
+-----------
+QUERY:
+
+
+-- Check ability to select columns from an anonymous rowtype
+select (row(1, 2.0)).f1;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+
+select (row(1, 2.0)).f2;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+
+select (row(1, 2.0)).nosuch;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+  -- fail
+select (row(1, 2.0)).*;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "*"
+
+-----------
+QUERY:
+
+select (r).f1 from (select row(1, 2.0) as r) ss;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+
+select (r).f3 from (select row(1, 2.0) as r) ss;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+  -- fail
+select (r).* from (select row(1, 2.0) as r) ss;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "*"
+
+-----------
+QUERY:
+
+
+-- Check some corner cases involving empty rowtypes
+select ROW();
+RESULT:
+	duckdb: ERROR - Invalid Input Error: Can't pack nothing into a struct
+
+-----------
+QUERY:
+
+select ROW() IS NULL;
+RESULT:
+	duckdb: ERROR - Invalid Input Error: Can't pack nothing into a struct
+
+-----------
+QUERY:
+
+select ROW() = ROW();
+RESULT:
+	duckdb: ERROR - Invalid Input Error: Can't pack nothing into a struct
+
+-----------
+QUERY:
+
+
+-- Check ability to create arrays of anonymous rowtypes
+select array[ row(1,2), row(3,4), row(5,6) ];
+RESULT:
+	duckdb: [([(1, 2), (3, 4), (5, 6)],)]
+
+-----------
+QUERY:
+
+
+-- Check ability to compare an anonymous row to elements of an array
+select row(1,1.1) = any (array[ row(7,7.7), row(1,1.1), row(0,0.0) ]);
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+
+select row(1,1.1) = any (array[ row(7,7.7), row(1,1.0), row(0,0.0) ]);
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+
+
+-- Check behavior with a non-comparable rowtype
+create type cantcompare as (p point, r float8);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+create temp table cc (f1 cantcompare);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name cantcompare does not exist!
+Did you mean "char"?
+
+-----------
+QUERY:
+
+insert into cc values('("(1,2)",3)');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name cc does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+insert into cc values('("(4,5)",6)');
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name cc does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+select * from cc order by f1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name cc does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+ -- fail, but should complain about cantcompare
+
+--
+-- Tests for record_{eq,cmp}
+--
+
+create type testtype1 as (a int, b int);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+-- all true
+select row(1, 2)::testtype1 < row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 <= row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 = row(1, 2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 <> row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 3)::testtype1 >= row(1, 2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 3)::testtype1 > row(1, 2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+-- all false
+select row(1, -2)::testtype1 < row(1, -3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, -2)::testtype1 <= row(1, -3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, -2)::testtype1 = row(1, -3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, -2)::testtype1 <> row(1, -2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, -3)::testtype1 >= row(1, -2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, -3)::testtype1 > row(1, -2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+-- true, but see *< below
+select row(1, -2)::testtype1 < row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+-- mismatches
+create type testtype3 as (a int, b text);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 < row(1, 'abc')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 <> row(1, 'abc')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+create type testtype5 as (a int);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 < row(1)::testtype5;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 <> row(1)::testtype5;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype1 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+-- non-comparable types
+create type testtype6 as (a int, b point);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+select row(1, '(1,2)')::testtype6 < row(1, '(1,3)')::testtype6;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype6 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+select row(1, '(1,2)')::testtype6 <> row(1, '(1,3)')::testtype6;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name testtype6 does not exist!
+Did you mean "text"?
+
+-----------
+QUERY:
+
+
+drop type testtype1, testtype3, testtype5, testtype6;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+--
+-- Tests for record_image_{eq,cmp}
+--
+
+create type testtype1 as (a int, b int);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+-- all true
+select row(1, 2)::testtype1 *< row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 *<= row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 *= row(1, 2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 *<> row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 3)::testtype1 *>= row(1, 2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *>= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 3)::testtype1 *> row(1, 2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+-- all false
+select row(1, -2)::testtype1 *< row(1, -3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, -2)::testtype1 *<= row(1, -3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, -2)::testtype1 *= row(1, -3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, -2)::testtype1 *<> row(1, -2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, -3)::testtype1 *>= row(1, -2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *>= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, -3)::testtype1 *> row(1, -2)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+-- This returns the /* REPLACED */''wrong/* REPLACED */'' order because record_image_cmp works on
+-- unsigned datums without knowing about the actual data type.
+select row(1, -2)::testtype1 *< row(1, 3)::testtype1;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+-- other types
+create type testtype2 as (a smallint, b bool);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+  -- byval different sizes
+select row(1, true)::testtype2 *< row(2, true)::testtype2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(-2, true)::testtype2 *< row(-1, true)::testtype2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(0, false)::testtype2 *< row(0, true)::testtype2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(0, false)::testtype2 *<> row(0, true)::testtype2;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+create type testtype3 as (a int, b text);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+  -- variable length
+select row(1, 'abc')::testtype3 *< row(1, 'abd')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 'abc')::testtype3 *< row(1, 'abcd')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 'abc')::testtype3 *> row(1, 'abd')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 'abc')::testtype3 *<> row(1, 'abd')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+create type testtype4 as (a int, b point);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+  -- by ref, fixed length
+select row(1, '(1,2)')::testtype4 *< row(1, '(1,3)')::testtype4;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, '(1,2)')::testtype4 *<> row(1, '(1,3)')::testtype4;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+-- mismatches
+select row(1, 2)::testtype1 *< row(1, 'abc')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 *<> row(1, 'abc')::testtype3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+create type testtype5 as (a int);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 *< row(1)::testtype5;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, 2)::testtype1 *<> row(1)::testtype5;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+-- non-comparable types
+create type testtype6 as (a int, b point);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+select row(1, '(1,2)')::testtype6 *< row(1, '(1,3)')::testtype6;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *< does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, '(1,2)')::testtype6 *>= row(1, '(1,3)')::testtype6;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *>= does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+select row(1, '(1,2)')::testtype6 *<> row(1, '(1,3)')::testtype6;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name *<> does not exist!
+Did you mean "*"?
+
+-----------
+QUERY:
+
+
+-- anonymous rowtypes in coldeflists
+select q.a, q.b = row(2), q.c = array[row(3)], q.d = row(row(4)) from
+    unnest(array[row(1, row(2), array[row(3)], row(row(4))),
+                 row(2, row(3), array[row(4)], row(row(5)))])
+      as q(a int, b record, c record[], d record);
+RESULT:
+	duckdb: ERROR - Binder Error: Table "q" does not have a column named "a"
+
+-----------
+QUERY:
+
+
+drop type testtype1, testtype2, testtype3, testtype4, testtype5, testtype6;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+
+
+--
+-- Test case derived from bug #5716: check multiple uses of a rowtype result
+--
+
+BEGIN;
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE price (
+    id SERIAL PRIMARY KEY,
+    active BOOLEAN NOT NULL,
+    price NUMERIC
+);
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name SERIAL does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+
+
+CREATE TYPE price_input AS (
+    id INTEGER,
+    price NUMERIC
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+CREATE TYPE price_key AS (
+    id INTEGER
+);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION price_key_from_table(price) RETURNS price_key AS $$
+    SELECT $1.id
+$$ LANGUAGE SQL;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION price_key_from_input(price_input) RETURNS price_key AS $$
+    SELECT $1.id
+$$ LANGUAGE SQL;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+
+insert into price values (1,false,42), (10,false,100), (11,true,17.99);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name price does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+UPDATE price
+    SET active = true, price = input_prices.price
+    FROM unnest(ARRAY[(10, 123.00), (11, 99.99)]::price_input[]) input_prices
+    WHERE price_key_from_table(price.*) = price_key_from_input(input_prices.*);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name price does not exist!
+Did you mean "pp"?
+LINE 3: UPDATE price
+               ^
+
+-----------
+QUERY:
+
+
+select * from price;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name price does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+--
+-- Test case derived from bug #9085: check * qualification of composite
+-- parameters for SQL functions
+--
+
+create temp table compos (f1 int, f2 text);
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+create function fcompos1(v compos) returns void as $$
+insert into compos values (v);  -- fail
+$$ language sql;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "compos"
+
+-----------
+QUERY:
+
+
+create function fcompos1(v compos) returns void as $$
+insert into compos values (v.*);
+$$ language sql;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "compos"
+
+-----------
+QUERY:
+
+
+create function fcompos2(v compos) returns void as $$
+select fcompos1(v);
+$$ language sql;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "compos"
+
+-----------
+QUERY:
+
+
+create function fcompos3(v compos) returns void as $$
+select fcompos1(fcompos3.v.*);
+$$ language sql;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "compos"
+
+-----------
+QUERY:
+
+
+select fcompos1(row(1,'one'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name fcompos1 does not exist!
+Did you mean "cos"?
+
+-----------
+QUERY:
+
+select fcompos2(row(2,'two'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name fcompos2 does not exist!
+Did you mean "cos"?
+
+-----------
+QUERY:
+
+select fcompos3(row(3,'three'));
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name fcompos3 does not exist!
+Did you mean "cos"?
+
+-----------
+QUERY:
+
+select * from compos;
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+
+
+--
+-- We allow I/O conversion casts from composite types to strings to be
+-- invoked via cast syntax, but not functional syntax.  This is because
+-- the latter is too prone to be invoked unintentionally.
+--
+select cast (fullname as text) from fullname;
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+
+select fullname::text from fullname;
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+
+select text(fullname) from fullname;
+RESULT:
+	duckdb: ERROR - Binder Error: No function matches the given name and argument types 'text(STRUCT("first" VARCHAR, "last" VARCHAR, suffix VARCHAR))'. You might need to add explicit type casts.
+	Candidate functions:
+	text(DOUBLE, VARCHAR) -> VARCHAR
+
+
+-----------
+QUERY:
+  -- error
+select fullname.text from fullname;
+RESULT:
+	duckdb: ERROR - Binder Error: Table "fullname" does not have a column named "text"
+
+-----------
+QUERY:
+  -- error
+-- same, but RECORD instead of named composite type:
+select cast (row('Jim', 'Beam') as text);
+RESULT:
+	duckdb: [('(Jim, Beam)',)]
+
+-----------
+QUERY:
+
+select (row('Jim', 'Beam'))::text;
+RESULT:
+	duckdb: [('(Jim, Beam)',)]
+
+-----------
+QUERY:
+
+select text(row('Jim', 'Beam'));
+RESULT:
+	duckdb: ERROR - Binder Error: No function matches the given name and argument types 'text(STRUCT(VARCHAR, VARCHAR))'. You might need to add explicit type casts.
+	Candidate functions:
+	text(DOUBLE, VARCHAR) -> VARCHAR
+
+
+-----------
+QUERY:
+  -- error
+select (row('Jim', 'Beam')).text;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+  -- error
+
+--
+-- Check the equivalence of functional and column notation
+--
+insert into fullname values ('Joe', 'Blow');
+RESULT:
+	duckdb: ERROR - Binder Error: table fullname has 3 columns but 2 values were supplied
+
+-----------
+QUERY:
+
+
+select f.last from fullname f;
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+
+select last(f) from fullname f;
+RESULT:
+	duckdb: [(None,)]
+
+-----------
+QUERY:
+
+
+create function longname(fullname) returns text language sql
+as $$select $1.first || ' ' || $1.last$$;
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "returns"
+
+-----------
+QUERY:
+
+
+select f.longname from fullname f;
+RESULT:
+	duckdb: ERROR - Binder Error: Table "f" does not have a column named "longname"
+
+-----------
+QUERY:
+
+select longname(f) from fullname f;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name longname does not exist!
+Did you mean "log"?
+
+-----------
+QUERY:
+
+
+-- Starting in v11, the notational form does matter if there/* REPLACED */''s ambiguity
+alter table fullname add column longname text;
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+select f.longname from fullname f;
+RESULT:
+	duckdb: []
+
+-----------
+QUERY:
+
+select longname(f) from fullname f;
+RESULT:
+	duckdb: ERROR - Catalog Error: Scalar Function with name longname does not exist!
+Did you mean "log"?
+
+-----------
+QUERY:
+
+
+--
+-- Test that composite values are seen to have the correct column names
+-- (bug #11210 and other reports)
+--
+
+select row_to_json(i) from int8_tbl i;
+RESULT:
+	duckdb: [('{"q1":123,"q2":456}',), ('{"q1":123,"q2":4567890123456789}',), ('{"q1":4567890123456789,"q2":123}',), ('{"q1":4567890123456789,"q2":4567890123456789}',), ('{"q1":4567890123456789,"q2":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+-- since /* REPLACED */''i/* REPLACED */'' is of type /* REPLACED */''int8_tbl/* REPLACED */'', attaching aliases doesn/* REPLACED */''t change anything:
+select row_to_json(i) from int8_tbl i(x,y);
+RESULT:
+	duckdb: [('{"x":123,"y":456}',), ('{"x":123,"y":4567890123456789}',), ('{"x":4567890123456789,"y":123}',), ('{"x":4567890123456789,"y":4567890123456789}',), ('{"x":4567890123456789,"y":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+
+-- in these examples, we/* REPLACED */''ll report the exposed column names of the subselect:
+select row_to_json(ss) from
+  (select q1, q2 from int8_tbl) as ss;
+RESULT:
+	duckdb: [('{"q1":123,"q2":456}',), ('{"q1":123,"q2":4567890123456789}',), ('{"q1":4567890123456789,"q2":123}',), ('{"q1":4567890123456789,"q2":4567890123456789}',), ('{"q1":4567890123456789,"q2":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+select row_to_json(ss) from
+  (select q1, q2 from int8_tbl offset 0) as ss;
+RESULT:
+	duckdb: [('{"q1":123,"q2":456}',), ('{"q1":123,"q2":4567890123456789}',), ('{"q1":4567890123456789,"q2":123}',), ('{"q1":4567890123456789,"q2":4567890123456789}',), ('{"q1":4567890123456789,"q2":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+select row_to_json(ss) from
+  (select q1 as a, q2 as b from int8_tbl) as ss;
+RESULT:
+	duckdb: [('{"a":123,"b":456}',), ('{"a":123,"b":4567890123456789}',), ('{"a":4567890123456789,"b":123}',), ('{"a":4567890123456789,"b":4567890123456789}',), ('{"a":4567890123456789,"b":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+select row_to_json(ss) from
+  (select q1 as a, q2 as b from int8_tbl offset 0) as ss;
+RESULT:
+	duckdb: [('{"a":123,"b":456}',), ('{"a":123,"b":4567890123456789}',), ('{"a":4567890123456789,"b":123}',), ('{"a":4567890123456789,"b":4567890123456789}',), ('{"a":4567890123456789,"b":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+select row_to_json(ss) from
+  (select q1 as a, q2 as b from int8_tbl) as ss(x,y);
+RESULT:
+	duckdb: [('{"x":123,"y":456}',), ('{"x":123,"y":4567890123456789}',), ('{"x":4567890123456789,"y":123}',), ('{"x":4567890123456789,"y":4567890123456789}',), ('{"x":4567890123456789,"y":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+select row_to_json(ss) from
+  (select q1 as a, q2 as b from int8_tbl offset 0) as ss(x,y);
+RESULT:
+	duckdb: [('{"x":123,"y":456}',), ('{"x":123,"y":4567890123456789}',), ('{"x":4567890123456789,"y":123}',), ('{"x":4567890123456789,"y":4567890123456789}',), ('{"x":4567890123456789,"y":-4567890123456789}',)]
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select row_to_json(q) from
+  (select thousand, tenthous from tenk1
+   where thousand = 42 and tenthous < 2000 offset 0) q;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+
+select row_to_json(q) from
+  (select thousand, tenthous from tenk1
+   where thousand = 42 and tenthous < 2000 offset 0) q;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+select row_to_json(q) from
+  (select thousand as x, tenthous as y from tenk1
+   where thousand = 42 and tenthous < 2000 offset 0) q;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+select row_to_json(q) from
+  (select thousand as x, tenthous as y from tenk1
+   where thousand = 42 and tenthous < 2000 offset 0) q(a,b);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tenk1 does not exist!
+Did you mean "pp"?
+
+-----------
+QUERY:
+
+
+create temp table tt1 as select * from int8_tbl limit 2;
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+create temp table tt2 () inherits(tt1);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "inherits"
+
+-----------
+QUERY:
+
+insert into tt2 values(0,0);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tt2 does not exist!
+Did you mean "tt1"?
+
+-----------
+QUERY:
+
+select row_to_json(r) from (select q2,q1 from tt1 offset 0) r;
+RESULT:
+	duckdb: [('{"q2":456,"q1":123}',), ('{"q2":4567890123456789,"q1":123}',)]
+
+-----------
+QUERY:
+
+
+-- check no-op rowtype conversions
+create temp table tt3 () inherits(tt2);
+RESULT:
+	duckdb: ERROR - Parser Error: syntax error at or near "inherits"
+
+-----------
+QUERY:
+
+insert into tt3 values(33,44);
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tt3 does not exist!
+Did you mean "tt1"?
+
+-----------
+QUERY:
+
+select row_to_json(tt3::tt2::tt1) from tt3;
+RESULT:
+	duckdb: ERROR - Catalog Error: Table with name tt3 does not exist!
+Did you mean "tt1"?
+
+-----------
+QUERY:
+
+
+--
+-- IS [NOT] NULL should not recurse into nested composites (bug #14235)
+--
+
+explain (verbose, costs off)
+select r, r is null as isnull, r is not null as isnotnull
+from (values (1,row(1,2)), (1,row(null,null)), (1,null),
+             (null,row(1,2)), (null,row(null,null)), (null,null) ) r(a,b);
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: verbose
+
+-----------
+QUERY:
+
+
+select r, r is null as isnull, r is not null as isnotnull
+from (values (1,row(1,2)), (1,row(null,null)), (1,null),
+             (null,row(1,2)), (null,row(null,null)), (null,null) ) r(a,b);
+RESULT:
+	duckdb: [({'a': 1, 'b': (1, 2)}, False, True), ({'a': 1, 'b': (None, None)}, False, True), ({'a': 1, 'b': None}, False, True), ({'a': None, 'b': (1, 2)}, False, True), ({'a': None, 'b': (None, None)}, False, True), ({'a': None, 'b': None}, False, True)]
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+with r(a,b) as materialized
+  (values (1,row(1,2)), (1,row(null,null)), (1,null),
+          (null,row(1,2)), (null,row(null,null)), (null,null) )
+select r, r is null as isnull, r is not null as isnotnull from r;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: verbose
+
+-----------
+QUERY:
+
+
+with r(a,b) as materialized
+  (values (1,row(1,2)), (1,row(null,null)), (1,null),
+          (null,row(1,2)), (null,row(null,null)), (null,null) )
+select r, r is null as isnull, r is not null as isnotnull from r;
+RESULT:
+	duckdb: [({'a': 1, 'b': (1, 2)}, False, True), ({'a': 1, 'b': (None, None)}, False, True), ({'a': 1, 'b': None}, False, True), ({'a': None, 'b': (1, 2)}, False, True), ({'a': None, 'b': (None, None)}, False, True), ({'a': None, 'b': None}, False, True)]
+
+-----------
+QUERY:
+
+
+--
+-- Check parsing of indirect references to composite values (bug #18077)
+--
+explain (verbose, costs off)
+with cte(c) as materialized (select row(1, 2)),
+     cte2(c) as (select * from cte)
+select * from cte2 as t
+where (select * from (select c as c1) s
+       where (select (c1).f1 > 0)) is not null;
+RESULT:
+	duckdb: ERROR - Not implemented Error: Unimplemented explain type: verbose
+
+-----------
+QUERY:
+
+
+with cte(c) as materialized (select row(1, 2)),
+     cte2(c) as (select * from cte)
+select * from cte2 as t
+where (select * from (select c as c1) s
+       where (select (c1).f1 > 0)) is not null;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+
+
+-- Also check deparsing of such cases
+create view composite_v as
+with cte(c) as materialized (select row(1, 2)),
+     cte2(c) as (select * from cte)
+select 1 as one from cte2 as t
+where (select * from (select c as c1) s
+       where (select (c1).f1 > 0)) is not null;
+RESULT:
+	duckdb: ERROR - Binder Error: struct_extract with a string key cannot be used on an unnamed struct, use a numeric index instead
+
+-----------
+QUERY:
+
+select pg_get_viewdef('composite_v', true);
+RESULT:
+	duckdb: ERROR - Binder Error: Macro function 'pg_get_viewdef(oid)' requires a single positional argument, but 2 positional arguments were provided.
+
+-----------
+QUERY:
+
+drop view composite_v;
+RESULT:
+	duckdb: ERROR - Catalog Error: View with name composite_v does not exist!
+Did you mean "compos"?
+
+-----------
+QUERY:
+
+
+--
+-- Tests for component access / FieldSelect
+--
+CREATE TABLE compositetable(a text, b text);
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+INSERT INTO compositetable(a, b) VALUES('fa', 'fb');
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+
+
+-- composite type columns can/* REPLACED */''t directly be accessed (error)
+SELECT d.a FROM (SELECT compositetable AS d FROM compositetable) s;
+RESULT:
+	duckdb: [('fa',)]
+
+-----------
+QUERY:
+
+-- but can be accessed with proper parens
+SELECT (d).a, (d).b FROM (SELECT compositetable AS d FROM compositetable) s;
+RESULT:
+	duckdb: [('fa', 'fb')]
+
+-----------
+QUERY:
+
+-- system columns can/* REPLACED */''t be accessed in composite types (error)
+SELECT (d).ctid FROM (SELECT compositetable AS d FROM compositetable) s;
+RESULT:
+	duckdb: ERROR - Binder Error: Could not find key "ctid" in struct
+
+Candidate Entries: "a", "b"
+
+-----------
+QUERY:
+
+
+-- accessing non-existing column in NULL datum errors out
+SELECT (NULL::compositetable).nonexistent;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name compositetable does not exist!
+Did you mean "bool"?
+
+-----------
+QUERY:
+
+-- existing column in a NULL composite yield NULL
+SELECT (NULL::compositetable).a;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name compositetable does not exist!
+Did you mean "bool"?
+
+-----------
+QUERY:
+
+-- oids can/* REPLACED */''t be accessed in composite types (error)
+SELECT (NULL::compositetable).oid;
+RESULT:
+	duckdb: ERROR - Catalog Error: Type with name compositetable does not exist!
+Did you mean "bool"?
+
+-----------
+QUERY:
+
+
+DROP TABLE compositetable;
+RESULT:
+	duckdb: None

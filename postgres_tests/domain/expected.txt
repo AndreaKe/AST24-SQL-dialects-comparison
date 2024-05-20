@@ -1,0 +1,712 @@
+
+-----------
+QUERY:
+--
+-- Test domains.
+--
+
+-- Test Comment / Drop
+create domain domaindroptest int4;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+comment on domain domaindroptest is 'About to drop this..';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create domain dependenttypetest domaindroptest;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- fail because of dependent type
+drop domain domaindroptest;
+RESULT:
+	postgres: ERROR - cannot drop type domaindroptest because other objects depend on it
+DETAIL:  type dependenttypetest depends on type domaindroptest
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+
+
+-----------
+QUERY:
+
+
+drop domain domaindroptest cascade;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- this should fail because already gone
+drop domain domaindroptest cascade;
+RESULT:
+	postgres: ERROR - type "domaindroptest" does not exist
+
+
+-----------
+QUERY:
+
+
+
+-- Test domain input.
+
+-- Note: the point of checking both INSERT and COPY FROM is that INSERT
+-- exercises CoerceToDomain while COPY exercises domain_in.
+
+create domain domainvarchar varchar(5);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create domain domainnumeric numeric(8,2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create domain domainint4 int4;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create domain domaintext text;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- Test explicit coercions --- these should succeed (and truncate)
+SELECT cast('123456' as domainvarchar);
+RESULT:
+	postgres: [('12345',)]
+
+-----------
+QUERY:
+
+SELECT cast('12345' as domainvarchar);
+RESULT:
+	postgres: [('12345',)]
+
+-----------
+QUERY:
+
+
+-- Test tables using domains
+create table basictest
+           ( testint4 domainint4
+           , testtext domaintext
+           , testvarchar domainvarchar
+           , testnumeric domainnumeric
+           );
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO basictest values ('88', 'haha', 'short', '123.12');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+      -- Good
+INSERT INTO basictest values ('88', 'haha', 'short text', '123.12');
+RESULT:
+	postgres: ERROR - value too long for type character varying(5)
+
+
+-----------
+QUERY:
+ -- Bad varchar
+INSERT INTO basictest values ('88', 'haha', 'short', '123.1212');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+    -- Truncate numeric
+
+-- Test copy
+COPY basictest (testvarchar) FROM stdin;
+RESULT:
+	postgres: ERROR - can't execute COPY FROM: use the copy_from() method instead
+
+-----------
+QUERY:
+ -- fail
+notsoshorttext
+\.
+
+COPY basictest (testvarchar) FROM stdin;
+RESULT:
+	postgres: ERROR - syntax error at or near "notsoshorttext"
+LINE 2: notsoshorttext
+        ^
+
+
+-----------
+QUERY:
+
+short
+\.
+
+select * from basictest;
+RESULT:
+	postgres: ERROR - syntax error at or near "short"
+LINE 2: short
+        ^
+
+
+-----------
+QUERY:
+
+
+-- check that domains inherit operations from base types
+select testtext || testvarchar as concat, testnumeric + 42 as sum
+from basictest;
+RESULT:
+	postgres: [('hahashort', Decimal('165.12')), ('hahashort', Decimal('165.12'))]
+
+-----------
+QUERY:
+
+
+-- check that union/case/coalesce type resolution handles domains properly
+select pg_typeof(coalesce(4::domainint4, 7));
+RESULT:
+	postgres: [('integer',)]
+
+-----------
+QUERY:
+
+select pg_typeof(coalesce(4::domainint4, 7::domainint4));
+RESULT:
+	postgres: [('domainint4',)]
+
+-----------
+QUERY:
+
+
+drop table basictest;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain domainvarchar restrict;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain domainnumeric restrict;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain domainint4 restrict;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain domaintext;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Test non-error-throwing input
+
+create domain positiveint int4 check(value > 0);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create domain weirdfloat float8 check((1 / value) < 10);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select pg_input_is_valid('1', 'positiveint');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+select pg_input_is_valid('junk', 'positiveint');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select pg_input_is_valid('-1', 'positiveint');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('junk', 'positiveint');
+RESULT:
+	postgres: [('invalid input syntax for type integer: "junk"', None, None, '22P02')]
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('-1', 'positiveint');
+RESULT:
+	postgres: [('value for domain positiveint violates check constraint "positiveint_check"', None, None, '23514')]
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('junk', 'weirdfloat');
+RESULT:
+	postgres: [('invalid input syntax for type double precision: "junk"', None, None, '22P02')]
+
+-----------
+QUERY:
+
+select * from pg_input_error_info('0.01', 'weirdfloat');
+RESULT:
+	postgres: [('value for domain weirdfloat violates check constraint "weirdfloat_check"', None, None, '23514')]
+
+-----------
+QUERY:
+
+-- We currently can/* REPLACED */''t trap errors raised in the CHECK expression itself
+select * from pg_input_error_info('0', 'weirdfloat');
+RESULT:
+	postgres: ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+drop domain positiveint;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain weirdfloat;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Test domains over array types
+
+create domain domainint4arr int4[1];
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create domain domainchar4arr varchar(4)[2][3];
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create table domarrtest
+           ( testint4arr domainint4arr
+           , testchar4arr domainchar4arr
+            );
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"}}');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{{2,2},{2,2}}', '{{"a","b"}}');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"},{"e","f"}}');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values ('{2,2}', '{{"a"},{"c"}}');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values (NULL, '{{"a","b","c"},{"d","e","f"}}');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest values (NULL, '{{"toolong","b","c"},{"d","e","f"}}');
+RESULT:
+	postgres: ERROR - value too long for type character varying(4)
+
+
+-----------
+QUERY:
+
+INSERT INTO domarrtest (testint4arr[1], testint4arr[3]) values (11,22);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from domarrtest;
+RESULT:
+	postgres: [([2, 2], [['a', 'b'], ['c', 'd']]), ([[2, 2], [2, 2]], [['a', 'b']]), ([2, 2], [['a', 'b'], ['c', 'd'], ['e', 'f']]), ([2, 2], [['a'], ['c']]), (None, [['a', 'b', 'c'], ['d', 'e', 'f']]), ([11, None, 22], None)]
+
+-----------
+QUERY:
+
+select testint4arr[1], testchar4arr[2:2] from domarrtest;
+RESULT:
+	postgres: [(2, [['c', 'd']]), (None, []), (2, [['c', 'd']]), (2, [['c']]), (None, [['d', 'e', 'f']]), (11, None)]
+
+-----------
+QUERY:
+
+select array_dims(testint4arr), array_dims(testchar4arr) from domarrtest;
+RESULT:
+	postgres: [('[1:2]', '[1:2][1:2]'), ('[1:2][1:2]', '[1:1][1:2]'), ('[1:2]', '[1:3][1:2]'), ('[1:2]', '[1:2][1:1]'), (None, '[1:2][1:3]'), ('[1:3]', None)]
+
+-----------
+QUERY:
+
+
+COPY domarrtest FROM stdin;
+RESULT:
+	postgres: ERROR - can't execute COPY FROM: use the copy_from() method instead
+
+-----------
+QUERY:
+
+{3,4}	{q,w,e}
+\N	\N
+\.
+
+COPY domarrtest FROM stdin;
+RESULT:
+	postgres: ERROR - syntax error at or near "{"
+LINE 2: {3,4} {q,w,e}
+        ^
+
+
+-----------
+QUERY:
+	-- fail
+{3,4}	{qwerty,w,e}
+\.
+
+select * from domarrtest;
+RESULT:
+	postgres: ERROR - syntax error at or near "{"
+LINE 2: {3,4} {qwerty,w,e}
+        ^
+
+
+-----------
+QUERY:
+
+
+update domarrtest set
+  testint4arr[1] = testint4arr[1] + 1,
+  testint4arr[3] = testint4arr[3] - 1
+where testchar4arr is null;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from domarrtest where testchar4arr is null;
+RESULT:
+	postgres: [([12, None, 21], None)]
+
+-----------
+QUERY:
+
+
+drop table domarrtest;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain domainint4arr restrict;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+drop domain domainchar4arr restrict;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+create domain dia as int[];
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select '{1,2,3}'::dia;
+RESULT:
+	postgres: [([1, 2, 3],)]
+
+-----------
+QUERY:
+
+select array_dims('{1,2,3}'::dia);
+RESULT:
+	postgres: [('[1:3]',)]
+
+-----------
+QUERY:
+
+select pg_typeof('{1,2,3}'::dia);
+RESULT:
+	postgres: [('dia',)]
+
+-----------
+QUERY:
+
+select pg_typeof('{1,2,3}'::dia || 42);
+RESULT:
+	postgres: [('integer[]',)]
+
+-----------
+QUERY:
+ -- should be int[] not dia
+drop domain dia;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- Test domains over composites
+
+create type comptype as (r float8, i float8);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create domain dcomptype as comptype;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+create table dcomptable (d1 dcomptype unique);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+insert into dcomptable values (row(1,2)::dcomptype);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into dcomptable values (row(3,4)::comptype);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into dcomptable values (row(1,2)::dcomptype);
+RESULT:
+	postgres: ERROR - duplicate key value violates unique constraint "dcomptable_d1_key"
+DETAIL:  Key (d1)=((1,2)) already exists.
+
+
+-----------
+QUERY:
+  -- fail on uniqueness
+insert into dcomptable (d1.r) values(11);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+select * from dcomptable;
+RESULT:
+	postgres: [('(1,2)',), ('(3,4)',), ('(11,)',)]
+
+-----------
+QUERY:
+
+select (d1).r, (d1).i, (d1).* from dcomptable;
+RESULT:
+	postgres: [(1.0, 2.0, 1.0, 2.0), (3.0, 4.0, 3.0, 4.0), (11.0, None, 11.0, None)]
+
+-----------
+QUERY:
+
+update dcomptable set d1.r = (d1).r + 1 where (d1).i > 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+select * from dcomptable;
+RESULT:
+	postgres: [('(11,)',), ('(2,2)',), ('(4,4)',)]
+
+-----------
+QUERY:
+
+
+alter domain dcomptype add constraint c1 check ((value).r <= (value).i);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+alter domain dcomptype add constraint c2 check ((value).r > (value).i);
+RESULT:
+	postgres: ERROR - column "d1" of table "dcomptable" contains values that violate the new constraint
+
+
+-----------
+QUERY:
+  -- fail
+
+select row(2,1)::dcomptype;
+RESULT:
+	postgres: ERROR - value for domain dcomptype violates check constraint "c1"
+
+
+-----------
+QUERY:
+  -- fail
+insert into dcomptable values (row(1,2)::comptype);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into dcomptable values (row(2,1)::comptype);
+RESULT:
+	postgres: ERROR - value for domain dcomptype violates check constraint "c1"
+
+
+-----------
+QUERY:
+  -- fail
+insert into dcomptable (d1.r) values(99);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into dcomptable (d1.r, d1.i) values(99, 100);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+insert into dcomptable (d1.r, d1.i) values(100, 99);
+RESULT:
+	postgres: ERROR - value for domain dcomptype violates check constraint "c1"
+
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set d1.r = (d1).r + 1 where (d1).i > 0;
+RESULT:
+	postgres: ERROR - value for domain dcomptype violates check constraint "c1"
+
+
+-----------
+QUERY:
+  -- fail
+update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;

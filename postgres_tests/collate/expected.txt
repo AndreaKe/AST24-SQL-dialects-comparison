@@ -1,0 +1,1263 @@
+
+-----------
+QUERY:
+/*
+ * This test is intended to pass on all platforms supported by Postgres.
+ * We can therefore only assume that the default, C, and POSIX collations
+ * are available --- and since the regression tests are often run in a
+ * C-locale database, these may well all have the same behavior.  But
+ * fortunately, the system doesn't know that and will treat them as
+ * incompatible collations.  It is therefore at least possible to test
+ * parser behaviors such as collation conflict resolution.  This test will,
+ * however, be more revealing when run in a database with non-C locale,
+ * since any departure from C sorting behavior will show as a failure.
+ */
+
+CREATE SCHEMA collate_tests;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET search_path = collate_tests;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test1 (
+    a int,
+    b text COLLATE "C" NOT NULL
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- \d collate_test1
+
+CREATE TABLE collate_test_fail (
+    a int COLLATE "C",
+    b text
+);
+RESULT:
+	postgres: collations are not supported by type integer
+LINE 6:     a int COLLATE "C",
+                  ^
+
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test_like (
+    LIKE collate_test1
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+-- \d collate_test_like
+
+CREATE TABLE collate_test2 (
+    a int,
+    b text COLLATE "POSIX"
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO collate_test1 VALUES (1, 'abc'), (2, 'Abc'), (3, 'bbc'), (4, 'ABD');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test2 SELECT * FROM collate_test1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'abc';
+RESULT:
+	postgres: [(1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b >= 'abc' COLLATE "C";
+RESULT:
+	postgres: [(1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'abc' COLLATE "C";
+RESULT:
+	postgres: [(1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "POSIX";
+RESULT:
+	postgres: collation mismatch between explicit collations "C" and "POSIX"
+LINE 2: ...* FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "P...
+                                                             ^
+
+
+-----------
+QUERY:
+ -- fail
+
+CREATE DOMAIN testdomain_p AS text COLLATE "POSIX";
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE DOMAIN testdomain_i AS int COLLATE "POSIX";
+RESULT:
+	postgres: collations are not supported by type integer
+
+
+-----------
+QUERY:
+ -- fail
+CREATE TABLE collate_test4 (
+    a int,
+    b testdomain_p
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test4 SELECT * FROM collate_test1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test4 ORDER BY b;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test5 (
+    a int,
+    b testdomain_p COLLATE "C"
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test5 SELECT * FROM collate_test1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test5 ORDER BY b;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+
+SELECT a, b FROM collate_test1 ORDER BY b;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test2 ORDER BY b;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+-- star expansion
+SELECT * FROM collate_test1 ORDER BY b;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test2 ORDER BY b;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+-- constant expression folding
+SELECT 'bbc' COLLATE "C" > 'Abc' COLLATE "C" AS "true";
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT 'bbc' COLLATE "POSIX" < 'Abc' COLLATE "POSIX" AS "false";
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+
+-- upper/lower
+
+CREATE TABLE collate_test10 (
+    a int,
+    x text COLLATE "C",
+    y text COLLATE "POSIX"
+);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO collate_test10 VALUES (1, 'hij', 'hij'), (2, 'HIJ', 'HIJ');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT a, lower(x), lower(y), upper(x), upper(y), initcap(x), initcap(y) FROM collate_test10;
+RESULT:
+	postgres: [(1, 'hij', 'hij', 'HIJ', 'HIJ', 'Hij', 'Hij'), (2, 'hij', 'hij', 'HIJ', 'HIJ', 'Hij', 'Hij')]
+
+-----------
+QUERY:
+
+SELECT a, lower(x COLLATE "C"), lower(y COLLATE "C") FROM collate_test10;
+RESULT:
+	postgres: [(1, 'hij', 'hij'), (2, 'hij', 'hij')]
+
+-----------
+QUERY:
+
+
+SELECT a, x, y FROM collate_test10 ORDER BY lower(y), a;
+RESULT:
+	postgres: [(1, 'hij', 'hij'), (2, 'HIJ', 'HIJ')]
+
+-----------
+QUERY:
+
+
+-- backwards parsing
+
+CREATE VIEW collview1 AS SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE VIEW collview2 AS SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE VIEW collview3 AS SELECT a, lower((x || x) COLLATE "POSIX") FROM collate_test10;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT table_name, view_definition FROM information_schema.views
+  WHERE table_name LIKE 'collview%' ORDER BY 1;
+RESULT:
+	postgres: [('collview1', ' SELECT a,\n    b\n   FROM collate_test1\n  WHERE ((b COLLATE "C") >= \'bbc\'::text);'), ('collview2', ' SELECT a,\n    b\n   FROM collate_test1\n  ORDER BY (b COLLATE "C");'), ('collview3', ' SELECT a,\n    lower(((x || x) COLLATE "POSIX")) AS lower\n   FROM collate_test10;')]
+
+-----------
+QUERY:
+
+
+
+-- collation propagation in various expression types
+
+SELECT a, coalesce(b, 'foo') FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, coalesce(b, 'foo') FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, lower(coalesce(x, 'foo')), lower(coalesce(y, 'foo')) FROM collate_test10;
+RESULT:
+	postgres: [(1, 'hij', 'hij'), (2, 'hij', 'hij')]
+
+-----------
+QUERY:
+
+
+SELECT a, b, greatest(b, 'CCC') FROM collate_test1 ORDER BY 3;
+RESULT:
+	postgres: [(2, 'Abc', 'CCC'), (4, 'ABD', 'CCC'), (1, 'abc', 'abc'), (3, 'bbc', 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b, greatest(b, 'CCC') FROM collate_test2 ORDER BY 3;
+RESULT:
+	postgres: [(2, 'Abc', 'CCC'), (4, 'ABD', 'CCC'), (1, 'abc', 'abc'), (3, 'bbc', 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, x, y, lower(greatest(x, 'foo')), lower(greatest(y, 'foo')) FROM collate_test10;
+RESULT:
+	postgres: [(1, 'hij', 'hij', 'hij', 'hij'), (2, 'HIJ', 'HIJ', 'foo', 'foo')]
+
+-----------
+QUERY:
+
+
+SELECT a, nullif(b, 'abc') FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (3, 'bbc'), (1, None)]
+
+-----------
+QUERY:
+
+SELECT a, nullif(b, 'abc') FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (3, 'bbc'), (1, None)]
+
+-----------
+QUERY:
+
+SELECT a, lower(nullif(x, 'foo')), lower(nullif(y, 'foo')) FROM collate_test10;
+RESULT:
+	postgres: [(1, 'hij', 'hij'), (2, 'hij', 'hij')]
+
+-----------
+QUERY:
+
+
+SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abcd'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abcd'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+CREATE DOMAIN testdomain AS text;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain_p FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, lower(x::testdomain), lower(y::testdomain) FROM collate_test10;
+RESULT:
+	postgres: [(1, 'hij', 'hij'), (2, 'hij', 'hij')]
+
+-----------
+QUERY:
+
+
+SELECT min(b), max(b) FROM collate_test1;
+RESULT:
+	postgres: [('ABD', 'bbc')]
+
+-----------
+QUERY:
+
+SELECT min(b), max(b) FROM collate_test2;
+RESULT:
+	postgres: [('ABD', 'bbc')]
+
+-----------
+QUERY:
+
+
+SELECT array_agg(b ORDER BY b) FROM collate_test1;
+RESULT:
+	postgres: [(['ABD', 'Abc', 'abc', 'bbc'],)]
+
+-----------
+QUERY:
+
+SELECT array_agg(b ORDER BY b) FROM collate_test2;
+RESULT:
+	postgres: [(['ABD', 'Abc', 'abc', 'bbc'],)]
+
+-----------
+QUERY:
+
+
+-- In aggregates, ORDER BY expressions don/* REPLACED */''t affect aggregate/* REPLACED */''s collation
+SELECT string_agg(x COLLATE "C", y COLLATE "POSIX") FROM collate_test10;
+RESULT:
+	postgres: collation mismatch between explicit collations "C" and "POSIX"
+LINE 4: SELECT string_agg(x COLLATE "C", y COLLATE "POSIX") FROM col...
+                                           ^
+
+
+-----------
+QUERY:
+  -- fail
+SELECT array_agg(x COLLATE "C" ORDER BY y COLLATE "POSIX") FROM collate_test10;
+RESULT:
+	postgres: [(['HIJ', 'hij'],)]
+
+-----------
+QUERY:
+
+SELECT array_agg(a ORDER BY x COLLATE "C", y COLLATE "POSIX") FROM collate_test10;
+RESULT:
+	postgres: [([2, 1],)]
+
+-----------
+QUERY:
+
+SELECT array_agg(a ORDER BY x||y) FROM collate_test10;
+RESULT:
+	postgres: collation mismatch between implicit collations "C" and "POSIX"
+LINE 2: SELECT array_agg(a ORDER BY x||y) FROM collate_test10;
+                                       ^
+HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
+
+
+-----------
+QUERY:
+  -- fail
+
+SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (4, 'ABD'), (2, 'Abc'), (2, 'Abc'), (1, 'abc'), (1, 'abc'), (3, 'bbc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test2 UNION SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test2 WHERE a < 4 INTERSECT SELECT a, b FROM collate_test2 WHERE a > 1 ORDER BY 2;
+RESULT:
+	postgres: [(2, 'Abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test2 EXCEPT SELECT a, b FROM collate_test2 WHERE a < 2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: could not determine which collation to use for string comparison
+HINT:  Use the COLLATE clause to set the collation explicitly.
+
+
+-----------
+QUERY:
+ -- fail
+SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test2;
+RESULT:
+	postgres: [(1, 'abc'), (2, 'Abc'), (3, 'bbc'), (4, 'ABD'), (1, 'abc'), (2, 'Abc'), (3, 'bbc'), (4, 'ABD')]
+
+-----------
+QUERY:
+ -- ok
+SELECT a, b FROM collate_test1 UNION SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: collation mismatch between implicit collations "C" and "POSIX"
+LINE 2: SELECT a, b FROM collate_test1 UNION SELECT a, b FROM collat...
+                                                       ^
+HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
+
+
+-----------
+QUERY:
+ -- fail
+SELECT a, b COLLATE "C" FROM collate_test1 UNION SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+ -- ok
+SELECT a, b FROM collate_test1 INTERSECT SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: collation mismatch between implicit collations "C" and "POSIX"
+LINE 2: ...ELECT a, b FROM collate_test1 INTERSECT SELECT a, b FROM col...
+                                                             ^
+HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
+
+
+-----------
+QUERY:
+ -- fail
+SELECT a, b FROM collate_test1 EXCEPT SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: collation mismatch between implicit collations "C" and "POSIX"
+LINE 2: SELECT a, b FROM collate_test1 EXCEPT SELECT a, b FROM colla...
+                                                        ^
+HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
+
+
+-----------
+QUERY:
+ -- fail
+
+CREATE TABLE test_u AS SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test2;
+RESULT:
+	postgres: no collation was derived for column "b" with collatable type text
+HINT:  Use the COLLATE clause to set the collation explicitly.
+
+
+-----------
+QUERY:
+ -- fail
+
+-- ideally this would be a parse-time error, but for now it must be run-time:
+select x < y from collate_test10;
+RESULT:
+	postgres: could not determine which collation to use for string comparison
+HINT:  Use the COLLATE clause to set the collation explicitly.
+
+
+-----------
+QUERY:
+ -- fail
+select x || y from collate_test10;
+RESULT:
+	postgres: [('hijhij',), ('HIJHIJ',)]
+
+-----------
+QUERY:
+ -- ok, because || is not collation aware
+select x, y from collate_test10 order by x || y;
+RESULT:
+	postgres: collation mismatch between implicit collations "C" and "POSIX"
+LINE 2: select x, y from collate_test10 order by x || y;
+                                                      ^
+HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
+
+
+-----------
+QUERY:
+ -- not so ok
+
+-- collation mismatch between recursive and non-recursive term
+WITH RECURSIVE foo(x) AS
+   (SELECT x FROM (VALUES('a' COLLATE "C"),('b')) t(x)
+   UNION ALL
+   SELECT (x || 'c') COLLATE "POSIX" FROM foo WHERE length(x) < 10)
+SELECT * FROM foo;
+RESULT:
+	postgres: recursive query "foo" column 1 has collation "C" in non-recursive term but collation "POSIX" overall
+LINE 5:    (SELECT x FROM (VALUES('a' COLLATE "C"),('b')) t(x)
+                   ^
+HINT:  Use the COLLATE clause to set the collation of the non-recursive term.
+
+
+-----------
+QUERY:
+
+
+SELECT a, b, a < b as lt FROM
+  (VALUES ('a', 'B'), ('A', 'b' COLLATE "C")) v(a,b);
+RESULT:
+	postgres: [('a', 'B', False), ('A', 'b', True)]
+
+-----------
+QUERY:
+
+
+-- collation mismatch in subselects
+SELECT * FROM collate_test10 WHERE (x, y) NOT IN (SELECT y, x FROM collate_test10);
+RESULT:
+	postgres: could not determine which collation to use for string hashing
+HINT:  Use the COLLATE clause to set the collation explicitly.
+
+
+-----------
+QUERY:
+
+-- now it works with overrides
+SELECT * FROM collate_test10 WHERE (x COLLATE "POSIX", y COLLATE "C") NOT IN (SELECT y, x FROM collate_test10);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test10 WHERE (x, y) NOT IN (SELECT y COLLATE "C", x COLLATE "POSIX" FROM collate_test10);
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+-- casting
+
+SELECT CAST('42' AS text COLLATE "C");
+RESULT:
+	postgres: syntax error at or near "COLLATE"
+LINE 5: SELECT CAST('42' AS text COLLATE "C");
+                                 ^
+
+
+-----------
+QUERY:
+
+
+SELECT a, CAST(b AS varchar) FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, CAST(b AS varchar) FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+
+-- result of a SQL function
+
+CREATE FUNCTION vc (text) RETURNS text LANGUAGE sql
+    AS 'select $1::varchar';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT a, b FROM collate_test1 ORDER BY a, vc(b);
+RESULT:
+	postgres: [(1, 'abc'), (2, 'Abc'), (3, 'bbc'), (4, 'ABD')]
+
+-----------
+QUERY:
+
+
+
+-- polymorphism
+
+SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test1)) ORDER BY 1;
+RESULT:
+	postgres: [('ABD',), ('Abc',), ('abc',), ('bbc',)]
+
+-----------
+QUERY:
+
+SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test2)) ORDER BY 1;
+RESULT:
+	postgres: [('ABD',), ('Abc',), ('abc',), ('bbc',)]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION dup (anyelement) RETURNS anyelement
+    AS 'select $1' LANGUAGE sql;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT a, dup(b) FROM collate_test1 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+SELECT a, dup(b) FROM collate_test2 ORDER BY 2;
+RESULT:
+	postgres: [(4, 'ABD'), (2, 'Abc'), (1, 'abc'), (3, 'bbc')]
+
+-----------
+QUERY:
+
+
+
+-- indexes
+
+CREATE INDEX collate_test1_idx1 ON collate_test1 (b);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX collate_test1_idx2 ON collate_test1 (b COLLATE "POSIX");
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE INDEX collate_test1_idx3 ON collate_test1 ((b COLLATE "POSIX"));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+ -- this is different grammatically
+CREATE INDEX collate_test1_idx4 ON collate_test1 (((b||'foo') COLLATE "POSIX"));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE INDEX collate_test1_idx5 ON collate_test1 (a COLLATE "POSIX");
+RESULT:
+	postgres: collations are not supported by type integer
+
+
+-----------
+QUERY:
+ -- fail
+CREATE INDEX collate_test1_idx6 ON collate_test1 ((a COLLATE "POSIX"));
+RESULT:
+	postgres: collations are not supported by type integer
+LINE 2: ...ATE INDEX collate_test1_idx6 ON collate_test1 ((a COLLATE "P...
+                                                             ^
+
+
+-----------
+QUERY:
+ -- fail
+
+SELECT relname, pg_get_indexdef(oid) FROM pg_class WHERE relname LIKE 'collate_test%_idx%' ORDER BY 1;
+RESULT:
+	postgres: [('collate_test1_idx1', 'CREATE INDEX collate_test1_idx1 ON collate_tests.collate_test1 USING btree (b)'), ('collate_test1_idx2', 'CREATE INDEX collate_test1_idx2 ON collate_tests.collate_test1 USING btree (b COLLATE "POSIX")'), ('collate_test1_idx3', 'CREATE INDEX collate_test1_idx3 ON collate_tests.collate_test1 USING btree (b COLLATE "POSIX")'), ('collate_test1_idx4', 'CREATE INDEX collate_test1_idx4 ON collate_tests.collate_test1 USING btree (((b || \'foo\'::text)) COLLATE "POSIX")')]
+
+-----------
+QUERY:
+
+
+
+-- foreign keys
+
+-- force indexes and mergejoins to be used for FK checking queries,
+-- else they might not exercise collation-dependent operators
+SET enable_seqscan TO 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET enable_hashjoin TO 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+SET enable_nestloop TO 0;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test20 (f1 text COLLATE "C" PRIMARY KEY);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test20 VALUES ('foo'), ('bar');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE collate_test21 (f2 text COLLATE "POSIX" REFERENCES collate_test20);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test21 VALUES ('foo'), ('bar');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test21 VALUES ('baz');
+RESULT:
+	postgres: insert or update on table "collate_test21" violates foreign key constraint "collate_test21_f2_fkey"
+DETAIL:  Key (f2)=(baz) is not present in table "collate_test20".
+
+
+-----------
+QUERY:
+ -- fail
+CREATE TABLE collate_test22 (f2 text COLLATE "POSIX");
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO collate_test22 VALUES ('foo'), ('bar'), ('baz');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE collate_test22 ADD FOREIGN KEY (f2) REFERENCES collate_test20;
+RESULT:
+	postgres: insert or update on table "collate_test22" violates foreign key constraint "collate_test22_f2_fkey"
+DETAIL:  Key (f2)=(baz) is not present in table "collate_test20".
+
+
+-----------
+QUERY:
+ -- fail
+DELETE FROM collate_test22 WHERE f2 = 'baz';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE collate_test22 ADD FOREIGN KEY (f2) REFERENCES collate_test20;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_hashjoin;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+RESET enable_nestloop;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+-- EXPLAIN
+
+EXPLAIN (COSTS OFF)
+  SELECT * FROM collate_test10 ORDER BY x, y;
+RESULT:
+	postgres: [('Sort',), ('  Sort Key: x COLLATE "C", y COLLATE "POSIX"',), ('  ->  Seq Scan on collate_test10',)]
+
+-----------
+QUERY:
+
+EXPLAIN (COSTS OFF)
+  SELECT * FROM collate_test10 ORDER BY x DESC, y COLLATE "C" ASC NULLS FIRST;
+RESULT:
+	postgres: [('Sort',), ('  Sort Key: x COLLATE "C" DESC, y COLLATE "C" NULLS FIRST',), ('  ->  Seq Scan on collate_test10',)]
+
+-----------
+QUERY:
+
+
+
+-- CREATE/DROP COLLATION
+
+CREATE COLLATION builtin_c ( PROVIDER = builtin, LOCALE = "C" );
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+SELECT b FROM collate_test1 ORDER BY b COLLATE builtin_c;
+RESULT:
+	postgres: [('ABD',), ('Abc',), ('abc',), ('bbc',)]
+
+-----------
+QUERY:
+
+
+CREATE COLLATION builtin2 ( PROVIDER = builtin );
+RESULT:
+	postgres: parameter "locale" must be specified
+
+
+-----------
+QUERY:
+ -- fails
+CREATE COLLATION builtin2 ( PROVIDER = builtin, LOCALE = "en_US" );
+RESULT:
+	postgres: invalid locale name "en_US" for builtin provider
+
+
+-----------
+QUERY:
+ -- fails
+CREATE COLLATION builtin2 ( PROVIDER = builtin, LC_CTYPE = "C", LC_COLLATE = "C" );
+RESULT:
+	postgres: parameter "locale" must be specified
+
+
+-----------
+QUERY:
+ -- fails
+
+CREATE COLLATION mycoll1 FROM "C";
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE COLLATION mycoll2 ( LC_COLLATE = "POSIX", LC_CTYPE = "POSIX" );
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE COLLATION mycoll3 FROM "default";
+RESULT:
+	postgres: collation "default" cannot be copied
+
+
+-----------
+QUERY:
+  -- intentionally unsupported
+
+DROP COLLATION mycoll1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE collate_test23 (f1 text collate mycoll2);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP COLLATION mycoll2;
+RESULT:
+	postgres: cannot drop collation mycoll2 because other objects depend on it
+DETAIL:  column f1 of table collate_test23 depends on collation mycoll2
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+
+
+-----------
+QUERY:
+  -- fail
+
+-- invalid: non-lowercase quoted identifiers
+CREATE COLLATION case_coll ("Lc_Collate" = "POSIX", "Lc_Ctype" = "POSIX");
+RESULT:
+	postgres: collation attribute "Lc_Collate" not recognized
+LINE 4: CREATE COLLATION case_coll ("Lc_Collate" = "POSIX", "Lc_Ctyp...
+                                    ^
+
+
+-----------
+QUERY:
+
+
+-- 9.1 bug with useless COLLATE in an expression subject to length coercion
+
+CREATE TEMP TABLE vctable (f1 varchar(25));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO vctable VALUES ('foo' COLLATE "C");
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+
+SELECT collation for ('foo');
+RESULT:
+	postgres: [(None,)]
+
+-----------
+QUERY:
+ -- unknown type - null
+SELECT collation for ('foo'::text);
+RESULT:
+	postgres: [('"default"',)]
+
+-----------
+QUERY:
+
+SELECT collation for ((SELECT a FROM collate_test1 LIMIT 1));
+RESULT:
+	postgres: collations are not supported by type integer
+
+
+-----------
+QUERY:
+ -- non-collatable type - error
+SELECT collation for ((SELECT b FROM collate_test1 LIMIT 1));
+RESULT:
+	postgres: [('"C"',)]
+
+-----------
+QUERY:
+
+
+-- old bug with not dropping COLLATE when coercing to non-collatable type
+CREATE VIEW collate_on_int AS
+SELECT c1+1 AS c1p FROM
+  (SELECT ('4' COLLATE "C")::INT AS c1) ss;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- \d+ collate_on_int
+
+-- Check conflicting or redundant options in CREATE COLLATION
+-- LC_COLLATE
+CREATE COLLATION coll_dup_chk (LC_COLLATE = "POSIX", LC_COLLATE = "NONSENSE", LC_CTYPE = "POSIX");
+RESULT:
+	postgres: conflicting or redundant options
+LINE 6: ...ATE COLLATION coll_dup_chk (LC_COLLATE = "POSIX", LC_COLLATE...
+                                                             ^
+
+
+-----------
+QUERY:
+
+-- LC_CTYPE
+CREATE COLLATION coll_dup_chk (LC_CTYPE = "POSIX", LC_CTYPE = "NONSENSE", LC_COLLATE = "POSIX");
+RESULT:
+	postgres: conflicting or redundant options
+LINE 3: ...REATE COLLATION coll_dup_chk (LC_CTYPE = "POSIX", LC_CTYPE =...
+                                                             ^
+
+
+-----------
+QUERY:
+
+-- PROVIDER
+CREATE COLLATION coll_dup_chk (PROVIDER = icu, PROVIDER = NONSENSE, LC_COLLATE = "POSIX", LC_CTYPE = "POSIX");
+RESULT:
+	postgres: conflicting or redundant options
+LINE 3: CREATE COLLATION coll_dup_chk (PROVIDER = icu, PROVIDER = NO...
+                                                       ^
+
+
+-----------
+QUERY:
+
+-- LOCALE
+CREATE COLLATION case_sensitive (LOCALE = '', LOCALE = "NONSENSE");
+RESULT:
+	postgres: conflicting or redundant options
+LINE 3: CREATE COLLATION case_sensitive (LOCALE = '', LOCALE = "NONS...
+                                                      ^
+
+
+-----------
+QUERY:
+
+-- DETERMINISTIC
+CREATE COLLATION coll_dup_chk (DETERMINISTIC = TRUE, DETERMINISTIC = NONSENSE, LOCALE = '');
+RESULT:
+	postgres: conflicting or redundant options
+LINE 3: ...ATE COLLATION coll_dup_chk (DETERMINISTIC = TRUE, DETERMINIS...
+                                                             ^
+
+
+-----------
+QUERY:
+
+-- VERSION
+CREATE COLLATION coll_dup_chk (VERSION = '1', VERSION = "NONSENSE", LOCALE = '');
+RESULT:
+	postgres: conflicting or redundant options
+LINE 3: CREATE COLLATION coll_dup_chk (VERSION = '1', VERSION = "NON...
+                                                      ^
+
+
+-----------
+QUERY:
+
+-- LOCALE conflicts with LC_COLLATE and LC_CTYPE
+CREATE COLLATION coll_dup_chk (LC_COLLATE = "POSIX", LC_CTYPE = "POSIX", LOCALE = '');
+RESULT:
+	postgres: conflicting or redundant options
+DETAIL:  LOCALE cannot be specified together with LC_COLLATE or LC_CTYPE.
+
+
+-----------
+QUERY:
+
+-- LOCALE conflicts with LC_COLLATE
+CREATE COLLATION coll_dup_chk (LC_COLLATE = "POSIX", LOCALE = '');
+RESULT:
+	postgres: conflicting or redundant options
+DETAIL:  LOCALE cannot be specified together with LC_COLLATE or LC_CTYPE.
+
+
+-----------
+QUERY:
+
+-- LOCALE conflicts with LC_CTYPE
+CREATE COLLATION coll_dup_chk (LC_CTYPE = "POSIX", LOCALE = '');
+RESULT:
+	postgres: conflicting or redundant options
+DETAIL:  LOCALE cannot be specified together with LC_COLLATE or LC_CTYPE.
+
+
+-----------
+QUERY:
+
+-- FROM conflicts with any other option
+CREATE COLLATION coll_dup_chk (FROM = "C", VERSION = "1");
+RESULT:
+	postgres: conflicting or redundant options
+DETAIL:  FROM cannot be specified together with any other options.
+
+
+-----------
+QUERY:
+
+
+--
+-- Clean up.  Many of these table names will be re-used if the user is
+-- trying to run any platform-specific collation tests later, so we
+-- must get rid of them.
+--
+DROP SCHEMA collate_tests CASCADE;
+RESULT:
+	postgres: None

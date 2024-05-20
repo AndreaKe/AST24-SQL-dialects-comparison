@@ -1,0 +1,364 @@
+
+-----------
+QUERY:
+--
+-- TIME
+--
+
+CREATE TABLE TIME_TBL (f1 time(2));
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO TIME_TBL VALUES ('00:00');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('01:00');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- as of 7.4, timezone spec should be accepted and ignored
+INSERT INTO TIME_TBL VALUES ('02:03 PST');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('11:59 EDT');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('12:00');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('12:01');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('23:59');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('11:59:59.99 PM');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+INSERT INTO TIME_TBL VALUES ('2003-03-07 15:36:39 America/New_York');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('2003-07-07 15:36:39 America/New_York');
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+-- this should fail (the timezone offset is not known)
+INSERT INTO TIME_TBL VALUES ('15:36:39 America/New_York');
+RESULT:
+	postgres: invalid input syntax for type time: "15:36:39 America/New_York"
+LINE 3: INSERT INTO TIME_TBL VALUES ('15:36:39 America/New_York');
+                                     ^
+
+
+-----------
+QUERY:
+
+
+
+SELECT f1 AS "Time" FROM TIME_TBL;
+RESULT:
+	postgres: [(datetime.time(0, 0),), (datetime.time(1, 0),), (datetime.time(2, 3),), (datetime.time(11, 59),), (datetime.time(12, 0),), (datetime.time(12, 1),), (datetime.time(23, 59),), (datetime.time(23, 59, 59, 990000),), (datetime.time(15, 36, 39),), (datetime.time(15, 36, 39),)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Three" FROM TIME_TBL WHERE f1 < '05:06:07';
+RESULT:
+	postgres: [(datetime.time(0, 0),), (datetime.time(1, 0),), (datetime.time(2, 3),)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Five" FROM TIME_TBL WHERE f1 > '05:06:07';
+RESULT:
+	postgres: [(datetime.time(11, 59),), (datetime.time(12, 0),), (datetime.time(12, 1),), (datetime.time(23, 59),), (datetime.time(23, 59, 59, 990000),), (datetime.time(15, 36, 39),), (datetime.time(15, 36, 39),)]
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "None" FROM TIME_TBL WHERE f1 < '00:00';
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Eight" FROM TIME_TBL WHERE f1 >= '00:00';
+RESULT:
+	postgres: [(datetime.time(0, 0),), (datetime.time(1, 0),), (datetime.time(2, 3),), (datetime.time(11, 59),), (datetime.time(12, 0),), (datetime.time(12, 1),), (datetime.time(23, 59),), (datetime.time(23, 59, 59, 990000),), (datetime.time(15, 36, 39),), (datetime.time(15, 36, 39),)]
+
+-----------
+QUERY:
+
+
+-- Check edge cases
+SELECT '23:59:59.999999'::time;
+RESULT:
+	postgres: [(datetime.time(23, 59, 59, 999999),)]
+
+-----------
+QUERY:
+
+SELECT '23:59:59.9999999'::time;
+RESULT:
+	postgres: [(datetime.time(0, 0),)]
+
+-----------
+QUERY:
+  -- rounds up
+SELECT '23:59:60'::time;
+RESULT:
+	postgres: [(datetime.time(0, 0),)]
+
+-----------
+QUERY:
+  -- rounds up
+SELECT '24:00:00'::time;
+RESULT:
+	postgres: [(datetime.time(0, 0),)]
+
+-----------
+QUERY:
+  -- allowed
+SELECT '24:00:00.01'::time;
+RESULT:
+	postgres: date/time field value out of range: "24:00:00.01"
+LINE 2: SELECT '24:00:00.01'::time;
+               ^
+
+
+-----------
+QUERY:
+  -- not allowed
+SELECT '23:59:60.01'::time;
+RESULT:
+	postgres: date/time field value out of range: "23:59:60.01"
+LINE 2: SELECT '23:59:60.01'::time;
+               ^
+
+
+-----------
+QUERY:
+  -- not allowed
+SELECT '24:01:00'::time;
+RESULT:
+	postgres: date/time field value out of range: "24:01:00"
+LINE 2: SELECT '24:01:00'::time;
+               ^
+
+
+-----------
+QUERY:
+  -- not allowed
+SELECT '25:00:00'::time;
+RESULT:
+	postgres: date/time field value out of range: "25:00:00"
+LINE 2: SELECT '25:00:00'::time;
+               ^
+
+
+-----------
+QUERY:
+  -- not allowed
+
+-- Test non-error-throwing API
+SELECT pg_input_is_valid('12:00:00', 'time');
+RESULT:
+	postgres: [(True,)]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('25:00:00', 'time');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('15:36:39 America/New_York', 'time');
+RESULT:
+	postgres: [(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('25:00:00', 'time');
+RESULT:
+	postgres: [('date/time field value out of range: "25:00:00"', None, None, '22008')]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('15:36:39 America/New_York', 'time');
+RESULT:
+	postgres: [('invalid input syntax for type time: "15:36:39 America/New_York"', None, None, '22007')]
+
+-----------
+QUERY:
+
+
+--
+-- TIME simple math
+--
+-- We now make a distinction between time and intervals,
+-- and adding two times together makes no sense at all.
+-- Leave in one query to show that it is rejected,
+-- and do the rest of the testing in horology.sql
+-- where we do mixed-type arithmetic. - thomas 2000-12-02
+
+SELECT f1 + time '00:01' AS "Illegal" FROM TIME_TBL;
+RESULT:
+	postgres: operator is not unique: time without time zone + time without time zone
+LINE 12: SELECT f1 + time '00:01' AS "Illegal" FROM TIME_TBL;
+                   ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+
+
+-----------
+QUERY:
+
+
+--
+-- test EXTRACT
+--
+SELECT EXTRACT(MICROSECOND FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(Decimal('25575401'),)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(MILLISECOND FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(Decimal('25575.401'),)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(SECOND      FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(Decimal('25.575401'),)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(MINUTE      FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(Decimal('30'),)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(HOUR        FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(Decimal('13'),)]
+
+-----------
+QUERY:
+
+SELECT EXTRACT(DAY         FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: unit "day" not supported for type time without time zone
+
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(FORTNIGHT   FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: unit "fortnight" not recognized for type time without time zone
+
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(TIMEZONE    FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: unit "timezone" not supported for type time without time zone
+
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(EPOCH       FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(Decimal('48625.575401'),)]
+
+-----------
+QUERY:
+
+
+-- date_part implementation is mostly the same as extract, so only
+-- test a few cases for additional coverage.
+SELECT date_part('microsecond', TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(25575401.0,)]
+
+-----------
+QUERY:
+
+SELECT date_part('millisecond', TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(25575.401,)]
+
+-----------
+QUERY:
+
+SELECT date_part('second',      TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(25.575401,)]
+
+-----------
+QUERY:
+
+SELECT date_part('epoch',       TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	postgres: [(48625.575401,)]

@@ -1,0 +1,244 @@
+
+-----------
+QUERY:
+--
+-- encoding-sensitive tests for jsonpath
+--
+
+-- We provide expected-results files for UTF8 (jsonpath_encoding.out)
+-- and for SQL_ASCII (jsonpath_encoding_1.out).  Skip otherwise.
+SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+SELECT getdatabaseencoding();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\gset\n\\if :skip_test\n\\quit\n\\endif\n\nSELECT getdatabaseencoding()' at line 8")
+
+-----------
+QUERY:
+           -- just to label the results files
+
+-- checks for double-quoted values
+
+-- basic unicode input
+SELECT '"\u"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 6")
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '"\u00"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '"\u000g"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- ERROR, g is not a hex digit
+SELECT '"\u0000"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- OK, legal escape
+SELECT '"\uaBcD"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+select '"\ud83d\ude04\ud83d\udc36"'::jsonpath as correct_in_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as correct_in_utf8' at line 4")
+
+-----------
+QUERY:
+
+select '"\ud83d\ud83d"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 1")
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select '"\ude04\ud83d"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select '"\ud83dX"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select '"\ude04X"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+select '"the Copyright \u00a9 sign"'::jsonpath as correct_in_utf8;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'--handling of simple unicode escapes\nselect \'"the Copyright \\u00a9 sign"\'::jsonp\' at line 3')
+
+-----------
+QUERY:
+
+select '"dollar \u0024 character"'::jsonpath as correct_everywhere;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as correct_everywhere' at line 1")
+
+-----------
+QUERY:
+
+select '"dollar \\u0024 character"'::jsonpath as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+select '"null \u0000 escape"'::jsonpath as not_unescaped;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as not_unescaped' at line 1")
+
+-----------
+QUERY:
+
+select '"null \\u0000 escape"'::jsonpath as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+
+-- checks for quoted key names
+
+-- basic unicode input
+SELECT '$."\u"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 4")
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '$."\u00"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- ERROR, incomplete escape
+SELECT '$."\u000g"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- ERROR, g is not a hex digit
+SELECT '$."\u0000"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- OK, legal escape
+SELECT '$."\uaBcD"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+	-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+select '$."\ud83d\ude04\ud83d\udc36"'::jsonpath as correct_in_utf8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as correct_in_utf8' at line 4")
+
+-----------
+QUERY:
+
+select '$."\ud83d\ud83d"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 1")
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select '$."\ude04\ud83d"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select '$."\ud83dX"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select '$."\ude04X"'::jsonpath;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath' at line 2")
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+select '$."the Copyright \u00a9 sign"'::jsonpath as correct_in_utf8;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'--handling of simple unicode escapes\nselect \'$."the Copyright \\u00a9 sign"\'::jso\' at line 3')
+
+-----------
+QUERY:
+
+select '$."dollar \u0024 character"'::jsonpath as correct_everywhere;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as correct_everywhere' at line 1")
+
+-----------
+QUERY:
+
+select '$."dollar \\u0024 character"'::jsonpath as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as not_an_escape' at line 1")
+
+-----------
+QUERY:
+
+select '$."null \u0000 escape"'::jsonpath as not_unescaped;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as not_unescaped' at line 1")
+
+-----------
+QUERY:
+
+select '$."null \\u0000 escape"'::jsonpath as not_an_escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::jsonpath as not_an_escape' at line 1")

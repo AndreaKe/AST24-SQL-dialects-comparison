@@ -1,3 +1,6 @@
+
+-----------
+QUERY:
 CREATE TABLE brintest_multi (
 	int8col bigint,
 	int2col smallint,
@@ -19,7 +22,12 @@ CREATE TABLE brintest_multi (
 	numericcol numeric,
 	uuidcol uuid,
 	lsncol pg_lsn
-) WITH (fillfactor=10)
+) WITH (fillfactor=10);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brintest_multi SELECT
@@ -43,46 +51,50 @@ INSERT INTO brintest_multi SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 100
+FROM tenk1 ORDER BY unique2 LIMIT 100;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
--- throw in some NULL''s and different values
+-- throw in some NULL/* REPLACED */''s and different values
 INSERT INTO brintest_multi (inetcol, cidrcol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
-FROM tenk1 ORDER BY thousand, tenthous LIMIT 25
+FROM tenk1 ORDER BY thousand, tenthous LIMIT 25;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test minmax-multi specific index options
 -- number of values must be >= 16
 CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	int8col int8_minmax_multi_ops(values_per_range = 7)
-)
-ERROR: 
-
--- test minmax-multi specific index options
--- number of values must be >= 16
-CREATE INDEX brinidx_multi ON brintest_multi USING brin (
-	int8col int8_minmax_multi_ops(values_per_range = 7)
-)
-
-value 7 out of bounds for option "values_per_range"
+);
+RESULT:
+	ERROR - value 7 out of bounds for option "values_per_range"
 DETAIL:  Valid values are between "8" and "256".
 
+
+-----------
+QUERY:
 
 -- number of values must be <= 256
 CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	int8col int8_minmax_multi_ops(values_per_range = 257)
-)
-ERROR: 
--- number of values must be <= 256
-CREATE INDEX brinidx_multi ON brintest_multi USING brin (
-	int8col int8_minmax_multi_ops(values_per_range = 257)
-)
-
-value 257 out of bounds for option "values_per_range"
+);
+RESULT:
+	ERROR - value 257 out of bounds for option "values_per_range"
 DETAIL:  Valid values are between "8" and "256".
 
+
+-----------
+QUERY:
 
 
 -- first create an index with a single page range, to force compaction
@@ -108,10 +120,20 @@ CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	numericcol numeric_minmax_multi_ops,
 	uuidcol uuid_minmax_multi_ops,
 	lsncol pg_lsn_minmax_multi_ops
-)
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-DROP INDEX brinidx_multi
+DROP INDEX brinidx_multi;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 CREATE INDEX brinidx_multi ON brintest_multi USING brin (
@@ -135,13 +157,23 @@ CREATE INDEX brinidx_multi ON brintest_multi USING brin (
 	numericcol numeric_minmax_multi_ops,
 	uuidcol uuid_minmax_multi_ops,
 	lsncol pg_lsn_minmax_multi_ops
-) with (pages_per_range = 1)
+) with (pages_per_range = 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 CREATE TABLE brinopers_multi (colname name, typ text,
 	op text[], value text[], matches int[],
 	check (cardinality(op) = cardinality(value)),
-	check (cardinality(op) = cardinality(matches)))
+	check (cardinality(op) = cardinality(matches)));
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brinopers_multi VALUES
@@ -268,425 +300,488 @@ INSERT INTO brinopers_multi VALUES
 	('lsncol', 'pg_lsn',
 	 '{>, >=, =, <=, <, IS, IS NOT}',
 	 '{0/1200, 0/1200, 44/455222, 198/1999799, 198/1999799, NULL, NULL}',
-	 '{100, 100, 1, 100, 100, 25, 100}')
+	 '{100, 100, 1, 100, 100, 25, 100}');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 DO $x$
 DECLARE
-	r record
-ProgrammingError: 
-
-DO $x$
+	r record;
+RESULT:
+	ERROR - unterminated dollar-quoted string at or near "$x$
 DECLARE
-	r record
-
-unterminated dollar-quoted string at or near "$x$
-DECLARE
-	r record
-"
+	r record;"
 LINE 3: DO $x$
            ^
 
 
-	r2 record
-ProgrammingError: 
-	r2 record
+-----------
+QUERY:
 
-syntax error at or near "r2"
-LINE 2:  r2 record
+	r2 record;
+RESULT:
+	ERROR - syntax error at or near "r2"
+LINE 2:  r2 record;
          ^
 
 
-	cond text
-ProgrammingError: 
-	cond text
+-----------
+QUERY:
 
-syntax error at or near "cond"
-LINE 2:  cond text
+	cond text;
+RESULT:
+	ERROR - syntax error at or near "cond"
+LINE 2:  cond text;
          ^
 
 
-	idx_ctids tid[]
-ProgrammingError: 
-	idx_ctids tid[]
+-----------
+QUERY:
 
-syntax error at or near "idx_ctids"
-LINE 2:  idx_ctids tid[]
+	idx_ctids tid[];
+RESULT:
+	ERROR - syntax error at or near "idx_ctids"
+LINE 2:  idx_ctids tid[];
          ^
 
 
-	ss_ctids tid[]
-ProgrammingError: 
-	ss_ctids tid[]
+-----------
+QUERY:
 
-syntax error at or near "ss_ctids"
-LINE 2:  ss_ctids tid[]
+	ss_ctids tid[];
+RESULT:
+	ERROR - syntax error at or near "ss_ctids"
+LINE 2:  ss_ctids tid[];
          ^
 
 
-	count int
-ProgrammingError: 
-	count int
+-----------
+QUERY:
 
-syntax error at or near "count"
-LINE 2:  count int
+	count int;
+RESULT:
+	ERROR - syntax error at or near "count"
+LINE 2:  count int;
          ^
 
 
-	plan_ok bool
-ProgrammingError: 
-	plan_ok bool
+-----------
+QUERY:
 
-syntax error at or near "plan_ok"
-LINE 2:  plan_ok bool
+	plan_ok bool;
+RESULT:
+	ERROR - syntax error at or near "plan_ok"
+LINE 2:  plan_ok bool;
          ^
 
 
-	plan_line text
-ProgrammingError: 
-	plan_line text
+-----------
+QUERY:
 
-syntax error at or near "plan_line"
-LINE 2:  plan_line text
+	plan_line text;
+RESULT:
+	ERROR - syntax error at or near "plan_line"
+LINE 2:  plan_line text;
          ^
 
+
+-----------
+QUERY:
 
 BEGIN
 	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_multi, unnest(op) WITH ORDINALITY AS oper LOOP
 
 		-- prepare the condition
 		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-ProgrammingError: 
-BEGIN
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_multi, unnest(op) WITH ORDINALITY AS oper LOOP
-
-		-- prepare the condition
-		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-
-syntax error at or near "FOR"
+			cond := format('%I %s %L', r.colname, r.oper, r.value);
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 3:  FOR r IN SELECT colname, oper, typ, value[ordinality], matc...
          ^
 
 
-		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
-ProgrammingError: 
-		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
+-----------
+QUERY:
 
-syntax error at or near "ELSE"
+		ELSE
+			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ);
+RESULT:
+	ERROR - syntax error at or near "ELSE"
 LINE 2:   ELSE
           ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
+
+-----------
+QUERY:
 
 
 		-- run the query using the brin index
-		SET enable_seqscan = 0
+		SET enable_seqscan = 0;
+RESULT:
+	[]
 
-		SET enable_bitmapscan = 1
+-----------
+QUERY:
+
+		SET enable_bitmapscan = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-		plan_ok := false
-ProgrammingError: 
-
-		plan_ok := false
-
-syntax error at or near "plan_ok"
-LINE 3:   plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - syntax error at or near "plan_ok"
+LINE 3:   plan_ok := false;
           ^
 
 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Bitmap Heap Scan on brintest_multi%' THEN
-				plan_ok := true
-ProgrammingError: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Bitmap Heap Scan on brintest_multi%' THEN
-				plan_ok := true
+-----------
+QUERY:
 
-syntax error at or near "FOR"
+		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
+			IF plan_line LIKE '%Bitmap Heap Scan on brintest_multi%' THEN
+				plan_ok := true;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:   FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_ag...
           ^
 
 
-			END IF
-ProgrammingError: 
-			END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:    END IF
+			END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:    END IF;
                ^
 
 
-		END LOOP
-ProgrammingError: 
-		END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:   END LOOP
+		END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:   END LOOP;
               ^
 
 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
-ProgrammingError: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
+-----------
+QUERY:
 
-syntax error at or near "IF"
+		IF NOT plan_ok THEN
+			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 2:   IF NOT plan_ok THEN
           ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
 
+-----------
+QUERY:
+
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO idx_ctids
-ProgrammingError: 
-
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO idx_ctids
-
-syntax error at or near "INTO"
-LINE 4:    INTO idx_ctids
+			INTO idx_ctids;
+RESULT:
+	ERROR - syntax error at or near "INTO"
+LINE 4:    INTO idx_ctids;
            ^
 
+
+-----------
+QUERY:
 
 
 		-- run the query using a seqscan
-		SET enable_seqscan = 1
+		SET enable_seqscan = 1;
+RESULT:
+	[]
 
-		SET enable_bitmapscan = 0
+-----------
+QUERY:
+
+		SET enable_bitmapscan = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-		plan_ok := false
-ProgrammingError: 
-
-		plan_ok := false
-
-syntax error at or near "plan_ok"
-LINE 3:   plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - syntax error at or near "plan_ok"
+LINE 3:   plan_ok := false;
           ^
 
 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Seq Scan on brintest_multi%' THEN
-				plan_ok := true
-ProgrammingError: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Seq Scan on brintest_multi%' THEN
-				plan_ok := true
+-----------
+QUERY:
 
-syntax error at or near "FOR"
+		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond) LOOP
+			IF plan_line LIKE '%Seq Scan on brintest_multi%' THEN
+				plan_ok := true;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:   FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_ag...
           ^
 
 
-			END IF
-ProgrammingError: 
-			END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:    END IF
+			END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:    END IF;
                ^
 
 
-		END LOOP
-ProgrammingError: 
-		END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:   END LOOP
+		END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:   END LOOP;
               ^
 
 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
-ProgrammingError: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
+-----------
+QUERY:
 
-syntax error at or near "IF"
+		IF NOT plan_ok THEN
+			RAISE WARNING 'did not get seqscan plan for %', r;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 2:   IF NOT plan_ok THEN
           ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
 
+-----------
+QUERY:
+
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO ss_ctids
-ProgrammingError: 
-
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_multi WHERE %s $y$, cond)
-			INTO ss_ctids
-
-syntax error at or near "INTO"
-LINE 4:    INTO ss_ctids
+			INTO ss_ctids;
+RESULT:
+	ERROR - syntax error at or near "INTO"
+LINE 4:    INTO ss_ctids;
            ^
 
 
+-----------
+QUERY:
+
 
 		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
-ProgrammingError: 
-
-		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
-
-syntax error at or near "count"
-LINE 4:   count := array_length(idx_ctids, 1)
+		count := array_length(idx_ctids, 1);
+RESULT:
+	ERROR - syntax error at or near "count"
+LINE 4:   count := array_length(idx_ctids, 1);
           ^
 
 
+-----------
+QUERY:
+
 
 		IF NOT (count = array_length(ss_ctids, 1) AND
 				idx_ctids @> ss_ctids AND
 				idx_ctids <@ ss_ctids) THEN
 			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
-ProgrammingError: 
-
-		IF NOT (count = array_length(ss_ctids, 1) AND
-				idx_ctids @> ss_ctids AND
-				idx_ctids <@ ss_ctids) THEN
-			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
-
-syntax error at or near "IF"
+			RAISE WARNING 'something not right in %: count %', r, count;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 3:   IF NOT (count = array_length(ss_ctids, 1) AND
           ^
 
 
-			SET enable_seqscan = 1
+-----------
+QUERY:
 
-			SET enable_bitmapscan = 0
+			SET enable_seqscan = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-ProgrammingError: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-
-syntax error at or near "FOR"
+				RAISE NOTICE 'seqscan: %', r2;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:    FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brinte...
            ^
 
 
-			END LOOP
-ProgrammingError: 
-			END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:    END LOOP
+			END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:    END LOOP;
                ^
 
 
+-----------
+QUERY:
 
-			SET enable_seqscan = 0
 
-			SET enable_bitmapscan = 1
+			SET enable_seqscan = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
-ProgrammingError: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_multi WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
-
-syntax error at or near "FOR"
+				RAISE NOTICE 'bitmapscan: %', r2;
+RESULT:
+	ERROR - syntax error at or near "FOR"
 LINE 2:    FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brinte...
            ^
 
 
-			END LOOP
-ProgrammingError: 
-			END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:    END LOOP
+			END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:    END LOOP;
                ^
 
 
-		END IF
-ProgrammingError: 
-		END IF
+-----------
+QUERY:
 
-syntax error at or near "IF"
-LINE 2:   END IF
+		END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 2:   END IF;
               ^
 
 
+-----------
+QUERY:
+
 
 		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
-ProgrammingError: 
-
-		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
-
-syntax error at or near "IF"
+		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r;
+RESULT:
+	ERROR - syntax error at or near "IF"
 LINE 4:   IF count != r.matches THEN RAISE WARNING 'unexpected numbe...
           ^
 
- END IF
-ProgrammingError:  END IF
 
-syntax error at or near "IF"
-LINE 1:  END IF
+-----------
+QUERY:
+ END IF;
+RESULT:
+	ERROR - syntax error at or near "IF"
+LINE 1:  END IF;
              ^
 
 
-	END LOOP
-ProgrammingError: 
-	END LOOP
+-----------
+QUERY:
 
-syntax error at or near "LOOP"
-LINE 2:  END LOOP
+	END LOOP;
+RESULT:
+	ERROR - syntax error at or near "LOOP"
+LINE 2:  END LOOP;
              ^
 
 
-END
+-----------
+QUERY:
 
-$x$
-ProgrammingError: 
-$x$
+END;
+RESULT:
+	[]
 
-unterminated dollar-quoted string at or near "$x$
-"
-LINE 2: $x$
+-----------
+QUERY:
+
+$x$;
+RESULT:
+	ERROR - unterminated dollar-quoted string at or near "$x$;"
+LINE 2: $x$;
         ^
 
 
+-----------
+QUERY:
 
-RESET enable_seqscan
 
-RESET enable_bitmapscan
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brintest_multi SELECT
@@ -710,98 +805,192 @@ INSERT INTO brintest_multi SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5
+FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT brin_desummarize_range('brinidx_multi', 0)
-RESULT: 
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
 	[('',)]
 
-VACUUM brintest_multi
+-----------
+QUERY:
+
+VACUUM brintest_multi;
+RESULT:
+	[]
+
+-----------
+QUERY:
   -- force a summarization cycle in brinidx
 
 -- Try inserting a values with NaN, to test distance calculation.
-insert into public.brintest_multi (float4col) values (real 'nan')
+insert into public.brintest_multi (float4col) values (real 'nan');
+RESULT:
+	[]
 
-insert into public.brintest_multi (float8col) values (real 'nan')
+-----------
+QUERY:
+
+insert into public.brintest_multi (float8col) values (real 'nan');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-UPDATE brintest_multi SET int8col = int8col * int4col
+UPDATE brintest_multi SET int8col = int8col * int4col;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Test handling of inet netmasks with inet_minmax_multi_ops
-CREATE TABLE brin_test_inet (a inet)
+CREATE TABLE brin_test_inet (a inet);
+RESULT:
+	[]
 
-CREATE INDEX ON brin_test_inet USING brin (a inet_minmax_multi_ops)
+-----------
+QUERY:
 
-INSERT INTO brin_test_inet VALUES ('127.0.0.1/0')
+CREATE INDEX ON brin_test_inet USING brin (a inet_minmax_multi_ops);
+RESULT:
+	[]
 
-INSERT INTO brin_test_inet VALUES ('0.0.0.0/12')
+-----------
+QUERY:
 
-DROP TABLE brin_test_inet
+INSERT INTO brin_test_inet VALUES ('127.0.0.1/0');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO brin_test_inet VALUES ('0.0.0.0/12');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE brin_test_inet;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_multi')
-ProgrammingError: 
+SELECT brin_summarize_new_values('brintest_multi');
+RESULT:
+	ERROR - "brintest_multi" is not an index
 
--- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_multi')
 
-"brintest_multi" is not an index
-
+-----------
+QUERY:
  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
-ProgrammingError:  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
+SELECT brin_summarize_new_values('tenk1_unique1');
+RESULT:
+	ERROR - "tenk1_unique1" is not a BRIN index
 
-"tenk1_unique1" is not a BRIN index
 
+-----------
+QUERY:
  -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_multi')
-RESULT: 
+SELECT brin_summarize_new_values('brinidx_multi');
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
  -- ok, no change expected
 
 -- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_multi', -1)
-ERROR:  -- ok, no change expected
+SELECT brin_desummarize_range('brinidx_multi', -1);
+RESULT:
+	ERROR - block number out of range: -1
 
--- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_multi', -1)
 
-block number out of range: -1
-
+-----------
+QUERY:
  -- error, invalid range
-SELECT brin_desummarize_range('brinidx_multi', 0)
-RESULT: 
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
 	[('',)]
 
-SELECT brin_desummarize_range('brinidx_multi', 0)
-RESULT: 
+-----------
+QUERY:
+
+SELECT brin_desummarize_range('brinidx_multi', 0);
+RESULT:
 	[('',)]
 
-SELECT brin_desummarize_range('brinidx_multi', 100000000)
-RESULT: 
+-----------
+QUERY:
+
+SELECT brin_desummarize_range('brinidx_multi', 100000000);
+RESULT:
 	[('',)]
+
+-----------
+QUERY:
 
 
 -- test building an index with many values, to force compaction of the buffer
-CREATE TABLE brin_large_range (a int4)
+CREATE TABLE brin_large_range (a int4);
+RESULT:
+	[]
 
-INSERT INTO brin_large_range SELECT i FROM generate_series(1,10000) s(i)
+-----------
+QUERY:
 
-CREATE INDEX brin_large_range_idx ON brin_large_range USING brin (a int4_minmax_multi_ops)
+INSERT INTO brin_large_range SELECT i FROM generate_series(1,10000) s(i);
+RESULT:
+	[]
 
-DROP TABLE brin_large_range
+-----------
+QUERY:
+
+CREATE INDEX brin_large_range_idx ON brin_large_range USING brin (a int4_minmax_multi_ops);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE brin_large_range;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Test brin_summarize_range
 CREATE TABLE brin_summarize_multi (
     value int
-) WITH (fillfactor=10, autovacuum_enabled=false)
+) WITH (fillfactor=10, autovacuum_enabled=false);
+RESULT:
+	[]
 
-CREATE INDEX brin_summarize_multi_idx ON brin_summarize_multi USING brin (value) WITH (pages_per_range=2)
+-----------
+QUERY:
+
+CREATE INDEX brin_summarize_multi_idx ON brin_summarize_multi USING brin (value) WITH (pages_per_range=2);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- Fill a few pages
 DO $$
@@ -812,593 +1001,1120 @@ BEGIN
     EXIT WHEN curtid > tid '(2, 0)';
   END LOOP;
 END;
-$$
+$$;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_multi_idx', 0)
-RESULT: 
+SELECT brin_summarize_range('brin_summarize_multi_idx', 0);
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 -- nothing: already summarized
-SELECT brin_summarize_range('brin_summarize_multi_idx', 1)
-RESULT: 
+SELECT brin_summarize_range('brin_summarize_multi_idx', 1);
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_multi_idx', 2)
-RESULT: 
+SELECT brin_summarize_range('brin_summarize_multi_idx', 2);
+RESULT:
 	[(1,)]
 
--- nothing: page doesn''t exist in table
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295)
-RESULT: 
+-----------
+QUERY:
+
+-- nothing: page doesn/* REPLACED */''t exist in table
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295);
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
+
 -- invalid block number values
-SELECT brin_summarize_range('brin_summarize_multi_idx', -1)
-ERROR: 
--- invalid block number values
-SELECT brin_summarize_range('brin_summarize_multi_idx', -1)
-
-block number out of range: -1
+SELECT brin_summarize_range('brin_summarize_multi_idx', -1);
+RESULT:
+	ERROR - block number out of range: -1
 
 
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296)
-ERROR: 
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296)
+-----------
+QUERY:
 
-block number out of range: 4294967296
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296);
+RESULT:
+	ERROR - block number out of range: 4294967296
 
+
+-----------
+QUERY:
 
 
 
 -- test brin cost estimates behave sanely based on correlation of values
-CREATE TABLE brin_test_multi (a INT, b INT)
+CREATE TABLE brin_test_multi (a INT, b INT);
+RESULT:
+	[]
 
-INSERT INTO brin_test_multi SELECT x/100,x%100 FROM generate_series(1,10000) x(x)
+-----------
+QUERY:
 
-CREATE INDEX brin_test_multi_a_idx ON brin_test_multi USING brin (a) WITH (pages_per_range = 2)
+INSERT INTO brin_test_multi SELECT x/100,x%100 FROM generate_series(1,10000) x(x);
+RESULT:
+	[]
 
-CREATE INDEX brin_test_multi_b_idx ON brin_test_multi USING brin (b) WITH (pages_per_range = 2)
+-----------
+QUERY:
 
-VACUUM ANALYZE brin_test_multi
+CREATE INDEX brin_test_multi_a_idx ON brin_test_multi USING brin (a) WITH (pages_per_range = 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX brin_test_multi_b_idx ON brin_test_multi USING brin (b) WITH (pages_per_range = 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+VACUUM ANALYZE brin_test_multi;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Ensure brin index is used when columns are perfectly correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1
-RESULT: 
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1;
+RESULT:
 	[('Bitmap Heap Scan on brin_test_multi',), ('  Recheck Cond: (a = 1)',), ('  ->  Bitmap Index Scan on brin_test_multi_a_idx',), ('        Index Cond: (a = 1)',)]
 
+-----------
+QUERY:
+
 -- Ensure brin index is not used when values are not correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1
-RESULT: 
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1;
+RESULT:
 	[('Seq Scan on brin_test_multi',), ('  Filter: (b = 1)',)]
+
+-----------
+QUERY:
 
 
 
 -- do some inequality tests
-CREATE TABLE brin_test_multi_1 (a INT, b BIGINT) WITH (fillfactor=10)
+CREATE TABLE brin_test_multi_1 (a INT, b BIGINT) WITH (fillfactor=10);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_test_multi_1
 SELECT i/5 + mod(911 * i + 483, 25),
        i/10 + mod(751 * i + 221, 41)
-  FROM generate_series(1,1000) s(i)
+  FROM generate_series(1,1000) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX brin_test_multi_1_idx_1 ON brin_test_multi_1 USING brin (a int4_minmax_multi_ops) WITH (pages_per_range=5)
+CREATE INDEX brin_test_multi_1_idx_1 ON brin_test_multi_1 USING brin (a int4_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	[]
 
-CREATE INDEX brin_test_multi_1_idx_2 ON brin_test_multi_1 USING brin (b int8_minmax_multi_ops) WITH (pages_per_range=5)
+-----------
+QUERY:
+
+CREATE INDEX brin_test_multi_1_idx_2 ON brin_test_multi_1 USING brin (b int8_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan=off
+SET enable_seqscan=off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- int: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37;
+RESULT:
 	[(124,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113;
+RESULT:
 	[(504,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177;
+RESULT:
 	[(829,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25;
+RESULT:
 	[(69,)]
+
+-----------
+QUERY:
 
 
 -- int: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120;
+RESULT:
 	[(456,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180;
+RESULT:
 	[(161,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71;
+RESULT:
 	[(701,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63;
+RESULT:
 	[(746,)]
+
+-----------
+QUERY:
 
 
 -- int: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207;
+RESULT:
 	[(3,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177;
+RESULT:
 	[(5,)]
+
+-----------
+QUERY:
 
 
 -- bigint: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73;
+RESULT:
 	[(529,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47;
+RESULT:
 	[(279,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199;
+RESULT:
 	[(1000,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150;
+RESULT:
 	[(1000,)]
+
+-----------
+QUERY:
 
 
 -- bigint: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93;
+RESULT:
 	[(261,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37;
+RESULT:
 	[(821,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215;
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201;
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 
 -- bigint: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
+RESULT:
 	[(10,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
+RESULT:
 	[(9,)]
+
+-----------
+QUERY:
 
 
 -- now do the same, but insert the rows with the indexes already created
--- so that we don''t use the ''build callback'' and instead use the regular
+-- so that we don/* REPLACED */''t use the /* REPLACED */''build callback/* REPLACED */'' and instead use the regular
 -- approach of adding rows into existing ranges
-TRUNCATE brin_test_multi_1
+TRUNCATE brin_test_multi_1;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 INSERT INTO brin_test_multi_1
 SELECT i/5 + mod(911 * i + 483, 25),
        i/10 + mod(751 * i + 221, 41)
-  FROM generate_series(1,1000) s(i)
+  FROM generate_series(1,1000) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- int: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 37;
+RESULT:
 	[(124,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a < 113;
+RESULT:
 	[(504,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 177;
+RESULT:
 	[(829,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a <= 25;
+RESULT:
 	[(69,)]
+
+-----------
+QUERY:
 
 
 -- int: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 120;
+RESULT:
 	[(456,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 180;
+RESULT:
 	[(161,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a > 71;
+RESULT:
 	[(701,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a >= 63;
+RESULT:
 	[(746,)]
+
+-----------
+QUERY:
 
 
 -- int: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 207;
+RESULT:
 	[(3,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE a = 177;
+RESULT:
 	[(5,)]
+
+-----------
+QUERY:
 
 
 -- bigint: less than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 73;
+RESULT:
 	[(529,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 47;
+RESULT:
 	[(279,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b < 199;
+RESULT:
 	[(1000,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b <= 150;
+RESULT:
 	[(1000,)]
+
+-----------
+QUERY:
 
 
 -- bigint: greater than
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 93;
+RESULT:
 	[(261,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 37;
+RESULT:
 	[(821,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b >= 215;
+RESULT:
 	[(0,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b > 201;
+RESULT:
 	[(0,)]
+
+-----------
+QUERY:
 
 
 -- bigint: equals
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 88;
+RESULT:
 	[(10,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_1 WHERE b = 103;
+RESULT:
 	[(9,)]
 
+-----------
+QUERY:
 
 
-DROP TABLE brin_test_multi_1
 
-RESET enable_seqscan
+DROP TABLE brin_test_multi_1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 
 -- do some inequality tests for varlena data types
-CREATE TABLE brin_test_multi_2 (a UUID) WITH (fillfactor=10)
+CREATE TABLE brin_test_multi_2 (a UUID) WITH (fillfactor=10);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_test_multi_2
-SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random()
+SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random();
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX brin_test_multi_2_idx ON brin_test_multi_2 USING brin (a uuid_minmax_multi_ops) WITH (pages_per_range=5)
+CREATE INDEX brin_test_multi_2_idx ON brin_test_multi_2 USING brin (a uuid_minmax_multi_ops) WITH (pages_per_range=5);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan=off
+SET enable_seqscan=off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(195,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(792,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea';
+RESULT:
 	[(961,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d';
+RESULT:
 	[(273,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79';
+RESULT:
 	[(12,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6';
+RESULT:
 	[(13,)]
+
+-----------
+QUERY:
 
 
 
 -- now do the same, but insert the rows with the indexes already created
--- so that we don''t use the ''build callback'' and instead use the regular
+-- so that we don/* REPLACED */''t use the /* REPLACED */''build callback/* REPLACED */'' and instead use the regular
 -- approach of adding rows into existing ranges
 
-TRUNCATE brin_test_multi_2
+TRUNCATE brin_test_multi_2;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_test_multi_2
-SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random()
+SELECT v::uuid FROM (SELECT row_number() OVER (ORDER BY v) c, v FROM (SELECT fipshash((i/13)::text) AS v FROM generate_series(1,1000) s(i)) foo) bar ORDER BY c + 25 * random();
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a < '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(195,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a > '3d914f93-48c9-cc0f-f8a7-9716700b9fcd';
+RESULT:
 	[(792,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a <= 'f369cb89-fc62-7e66-8987-007d121ed1ea';
+RESULT:
 	[(961,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a >= 'aea92132-c4cb-eb26-3e6a-c2bf6c183b5d';
+RESULT:
 	[(273,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '5feceb66-ffc8-6f38-d952-786c6d696c79';
+RESULT:
 	[(12,)]
 
+-----------
+QUERY:
 
-SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6'
-RESULT: 
+
+SELECT COUNT(*) FROM brin_test_multi_2 WHERE a = '86e50149-6586-6131-2a9e-0b35558d84f6';
+RESULT:
 	[(13,)]
 
+-----------
+QUERY:
 
-DROP TABLE brin_test_multi_2
 
-RESET enable_seqscan
+DROP TABLE brin_test_multi_2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test overflows during CREATE INDEX with extreme timestamp values
-CREATE TABLE brin_timestamp_test(a TIMESTAMPTZ)
+CREATE TABLE brin_timestamp_test(a TIMESTAMPTZ);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET datestyle TO iso
+SET datestyle TO iso;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- values close to timestamp minimum
 INSERT INTO brin_timestamp_test
 SELECT '4713-01-01 00:00:01 BC'::timestamptz + (i || ' seconds')::interval
-  FROM generate_series(1,30) s(i)
+  FROM generate_series(1,30) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- values close to timestamp maximum
 INSERT INTO brin_timestamp_test
 SELECT '294276-12-01 00:00:01'::timestamptz + (i || ' seconds')::interval
-  FROM generate_series(1,30) s(i)
+  FROM generate_series(1,30) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_timestamp_test USING brin (a timestamptz_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_timestamp_test USING brin (a timestamptz_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	[]
 
-DROP TABLE brin_timestamp_test
+-----------
+QUERY:
+
+DROP TABLE brin_timestamp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test overflows during CREATE INDEX with extreme date values
-CREATE TABLE brin_date_test(a DATE)
+CREATE TABLE brin_date_test(a DATE);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- insert values close to date minimum
-INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i)
+INSERT INTO brin_date_test SELECT '4713-01-01 BC'::date + i FROM generate_series(1, 30) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- insert values close to date minimum
-INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i)
+INSERT INTO brin_date_test SELECT '5874897-12-01'::date + i FROM generate_series(1, 30) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
+SET enable_seqscan = off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- make sure the ranges were built correctly and 2023-01-01 eliminates all
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date
-RESULT: 
+SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date;
+RESULT:
 	[('Bitmap Heap Scan on brin_date_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '2023-01-01'::date)",), ('  ->  Bitmap Index Scan on brin_date_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '2023-01-01'::date)",)]
 
+-----------
+QUERY:
 
-DROP TABLE brin_date_test
 
-RESET enable_seqscan
+DROP TABLE brin_date_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test handling of infinite timestamp values
-CREATE TABLE brin_timestamp_test(a TIMESTAMP)
+CREATE TABLE brin_timestamp_test(a TIMESTAMP);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_timestamp_test VALUES ('-infinity'), ('infinity')
+INSERT INTO brin_timestamp_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 INSERT INTO brin_timestamp_test
-SELECT i FROM generate_series('2000-01-01'::timestamp, '2000-02-09'::timestamp, '1 day'::interval) s(i)
+SELECT i FROM generate_series('2000-01-01'::timestamp, '2000-02-09'::timestamp, '1 day'::interval) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_timestamp_test USING brin (a timestamp_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_timestamp_test USING brin (a timestamp_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
+SET enable_seqscan = off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_timestamp_test WHERE a = '2023-01-01'::timestamp
-RESULT: 
+SELECT * FROM brin_timestamp_test WHERE a = '2023-01-01'::timestamp;
+RESULT:
 	[('Bitmap Heap Scan on brin_timestamp_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '2023-01-01 00:00:00'::timestamp without time zone)",), ('  ->  Bitmap Index Scan on brin_timestamp_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '2023-01-01 00:00:00'::timestamp without time zone)",)]
 
+-----------
+QUERY:
+
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_timestamp_test WHERE a = '1900-01-01'::timestamp
-RESULT: 
+SELECT * FROM brin_timestamp_test WHERE a = '1900-01-01'::timestamp;
+RESULT:
 	[('Bitmap Heap Scan on brin_timestamp_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '1900-01-01 00:00:00'::timestamp without time zone)",), ('  ->  Bitmap Index Scan on brin_timestamp_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '1900-01-01 00:00:00'::timestamp without time zone)",)]
 
+-----------
+QUERY:
 
-DROP TABLE brin_timestamp_test
 
-RESET enable_seqscan
+DROP TABLE brin_timestamp_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test handling of infinite date values
-CREATE TABLE brin_date_test(a DATE)
+CREATE TABLE brin_date_test(a DATE);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_date_test VALUES ('-infinity'), ('infinity')
+INSERT INTO brin_date_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	[]
 
-INSERT INTO brin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i)
+-----------
+QUERY:
+
+INSERT INTO brin_date_test SELECT '2000-01-01'::date + i FROM generate_series(1, 40) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_date_test USING brin (a date_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
+SET enable_seqscan = off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date
-RESULT: 
+SELECT * FROM brin_date_test WHERE a = '2023-01-01'::date;
+RESULT:
 	[('Bitmap Heap Scan on brin_date_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '2023-01-01'::date)",), ('  ->  Bitmap Index Scan on brin_date_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '2023-01-01'::date)",)]
 
+-----------
+QUERY:
+
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_date_test WHERE a = '1900-01-01'::date
-RESULT: 
+SELECT * FROM brin_date_test WHERE a = '1900-01-01'::date;
+RESULT:
 	[('Bitmap Heap Scan on brin_date_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '1900-01-01'::date)",), ('  ->  Bitmap Index Scan on brin_date_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '1900-01-01'::date)",)]
 
+-----------
+QUERY:
 
-DROP TABLE brin_date_test
 
-RESET enable_seqscan
+DROP TABLE brin_date_test;
+RESULT:
+	[]
 
-RESET datestyle
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET datestyle;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test handling of overflow for interval values
-CREATE TABLE brin_interval_test(a INTERVAL)
+CREATE TABLE brin_interval_test(a INTERVAL);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series(-178000000, -177999980) s(i)
+INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series(-178000000, -177999980) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series( 177999980,  178000000) s(i)
+INSERT INTO brin_interval_test SELECT (i || ' years')::interval FROM generate_series( 177999980,  178000000) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
+SET enable_seqscan = off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval
-RESULT: 
+SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval;
+RESULT:
 	[('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '-30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '-30 years'::interval)",)]
 
+-----------
+QUERY:
+
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '30 years'::interval
-RESULT: 
+SELECT * FROM brin_interval_test WHERE a = '30 years'::interval;
+RESULT:
 	[('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '30 years'::interval)",)]
 
+-----------
+QUERY:
 
-DROP TABLE brin_interval_test
 
-RESET enable_seqscan
+DROP TABLE brin_interval_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test handling of infinite interval values
-CREATE TABLE brin_interval_test(a INTERVAL)
+CREATE TABLE brin_interval_test(a INTERVAL);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity')
+INSERT INTO brin_interval_test VALUES ('-infinity'), ('infinity');
+RESULT:
+	[]
 
-INSERT INTO brin_interval_test SELECT (i || ' days')::interval FROM generate_series(100, 140) s(i)
+-----------
+QUERY:
+
+INSERT INTO brin_interval_test SELECT (i || ' days')::interval FROM generate_series(100, 140) s(i);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1)
+CREATE INDEX ON brin_interval_test USING brin (a interval_minmax_multi_ops) WITH (pages_per_range=1);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
-SET enable_seqscan = off
+SET enable_seqscan = off;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval
-RESULT: 
+SELECT * FROM brin_interval_test WHERE a = '-30 years'::interval;
+RESULT:
 	[('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '-30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '-30 years'::interval)",)]
 
+-----------
+QUERY:
+
 
 EXPLAIN (ANALYZE, TIMING OFF, COSTS OFF, SUMMARY OFF)
-SELECT * FROM brin_interval_test WHERE a = '30 years'::interval
-RESULT: 
+SELECT * FROM brin_interval_test WHERE a = '30 years'::interval;
+RESULT:
 	[('Bitmap Heap Scan on brin_interval_test (actual rows=0 loops=1)',), ("  Recheck Cond: (a = '30 years'::interval)",), ('  ->  Bitmap Index Scan on brin_interval_test_a_idx (actual rows=0 loops=1)',), ("        Index Cond: (a = '30 years'::interval)",)]
 
-
-DROP TABLE brin_interval_test
-
-RESET enable_seqscan
-
-RESET datestyle
+-----------
+QUERY:
 
 
+DROP TABLE brin_interval_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+RESET datestyle;
+RESULT:
+	[]

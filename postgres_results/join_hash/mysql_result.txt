@@ -1,0 +1,2298 @@
+
+-----------
+QUERY:
+--
+-- exercises for the hash join code
+--
+
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+set local min_parallel_table_scan_size = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+set local parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+set local enable_hashjoin = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashjoin'")
+
+-----------
+QUERY:
+
+
+-- Extract bucket and batch counts from an explain analyze plan.  In
+-- general we can/* REPLACED */''t make assertions about how many batches (or
+-- buckets) will be required because it can vary, but we can in some
+-- special cases and we can check for growth.
+create or replace function find_hash(node json)
+returns json language plpgsql
+as
+$$
+declare
+  x json;
+  child json;
+begin
+  if node->>'Node Type' = 'Hash' then
+    return node;
+  else
+    for child in select json_array_elements(node->'Plans')
+    loop
+      x := find_hash(child);
+      if x is not null then
+        return x;
+      end if;
+    end loop;
+    return null;
+  end if;
+end;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function find_hash(node json)\nreturns json language plpgsql\nas\n$$\ndeclare\n  x js' at line 5")
+
+-----------
+QUERY:
+
+create or replace function hash_join_batches(query text)
+returns table (original int, final int) language plpgsql
+as
+$$
+declare
+  whole_plan json;
+  hash_node json;
+begin
+  for whole_plan in
+    execute 'explain (analyze, format ''json'') ' || query
+  loop
+    hash_node := find_hash(json_extract_path(whole_plan, '0', 'Plan'));
+    original := hash_node->>'Original Hash Batches';
+    final := hash_node->>'Hash Batches';
+    return next;
+  end loop;
+end;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function hash_join_batches(query text)\nreturns table (original int, final int) l' at line 1")
+
+-----------
+QUERY:
+
+
+-- Make a simple relation with well distributed keys and correctly
+-- estimated size.
+create table simple as
+  select generate_series(1, 20000) AS id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+RESULT:
+	ERROR - (1305, 'FUNCTION test.generate_series does not exist')
+
+-----------
+QUERY:
+
+alter table simple set (parallel_workers = 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (parallel_workers = 2)' at line 1")
+
+-----------
+QUERY:
+
+analyze simple;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'simple' at line 1")
+
+-----------
+QUERY:
+
+
+-- Make a relation whose size we will under-estimate.  We want stats
+-- to say 1000 rows, but actually there are 20,000 rows.
+create table bigger_than_it_looks as
+  select generate_series(1, 20000) as id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+RESULT:
+	ERROR - (1305, 'FUNCTION test.generate_series does not exist')
+
+-----------
+QUERY:
+
+alter table bigger_than_it_looks set (autovacuum_enabled = 'false');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (autovacuum_enabled = 'false')' at line 1")
+
+-----------
+QUERY:
+
+alter table bigger_than_it_looks set (parallel_workers = 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (parallel_workers = 2)' at line 1")
+
+-----------
+QUERY:
+
+analyze bigger_than_it_looks;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'bigger_than_it_looks' at line 1")
+
+-----------
+QUERY:
+
+update pg_class set reltuples = 1000 where relname = 'bigger_than_it_looks';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Make a relation whose size we underestimate and that also has a
+-- kind of skew that breaks our batching scheme.  We want stats to say
+-- 2 rows, but actually there are 20,000 rows with the same key.
+create table extremely_skewed (id int, t text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table extremely_skewed set (autovacuum_enabled = 'false');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (autovacuum_enabled = 'false')' at line 1")
+
+-----------
+QUERY:
+
+alter table extremely_skewed set (parallel_workers = 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (parallel_workers = 2)' at line 1")
+
+-----------
+QUERY:
+
+analyze extremely_skewed;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'extremely_skewed' at line 1")
+
+-----------
+QUERY:
+
+insert into extremely_skewed
+  select 42 as id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  from generate_series(1, 20000);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1, 20000)' at line 3")
+
+-----------
+QUERY:
+
+update pg_class
+  set reltuples = 2, relpages = pg_relation_size('extremely_skewed') / 8192
+  where relname = 'extremely_skewed';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Make a relation with a couple of enormous tuples.
+create table wide as select generate_series(1, 2) as id, rpad('', 320000, 'x') as t;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.generate_series does not exist')
+
+-----------
+QUERY:
+
+alter table wide set (parallel_workers = 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (parallel_workers = 2)' at line 1")
+
+-----------
+QUERY:
+
+
+-- The /* REPLACED */''optimal/* REPLACED */'' case: the hash table fits in memory /* REPLACED */, we plan for 1
+-- batch, we stick to that number, and peak memory usage stays within
+-- our work_mem budget
+
+-- non-parallel
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '4MB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-oblivious hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '4MB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-aware hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '4MB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- The /* REPLACED */''good/* REPLACED */'' case: batches required, but we plan the right number /* REPLACED */, we
+-- plan for some number of batches, and we stick to that number, and
+-- peak memory usage says within our work_mem budget
+
+-- non-parallel
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-oblivious hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-aware hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '192kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join simple s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+-- parallel full multi-batch hash join
+select count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s using (id)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- The /* REPLACED */''bad/* REPLACED */'' case: during execution we need to increase number of
+-- batches /* REPLACED */, in this case we plan for 1 batch, and increase at least a
+-- couple of times, and peak memory usage stays within our work_mem
+-- budget
+
+-- non-parallel
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id' at line 1")
+
+-----------
+QUERY:
+
+select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-oblivious hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join bigger_than_it_looks s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join bigger_than_it_looks s using (id' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join bigger_than_it_looks s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join bigger_than_it_looks s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join bigger_than_it_looks s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-aware hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 1;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '192kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join bigger_than_it_looks s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join bigger_than_it_looks s using (id' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join bigger_than_it_looks s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select original > 1 as initially_multibatch, final > original as increased_batches
+  from hash_join_batches(
+$$
+  select count(*) from simple r join bigger_than_it_looks s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join bigger_than_it_looks s using (id);\n$$)' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- The /* REPLACED */''ugly/* REPLACED */'' case: increasing the number of batches during execution
+-- doesn/* REPLACED */''t help, so stop trying to fit in work_mem and hope for the
+-- best /* REPLACED */, in this case we plan for 1 batch, increases just once and
+-- then stop increasing because that didn/* REPLACED */''t help at all, so we blow
+-- right through the work_mem budget and hope for the best...
+
+-- non-parallel
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join extremely_skewed s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join extremely_skewed s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join extremely_skewed s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select * from hash_join_batches(
+$$
+  select count(*) from simple r join extremely_skewed s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join extremely_skewed s using (id);\n$$)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-oblivious hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join extremely_skewed s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join extremely_skewed s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join extremely_skewed s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select * from hash_join_batches(
+$$
+  select count(*) from simple r join extremely_skewed s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join extremely_skewed s using (id);\n$$)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallel with parallel-aware hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 1;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from simple r join extremely_skewed s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from simple r join extremely_skewed s using (id)' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from simple r join extremely_skewed s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.simple' doesn't exist")
+
+-----------
+QUERY:
+
+select * from hash_join_batches(
+$$
+  select count(*) from simple r join extremely_skewed s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join extremely_skewed s using (id);\n$$)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- A couple of other hash join tests unrelated to work_mem management.
+
+-- Check that EXPLAIN ANALYZE has data even if the leader doesn/* REPLACED */''t participate
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set local work_mem = '4MB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set local hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+set local parallel_leader_participation = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_leader_participation'")
+
+-----------
+QUERY:
+
+select * from hash_join_batches(
+$$
+  select count(*) from simple r join simple s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from simple r join simple s using (id);\n$$)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Exercise rescans.  We/* REPLACED */''ll turn off parallel_leader_participation so
+-- that we can check that instrumentation comes back correctly.
+
+create table join_foo as select generate_series(1, 3) as id, 'xxxxx'::text as t;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text as t' at line 4")
+
+-----------
+QUERY:
+
+alter table join_foo set (parallel_workers = 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (parallel_workers = 0)' at line 1")
+
+-----------
+QUERY:
+
+create table join_bar as select generate_series(1, 10000) as id, 'xxxxx'::text as t;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text as t' at line 1")
+
+-----------
+QUERY:
+
+alter table join_bar set (parallel_workers = 2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (parallel_workers = 2)' at line 1")
+
+-----------
+QUERY:
+
+
+-- multi-batch with rescan, parallel-oblivious
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set parallel_leader_participation = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_leader_participation'")
+
+-----------
+QUERY:
+
+set min_parallel_table_scan_size = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+set parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+set parallel_tuple_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_tuple_cost'")
+
+-----------
+QUERY:
+
+set max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set enable_material = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_material'")
+
+-----------
+QUERY:
+
+set enable_mergejoin = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_mergejoin'")
+
+-----------
+QUERY:
+
+set work_mem = '64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from join_foo\n    left join (select b1.id, b1.t fro' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from join_foo
+  left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+  on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1146, "Table 'test.join_foo' doesn't exist")
+
+-----------
+QUERY:
+
+select final > 1 as multibatch
+  from hash_join_batches(
+$$
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from join_foo\n    left join (select b1.id, b1.t from join' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- single-batch with rescan, parallel-oblivious
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set parallel_leader_participation = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_leader_participation'")
+
+-----------
+QUERY:
+
+set min_parallel_table_scan_size = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+set parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+set parallel_tuple_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_tuple_cost'")
+
+-----------
+QUERY:
+
+set max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set enable_material = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_material'")
+
+-----------
+QUERY:
+
+set enable_mergejoin = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_mergejoin'")
+
+-----------
+QUERY:
+
+set work_mem = '4MB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from join_foo\n    left join (select b1.id, b1.t fro' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from join_foo
+  left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+  on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1146, "Table 'test.join_foo' doesn't exist")
+
+-----------
+QUERY:
+
+select final > 1 as multibatch
+  from hash_join_batches(
+$$
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from join_foo\n    left join (select b1.id, b1.t from join' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- multi-batch with rescan, parallel-aware
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set parallel_leader_participation = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_leader_participation'")
+
+-----------
+QUERY:
+
+set min_parallel_table_scan_size = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+set parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+set parallel_tuple_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_tuple_cost'")
+
+-----------
+QUERY:
+
+set max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set enable_material = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_material'")
+
+-----------
+QUERY:
+
+set enable_mergejoin = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_mergejoin'")
+
+-----------
+QUERY:
+
+set work_mem = '64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from join_foo\n    left join (select b1.id, b1.t fro' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from join_foo
+  left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+  on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1146, "Table 'test.join_foo' doesn't exist")
+
+-----------
+QUERY:
+
+select final > 1 as multibatch
+  from hash_join_batches(
+$$
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from join_foo\n    left join (select b1.id, b1.t from join' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- single-batch with rescan, parallel-aware
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set parallel_leader_participation = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_leader_participation'")
+
+-----------
+QUERY:
+
+set min_parallel_table_scan_size = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+set parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+set parallel_tuple_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_tuple_cost'")
+
+-----------
+QUERY:
+
+set max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set enable_material = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_material'")
+
+-----------
+QUERY:
+
+set enable_mergejoin = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_mergejoin'")
+
+-----------
+QUERY:
+
+set work_mem = '4MB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select count(*) from join_foo\n    left join (select b1.id, b1.t fro' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from join_foo
+  left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+  on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+RESULT:
+	ERROR - (1146, "Table 'test.join_foo' doesn't exist")
+
+-----------
+QUERY:
+
+select final > 1 as multibatch
+  from hash_join_batches(
+$$
+  select count(*) from join_foo
+    left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
+    on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select count(*) from join_foo\n    left join (select b1.id, b1.t from join' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- A full outer join where every record is matched.
+
+-- non-parallel
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+explain (costs off)
+     select  count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n     select  count(*) from simple r full outer join simple s using (i' at line 1")
+
+-----------
+QUERY:
+
+select  count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallelism not possible with parallel-oblivious full hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+explain (costs off)
+     select  count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n     select  count(*) from simple r full outer join simple s using (i' at line 1")
+
+-----------
+QUERY:
+
+select  count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallelism is possible with parallel-aware full hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+explain (costs off)
+     select  count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n     select  count(*) from simple r full outer join simple s using (i' at line 1")
+
+-----------
+QUERY:
+
+select  count(*) from simple r full outer join simple s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s using (id)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- A full outer join where every record is not matched.
+
+-- non-parallel
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+explain (costs off)
+     select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n     select  count(*) from simple r full outer join simple s on (r.id' at line 1")
+
+-----------
+QUERY:
+
+select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s on (r.id = 0 - s.id)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallelism not possible with parallel-oblivious full hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+explain (costs off)
+     select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n     select  count(*) from simple r full outer join simple s on (r.id' at line 1")
+
+-----------
+QUERY:
+
+select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s on (r.id = 0 - s.id)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- parallelism is possible with parallel-aware full hash join
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+explain (costs off)
+     select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n     select  count(*) from simple r full outer join simple s on (r.id' at line 1")
+
+-----------
+QUERY:
+
+select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full outer join simple s on (r.id = 0 - s.id)' at line 1")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- exercise special code paths for huge tuples (note use of non-strict
+-- expression and left join required to get the detoasted tuple into
+-- the hash table)
+
+-- parallel with parallel-aware hash join (hits ExecParallelHashLoadTuple and
+-- sts_puttuple oversized tuple cases because it/* REPLACED */''s multi-batch)
+savepoint settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set max_parallel_workers_per_gather = 2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+set enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+set work_mem = '128kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+set hash_mem_multiplier = 1.0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'hash_mem_multiplier'")
+
+-----------
+QUERY:
+
+explain (costs off)
+  select length(max(s.t))
+  from wide left join (select id, coalesce(t, '') || '' as t from wide) s using (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  select length(max(s.t))\n  from wide left join (select id, coalesce(' at line 1")
+
+-----------
+QUERY:
+
+select length(max(s.t))
+from wide left join (select id, coalesce(t, '') || '' as t from wide) s using (id);
+RESULT:
+	ERROR - (1146, "Table 'test.wide' doesn't exist")
+
+-----------
+QUERY:
+
+select final > 1 as multibatch
+  from hash_join_batches(
+$$
+  select length(max(s.t))
+  from wide left join (select id, coalesce(t, '') || '' as t from wide) s using (id);
+$$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(\n$$\n  select length(max(s.t))\n  from wide left join (select id, coalesce(t, '')' at line 2")
+
+-----------
+QUERY:
+
+rollback to settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- Hash join reuses the HOT status bit to indicate match status. This can only
+-- be guaranteed to produce correct results if all the hash join tuple match
+-- bits are reset before reuse. This is done upon loading them into the
+-- hashtable.
+SAVEPOINT settings;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET enable_parallel_hash = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+SET min_parallel_table_scan_size = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+SET parallel_setup_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+SET parallel_tuple_cost = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_tuple_cost'")
+
+-----------
+QUERY:
+
+CREATE TABLE hjtest_matchbits_t1(id int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE hjtest_matchbits_t2(id int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO hjtest_matchbits_t1 VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO hjtest_matchbits_t2 VALUES (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Update should create a HOT tuple. If this status bit isn/* REPLACED */''t cleared, we won/* REPLACED */''t
+-- correctly emit the NULL-extended unmatching tuple in full hash join.
+UPDATE hjtest_matchbits_t2 set id = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM hjtest_matchbits_t1 t1 FULL JOIN hjtest_matchbits_t2 t2 ON t1.id = t2.id
+  ORDER BY t1.id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN hjtest_matchbits_t2 t2 ON t1.id = t2.id\n  ORDER BY t1.id' at line 1")
+
+-----------
+QUERY:
+
+-- Test serial full hash join.
+-- Resetting parallel_setup_cost should force a serial plan.
+-- Just to be safe, however, set enable_parallel_hash to off, as parallel full
+-- hash joins are only supported with shared hashtables.
+RESET parallel_setup_cost;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'parallel_setup_cost' at line 5")
+
+-----------
+QUERY:
+
+SET enable_parallel_hash = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_parallel_hash'")
+
+-----------
+QUERY:
+
+SELECT * FROM hjtest_matchbits_t1 t1 FULL JOIN hjtest_matchbits_t2 t2 ON t1.id = t2.id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FULL JOIN hjtest_matchbits_t2 t2 ON t1.id = t2.id' at line 1")
+
+-----------
+QUERY:
+
+ROLLBACK TO settings;
+RESULT:
+	ERROR - (1305, 'SAVEPOINT settings does not exist')
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Verify that hash key expressions reference the correct
+-- nodes. Hashjoin/* REPLACED */''s hashkeys need to reference its outer plan, Hash/* REPLACED */''s
+-- need to reference Hash/* REPLACED */''s outer plan (which is below HashJoin/* REPLACED */''s
+-- inner plan). It/* REPLACED */''s not trivial to verify that the references are
+-- correct (we don/* REPLACED */''t display the hashkeys themselves), but if the
+-- hashkeys contain subplan references, those will be displayed. Force
+-- subplans to appear just about everywhere.
+--
+-- Bug report:
+-- https://www.postgresql.org/message-id/CAPpHfdvGVegF_TKKRiBrSmatJL2dR9uwFCuR%2BteQ_8tEXU8mxg%40mail.gmail.com
+--
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL enable_sort = OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+ -- avoid mergejoins
+SET LOCAL from_collapse_limit = 1;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'from_collapse_limit'")
+
+-----------
+QUERY:
+ -- allows easy changing of join order
+
+CREATE TABLE hjtest_1 (a text, b int, id int, c bool);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE hjtest_2 (a bool, id int, b text, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 2, 1, false);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- matches
+INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 1, 2, false);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fails id join condition
+INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 20, 1, false);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fails < 50
+INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 1, 1, false);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fails (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
+
+INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- matches
+INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 3, 'another', 7);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fails id join condition
+INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 90);
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- fails < 55
+INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fails (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
+INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'text', 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ --  fails hjtest_1.a <> hjtest_2.b /* REPLACED */,
+
+EXPLAIN (COSTS OFF, VERBOSE)
+SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2
+FROM hjtest_1, hjtest_2
+WHERE
+    hjtest_1.id = (SELECT 1 WHERE hjtest_2.id = 1)
+    AND (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
+    AND (SELECT hjtest_1.b * 5) < 50
+    AND (SELECT hjtest_2.c * 5) < 55
+    AND hjtest_1.a <> hjtest_2.b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF, VERBOSE)\nSELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regcl' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2
+FROM hjtest_1, hjtest_2
+WHERE
+    hjtest_1.id = (SELECT 1 WHERE hjtest_2.id = 1)
+    AND (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
+    AND (SELECT hjtest_1.b * 5) < 50
+    AND (SELECT hjtest_2.c * 5) < 55
+    AND hjtest_1.a <> hjtest_2.b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass t1, hjtest_2.tableoid::regclass t2\nFROM hjtest_1, hjtest_2\nWHERE\n    ' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF, VERBOSE)
+SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2
+FROM hjtest_2, hjtest_1
+WHERE
+    hjtest_1.id = (SELECT 1 WHERE hjtest_2.id = 1)
+    AND (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
+    AND (SELECT hjtest_1.b * 5) < 50
+    AND (SELECT hjtest_2.c * 5) < 55
+    AND hjtest_1.a <> hjtest_2.b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF, VERBOSE)\nSELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regcl' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2
+FROM hjtest_2, hjtest_1
+WHERE
+    hjtest_1.id = (SELECT 1 WHERE hjtest_2.id = 1)
+    AND (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
+    AND (SELECT hjtest_1.b * 5) < 50
+    AND (SELECT hjtest_2.c * 5) < 55
+    AND hjtest_1.a <> hjtest_2.b;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass t1, hjtest_2.tableoid::regclass t2\nFROM hjtest_2, hjtest_1\nWHERE\n    ' at line 1")
+
+-----------
+QUERY:
+
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Verify that we behave sanely when the inner hash keys contain parameters
+-- (that is, outer or lateral references).  This situation has to defeat
+-- re-use of the inner hash table across rescans.
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set local enable_hashjoin = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashjoin'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select i8.q2, ss.* from
+int8_tbl i8,
+lateral (select t1.fivethous, i4.f1 from tenk1 t1 join int4_tbl i4
+         on t1.fivethous = i4.f1+i8.q2 order by 1,2) ss;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect i8.q2, ss.* from\nint8_tbl i8,\nlateral (select t1.fivethous, i4' at line 1")
+
+-----------
+QUERY:
+
+
+select i8.q2, ss.* from
+int8_tbl i8,
+lateral (select t1.fivethous, i4.f1 from tenk1 t1 join int4_tbl i4
+         on t1.fivethous = i4.f1+i8.q2 order by 1,2) ss;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+rollback;
+RESULT:
+	[]

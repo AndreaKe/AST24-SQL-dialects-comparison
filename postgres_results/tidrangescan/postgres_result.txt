@@ -1,0 +1,304 @@
+
+-----------
+QUERY:
+-- tests for tidrangescans
+
+SET enable_seqscan TO off
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+CREATE TABLE tidrangescan(id integer, data text)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- empty table
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid < '(1,0)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid > '(9,0)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- insert enough tuples to fill at least two pages
+INSERT INTO tidrangescan SELECT i,repeat('x', 100) FROM generate_series(1,200) AS s(i)
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- remove all tuples after the 10th tuple on each page.  Trying to ensure
+-- we get the same layout with all CPU architectures and smaller than standard
+-- page sizes.
+DELETE FROM tidrangescan
+WHERE substring(ctid::text FROM ',(\d+)\)')::integer > 10 OR substring(ctid::text FROM '\((\d+),')::integer > 2
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+VACUUM tidrangescan
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+-- range scans with upper bound
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid < '(1,0)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)'
+RESULT:
+	postgres: [('(0,1)',), ('(0,2)',), ('(0,3)',), ('(0,4)',), ('(0,5)',), ('(0,6)',), ('(0,7)',), ('(0,8)',), ('(0,9)',), ('(0,10)',)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid <= '(1,5)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)'
+RESULT:
+	postgres: [('(0,1)',), ('(0,2)',), ('(0,3)',), ('(0,4)',), ('(0,5)',), ('(0,6)',), ('(0,7)',), ('(0,8)',), ('(0,9)',), ('(0,10)',), ('(1,1)',), ('(1,2)',), ('(1,3)',), ('(1,4)',), ('(1,5)',)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid < '(0,0)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- range scans with lower bound
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid > '(2,8)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)'
+RESULT:
+	postgres: [('(2,9)',), ('(2,10)',)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: ('(2,8)'::tid < ctid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid
+RESULT:
+	postgres: [('(2,9)',), ('(2,10)',)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid >= '(2,8)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)'
+RESULT:
+	postgres: [('(2,8)',), ('(2,9)',), ('(2,10)',)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid >= '(100,0)'::tid)",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- range scans with both bounds
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= ctid
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: ((ctid > '(1,4)'::tid) AND ('(1,7)'::tid >= ctid))",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= ctid
+RESULT:
+	postgres: [('(1,5)',), ('(1,6)',), ('(1,7)',)]
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (('(1,7)'::tid >= ctid) AND (ctid > '(1,4)'::tid))",)]
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)'
+RESULT:
+	postgres: [('(1,5)',), ('(1,6)',), ('(1,7)',)]
+
+-----------
+QUERY:
+-- extreme offsets
+SELECT ctid FROM tidrangescan WHERE ctid > '(0,65535)' AND ctid < '(1,0)' LIMIT 1
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)' LIMIT 1
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid > '(4294967295,65535)'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)'
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- NULLs in the range cannot return tuples
+SELECT ctid FROM tidrangescan WHERE ctid >= (SELECT NULL::tid)
+RESULT:
+	postgres: []
+
+-----------
+QUERY:
+-- rescans
+EXPLAIN (COSTS OFF)
+SELECT t.ctid,t2.c FROM tidrangescan t,
+LATERAL (SELECT count(*) c FROM tidrangescan t2 WHERE t2.ctid <= t.ctid) t2
+WHERE t.ctid < '(1,0)'
+RESULT:
+	postgres: [('Nested Loop',), ('  ->  Tid Range Scan on tidrangescan t',), ("        TID Cond: (ctid < '(1,0)'::tid)",), ('  ->  Aggregate',), ('        ->  Tid Range Scan on tidrangescan t2',), ('              TID Cond: (ctid <= t.ctid)',)]
+
+-----------
+QUERY:
+SELECT t.ctid,t2.c FROM tidrangescan t,
+LATERAL (SELECT count(*) c FROM tidrangescan t2 WHERE t2.ctid <= t.ctid) t2
+WHERE t.ctid < '(1,0)'
+RESULT:
+	postgres: [('(0,1)', 1), ('(0,2)', 2), ('(0,3)', 3), ('(0,4)', 4), ('(0,5)', 5), ('(0,6)', 6), ('(0,7)', 7), ('(0,8)', 8), ('(0,9)', 9), ('(0,10)', 10)]
+
+-----------
+QUERY:
+-- cursors
+
+-- Ensure we get a TID Range scan without a Materialize node.
+EXPLAIN (COSTS OFF)
+DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)'
+RESULT:
+	postgres: [('Tid Range Scan on tidrangescan',), ("  TID Cond: (ctid < '(1,0)'::tid)",)]
+
+-----------
+QUERY:
+BEGIN
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)'
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+FETCH NEXT c
+RESULT:
+	postgres: [('(0,1)',)]
+
+-----------
+QUERY:
+FETCH NEXT c
+RESULT:
+	postgres: [('(0,2)',)]
+
+-----------
+QUERY:
+FETCH PRIOR c
+RESULT:
+	postgres: [('(0,1)',)]
+
+-----------
+QUERY:
+FETCH FIRST c
+RESULT:
+	postgres: [('(0,1)',)]
+
+-----------
+QUERY:
+FETCH LAST c
+RESULT:
+	postgres: [('(0,10)',)]
+
+-----------
+QUERY:
+COMMIT
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+DROP TABLE tidrangescan
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+RESET enable_seqscan
+RESULT:
+	postgres: None

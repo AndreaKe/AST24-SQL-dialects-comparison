@@ -1,0 +1,2380 @@
+
+-----------
+QUERY:
+CREATE TEMP TABLE x (
+	a serial,
+	b int,
+	c text not null default 'stuff',
+	d text,
+	e text
+) ;
+RESULT:
+	ERROR - Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION fn_x_before () RETURNS TRIGGER AS '
+  BEGIN
+		NEW.e := ''before trigger fired''::text;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+		return NEW;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "return"
+
+-----------
+QUERY:
+
+	END;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+' LANGUAGE plpgsql;
+RESULT:
+	ERROR - Parser Error: unterminated quoted string at or near "' LANGUAGE plpgsql;"
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION fn_x_after () RETURNS TRIGGER AS '
+  BEGIN
+		UPDATE x set e=''after trigger fired'' where c=''stuff'';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+		return NULL;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "return"
+
+-----------
+QUERY:
+
+	END;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
+
+-----------
+QUERY:
+
+' LANGUAGE plpgsql;
+RESULT:
+	ERROR - Parser Error: unterminated quoted string at or near "' LANGUAGE plpgsql;"
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER trg_x_after AFTER INSERT ON x
+FOR EACH ROW EXECUTE PROCEDURE fn_x_after();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TRIGGER"
+
+-----------
+QUERY:
+
+
+CREATE TRIGGER trg_x_before BEFORE INSERT ON x
+FOR EACH ROW EXECUTE PROCEDURE fn_x_before();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TRIGGER"
+
+-----------
+QUERY:
+
+
+COPY x (a, b, c, d, e) from stdin;
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+9999	\N	\\N	\NN	\N
+10000	21	31	41	51
+\.
+
+COPY x (b, d) from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "9999"
+
+-----------
+QUERY:
+
+1	test_1
+\.
+
+COPY x (b, d) from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+2	test_2
+3	test_3
+4	test_4
+5	test_5
+\.
+
+COPY x (a, b, c, d, e) from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "2"
+
+-----------
+QUERY:
+
+10001	22	32	42	52
+10002	23	33	43	53
+10003	24	34	44	54
+10004	25	35	45	55
+10005	26	36	46	56
+\.
+
+-- non-existent column in column list: should fail
+COPY x (xyz) from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "10001"
+
+-----------
+QUERY:
+
+
+-- redundant options
+COPY x from stdin (format CSV, FORMAT CSV);
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x from stdin (freeze off, freeze on);
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "freeze"
+
+-----------
+QUERY:
+
+COPY x from stdin (delimiter ',', delimiter ',');
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "delimiter"
+
+-----------
+QUERY:
+
+COPY x from stdin (null ' ', null ' ');
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "null"
+
+-----------
+QUERY:
+
+COPY x from stdin (header off, header on);
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "header"
+
+-----------
+QUERY:
+
+COPY x from stdin (quote ':', quote ':');
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "quote"
+
+-----------
+QUERY:
+
+COPY x from stdin (escape ':', escape ':');
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "escape"
+
+-----------
+QUERY:
+
+COPY x from stdin (force_quote (a), force_quote *);
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "force_quote"
+
+-----------
+QUERY:
+
+COPY x from stdin (force_not_null (a), force_not_null (b));
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "force_not_null"
+
+-----------
+QUERY:
+
+COPY x from stdin (force_null (a), force_null (b));
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "force_null"
+
+-----------
+QUERY:
+
+COPY x from stdin (convert_selectively (a), convert_selectively (b));
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "convert_selectively"
+
+-----------
+QUERY:
+
+COPY x from stdin (encoding 'sql_ascii', encoding 'sql_ascii');
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "encoding"
+
+-----------
+QUERY:
+
+COPY x from stdin (on_error ignore, on_error ignore);
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "on_error"
+
+-----------
+QUERY:
+
+
+-- incorrect options
+COPY x to stdin (format BINARY, delimiter ',');
+RESULT:
+	ERROR - Catalog Error: Copy Function with name binary does not exist!
+Did you mean "json"?
+
+-----------
+QUERY:
+
+COPY x to stdin (format BINARY, null 'x');
+RESULT:
+	ERROR - Catalog Error: Copy Function with name binary does not exist!
+Did you mean "json"?
+
+-----------
+QUERY:
+
+COPY x from stdin (format BINARY, on_error ignore);
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x from stdin (on_error unsupported);
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x to stdin (format TEXT, force_quote(a));
+RESULT:
+	ERROR - Catalog Error: Copy Function with name text does not exist!
+Did you mean "csv"?
+
+-----------
+QUERY:
+
+COPY x from stdin (format CSV, force_quote(a));
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x to stdout (format TEXT, force_not_null(a));
+RESULT:
+	ERROR - Catalog Error: Copy Function with name text does not exist!
+Did you mean "csv"?
+
+-----------
+QUERY:
+
+COPY x to stdin (format CSV, force_not_null(a));
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x to stdout (format TEXT, force_null(a));
+RESULT:
+	ERROR - Catalog Error: Copy Function with name text does not exist!
+Did you mean "csv"?
+
+-----------
+QUERY:
+
+COPY x to stdin (format CSV, force_null(a));
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x to stdin (format BINARY, on_error unsupported);
+RESULT:
+	ERROR - Catalog Error: Copy Function with name binary does not exist!
+Did you mean "json"?
+
+-----------
+QUERY:
+
+
+-- too many columns in column list: should fail
+COPY x (a, b, c, d, e, d, c) from stdin;
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- missing data: should fail
+COPY x from stdin;
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+\.
+COPY x from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+2000	230	23	23
+\.
+COPY x from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "2000"
+
+-----------
+QUERY:
+
+2001	231	\N	\N
+\.
+
+-- extra data: should fail
+COPY x from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "2001"
+
+-----------
+QUERY:
+
+2002	232	40	50	60	70	80
+\.
+
+-- various COPY options: delimiters, oids, NULL string, encoding
+COPY x (b, c, d, e) from stdin delimiter ',' null 'x';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "2002"
+
+-----------
+QUERY:
+
+x,45,80,90
+x,\x,\\x,\\\x
+x,\,,\\\,,\\
+\.
+
+COPY x from stdin WITH DELIMITER AS ';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "x"
+
+-----------
+QUERY:
+' NULL AS '';
+RESULT:
+	ERROR - Parser Error: unterminated quoted string at or near "' NULL AS '';"
+
+-----------
+QUERY:
+
+3000;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "3000"
+
+-----------
+QUERY:
+;
+RESULT:
+	[]
+
+-----------
+QUERY:
+c;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "c"
+
+-----------
+QUERY:
+;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+\.
+
+COPY x from stdin WITH DELIMITER AS ':' NULL AS E'\\X' ENCODING 'sql_ascii';
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+4000:\X:C:\X:\X
+4001:1:empty::
+4002:2:null:\X:\X
+4003:3:Backslash:\\:\\
+4004:4:BackslashX:\\X:\\X
+4005:5:N:\N:\N
+4006:6:BackslashN:\\N:\\N
+4007:7:XX:\XX:\XX
+4008:8:Delimiter:\::\:
+\.
+
+COPY x TO stdout WHERE a = 1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "4000"
+
+-----------
+QUERY:
+
+COPY x from stdin WHERE a = 50004;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "WHERE"
+
+-----------
+QUERY:
+
+50003	24	34	44	54
+50004	25	35	45	55
+50005	26	36	46	56
+\.
+
+COPY x from stdin WHERE a > 60003;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "50003"
+
+-----------
+QUERY:
+
+60001	22	32	42	52
+60002	23	33	43	53
+60003	24	34	44	54
+60004	25	35	45	55
+60005	26	36	46	56
+\.
+
+COPY x from stdin WHERE f > 60003;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "60001"
+
+-----------
+QUERY:
+
+
+COPY x from stdin WHERE a = max(x.b);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "WHERE"
+
+-----------
+QUERY:
+
+
+COPY x from stdin WHERE a IN (SELECT 1 FROM x);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "WHERE"
+
+-----------
+QUERY:
+
+
+COPY x from stdin WHERE a IN (generate_series(1,5));
+RESULT:
+	ERROR - Parser Error: syntax error at or near "WHERE"
+
+-----------
+QUERY:
+
+
+COPY x from stdin WHERE a = row_number() over(b);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "WHERE"
+
+-----------
+QUERY:
+
+
+
+-- check results of copy in
+SELECT * FROM x;
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+-- check copy out
+COPY x TO stdout;
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x (c, e) TO stdout;
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+COPY x (b, e) TO stdout WITH NULL 'I''m null';
+RESULT:
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE y (
+	col1 text,
+	col2 text
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO y VALUES ('Jackson, Sam', E'\\h');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO y VALUES ('It is "perfect".',E'\t');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO y VALUES ('', NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COPY y TO stdout WITH CSV;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY y TO stdout WITH CSV QUOTE '''' DELIMITER '|';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY y TO stdout WITH CSV FORCE QUOTE col2 ESCAPE E'\\' ENCODING 'sql_ascii';
+RESULT:
+	ERROR - Binder Error: Copy is only supported for UTF-8 encoded files, ENCODING 'UTF-8'
+
+-----------
+QUERY:
+
+COPY y TO stdout WITH CSV FORCE QUOTE *;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Repeat above tests with new 9.0 option syntax
+
+COPY y TO stdout (FORMAT CSV);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY y TO stdout (FORMAT CSV, QUOTE '''', DELIMITER '|');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E'\\');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY y TO stdout (FORMAT CSV, FORCE_QUOTE *);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+\copy y TO stdout (FORMAT CSV)
+\copy y TO stdout (FORMAT CSV, QUOTE '''', DELIMITER '|')
+\copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E'\\')
+\copy y TO stdout (FORMAT CSV, FORCE_QUOTE *)
+
+--test that we read consecutive LFs properly
+
+CREATE TEMP TABLE testnl (a int, b text, c int);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+
+COPY testnl FROM stdin CSV;
+RESULT:
+	ERROR - Catalog Error: Table with name testnl does not exist!
+Did you mean "TEXT_TBL"?
+
+-----------
+QUERY:
+
+1,"a field with two LFs
+
+inside",2
+\.
+
+-- test end of copy marker
+CREATE TEMP TABLE testeoc (a text);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+COPY testeoc FROM stdin CSV;
+RESULT:
+	ERROR - Catalog Error: Table with name testeoc does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+
+a\.
+\.b
+c\.d
+"\."
+\.
+
+COPY testeoc TO stdout CSV;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a"
+
+-----------
+QUERY:
+
+
+-- test handling of nonstandard null marker that violates escaping rules
+
+CREATE TEMP TABLE testnull(a int, b text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO testnull VALUES (1, E'\\0'), (NULL, NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COPY testnull TO stdout WITH NULL AS E'\\0';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COPY testnull FROM stdin WITH NULL AS E'\\0';
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+42	\\0
+\0	\0
+\.
+
+SELECT * FROM testnull;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "42"
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE vistest (LIKE testeoc);
+RESULT:
+	ERROR - Not implemented Error: ColumnDef type not handled yet
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+a0
+b
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a0"
+
+-----------
+QUERY:
+
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	ERROR - TransactionContext Error: cannot start a transaction within a transaction
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+a1
+b
+\.
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a1"
+
+-----------
+QUERY:
+
+SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+d1
+e
+\.
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "d1"
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+a2
+b
+\.
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "a2"
+
+-----------
+QUERY:
+
+SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+d2
+e
+\.
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "d2"
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+x
+y
+\.
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "x"
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+p
+g
+\.
+BEGIN;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "p"
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+m
+k
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "m"
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO vistest VALUES ('z');
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "SAVEPOINT"
+
+-----------
+QUERY:
+
+TRUNCATE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+LINE 2: TRUNCATE vistest;
+                 ^
+
+-----------
+QUERY:
+
+ROLLBACK TO SAVEPOINT s1;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TO"
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+d3
+e
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "d3"
+
+-----------
+QUERY:
+
+CREATE FUNCTION truncate_in_subxact() RETURNS VOID AS
+$$
+BEGIN
+	TRUNCATE vistest;
+EXCEPTION
+  WHEN OTHERS THEN
+	INSERT INTO vistest VALUES ('subxact failure');
+END;
+$$ language plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "RETURNS"
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	ERROR - TransactionContext Error: cannot start a transaction within a transaction
+
+-----------
+QUERY:
+
+INSERT INTO vistest VALUES ('z');
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+SELECT truncate_in_subxact();
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+COPY vistest FROM stdin CSV FREEZE;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+d4
+e
+\.
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "d4"
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+-- Test FORCE_NOT_NULL and FORCE_NULL options
+CREATE TEMP TABLE forcetest (
+    a INT NOT NULL,
+    b TEXT NOT NULL,
+    c TEXT,
+    d TEXT,
+    e TEXT
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+\pset null NULL
+-- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+BEGIN;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(b), FORCE_NULL(c));
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1,,""
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+SELECT b, c FROM forcetest WHERE a = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- should succeed, FORCE_NULL and FORCE_NOT_NULL can be both specified
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c, d) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(c,d), FORCE_NULL(c,d));
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+2,'a',,""
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "2"
+
+-----------
+QUERY:
+
+SELECT c, d FROM forcetest WHERE a = 2;
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+-- should fail with not-null constraint violation
+BEGIN;
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL(b), FORCE_NOT_NULL(c));
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+3,,""
+\.
+ROLLBACK;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "3"
+
+-----------
+QUERY:
+
+-- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+BEGIN;
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+COPY forcetest (d, e) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(b));
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY forcetest (d, e) FROM STDIN WITH (FORMAT csv, FORCE_NULL(b));
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *, FORCE_NULL *);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+4,,""
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "4"
+
+-----------
+QUERY:
+
+SELECT b, c FROM forcetest WHERE a = 4;
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+-- should succeed with effect (/* REPLACED */''b/* REPLACED */'' remains an empty string)
+BEGIN;
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+5,,""
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "5"
+
+-----------
+QUERY:
+
+SELECT b, c FROM forcetest WHERE a = 5;
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+-- should succeed with effect (/* REPLACED */''c/* REPLACED */'' remains NULL)
+BEGIN;
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL *);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+6,"b",""
+\.
+COMMIT;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "6"
+
+-----------
+QUERY:
+
+SELECT b, c FROM forcetest WHERE a = 6;
+RESULT:
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+-- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+BEGIN;
+RESULT:
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: TransactionContext Error: Current transaction is aborted (please ROLLBACK)
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *, FORCE_NOT_NULL(b));
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "FORCE_NOT_NULL"
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL *, FORCE_NULL(b));
+RESULT:
+	ERROR - Parser Error: Unexpected duplicate option "FORCE_NULL"
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+\pset null ''
+
+-- test case with whole-row Var in a check constraint
+create table check_con_tbl (f1 int);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+create function check_con_function(check_con_tbl) returns bool as $$
+begin
+  raise notice 'input = %', row_to_json($1);
+  return $1.f1 > 0;
+end $$ language plpgsql immutable;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "returns"
+
+-----------
+QUERY:
+
+alter table check_con_tbl add check (check_con_function(check_con_tbl.*));
+RESULT:
+	ERROR - Not implemented Error: No support for that ALTER TABLE option yet!
+
+-----------
+QUERY:
+
+-- \d+ check_con_tbl
+copy check_con_tbl from stdin;
+RESULT:
+	ERROR - Catalog Error: Table with name check_con_tbl does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+
+1
+\N
+\.
+copy check_con_tbl from stdin;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+0
+\.
+select * from check_con_tbl;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "0"
+
+-----------
+QUERY:
+
+
+-- test with RLS enabled.
+CREATE ROLE regress_rls_copy_user;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ROLE"
+
+-----------
+QUERY:
+
+CREATE ROLE regress_rls_copy_user_colperms;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ROLE"
+
+-----------
+QUERY:
+
+CREATE TABLE rls_t1 (a int, b int, c int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COPY rls_t1 (a, b, c) from stdin;
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1	4	1
+2	3	2
+3	2	3
+4	1	4
+\.
+
+CREATE POLICY p1 ON rls_t1 FOR SELECT USING (a % 2 = 0);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+ALTER TABLE rls_t1 ENABLE ROW LEVEL SECURITY;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ENABLE"
+
+-----------
+QUERY:
+
+ALTER TABLE rls_t1 FORCE ROW LEVEL SECURITY;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FORCE"
+
+-----------
+QUERY:
+
+
+GRANT SELECT ON TABLE rls_t1 TO regress_rls_copy_user;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+
+GRANT SELECT (a, b) ON TABLE rls_t1 TO regress_rls_copy_user_colperms;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "GRANT"
+
+-----------
+QUERY:
+
+
+-- all columns
+COPY rls_t1 TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY rls_t1 (a, b, c) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- subset of columns
+COPY rls_t1 (a) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY rls_t1 (a, b) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- column reordering
+COPY rls_t1 (b, a) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_rls_copy_user;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+
+
+-- all columns
+COPY rls_t1 TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY rls_t1 (a, b, c) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- subset of columns
+COPY rls_t1 (a) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY rls_t1 (a, b) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- column reordering
+COPY rls_t1 (b, a) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+
+
+SET SESSION AUTHORIZATION regress_rls_copy_user_colperms;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+
+
+-- attempt all columns (should fail)
+COPY rls_t1 TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY rls_t1 (a, b, c) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- try to copy column with no privileges (should fail)
+COPY rls_t1 (c) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- subset of columns (should succeed)
+COPY rls_t1 (a) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY rls_t1 (a, b) TO stdout;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "AUTHORIZATION"
+
+-----------
+QUERY:
+
+
+-- test with INSTEAD OF INSERT trigger on a view
+CREATE TABLE instead_of_insert_tbl(id serial, name text);
+RESULT:
+	ERROR - Catalog Error: Type with name serial does not exist!
+Did you mean "real"?
+
+-----------
+QUERY:
+
+CREATE VIEW instead_of_insert_tbl_view AS SELECT ''::text AS str;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COPY instead_of_insert_tbl_view FROM stdin;
+RESULT:
+	ERROR - Catalog Error: instead_of_insert_tbl_view is not an table
+
+-----------
+QUERY:
+ -- fail
+test1
+\.
+
+CREATE FUNCTION fun_instead_of_insert_tbl() RETURNS trigger AS $$
+BEGIN
+  INSERT INTO instead_of_insert_tbl (name) VALUES (NEW.str);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "test1"
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_instead_of_insert_tbl_view
+  INSTEAD OF INSERT ON instead_of_insert_tbl_view
+  FOR EACH ROW EXECUTE PROCEDURE fun_instead_of_insert_tbl();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TRIGGER"
+
+-----------
+QUERY:
+
+
+COPY instead_of_insert_tbl_view FROM stdin;
+RESULT:
+	ERROR - Catalog Error: instead_of_insert_tbl_view is not an table
+
+-----------
+QUERY:
+
+test1
+\.
+
+SELECT * FROM instead_of_insert_tbl;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "test1"
+
+-----------
+QUERY:
+
+
+-- Test of COPY optimization with view using INSTEAD OF INSERT
+-- trigger when relation is created in the same transaction as
+-- when COPY is executed.
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE VIEW instead_of_insert_tbl_view_2 as select ''::text as str;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TRIGGER trig_instead_of_insert_tbl_view_2
+  INSTEAD OF INSERT ON instead_of_insert_tbl_view_2
+  FOR EACH ROW EXECUTE PROCEDURE fun_instead_of_insert_tbl();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "TRIGGER"
+
+-----------
+QUERY:
+
+
+COPY instead_of_insert_tbl_view_2 FROM stdin;
+RESULT:
+	ERROR - Catalog Error: instead_of_insert_tbl_view_2 is not an table
+
+-----------
+QUERY:
+
+test1
+\.
+
+SELECT * FROM instead_of_insert_tbl;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "test1"
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- tests for on_error option
+CREATE TABLE check_ign_err (n int, m int[], k int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COPY check_ign_err FROM STDIN WITH (on_error stop);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1	{1}	1
+a	{2}	2
+3	{3}	3333333333
+4	{a, 4}	4
+
+5	{5}	5
+\.
+COPY check_ign_err FROM STDIN WITH (on_error ignore);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+1	{1}	1
+a	{2}	2
+3	{3}	3333333333
+4	{a, 4}	4
+
+5	{5}	5
+6	a
+7	{7}	a
+8	{8}	8
+\.
+SELECT * FROM check_ign_err;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+-- test datatype error that can/* REPLACED */''t be handled as soft: should fail
+CREATE TABLE hard_err(foo widget);
+RESULT:
+	ERROR - Catalog Error: Type with name widget does not exist!
+Did you mean "bit"?
+
+-----------
+QUERY:
+
+COPY hard_err FROM STDIN WITH (on_error ignore);
+RESULT:
+	ERROR - Catalog Error: Table with name hard_err does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+
+1
+\.
+
+-- test missing data: should fail
+COPY check_ign_err FROM STDIN WITH (on_error ignore);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+1	{1}
+\.
+
+-- test extra data: should fail
+COPY check_ign_err FROM STDIN WITH (on_error ignore);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+1	{1}	3	abc
+\.
+
+-- clean up
+DROP TABLE forcetest;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+DROP TABLE vistest;
+RESULT:
+	ERROR - Catalog Error: Table with name vistest does not exist!
+Did you mean "pg_views"?
+
+-----------
+QUERY:
+
+DROP FUNCTION truncate_in_subxact();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+DROP TABLE x, y;
+RESULT:
+	ERROR - Not implemented Error: Can only drop one object at a time
+
+-----------
+QUERY:
+
+DROP TABLE rls_t1 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP ROLE regress_rls_copy_user;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ROLE"
+
+-----------
+QUERY:
+
+DROP ROLE regress_rls_copy_user_colperms;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ROLE"
+
+-----------
+QUERY:
+
+DROP FUNCTION fn_x_before();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+DROP FUNCTION fn_x_after();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+DROP TABLE instead_of_insert_tbl;
+RESULT:
+	ERROR - Catalog Error: Table with name instead_of_insert_tbl does not exist!
+Did you mean "instead_of_insert_tbl_view"?
+
+-----------
+QUERY:
+
+DROP VIEW instead_of_insert_tbl_view;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP VIEW instead_of_insert_tbl_view_2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP FUNCTION fun_instead_of_insert_tbl();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
+
+-----------
+QUERY:
+
+DROP TABLE check_ign_err;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE hard_err;
+RESULT:
+	ERROR - Catalog Error: Table with name hard_err does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+
+
+--
+-- COPY FROM ... DEFAULT
+--
+
+create temp table copy_default (
+	id integer primary key,
+	text_value text not null default 'test',
+	ts_value timestamp without time zone not null default '2022-07-05'
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- if DEFAULT is not specified, then the marker will be regular data
+copy copy_default from stdin;
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1	value	'2022-07-04'
+2	\D	'2022-07-05'
+\.
+
+select id, text_value, ts_value from copy_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+truncate copy_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+copy copy_default from stdin with (format csv);
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1,value,2022-07-04
+2,\D,2022-07-05
+\.
+
+select id, text_value, ts_value from copy_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+truncate copy_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- DEFAULT cannot be used in binary mode
+copy copy_default from stdin with (format binary, default '\D');
+RESULT:
+	ERROR - Catalog Error: Copy Function with name binary does not exist!
+Did you mean "json"?
+
+-----------
+QUERY:
+
+
+-- DEFAULT cannot be new line nor carriage return
+copy copy_default from stdin with (default E'\n');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+copy copy_default from stdin with (default E'\r');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+
+-- DELIMITER cannot appear in DEFAULT spec
+copy copy_default from stdin with (delimiter ';
+RESULT:
+	ERROR - Parser Error: unterminated quoted string at or near "';"
+
+-----------
+QUERY:
+', default 'test;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "', default '"
+
+-----------
+QUERY:
+test');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "test"
+
+-----------
+QUERY:
+
+
+-- CSV quote cannot appear in DEFAULT spec
+copy copy_default from stdin with (format csv, quote '"', default 'test"test');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+
+-- NULL and DEFAULT spec must be different
+copy copy_default from stdin with (default '\N');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+
+-- cannot use DEFAULT marker in column that has no DEFAULT value
+copy copy_default from stdin with (default '\D');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+\D	value	'2022-07-04'
+2	\D	'2022-07-05'
+\.
+
+copy copy_default from stdin with (format csv, default '\D');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+\D,value,2022-07-04
+2,\D,2022-07-05
+\.
+
+-- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */''s not recognized
+copy copy_default from stdin with (default '\D');
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
+
+-----------
+QUERY:
+
+1	\D	'2022-07-04'
+2	\\D	'2022-07-04'
+3	"\D"	'2022-07-04'
+\.
+
+select id, text_value, ts_value from copy_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+truncate copy_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+copy copy_default from stdin with (format csv, default '\D');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1,\D,2022-07-04
+2,\\D,2022-07-04
+3,"\D",2022-07-04
+\.
+
+select id, text_value, ts_value from copy_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+truncate copy_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- successful usage of DEFAULT option in COPY
+copy copy_default from stdin with (default '\D');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1	value	'2022-07-04'
+2	\D	'2022-07-03'
+3	\D	\D
+\.
+
+select id, text_value, ts_value from copy_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+truncate copy_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+copy copy_default from stdin with (format csv, default '\D');
+RESULT:
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
+
+-----------
+QUERY:
+
+1,value,2022-07-04
+2,\D,2022-07-03
+3,\D,\D
+\.
+
+select id, text_value, ts_value from copy_default;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "1"
+
+-----------
+QUERY:
+
+
+truncate copy_default;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- DEFAULT cannot be used in COPY TO
+copy (select 1 as test) TO stdout with (default '\D');
+RESULT:
+	ERROR - Binder Error: Unrecognized option CSV writer "default"

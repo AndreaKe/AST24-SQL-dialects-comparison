@@ -1,0 +1,709 @@
+
+-----------
+QUERY:
+--
+-- TEST_SETUP --- prepare environment expected by regression test scripts
+--
+
+-- directory paths and dlsuffix are passed to us in environment variables
+-- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
+-- \getenv dlsuffix '.so'
+
+-- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+
+--
+-- synchronous_commit=off delays when hint bits may be set. Some plans change
+-- depending on the number of all-visible pages, which in turn can be
+-- influenced by the delayed hint bits. Force synchronous_commit=on to avoid
+-- that source of variability.
+--
+SET synchronous_commit = on;
+RESULT:
+	mySQL: ERROR - (1193, "Unknown system variable 'synchronous_commit'")
+
+-----------
+QUERY:
+
+
+--
+-- Postgres formerly made the public schema read/write by default,
+-- and most of the core regression tests still expect that.
+--
+GRANT ALL ON SCHEMA public TO public;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SCHEMA public TO public' at line 5")
+
+-----------
+QUERY:
+
+
+-- Create a tablespace we can use in tests.
+SET allow_in_place_tablespaces = true;
+RESULT:
+	mySQL: ERROR - (1193, "Unknown system variable 'allow_in_place_tablespaces'")
+
+-----------
+QUERY:
+
+CREATE TABLESPACE regress_tblspace LOCATION '';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LOCATION ''' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- These tables have traditionally been referenced by many tests,
+-- so create and populate them.  Insert only non-error values here.
+-- (Some subsequent tests try to insert erroneous values.  That/* REPLACED */''s okay
+-- because the table won/* REPLACED */''t actually change.  Do not change the contents
+-- of these tables in later tests, as it may affect other tests.)
+--
+
+CREATE TABLE CHAR_TBL(f1 char(4));
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES
+  ('a'),
+  ('ab'),
+  ('abcd'),
+  ('abcd    ');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM CHAR_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM CHAR_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE FLOAT8_TBL(f1 float8);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO FLOAT8_TBL(f1) VALUES
+  ('0.0'),
+  ('-34.84'),
+  ('-1004.30'),
+  ('-1.2345678901234e+200'),
+  ('-1.2345678901234e-200');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM FLOAT8_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM FLOAT8_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE INT2_TBL(f1 int2);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO INT2_TBL(f1) VALUES
+  ('0   '),
+  ('  1234 '),
+  ('    -1234'),
+  ('32767'),  -- largest and smallest values
+  ('-32767');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM INT2_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM INT2_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE INT4_TBL(f1 int4);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO INT4_TBL(f1) VALUES
+  ('   0  '),
+  ('123456     '),
+  ('    -123456'),
+  ('2147483647'),  -- largest and smallest values
+  ('-2147483647');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM INT4_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM INT4_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE INT8_TBL(q1 int8, q2 int8);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO INT8_TBL VALUES
+  ('  123   ','  456'),
+  ('123   ','4567890123456789'),
+  ('4567890123456789','123'),
+  (+4567890123456789,'4567890123456789'),
+  ('+4567890123456789','-4567890123456789');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM INT8_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM INT8_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE POINT_TBL(f1 point);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO POINT_TBL(f1) VALUES
+  ('(0.0,0.0)'),
+  ('(-10.0,0.0)'),
+  ('(-3.0,4.0)'),
+  ('(5.1, 34.5)'),
+  ('(-5.0,-12.0)'),
+  ('(1e-300,-1e-300)'),  -- To underflow
+  ('(1e+300,Inf)'),  -- To overflow
+  ('(Inf,1e+300)'),  -- Transposed
+  (' ( Nan , NaN ) '),
+  ('10.0,10.0');
+RESULT:
+	mySQL: ERROR - (1416, 'Cannot get geometry object from data you send to the GEOMETRY field')
+
+-----------
+QUERY:
+
+-- We intentionally don/* REPLACED */''t vacuum point_tbl here /* REPLACED */, geometry depends on that
+
+CREATE TABLE TEXT_TBL (f1 text);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO TEXT_TBL VALUES
+  ('doh!'),
+  ('hi de ho neighbor');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM TEXT_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM TEXT_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE VARCHAR_TBL(f1 varchar(4));
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+INSERT INTO VARCHAR_TBL (f1) VALUES
+  ('a'),
+  ('ab'),
+  ('abcd'),
+  ('abcd    ');
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+VACUUM VARCHAR_TBL;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM VARCHAR_TBL' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE onek (
+	unique1		int4,
+	unique2		int4,
+	two			int4,
+	four		int4,
+	ten			int4,
+	twenty		int4,
+	hundred		int4,
+	thousand	int4,
+	twothousand	int4,
+	fivethous	int4,
+	tenthous	int4,
+	odd			int4,
+	even		int4,
+	stringu1	name,
+	stringu2	name,
+	string4		name
+);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'name,\n\tstringu2\tname,\n\tstring4\t\tname\n)' at line 15")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/onek.data'
+COPY onek FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY onek FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-S' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE onek;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE onek' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE onek2 AS SELECT * FROM onek;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.onek' doesn't exist")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE onek2;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE onek2' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE tenk1 (
+	unique1		int4,
+	unique2		int4,
+	two			int4,
+	four		int4,
+	ten			int4,
+	twenty		int4,
+	hundred		int4,
+	thousand	int4,
+	twothousand	int4,
+	fivethous	int4,
+	tenthous	int4,
+	odd			int4,
+	even		int4,
+	stringu1	name,
+	stringu2	name,
+	string4		name
+);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'name,\n\tstringu2\tname,\n\tstring4\t\tname\n)' at line 15")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
+COPY tenk1 FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY tenk1 FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE tenk1;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE tenk1' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE tenk2 AS SELECT * FROM tenk1;
+RESULT:
+	mySQL: ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE tenk2;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE tenk2' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE person (
+	name 		text,
+	age			int4,
+	location 	point
+);
+RESULT:
+	mySQL: []
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/person.data'
+COPY person FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY person FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE person;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE person' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE emp (
+	salary 		int4,
+	manager 	name
+) INHERITS (person);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'name\n) INHERITS (person)' at line 3")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
+COPY emp FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY emp FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQ' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE emp;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE emp' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE student (
+	gpa 		float8
+) INHERITS (person);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (person)' at line 3")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/student.data'
+COPY student FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY student FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST2' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE student;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE student' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE stud_emp (
+	percent 	int4
+) INHERITS (emp, student);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (emp, student)' at line 3")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/stud_emp.data'
+COPY stud_emp FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY stud_emp FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE stud_emp;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE stud_emp' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE road (
+	name		text,
+	thepath 	path
+);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'path\n)' at line 3")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/streets.data'
+COPY road FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY road FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-S' at line 2")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE road;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE road' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ihighway () INHERITS (road);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') INHERITS (road)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO ihighway
+   SELECT *
+   FROM ONLY road
+   WHERE name ~ 'I- .*';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ 'I- .*'' at line 4")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE ihighway;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE ihighway' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE shighway (
+	surface		text
+) INHERITS (road);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERITS (road)' at line 3")
+
+-----------
+QUERY:
+
+
+INSERT INTO shighway
+   SELECT *, 'asphalt'
+   FROM ONLY road
+   WHERE name ~ 'State Hwy.*';
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ 'State Hwy.*'' at line 4")
+
+-----------
+QUERY:
+
+VACUUM ANALYZE shighway;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM ANALYZE shighway' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- We must have some enum type in the database for opr_sanity and type_sanity.
+--
+
+create type stoplight as enum ('red', 'yellow', 'green');
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type stoplight as enum ('red', 'yellow', 'green')' at line 5")
+
+-----------
+QUERY:
+
+
+--
+-- Also create some non-built-in range types.
+--
+
+create type float8range as range (subtype = float8, subtype_diff = float8mi);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type float8range as range (subtype = float8, subtype_diff = float8mi)' at line 5")
+
+-----------
+QUERY:
+
+
+create type textrange as range (subtype = text, collation = "C");
+RESULT:
+	mySQL: ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'type textrange as range (subtype = text, collation = "C")\' at line 1')
+
+-----------
+QUERY:
+
+
+--
+-- Create some C functions that will be used by various tests.
+--
+
+CREATE FUNCTION binary_coercible(oid, oid)
+    RETURNS bool
+    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'binary_coercible'
+    LANGUAGE C STRICT STABLE PARALLEL SAFE;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', oid)\n    RETURNS bool\n    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST' at line 5")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION ttdummy ()
+    RETURNS trigger
+    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+    LANGUAGE C;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger\n    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgre' at line 2")
+
+-----------
+QUERY:
+
+
+-- Use hand-rolled hash functions and operator classes to get predictable
+-- result on different machines.  The hash function for int4 simply returns
+-- the sum of the values passed to it and the one for text returns the length
+-- of the non-empty string value passed to it or 0.
+
+create function part_hashint4_noop(value int4, seed int8)
+    returns int8 as $$
+    select value + seed;
+    $$ language sql strict immutable parallel safe;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as $$\n    select value + seed;\n    $$ language sql strict immutable parallel saf' at line 7")
+
+-----------
+QUERY:
+
+
+create operator class part_test_int4_ops for type int4 using hash as
+    operator 1 =,
+    function 2 part_hashint4_noop(int4, int8);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator class part_test_int4_ops for type int4 using hash as\n    operator 1 =,\n' at line 1")
+
+-----------
+QUERY:
+
+
+create function part_hashtext_length(value text, seed int8)
+    returns int8 as $$
+    select length(coalesce(value, ''))::int8
+    $$ language sql strict immutable parallel safe;
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'as $$\n    select length(coalesce(value, ''))::int8\n    $$ language sql strict im' at line 2")
+
+-----------
+QUERY:
+
+
+create operator class part_test_text_ops for type text using hash as
+    operator 1 =,
+    function 2 part_hashtext_length(text, int8);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator class part_test_text_ops for type text using hash as\n    operator 1 =,\n' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- These functions are used in tests that used to use md5(), which we now
+-- mostly avoid so that the tests will pass in FIPS mode.
+--
+
+create function fipshash(bytea)
+    returns text
+    strict immutable parallel safe leakproof
+    return substr(encode(sha256($1), 'hex'), 1, 32);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')\n    returns text\n    strict immutable parallel safe leakproof\n    return subst' at line 6")
+
+-----------
+QUERY:
+
+
+create function fipshash(text)
+    returns text
+    strict immutable parallel safe leakproof
+    return substr(encode(sha256($1::bytea), 'hex'), 1, 32);
+RESULT:
+	mySQL: ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')\n    returns text\n    strict immutable parallel safe leakproof\n    return subst' at line 1")

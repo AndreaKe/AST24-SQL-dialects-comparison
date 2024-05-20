@@ -1,0 +1,885 @@
+
+-----------
+QUERY:
+--
+-- ERRORS
+--
+
+-- bad in postquel, but ok in PostgreSQL
+select 1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+
+--
+-- UNSUPPORTED STUFF
+
+-- doesn/* REPLACED */''t work
+-- notify pg_class
+--
+
+--
+-- SELECT
+
+-- this used to be a syntax error, but now we allow an empty target list
+select;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 12")
+
+-----------
+QUERY:
+
+
+-- no such relation
+select * from nonesuch;
+RESULT:
+	ERROR - (1146, "Table 'test.nonesuch' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- bad name in target list
+select nonesuch from pg_database;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_database' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- empty distinct list isn/* REPLACED */''t OK
+select distinct from pg_database;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from pg_database' at line 2")
+
+-----------
+QUERY:
+
+
+-- bad attribute name on lhs of operator
+select * from pg_database where nonesuch = pg_database.datname;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_database' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- bad attribute name on rhs of operator
+select * from pg_database where pg_database.datname = nonesuch;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_database' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- bad attribute name in select distinct on
+select distinct on (foobar) * from pg_database;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'on (foobar) * from pg_database' at line 2")
+
+-----------
+QUERY:
+
+
+-- grouping with FOR UPDATE
+select null from pg_database group by datname for update;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_database' doesn't exist")
+
+-----------
+QUERY:
+
+select null from pg_database group by grouping sets (()) for update;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sets (()) for update' at line 1")
+
+-----------
+QUERY:
+
+
+
+--
+-- DELETE
+
+-- missing relation name (this had better not wildcard!)
+delete from;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 5")
+
+-----------
+QUERY:
+
+
+-- no such relation
+delete from nonesuch;
+RESULT:
+	ERROR - (1146, "Table 'test.nonesuch' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP
+
+-- missing relation name (this had better not wildcard!)
+drop table;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 5")
+
+-----------
+QUERY:
+
+
+-- no such relation
+drop table nonesuch;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.nonesuch'")
+
+-----------
+QUERY:
+
+
+
+--
+-- ALTER TABLE
+
+-- relation renaming
+
+-- missing relation name
+alter table rename;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rename' at line 7")
+
+-----------
+QUERY:
+
+
+-- no such relation
+alter table nonesuch rename to newnonesuch;
+RESULT:
+	ERROR - (1146, "Table 'test.nonesuch' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- no such relation
+alter table nonesuch rename to stud_emp;
+RESULT:
+	ERROR - (1146, "Table 'test.nonesuch' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table stud_emp rename to student;
+RESULT:
+	ERROR - (1146, "Table 'test.stud_emp' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- self-conflict
+alter table stud_emp rename to stud_emp;
+RESULT:
+	ERROR - (1146, "Table 'test.stud_emp' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- attribute renaming
+
+-- no such relation
+alter table nonesuchrel rename column nonesuchatt to newnonesuchatt;
+RESULT:
+	ERROR - (1146, "Table 'test.nonesuchrel' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- no such attribute
+alter table emp rename column nonesuchatt to newnonesuchatt;
+RESULT:
+	ERROR - (1146, "Table 'test.emp' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table emp rename column salary to manager;
+RESULT:
+	ERROR - (1146, "Table 'test.emp' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table emp rename column salary to ctid;
+RESULT:
+	ERROR - (1146, "Table 'test.emp' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+--
+-- TRANSACTION STUFF
+
+-- not in a xact
+abort;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'abort' at line 5")
+
+-----------
+QUERY:
+
+
+-- not in a xact
+end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'end' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- CREATE AGGREGATE
+
+-- sfunc/finalfunc type disagreement
+create aggregate newavg2 (sfunc = int4pl,
+			  basetype = int4,
+			  stype = int4,
+			  finalfunc = int2um,
+			  initcond = '0');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'newavg2 (sfunc = int4pl,\n\t\t\t  basetype = int4,\n\t\t\t  stype = int4,\n\t\t\t  finalfunc' at line 5")
+
+-----------
+QUERY:
+
+
+-- left out basetype
+create aggregate newcnt1 (sfunc = int4inc,
+			  stype = int4,
+			  initcond = '0');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'newcnt1 (sfunc = int4inc,\n\t\t\t  stype = int4,\n\t\t\t  initcond = '0')' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP INDEX
+
+-- missing index name
+drop index;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 5")
+
+-----------
+QUERY:
+
+
+-- bad index name
+drop index 314159;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '314159' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such index
+drop index nonesuch;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP AGGREGATE
+
+-- missing aggregate name
+drop aggregate;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate' at line 5")
+
+-----------
+QUERY:
+
+
+-- missing aggregate type
+drop aggregate newcnt1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate newcnt1' at line 2")
+
+-----------
+QUERY:
+
+
+-- bad aggregate name
+drop aggregate 314159 (int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate 314159 (int)' at line 2")
+
+-----------
+QUERY:
+
+
+-- bad aggregate type
+drop aggregate newcnt (nonesuch);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate newcnt (nonesuch)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such aggregate
+drop aggregate nonesuch (int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate nonesuch (int4)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such aggregate for type
+drop aggregate newcnt (float4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'aggregate newcnt (float4)' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP FUNCTION
+
+-- missing function name
+drop function ();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 5")
+
+-----------
+QUERY:
+
+
+-- bad function name
+drop function 314159();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '314159()' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such function
+drop function nonesuch();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP TYPE
+
+-- missing type name
+drop type;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type' at line 5")
+
+-----------
+QUERY:
+
+
+-- bad type name
+drop type 314159;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type 314159' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such type
+drop type nonesuch;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type nonesuch' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP OPERATOR
+
+-- missing everything
+drop operator;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator' at line 5")
+
+-----------
+QUERY:
+
+
+-- bad operator name
+drop operator equals;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator equals' at line 2")
+
+-----------
+QUERY:
+
+
+-- missing type list
+drop operator ===;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator ===' at line 2")
+
+-----------
+QUERY:
+
+
+-- missing parentheses
+drop operator int4, int4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator int4, int4' at line 2")
+
+-----------
+QUERY:
+
+
+-- missing operator name
+drop operator (int4, int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator (int4, int4)' at line 2")
+
+-----------
+QUERY:
+
+
+-- missing type list contents
+drop operator === ();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator === ()' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such operator
+drop operator === (int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator === (int4)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such operator by that name
+drop operator === (int4, int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator === (int4, int4)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = (nonesuch);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator = (nonesuch)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = ( , int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator = ( , int4)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = (nonesuch, int4);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator = (nonesuch, int4)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such type2
+drop operator = (int4, nonesuch);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator = (int4, nonesuch)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such type2
+drop operator = (int4, );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'operator = (int4, )' at line 2")
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP RULE
+
+-- missing rule name
+drop rule;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule' at line 5")
+
+-----------
+QUERY:
+
+
+-- bad rule name
+drop rule 314159;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule 314159' at line 2")
+
+-----------
+QUERY:
+
+
+-- no such rule
+drop rule nonesuch on noplace;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule nonesuch on noplace' at line 2")
+
+-----------
+QUERY:
+
+
+-- these postquel variants are no longer supported
+drop tuple rule nonesuch;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tuple rule nonesuch' at line 2")
+
+-----------
+QUERY:
+
+drop instance rule nonesuch on noplace;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'instance rule nonesuch on noplace' at line 1")
+
+-----------
+QUERY:
+
+drop rewrite rule nonesuch;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rewrite rule nonesuch' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Check that division-by-zero is properly caught.
+--
+
+select 1/0;
+RESULT:
+	((None,),)
+
+-----------
+QUERY:
+
+
+select 1::int8/0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int8/0' at line 1")
+
+-----------
+QUERY:
+
+
+select 1/0::int8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int8' at line 1")
+
+-----------
+QUERY:
+
+
+select 1::int2/0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int2/0' at line 1")
+
+-----------
+QUERY:
+
+
+select 1/0::int2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::int2' at line 1")
+
+-----------
+QUERY:
+
+
+select 1::numeric/0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::numeric/0' at line 1")
+
+-----------
+QUERY:
+
+
+select 1/0::numeric;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::numeric' at line 1")
+
+-----------
+QUERY:
+
+
+select 1::float8/0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float8/0' at line 1")
+
+-----------
+QUERY:
+
+
+select 1/0::float8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float8' at line 1")
+
+-----------
+QUERY:
+
+
+select 1::float4/0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float4/0' at line 1")
+
+-----------
+QUERY:
+
+
+select 1/0::float4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float4' at line 1")
+
+-----------
+QUERY:
+
+
+
+--
+-- Test psql/* REPLACED */''s reporting of syntax error location
+--
+
+xxx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'xxx' at line 5")
+
+-----------
+QUERY:
+
+
+CREATE foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'foo' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE ;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE
+\g
+
+INSERT INTO foo VALUES(123) foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\g\n\nINSERT INTO foo VALUES(123) foo' at line 2")
+
+-----------
+QUERY:
+
+
+INSERT INTO 123
+VALUES(123);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '123\nVALUES(123)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO foo
+VALUES(123) 123
+;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '123' at line 2")
+
+-----------
+QUERY:
+
+
+-- with a tab
+CREATE TABLE foo
+  (id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY,
+	id3 INTEGER NOT NUL,
+   id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL,\n   id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL)' at line 4")
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the left
+CREATE TABLE foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL,\nid4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the right
+CREATE TABLE foo(
+id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL' at line 3")
+
+-----------
+QUERY:
+
+
+-- long line to be truncated both ways
+CREATE TABLE foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL)' at line 2")
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the left, many lines
+CREATE
+TEMPORARY
+TABLE
+foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+id4 INT4
+UNIQUE
+NOT
+NULL,
+id5 TEXT
+UNIQUE
+NOT
+NULL)
+;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL,\nid4 INT4\nUNIQUE\nNOT\nNULL,\nid5 TEXT\nUNIQUE\nNOT\nNULL)' at line 5")
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the right, many lines
+CREATE
+TEMPORARY
+TABLE
+foo(
+id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY)
+;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL' at line 6")
+
+-----------
+QUERY:
+
+
+-- long line to be truncated both ways, many lines
+CREATE
+TEMPORARY
+TABLE
+foo
+(id
+INT4
+UNIQUE NOT NULL, idx INT4 UNIQUE NOT NULL, idy INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,
+idz INT4 UNIQUE NOT NULL,
+idv INT4 UNIQUE NOT NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,\nidz INT4 UNIQUE NOT NUL' at line 8")
+
+-----------
+QUERY:
+
+
+-- more than 10 lines...
+CREATE
+TEMPORARY
+TABLE
+foo
+(id
+INT4
+UNIQUE
+NOT
+NULL
+,
+idm
+INT4
+UNIQUE
+NOT
+NULL,
+idx INT4 UNIQUE NOT NULL, idy INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,
+idz INT4 UNIQUE NOT NULL,
+idv
+INT4
+UNIQUE
+NOT
+NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,\nidz INT4 UNIQUE NOT NUL' at line 17")

@@ -11,8 +11,6 @@ import math
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
-
-
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
 PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
 PG_DLSUFFIX = "'" + os.environ.get('PG_DLSUFFIX', '.so') + "'"
@@ -518,7 +516,7 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
                 logging.debug(f"\nExecuting query:  {query}")
                 curr_results = []
                 for dialect in sql_dialects:
-                    result = dialect.exec_query(query)
+                    result = dialect.exec_query(transform_to_executable_query(query))
                     curr_results.append(result)
                     logging.debug(f"RESULT: {result}")
 
@@ -564,7 +562,7 @@ def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
                 curr_results = []
                 for dialect in sql_dialects:
                     dialect.write_to_result_file(query_string)
-                    result = dialect.exec_query(query)
+                    result = dialect.exec_query(transform_to_executable_query(query))
                     logging.debug(f"RESULT:\n\t{result}\n")
                     dialect.write_to_result_file(f"RESULT:\n\t{result.short_str()}\n")
                     curr_results.append(result)
@@ -636,12 +634,6 @@ def get_query_string(query_iter):
         except StopIteration as e:
             logging.error(f"Index out of bounds. Query: {query}")
             raise e
-        
-    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
-                query = query.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
-                query = query.replace('PG_LIBDIR', PG_LIBDIR)
-                query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
-                query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
 
     try:
         peek = next(query_iter)
@@ -650,6 +642,13 @@ def get_query_string(query_iter):
     except StopIteration:
         return f"{query}", query_iter # no semicolon here
 
+def transform_to_executable_query(query: str) -> str:
+    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
+                query = query.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
+                query = query.replace('PG_LIBDIR', PG_LIBDIR)
+                query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
+                query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
+    return query
 
 def execute_single_test(test_folder, result_folder):
     if not os.path.exists(result_folder):
@@ -743,7 +742,7 @@ def purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove):
                 continue
 
             if query.strip() != '':
-                result = dialect.exec_query(query)
+                result = dialect.exec_query(transform_to_executable_query(query))
                 logging.debug(f"Query: {query}\n Result: {result}")
                 if result.status != QueryStatus.ERROR:
                     test_file_stream.write(query)
@@ -792,7 +791,7 @@ def purge_test_sql(dialect, sql_file, expected_file):
                         e_line_idx = e_line_idx + 1
                     e_line_idx = e_line_idx + 1
 
-                result = dialect.exec_query(query)
+                result = dialect.exec_query(transform_to_executable_query(query))
 
                 result_string = f"RESULT:\n\t{result}\n"
 

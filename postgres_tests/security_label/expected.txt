@@ -1,0 +1,220 @@
+
+-----------
+QUERY:
+--
+-- Test for facilities of security label
+--
+
+-- initial setups
+SET client_min_messages TO 'warning';
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+DROP ROLE IF EXISTS regress_seclabel_user1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP ROLE IF EXISTS regress_seclabel_user2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+RESET client_min_messages;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE USER regress_seclabel_user1 WITH CREATEROLE;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE USER regress_seclabel_user2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+CREATE TABLE seclabel_tbl1 (a int, b text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE TABLE seclabel_tbl2 (x int, y text);
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE VIEW seclabel_view1 AS SELECT * FROM seclabel_tbl2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE FUNCTION seclabel_four() RETURNS integer AS $$SELECT 4$$ language sql;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+CREATE DOMAIN seclabel_domain AS text;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+ALTER TABLE seclabel_tbl1 OWNER TO regress_seclabel_user1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+ALTER TABLE seclabel_tbl2 OWNER TO regress_seclabel_user2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+
+--
+-- Test of SECURITY LABEL statement without a plugin
+--
+SECURITY LABEL ON TABLE seclabel_tbl1 IS 'classified';
+RESULT:
+	postgres: ERROR - no security label providers have been loaded
+
+
+-----------
+QUERY:
+			-- fail
+SECURITY LABEL FOR 'dummy' ON TABLE seclabel_tbl1 IS 'classified';
+RESULT:
+	postgres: ERROR - security label provider "dummy" is not loaded
+
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON TABLE seclabel_tbl1 IS '...invalid label...';
+RESULT:
+	postgres: ERROR - no security label providers have been loaded
+
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON TABLE seclabel_tbl3 IS 'unclassified';
+RESULT:
+	postgres: ERROR - no security label providers have been loaded
+
+
+-----------
+QUERY:
+			-- fail
+
+SECURITY LABEL ON ROLE regress_seclabel_user1 IS 'classified';
+RESULT:
+	postgres: ERROR - no security label providers have been loaded
+
+
+-----------
+QUERY:
+			-- fail
+SECURITY LABEL FOR 'dummy' ON ROLE regress_seclabel_user1 IS 'classified';
+RESULT:
+	postgres: ERROR - security label provider "dummy" is not loaded
+
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON ROLE regress_seclabel_user1 IS '...invalid label...';
+RESULT:
+	postgres: ERROR - no security label providers have been loaded
+
+
+-----------
+QUERY:
+		-- fail
+SECURITY LABEL ON ROLE regress_seclabel_user3 IS 'unclassified';
+RESULT:
+	postgres: ERROR - no security label providers have been loaded
+
+
+-----------
+QUERY:
+			-- fail
+
+-- clean up objects
+DROP FUNCTION seclabel_four();
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP DOMAIN seclabel_domain;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP VIEW seclabel_view1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE seclabel_tbl1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP TABLE seclabel_tbl2;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP USER regress_seclabel_user1;
+RESULT:
+	postgres: None
+
+-----------
+QUERY:
+
+DROP USER regress_seclabel_user2;
+RESULT:
+	postgres: None

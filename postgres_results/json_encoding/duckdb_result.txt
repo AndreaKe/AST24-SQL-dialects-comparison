@@ -1,3 +1,6 @@
+
+-----------
+QUERY:
 --
 -- encoding-sensitive tests for json and jsonb
 --
@@ -10,316 +13,349 @@ SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
 \quit
 \endif
 
-SELECT getdatabaseencoding()
-ERROR: --
--- encoding-sensitive tests for json and jsonb
---
+SELECT getdatabaseencoding();
+RESULT:
+	ERROR - Parser Error: syntax error at or near "\"
 
--- We provide expected-results files for UTF8 (json_encoding.out)
--- and for SQL_ASCII (json_encoding_1.out).  Skip otherwise.
-SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
-       AS skip_test \gset
-\if :skip_test
-\quit
-\endif
-
-SELECT getdatabaseencoding()
-
-Parser Error: syntax error at or near "\"
+-----------
+QUERY:
            -- just to label the results files
 
 -- first json
 
 -- basic unicode input
-SELECT '"\u"'::json
-ERROR:            -- just to label the results files
+SELECT '"\u"'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 1 of input: invalid escaped unicode in string.  Input: "\u"
 
--- first json
-
--- basic unicode input
-SELECT '"\u"'::json
-
-Conversion Error: Malformed JSON at byte 1 of input: invalid escaped unicode in string.  Input: "\u"
+-----------
+QUERY:
 			-- ERROR, incomplete escape
-SELECT '"\u00"'::json
-ERROR: 			-- ERROR, incomplete escape
-SELECT '"\u00"'::json
+SELECT '"\u00"'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 1 of input: invalid escaped unicode in string.  Input: "\u00"
 
-Conversion Error: Malformed JSON at byte 1 of input: invalid escaped unicode in string.  Input: "\u00"
+-----------
+QUERY:
 			-- ERROR, incomplete escape
-SELECT '"\u000g"'::json
-ERROR: 			-- ERROR, incomplete escape
-SELECT '"\u000g"'::json
+SELECT '"\u000g"'::json;
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 1 of input: invalid escaped unicode in string.  Input: "\u000g"
 
-Conversion Error: Malformed JSON at byte 1 of input: invalid escaped unicode in string.  Input: "\u000g"
+-----------
+QUERY:
 		-- ERROR, g is not a hex digit
-SELECT '"\u0000"'::json
-RESULT: 
+SELECT '"\u0000"'::json;
+RESULT:
 	[('"\\u0000"',)]
+
+-----------
+QUERY:
 		-- OK, legal escape
-SELECT '"\uaBcD"'::json
-RESULT: 
+SELECT '"\uaBcD"'::json;
+RESULT:
 	[('"\\uaBcD"',)]
+
+-----------
+QUERY:
 		-- OK, uppercase and lower case both OK
 
 -- handling of unicode surrogate pairs
 
-select json '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a' as correct_in_utf8
-RESULT: 
+select json '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a' as correct_in_utf8;
+RESULT:
 	[('"😄🐶"',)]
 
-select json '{ "a":  "\ud83d\ud83d" }' -> 'a'
-ERROR: 
-select json '{ "a":  "\ud83d\ud83d" }' -> 'a'
+-----------
+QUERY:
 
-Conversion Error: Malformed JSON at byte 15 of input: invalid low surrogate in string.  Input: { "a":  "\ud83d\ud83d" }
+select json '{ "a":  "\ud83d\ud83d" }' -> 'a';
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 15 of input: invalid low surrogate in string.  Input: { "a":  "\ud83d\ud83d" }
+
+-----------
+QUERY:
  -- 2 high surrogates in a row
-select json '{ "a":  "\ude04\ud83d" }' -> 'a'
-ERROR:  -- 2 high surrogates in a row
-select json '{ "a":  "\ude04\ud83d" }' -> 'a'
+select json '{ "a":  "\ude04\ud83d" }' -> 'a';
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 9 of input: invalid high surrogate in string.  Input: { "a":  "\ude04\ud83d" }
 
-Conversion Error: Malformed JSON at byte 9 of input: invalid high surrogate in string.  Input: { "a":  "\ude04\ud83d" }
+-----------
+QUERY:
  -- surrogates in wrong order
-select json '{ "a":  "\ud83dX" }' -> 'a'
-ERROR:  -- surrogates in wrong order
-select json '{ "a":  "\ud83dX" }' -> 'a'
+select json '{ "a":  "\ud83dX" }' -> 'a';
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 15 of input: no matched low surrogate in string.  Input: { "a":  "\ud83dX" }
 
-Conversion Error: Malformed JSON at byte 15 of input: no matched low surrogate in string.  Input: { "a":  "\ud83dX" }
+-----------
+QUERY:
  -- orphan high surrogate
-select json '{ "a":  "\ude04X" }' -> 'a'
-ERROR:  -- orphan high surrogate
-select json '{ "a":  "\ude04X" }' -> 'a'
+select json '{ "a":  "\ude04X" }' -> 'a';
+RESULT:
+	ERROR - Conversion Error: Malformed JSON at byte 9 of input: invalid high surrogate in string.  Input: { "a":  "\ude04X" }
 
-Conversion Error: Malformed JSON at byte 9 of input: invalid high surrogate in string.  Input: { "a":  "\ude04X" }
+-----------
+QUERY:
  -- orphan low surrogate
 
 --handling of simple unicode escapes
 
-select json '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8
-RESULT: 
+select json '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8;
+RESULT:
 	[('{ "a":  "the Copyright \\u00a9 sign" }',)]
 
-select json '{ "a":  "dollar \u0024 character" }' as correct_everywhere
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \u0024 character" }' as correct_everywhere;
+RESULT:
 	[('{ "a":  "dollar \\u0024 character" }',)]
 
-select json '{ "a":  "dollar \\u0024 character" }' as not_an_escape
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \\u0024 character" }' as not_an_escape;
+RESULT:
 	[('{ "a":  "dollar \\\\u0024 character" }',)]
 
-select json '{ "a":  "null \u0000 escape" }' as not_unescaped
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "null \u0000 escape" }' as not_unescaped;
+RESULT:
 	[('{ "a":  "null \\u0000 escape" }',)]
 
-select json '{ "a":  "null \\u0000 escape" }' as not_an_escape
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "null \\u0000 escape" }' as not_an_escape;
+RESULT:
 	[('{ "a":  "null \\\\u0000 escape" }',)]
 
+-----------
+QUERY:
 
-select json '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8
-RESULT: 
+
+select json '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8;
+RESULT:
 	[('the Copyright © sign',)]
 
-select json '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere;
+RESULT:
 	[('dollar $ character',)]
 
-select json '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape;
+RESULT:
 	[('dollar \\u0024 character',)]
 
-select json '{ "a":  "null \u0000 escape" }' ->> 'a' as fails
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "null \u0000 escape" }' ->> 'a' as fails;
+RESULT:
 	[('null \x00 escape',)]
 
-select json '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape
-RESULT: 
+-----------
+QUERY:
+
+select json '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape;
+RESULT:
 	[('null \\u0000 escape',)]
 
+-----------
+QUERY:
+
 
 -- then jsonb
 
 -- basic unicode input
-SELECT '"\u"'::jsonb
-ERROR: 
-
--- then jsonb
-
--- basic unicode input
-SELECT '"\u"'::jsonb
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT '"\u"'::jsonb;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
 			-- ERROR, incomplete escape
-SELECT '"\u00"'::jsonb
-ERROR: 			-- ERROR, incomplete escape
-SELECT '"\u00"'::jsonb
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT '"\u00"'::jsonb;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
 			-- ERROR, incomplete escape
-SELECT '"\u000g"'::jsonb
-ERROR: 			-- ERROR, incomplete escape
-SELECT '"\u000g"'::jsonb
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT '"\u000g"'::jsonb;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
 		-- ERROR, g is not a hex digit
-SELECT '"\u0045"'::jsonb
-ERROR: 		-- ERROR, g is not a hex digit
-SELECT '"\u0045"'::jsonb
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT '"\u0045"'::jsonb;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
 		-- OK, legal escape
-SELECT '"\u0000"'::jsonb
-ERROR: 		-- OK, legal escape
-SELECT '"\u0000"'::jsonb
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT '"\u0000"'::jsonb;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
-		-- ERROR, we don''t support U+0000
--- use octet_length here so we don''t get an odd unicode char in the
--- output
-SELECT octet_length('"\uaBcD"'::jsonb::text)
-ERROR: 		-- ERROR, we don''t support U+0000
--- use octet_length here so we don''t get an odd unicode char in the
--- output
-SELECT octet_length('"\uaBcD"'::jsonb::text)
 
-Catalog Error: Type with name jsonb does not exist!
+-----------
+QUERY:
+		-- ERROR, we don/* REPLACED */''t support U+0000
+-- use octet_length here so we don/* REPLACED */''t get an odd unicode char in the
+-- output
+SELECT octet_length('"\uaBcD"'::jsonb::text);
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
  -- OK, uppercase and lower case both OK
 
 -- handling of unicode surrogate pairs
 
-SELECT octet_length((jsonb '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a')::text) AS correct_in_utf8
-ERROR:  -- OK, uppercase and lower case both OK
-
--- handling of unicode surrogate pairs
-
-SELECT octet_length((jsonb '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a')::text) AS correct_in_utf8
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT octet_length((jsonb '{ "a":  "\ud83d\ude04\ud83d\udc36" }' -> 'a')::text) AS correct_in_utf8;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "\ud83d\ud83d" }' -> 'a'
-ERROR: 
-SELECT jsonb '{ "a":  "\ud83d\ud83d" }' -> 'a'
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "\ud83d\ud83d" }' -> 'a';
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
  -- 2 high surrogates in a row
-SELECT jsonb '{ "a":  "\ude04\ud83d" }' -> 'a'
-ERROR:  -- 2 high surrogates in a row
-SELECT jsonb '{ "a":  "\ude04\ud83d" }' -> 'a'
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "\ude04\ud83d" }' -> 'a';
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
  -- surrogates in wrong order
-SELECT jsonb '{ "a":  "\ud83dX" }' -> 'a'
-ERROR:  -- surrogates in wrong order
-SELECT jsonb '{ "a":  "\ud83dX" }' -> 'a'
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "\ud83dX" }' -> 'a';
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
  -- orphan high surrogate
-SELECT jsonb '{ "a":  "\ude04X" }' -> 'a'
-ERROR:  -- orphan high surrogate
-SELECT jsonb '{ "a":  "\ude04X" }' -> 'a'
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "\ude04X" }' -> 'a';
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
  -- orphan low surrogate
 
 -- handling of simple unicode escapes
 
-SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8
-ERROR:  -- orphan low surrogate
-
--- handling of simple unicode escapes
-
-SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' as correct_in_utf8;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "dollar \u0024 character" }' as correct_everywhere
-ERROR: 
-SELECT jsonb '{ "a":  "dollar \u0024 character" }' as correct_everywhere
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "dollar \u0024 character" }' as correct_everywhere;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "dollar \\u0024 character" }' as not_an_escape
-ERROR: 
-SELECT jsonb '{ "a":  "dollar \\u0024 character" }' as not_an_escape
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "dollar \\u0024 character" }' as not_an_escape;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "null \u0000 escape" }' as fails
-ERROR: 
-SELECT jsonb '{ "a":  "null \u0000 escape" }' as fails
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "null \u0000 escape" }' as fails;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "null \\u0000 escape" }' as not_an_escape
-ERROR: 
-SELECT jsonb '{ "a":  "null \\u0000 escape" }' as not_an_escape
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "null \\u0000 escape" }' as not_an_escape;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
+-----------
+QUERY:
 
-SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8
-ERROR: 
 
-SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8
-
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "the Copyright \u00a9 sign" }' ->> 'a' as correct_in_utf8;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere
-ERROR: 
-SELECT jsonb '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "dollar \u0024 character" }' ->> 'a' as correct_everywhere;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape
-ERROR: 
-SELECT jsonb '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "dollar \\u0024 character" }' ->> 'a' as not_an_escape;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "null \u0000 escape" }' ->> 'a' as fails
-ERROR: 
-SELECT jsonb '{ "a":  "null \u0000 escape" }' ->> 'a' as fails
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "null \u0000 escape" }' ->> 'a' as fails;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
 
-SELECT jsonb '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape
-ERROR: 
-SELECT jsonb '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape
+-----------
+QUERY:
 
-Catalog Error: Type with name jsonb does not exist!
+SELECT jsonb '{ "a":  "null \\u0000 escape" }' ->> 'a' as not_an_escape;
+RESULT:
+	ERROR - Catalog Error: Type with name jsonb does not exist!
 Did you mean "JSON"?
+
+-----------
+QUERY:
 
 
 -- soft error for input-time failure
 
-select * from pg_input_error_info('{ "a":  "\ud83d\ude04\ud83d\udc36" }', 'jsonb')
-ERROR: 
-
--- soft error for input-time failure
-
-select * from pg_input_error_info('{ "a":  "\ud83d\ude04\ud83d\udc36" }', 'jsonb')
-
-Catalog Error: Table Function with name pg_input_error_info does not exist!
+select * from pg_input_error_info('{ "a":  "\ud83d\ude04\ud83d\udc36" }', 'jsonb');
+RESULT:
+	ERROR - Catalog Error: Table Function with name pg_input_error_info does not exist!
 Did you mean "pragma_storage_info"?
-
-

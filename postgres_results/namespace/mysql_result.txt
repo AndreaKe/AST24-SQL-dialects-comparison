@@ -1,0 +1,351 @@
+
+-----------
+QUERY:
+--
+-- Regression tests for schemas (namespaces)
+--
+
+-- set the whitespace-only search_path to test that the
+-- GUC list syntax is preserved during a schema creation
+SELECT pg_catalog.set_config('search_path', ' ', false);
+RESULT:
+	ERROR - (1305, 'FUNCTION pg_catalog.set_config does not exist')
+
+-----------
+QUERY:
+
+
+CREATE SCHEMA test_ns_schema_1
+       CREATE UNIQUE INDEX abc_a_idx ON abc (a)
+
+       CREATE VIEW abc_view AS
+              SELECT a+1 AS a, b+1 AS b FROM abc
+
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CREATE UNIQUE INDEX abc_a_idx ON abc (a)\n\n       CREATE VIEW abc_view AS\n       ' at line 2")
+
+-----------
+QUERY:
+
+
+-- verify that the correct search_path restored on abort
+SET search_path to public;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to public' at line 2")
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path to public, test_ns_schema_1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to public, test_ns_schema_1' at line 1")
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_ns_schema_2
+       CREATE VIEW abc_view AS SELECT c FROM abc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CREATE VIEW abc_view AS SELECT c FROM abc' at line 2")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+
+-- verify that the correct search_path preserved
+-- after creating the schema and on commit
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path to public, test_ns_schema_1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to public, test_ns_schema_1' at line 1")
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_ns_schema_2
+       CREATE VIEW abc_view AS SELECT a FROM abc;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CREATE VIEW abc_view AS SELECT a FROM abc' at line 2")
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SHOW search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+DROP SCHEMA test_ns_schema_2 CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+
+-- verify that the objects were created
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_1');
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO test_ns_schema_1.abc DEFAULT VALUES;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFAULT VALUES' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM test_ns_schema_1.abc;
+RESULT:
+	ERROR - (1049, "Unknown database 'test_ns_schema_1'")
+
+-----------
+QUERY:
+
+SELECT * FROM test_ns_schema_1.abc_view;
+RESULT:
+	ERROR - (1049, "Unknown database 'test_ns_schema_1'")
+
+-----------
+QUERY:
+
+
+ALTER SCHEMA test_ns_schema_1 RENAME TO test_ns_schema_renamed;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RENAME TO test_ns_schema_renamed' at line 1")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_1');
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test IF NOT EXISTS cases
+CREATE SCHEMA test_ns_schema_renamed;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- fail, already exists
+CREATE SCHEMA IF NOT EXISTS test_ns_schema_renamed;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- ok with notice
+CREATE SCHEMA IF NOT EXISTS test_ns_schema_renamed -- fail, disallowed
+       CREATE TABLE abc (
+              a serial,
+              b int UNIQUE
+       );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CREATE TABLE abc (\n              a serial,\n              b int UNIQUE\n       )' at line 3")
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_ns_schema_renamed CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")
+
+-----------
+QUERY:
+
+
+-- verify that the objects were dropped
+SELECT COUNT(*) FROM pg_class WHERE relnamespace =
+    (SELECT oid FROM pg_namespace WHERE nspname = 'test_ns_schema_renamed');
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Verify that search_path is set to a safe value during maintenance
+-- commands.
+--
+
+CREATE SCHEMA test_maint_search_path;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path = test_maint_search_path;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION fn(INT) RETURNS INT IMMUTABLE LANGUAGE plpgsql AS $$
+  BEGIN
+    RAISE NOTICE 'current search_path: %', current_setting('search_path');
+    RETURN $1;
+  END;
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INT) RETURNS INT IMMUTABLE LANGUAGE plpgsql AS $$\n  BEGIN\n    RAISE NOTICE 'curr' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_maint(i INT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO test_maint VALUES (1), (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE MATERIALIZED VIEW test_maint_mv AS SELECT fn(i) FROM test_maint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATERIALIZED VIEW test_maint_mv AS SELECT fn(i) FROM test_maint' at line 1")
+
+-----------
+QUERY:
+
+
+-- the following commands should see search_path as pg_catalog, pg_temp
+
+CREATE INDEX test_maint_idx ON test_maint_search_path.test_maint (fn(i));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'i))' at line 3")
+
+-----------
+QUERY:
+
+REINDEX TABLE test_maint_search_path.test_maint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REINDEX TABLE test_maint_search_path.test_maint' at line 1")
+
+-----------
+QUERY:
+
+ANALYZE test_maint_search_path.test_maint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_maint_search_path.test_maint' at line 1")
+
+-----------
+QUERY:
+
+VACUUM FULL test_maint_search_path.test_maint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM FULL test_maint_search_path.test_maint' at line 1")
+
+-----------
+QUERY:
+
+CLUSTER test_maint_search_path.test_maint USING test_maint_idx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CLUSTER test_maint_search_path.test_maint USING test_maint_idx' at line 1")
+
+-----------
+QUERY:
+
+REFRESH MATERIALIZED VIEW test_maint_search_path.test_maint_mv;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REFRESH MATERIALIZED VIEW test_maint_search_path.test_maint_mv' at line 1")
+
+-----------
+QUERY:
+
+
+RESET search_path;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'search_path' at line 1")
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_maint_search_path CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")

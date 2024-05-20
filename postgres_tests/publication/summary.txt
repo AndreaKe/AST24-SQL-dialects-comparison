@@ -1,0 +1,3505 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- PUBLICATION
+--
+CREATE ROLE regress_publication_user LOGIN SUPERUSER
+RESULT: []
+
+-----------
+QUERY:
+CREATE ROLE regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+CREATE ROLE regress_publication_user_dummy LOGIN NOSUPERUSER
+RESULT: []
+
+-----------
+QUERY:
+SET SESSION AUTHORIZATION 'regress_publication_user'
+RESULT: []
+
+-----------
+QUERY:
+-- suppress warning that depends on wal_level
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_default
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+COMMENT ON PUBLICATION testpub_default IS 'test publication'
+RESULT: []
+
+-----------
+QUERY:
+SELECT obj_description(p.oid, 'pg_publication') FROM pg_publication p
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpib_ins_trunct WITH (publish = insert)
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default SET (publish = update)
+RESULT: []
+
+-----------
+QUERY:
+-- error cases
+CREATE PUBLICATION testpub_xxx WITH (foo)
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_xxx WITH (publish = 'cluster, vacuum')
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_xxx WITH (publish_via_partition_root = 'true', publish_via_partition_root = '0')
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp
+
+ALTER PUBLICATION testpub_default SET (publish = 'insert, update, delete')
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp
+
+--- adding tables
+CREATE SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl1 (id serial primary key, data text)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_test.testpub_nopk (foo int, bar int)
+RESULT: []
+
+-----------
+QUERY:
+CREATE VIEW testpub_view AS SELECT 1
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_parted (a int) PARTITION BY LIST (a)
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_foralltables FOR ALL TABLES WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_foralltables SET (publish = 'insert, update')
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl2 (id serial primary key, data text)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - can/* REPLACED */''t add to for all tables publication
+ALTER PUBLICATION testpub_foralltables ADD TABLE testpub_tbl2
+RESULT: []
+
+-----------
+QUERY:
+-- fail - can/* REPLACED */''t drop from all tables publication
+ALTER PUBLICATION testpub_foralltables DROP TABLE testpub_tbl2
+RESULT: []
+
+-----------
+QUERY:
+-- fail - can/* REPLACED */''t add to for all tables publication
+ALTER PUBLICATION testpub_foralltables SET TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- fail - can/* REPLACED */''t add schema to /* REPLACED */''FOR ALL TABLES/* REPLACED */'' publication
+ALTER PUBLICATION testpub_foralltables ADD TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- fail - can/* REPLACED */''t drop schema from /* REPLACED */''FOR ALL TABLES/* REPLACED */'' publication
+ALTER PUBLICATION testpub_foralltables DROP TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- fail - can/* REPLACED */''t set schema to /* REPLACED */''FOR ALL TABLES/* REPLACED */'' publication
+ALTER PUBLICATION testpub_foralltables SET TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_fortable FOR TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- should be able to add schema to /* REPLACED */''FOR TABLE/* REPLACED */'' publication
+ALTER PUBLICATION testpub_fortable ADD TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_fortable
+-- should be able to drop schema from /* REPLACED */''FOR TABLE/* REPLACED */'' publication
+ALTER PUBLICATION testpub_fortable DROP TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_fortable
+-- should be able to set schema to /* REPLACED */''FOR TABLE/* REPLACED */'' publication
+ALTER PUBLICATION testpub_fortable SET TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_fortable
+
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_forschema FOR TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- should be able to create publication with schema and table of the same
+-- schema
+CREATE PUBLICATION testpub_for_tbl_schema FOR TABLES IN SCHEMA pub_test, TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_for_tbl_schema
+
+-- weird parser corner case
+CREATE PUBLICATION testpub_parsertst FOR TABLE pub_test.testpub_nopk, CURRENT_SCHEMA
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_parsertst FOR TABLES IN SCHEMA foo, test.foo
+RESULT: []
+
+-----------
+QUERY:
+-- should be able to add a table of the same schema to the schema publication
+ALTER PUBLICATION testpub_forschema ADD TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_forschema
+
+-- should be able to drop the table
+ALTER PUBLICATION testpub_forschema DROP TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_forschema
+
+-- fail - can/* REPLACED */''t drop a table from the schema publication which isn/* REPLACED */''t in the
+-- publication
+ALTER PUBLICATION testpub_forschema DROP TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- should be able to set table to schema publication
+ALTER PUBLICATION testpub_forschema SET TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_forschema
+
+SELECT pubname, puballtables FROM pg_publication WHERE pubname = 'testpub_foralltables'
+RESULT: []
+
+-----------
+QUERY:
+-- \d+ testpub_tbl2
+-- \dRp+ testpub_foralltables
+
+DROP TABLE testpub_tbl2
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_foralltables, testpub_fortable, testpub_forschema, testpub_for_tbl_schema
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl3 (a int)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl3a (b text) INHERITS (testpub_tbl3)
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub3 FOR TABLE testpub_tbl3
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub4 FOR TABLE ONLY testpub_tbl3
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub3
+-- \dRp+ testpub4
+
+DROP TABLE testpub_tbl3, testpub_tbl3a
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub3, testpub4
+RESULT: []
+
+-----------
+QUERY:
+-- Tests for partitioned tables
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_forparted
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_forparted1
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_parted1 (LIKE testpub_parted)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_parted2 (LIKE testpub_parted)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_forparted1 SET (publish='insert')
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_parted ATTACH PARTITION testpub_parted1 FOR VALUES IN (1)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_parted ATTACH PARTITION testpub_parted2 FOR VALUES IN (2)
+RESULT: []
+
+-----------
+QUERY:
+-- works despite missing REPLICA IDENTITY, because updates are not replicated
+UPDATE testpub_parted1 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- only parent is listed as being in publication, not the partition
+ALTER PUBLICATION testpub_forparted ADD TABLE testpub_parted
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_forparted
+-- works despite missing REPLICA IDENTITY, because no actual update happened
+UPDATE testpub_parted SET a = 1 WHERE false
+RESULT: []
+
+-----------
+QUERY:
+-- should now fail, because parent/* REPLACED */''s publication replicates updates
+UPDATE testpub_parted1 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_parted DETACH PARTITION testpub_parted1
+RESULT: []
+
+-----------
+QUERY:
+-- works again, because parent/* REPLACED */''s publication is no longer considered
+UPDATE testpub_parted1 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_forparted SET (publish_via_partition_root = true)
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_forparted
+-- still fail, because parent/* REPLACED */''s publication replicates updates
+UPDATE testpub_parted2 SET a = 2
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_forparted DROP TABLE testpub_parted
+RESULT: []
+
+-----------
+QUERY:
+-- works again, because update is no longer replicated
+UPDATE testpub_parted2 SET a = 2
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_parted1, testpub_parted2
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_forparted, testpub_forparted1
+RESULT: []
+
+-----------
+QUERY:
+-- Tests for row filters
+CREATE TABLE testpub_rf_tbl1 (a integer, b text)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_rf_tbl2 (c text, d integer)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_rf_tbl3 (e integer)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_rf_tbl4 (g text)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_rf_tbl5 (a xml)
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA testpub_rf_schema1
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_rf_schema1.testpub_rf_tbl5 (h integer)
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA testpub_rf_schema2
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_rf_schema2.testpub_rf_tbl6 (i integer)
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+-- Firstly, test using the option publish=/* REPLACED */''insert/* REPLACED */'' because the row filter
+-- validation of referenced columns is less strict than for delete/update.
+CREATE PUBLICATION testpub5 FOR TABLE testpub_rf_tbl1, testpub_rf_tbl2 WHERE (c <> 'test' AND d < 5) WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub5
+-- \d testpub_rf_tbl3
+ALTER PUBLICATION testpub5 ADD TABLE testpub_rf_tbl3 WHERE (e > 1000 AND e < 2000)
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub5
+-- \d testpub_rf_tbl3
+ALTER PUBLICATION testpub5 DROP TABLE testpub_rf_tbl2
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub5
+-- remove testpub_rf_tbl1 and add testpub_rf_tbl3 again (another WHERE expression)
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl3 WHERE (e > 300 AND e < 500)
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub5
+-- \d testpub_rf_tbl3
+-- test \d <tablename> (now it displays filter information)
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_rf_yes FOR TABLE testpub_rf_tbl1 WHERE (a > 1) WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_rf_no FOR TABLE testpub_rf_tbl1
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \d testpub_rf_tbl1
+DROP PUBLICATION testpub_rf_yes, testpub_rf_no
+RESULT: []
+
+-----------
+QUERY:
+-- some more syntax tests to exercise other parser pathways
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_syntax1 FOR TABLE testpub_rf_tbl1, ONLY testpub_rf_tbl3 WHERE (e < 999) WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_syntax1
+DROP PUBLICATION testpub_syntax1
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_syntax2 FOR TABLE testpub_rf_tbl1, testpub_rf_schema1.testpub_rf_tbl5 WHERE (h < 999) WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_syntax2
+DROP PUBLICATION testpub_syntax2
+RESULT: []
+
+-----------
+QUERY:
+-- fail - schemas don/* REPLACED */''t allow WHERE clause
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_syntax3 FOR TABLES IN SCHEMA testpub_rf_schema1 WHERE (a = 123)
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_syntax3 FOR TABLES IN SCHEMA testpub_rf_schema1, testpub_rf_schema1 WHERE (a = 123)
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- fail - duplicate tables are not allowed if that table has any WHERE clause
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_dups FOR TABLE testpub_rf_tbl1 WHERE (a = 1), testpub_rf_tbl1 WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_dups FOR TABLE testpub_rf_tbl1, testpub_rf_tbl1 WHERE (a = 2) WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- fail - publication WHERE clause must be boolean
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl3 WHERE (1234)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - aggregate functions not allowed in WHERE clause
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl3 WHERE (e < AVG(e))
+RESULT: []
+
+-----------
+QUERY:
+-- fail - user-defined operators are not allowed
+CREATE FUNCTION testpub_rf_func1(integer, integer) RETURNS boolean AS $$ SELECT hashint4($1) > $2 $$ LANGUAGE SQL
+RESULT: []
+
+-----------
+QUERY:
+CREATE OPERATOR =#> (PROCEDURE = testpub_rf_func1, LEFTARG = integer, RIGHTARG = integer)
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub6 FOR TABLE testpub_rf_tbl3 WHERE (e =#> 27)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - user-defined functions are not allowed
+CREATE FUNCTION testpub_rf_func2() RETURNS integer AS $$ BEGIN RETURN 123; END; $$ LANGUAGE plpgsql
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 ADD TABLE testpub_rf_tbl1 WHERE (a >= testpub_rf_func2())
+RESULT: []
+
+-----------
+QUERY:
+-- fail - non-immutable functions are not allowed. random() is volatile.
+ALTER PUBLICATION testpub5 ADD TABLE testpub_rf_tbl1 WHERE (a < random())
+RESULT: []
+
+-----------
+QUERY:
+-- fail - user-defined collations are not allowed
+CREATE COLLATION user_collation FROM "C"
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 ADD TABLE testpub_rf_tbl1 WHERE (b < '2' COLLATE user_collation)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - NULLIF is allowed
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (NULLIF(1,2) = a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - built-in operators are allowed
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (a IS NULL)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE ((a > 5) IS FALSE)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (a IS DISTINCT FROM 5)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE ((a, a + 1) < (2, 3))
+RESULT: []
+
+-----------
+QUERY:
+-- ok - built-in type coercions between two binary compatible datatypes are allowed
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (b::varchar < '2')
+RESULT: []
+
+-----------
+QUERY:
+-- ok - immutable built-in functions are allowed
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl4 WHERE (length(g) < 6)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - user-defined types are not allowed
+CREATE TYPE rf_bug_status AS ENUM ('new', 'open', 'closed')
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_bug (id serial, description text, status rf_bug_status)
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub6 FOR TABLE rf_bug WHERE (status = 'open') WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_bug
+RESULT: []
+
+-----------
+QUERY:
+DROP TYPE rf_bug_status
+RESULT: []
+
+-----------
+QUERY:
+-- fail - row filter expression is not simple
+CREATE PUBLICATION testpub6 FOR TABLE testpub_rf_tbl1 WHERE (a IN (SELECT generate_series(1,5)))
+RESULT: []
+
+-----------
+QUERY:
+-- fail - system columns are not allowed
+CREATE PUBLICATION testpub6 FOR TABLE testpub_rf_tbl1 WHERE ('(0,1)'::tid = ctid)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - conditional expressions are allowed
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl5 WHERE (a IS DOCUMENT)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl5 WHERE (xmlexists('//foo[text() = ''bar'']' PASSING BY VALUE a))
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (NULLIF(1, 2) = a)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (CASE a WHEN 5 THEN true ELSE false END)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (COALESCE(b, 'foo') = 'foo')
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (GREATEST(a, 10) > 10)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (a IN (2, 4, 6))
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (ARRAY[a] <@ ARRAY[2, 4, 6])
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub5 SET TABLE testpub_rf_tbl1 WHERE (ROW(a, 2) IS NULL)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - WHERE not allowed in DROP
+ALTER PUBLICATION testpub5 DROP TABLE testpub_rf_tbl1 WHERE (e < 27)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - cannot ALTER SET table which is a member of a pre-existing schema
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub6 FOR TABLES IN SCHEMA testpub_rf_schema2
+RESULT: []
+
+-----------
+QUERY:
+-- should be able to set publication with schema and table of the same schema
+ALTER PUBLICATION testpub6 SET TABLES IN SCHEMA testpub_rf_schema2, TABLE testpub_rf_schema2.testpub_rf_tbl6 WHERE (i < 99)
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub6
+
+DROP TABLE testpub_rf_tbl1
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_rf_tbl2
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_rf_tbl3
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_rf_tbl4
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_rf_tbl5
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_rf_schema1.testpub_rf_tbl5
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_rf_schema2.testpub_rf_tbl6
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA testpub_rf_schema1
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA testpub_rf_schema2
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub5
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub6
+RESULT: []
+
+-----------
+QUERY:
+DROP OPERATOR =#>(integer, integer)
+RESULT: []
+
+-----------
+QUERY:
+DROP FUNCTION testpub_rf_func1(integer, integer)
+RESULT: []
+
+-----------
+QUERY:
+DROP FUNCTION testpub_rf_func2()
+RESULT: []
+
+-----------
+QUERY:
+DROP COLLATION user_collation
+RESULT: []
+
+-----------
+QUERY:
+-- ======================================================
+-- More row filter tests for validating column references
+CREATE TABLE rf_tbl_abcd_nopk(a int, b int, c int, d int)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_tbl_abcd_pk(a int, b int, c int, d int, PRIMARY KEY(a,b))
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_tbl_abcd_part_pk (a int PRIMARY KEY, b int) PARTITION by RANGE (a)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_tbl_abcd_part_pk_1 (b int, a int PRIMARY KEY)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_part_pk ATTACH PARTITION rf_tbl_abcd_part_pk_1 FOR VALUES FROM (1) TO (10)
+RESULT: []
+
+-----------
+QUERY:
+-- Case 1. REPLICA IDENTITY DEFAULT (means use primary key or nothing)
+-- 1a. REPLICA IDENTITY is DEFAULT and table has a PK.
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub6 FOR TABLE rf_tbl_abcd_pk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (b > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''b/* REPLACED */'' is a PK col
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''c/* REPLACED */'' is not part of the PK
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (d > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''d/* REPLACED */'' is not part of the PK
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- 1b. REPLICA IDENTITY is DEFAULT and table has no PK
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''a/* REPLACED */'' is not part of REPLICA IDENTITY
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Case 2. REPLICA IDENTITY FULL
+ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''c/* REPLACED */'' is in REPLICA IDENTITY now even though not in PK
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''a/* REPLACED */'' is in REPLICA IDENTITY now
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Case 3. REPLICA IDENTITY NOTHING
+ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY NOTHING
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY NOTHING
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''a/* REPLACED */'' is in PK but it is not part of REPLICA IDENTITY NOTHING
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''c/* REPLACED */'' is not in PK and not in REPLICA IDENTITY NOTHING
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''a/* REPLACED */'' is not in REPLICA IDENTITY NOTHING
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Case 4. REPLICA IDENTITY INDEX
+ALTER TABLE rf_tbl_abcd_pk ALTER COLUMN c SET NOT NULL
+RESULT: []
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX idx_abcd_pk_c ON rf_tbl_abcd_pk(c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY USING INDEX idx_abcd_pk_c
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk ALTER COLUMN c SET NOT NULL
+RESULT: []
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX idx_abcd_nopk_c ON rf_tbl_abcd_nopk(c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY USING INDEX idx_abcd_nopk_c
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''a/* REPLACED */'' is in PK but it is not part of REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''c/* REPLACED */'' is not in PK but it is part of REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''a/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (c > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''c/* REPLACED */'' is part of REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Tests for partitioned table
+
+-- set PUBLISH_VIA_PARTITION_ROOT to false and test row filter for partitioned
+-- table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - cannot use row filter for partitioned table
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - can use row filter for partition
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- set PUBLISH_VIA_PARTITION_ROOT to true and test row filter for partitioned
+-- table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - can use row filter for partitioned table
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk WHERE (a > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- fail - cannot set PUBLISH_VIA_PARTITION_ROOT to false if any row filter is
+-- used for partitioned table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- remove partitioned table/* REPLACED */''s row filter
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk
+RESULT: []
+
+-----------
+QUERY:
+-- ok - we don/* REPLACED */''t have row filter for partitioned table.
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- Now change the root filter to use a column /* REPLACED */''b/* REPLACED */''
+-- (which is not in the replica identity)
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 WHERE (b > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - we don/* REPLACED */''t have row filter for partitioned table.
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- set PUBLISH_VIA_PARTITION_ROOT to true
+-- can use row filter for partitioned table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - can use row filter for partitioned table
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk WHERE (b > 99)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub6
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_tbl_abcd_pk
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_tbl_abcd_nopk
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_tbl_abcd_part_pk
+RESULT: []
+
+-----------
+QUERY:
+-- ======================================================
+
+-- fail - duplicate tables are not allowed if that table has any column lists
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_dups FOR TABLE testpub_tbl1 (a), testpub_tbl1 WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_dups FOR TABLE testpub_tbl1, testpub_tbl1 (a) WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- test for column lists
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_fortable FOR TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_fortable_insert WITH (publish = 'insert')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl5 (a int PRIMARY KEY, b text, c text,
+	d int generated always as (a + length(b)) stored)
+RESULT: []
+
+-----------
+QUERY:
+-- error: column /* REPLACED */''x/* REPLACED */'' does not exist
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, x)
+RESULT: []
+
+-----------
+QUERY:
+-- error: replica identity /* REPLACED */''a/* REPLACED */'' not included in the column list
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (b, c)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl5 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable DROP TABLE testpub_tbl5
+RESULT: []
+
+-----------
+QUERY:
+-- error: generated column /* REPLACED */''d/* REPLACED */'' can/* REPLACED */''t be in list
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, d)
+RESULT: []
+
+-----------
+QUERY:
+-- error: system attributes /* REPLACED */''ctid/* REPLACED */'' not allowed in column list
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, ctid)
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl5 DROP COLUMN c
+RESULT: []
+
+-----------
+QUERY:
+-- no dice
+-- ok: for insert-only publication, any column list is acceptable
+ALTER PUBLICATION testpub_fortable_insert ADD TABLE testpub_tbl5 (b, c)
+RESULT: []
+
+-----------
+QUERY:
+/* not all replica identities are good enough */
+CREATE UNIQUE INDEX testpub_tbl5_b_key ON testpub_tbl5 (b, c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl5 ALTER b SET NOT NULL, ALTER c SET NOT NULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl5 REPLICA IDENTITY USING INDEX testpub_tbl5_b_key
+RESULT: []
+
+-----------
+QUERY:
+-- error: replica identity (b,c) is not covered by column list (a, c)
+UPDATE testpub_tbl5 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable DROP TABLE testpub_tbl5
+RESULT: []
+
+-----------
+QUERY:
+-- error: change the replica identity to /* REPLACED */''b/* REPLACED */'', and column list to (a, c)
+-- then update fails, because (a, c) does not cover replica identity
+ALTER TABLE testpub_tbl5 REPLICA IDENTITY USING INDEX testpub_tbl5_b_key
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, c)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl5 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+/* But if upd/del are not published, it works OK */
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_table_ins WITH (publish = 'insert, truncate')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_table_ins ADD TABLE testpub_tbl5 (a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+-- \dRp+ testpub_table_ins
+
+-- error: cannot work with deferrable primary keys
+CREATE TABLE testpub_tbl5d (a int PRIMARY KEY DEFERRABLE)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5d
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl5d SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+/* but works fine with FULL replica identity */
+ALTER TABLE testpub_tbl5d REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl5d SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_tbl5d
+RESULT: []
+
+-----------
+QUERY:
+-- tests with REPLICA IDENTITY FULL
+CREATE TABLE testpub_tbl6 (a int, b text, c text)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl6 REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl6 (a, b, c)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl6 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable DROP TABLE testpub_tbl6
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl6
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+UPDATE testpub_tbl6 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- make sure changing the column list is propagated to the catalog
+CREATE TABLE testpub_tbl7 (a int primary key, b text, c text)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl7 (a, b)
+RESULT: []
+
+-----------
+QUERY:
+-- \d+ testpub_tbl7
+-- ok: the column list is the same, we should skip this table (or at least not fail)
+ALTER PUBLICATION testpub_fortable SET TABLE testpub_tbl7 (a, b)
+RESULT: []
+
+-----------
+QUERY:
+-- \d+ testpub_tbl7
+-- ok: the column list changes, make sure the catalog gets updated
+ALTER PUBLICATION testpub_fortable SET TABLE testpub_tbl7 (a, c)
+RESULT: []
+
+-----------
+QUERY:
+-- \d+ testpub_tbl7
+
+-- column list for partitioned tables has to cover replica identities for
+-- all child relations
+CREATE TABLE testpub_tbl8 (a int, b text, c text) PARTITION BY HASH (a)
+RESULT: []
+
+-----------
+QUERY:
+-- first partition has replica identity /* REPLACED */''a/* REPLACED */''
+CREATE TABLE testpub_tbl8_0 PARTITION OF testpub_tbl8 FOR VALUES WITH (modulus 2, remainder 0)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_0 ADD PRIMARY KEY (a)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_0 REPLICA IDENTITY USING INDEX testpub_tbl8_0_pkey
+RESULT: []
+
+-----------
+QUERY:
+-- second partition has replica identity /* REPLACED */''b/* REPLACED */''
+CREATE TABLE testpub_tbl8_1 PARTITION OF testpub_tbl8 FOR VALUES WITH (modulus 2, remainder 1)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_1 ADD PRIMARY KEY (b)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey
+RESULT: []
+
+-----------
+QUERY:
+-- ok: column list covers both /* REPLACED */''a/* REPLACED */'' and /* REPLACED */''b/* REPLACED */''
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_col_list FOR TABLE testpub_tbl8 (a, b) WITH (publish_via_partition_root = 'true')
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- ok: the same thing, but try plain ADD TABLE
+ALTER PUBLICATION testpub_col_list DROP TABLE testpub_tbl8
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, b)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- failure: column list does not cover replica identity for the second partition
+ALTER PUBLICATION testpub_col_list DROP TABLE testpub_tbl8
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, c)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list DROP TABLE testpub_tbl8
+RESULT: []
+
+-----------
+QUERY:
+-- failure: one of the partitions has REPLICA IDENTITY FULL
+ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, c)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list DROP TABLE testpub_tbl8
+RESULT: []
+
+-----------
+QUERY:
+-- add table and then try changing replica identity
+ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, b)
+RESULT: []
+
+-----------
+QUERY:
+-- failure: replica identity full can/* REPLACED */''t be used with a column list
+ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- failure: replica identity has to be covered by the column list
+ALTER TABLE testpub_tbl8_1 DROP CONSTRAINT testpub_tbl8_1_pkey
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_1 ADD PRIMARY KEY (c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_tbl8
+RESULT: []
+
+-----------
+QUERY:
+-- column list for partitioned tables has to cover replica identities for
+-- all child relations
+CREATE TABLE testpub_tbl8 (a int, b text, c text) PARTITION BY HASH (a)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, b)
+RESULT: []
+
+-----------
+QUERY:
+-- first partition has replica identity /* REPLACED */''a/* REPLACED */''
+CREATE TABLE testpub_tbl8_0 (a int, b text, c text)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_0 ADD PRIMARY KEY (a)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_0 REPLICA IDENTITY USING INDEX testpub_tbl8_0_pkey
+RESULT: []
+
+-----------
+QUERY:
+-- second partition has replica identity /* REPLACED */''b/* REPLACED */''
+CREATE TABLE testpub_tbl8_1 (a int, b text, c text)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_1 ADD PRIMARY KEY (c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey
+RESULT: []
+
+-----------
+QUERY:
+-- ok: attaching first partition works, because (a) is in column list
+ALTER TABLE testpub_tbl8 ATTACH PARTITION testpub_tbl8_0 FOR VALUES WITH (modulus 2, remainder 0)
+RESULT: []
+
+-----------
+QUERY:
+-- failure: second partition has replica identity (c), which si not in column list
+ALTER TABLE testpub_tbl8 ATTACH PARTITION testpub_tbl8_1 FOR VALUES WITH (modulus 2, remainder 1)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- failure: changing replica identity to FULL for partition fails, because
+-- of the column list on the parent
+ALTER TABLE testpub_tbl8_0 REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl8 SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- test that using column list for table is disallowed if any schemas are
+-- part of the publication
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+-- failure - cannot use column list and schema together
+CREATE PUBLICATION testpub_tbl9 FOR TABLES IN SCHEMA public, TABLE public.testpub_tbl7(a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - only publish schema
+CREATE PUBLICATION testpub_tbl9 FOR TABLES IN SCHEMA public
+RESULT: []
+
+-----------
+QUERY:
+-- failure - add a table with column list when there is already a schema in the
+-- publication
+ALTER PUBLICATION testpub_tbl9 ADD TABLE public.testpub_tbl7(a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - only publish table with column list
+ALTER PUBLICATION testpub_tbl9 SET TABLE public.testpub_tbl7(a)
+RESULT: []
+
+-----------
+QUERY:
+-- failure - specify a schema when there is already a column list in the
+-- publication
+ALTER PUBLICATION testpub_tbl9 ADD TABLES IN SCHEMA public
+RESULT: []
+
+-----------
+QUERY:
+-- failure - cannot SET column list and schema together
+ALTER PUBLICATION testpub_tbl9 SET TABLES IN SCHEMA public, TABLE public.testpub_tbl7(a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - drop table
+ALTER PUBLICATION testpub_tbl9 DROP TABLE public.testpub_tbl7
+RESULT: []
+
+-----------
+QUERY:
+-- failure - cannot ADD column list and schema together
+ALTER PUBLICATION testpub_tbl9 ADD TABLES IN SCHEMA public, TABLE public.testpub_tbl7(a)
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_tbl5, testpub_tbl6, testpub_tbl7, testpub_tbl8, testpub_tbl8_1
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_table_ins, testpub_fortable, testpub_fortable_insert, testpub_col_list, testpub_tbl9
+RESULT: []
+
+-----------
+QUERY:
+-- ======================================================
+
+-- Test combination of column list and row filter
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_both_filters
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl_both_filters (a int, b int, c int, PRIMARY KEY (a,c))
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE testpub_tbl_both_filters REPLICA IDENTITY USING INDEX testpub_tbl_both_filters_pkey
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_both_filters ADD TABLE testpub_tbl_both_filters (a,c) WHERE (c != 1)
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_both_filters
+-- \d+ testpub_tbl_both_filters
+
+DROP TABLE testpub_tbl_both_filters
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_both_filters
+RESULT: []
+
+-----------
+QUERY:
+-- ======================================================
+
+-- More column list tests for validating column references
+CREATE TABLE rf_tbl_abcd_nopk(a int, b int, c int, d int)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_tbl_abcd_pk(a int, b int, c int, d int, PRIMARY KEY(a,b))
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_tbl_abcd_part_pk (a int PRIMARY KEY, b int) PARTITION by RANGE (a)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE rf_tbl_abcd_part_pk_1 (b int, a int PRIMARY KEY)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_part_pk ATTACH PARTITION rf_tbl_abcd_part_pk_1 FOR VALUES FROM (1) TO (10)
+RESULT: []
+
+-----------
+QUERY:
+-- Case 1. REPLICA IDENTITY DEFAULT (means use primary key or nothing)
+
+-- 1a. REPLICA IDENTITY is DEFAULT and table has a PK.
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub6 FOR TABLE rf_tbl_abcd_pk (a, b)
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- ok - (a,b) coverts all PK cols
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a, b, c)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - (a,b,c) coverts all PK cols
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''b/* REPLACED */'' is missing from the column list
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (b)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''a/* REPLACED */'' is missing from the column list
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- 1b. REPLICA IDENTITY is DEFAULT and table has no PK
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - there/* REPLACED */''s no replica identity, so any column list works
+-- note: it fails anyway, just a bit later because UPDATE requires RI
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Case 2. REPLICA IDENTITY FULL
+ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY FULL
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (c)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - with REPLICA IDENTITY FULL no column list is allowed
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (a, b, c, d)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - with REPLICA IDENTITY FULL no column list is allowed
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Case 3. REPLICA IDENTITY NOTHING
+ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY NOTHING
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY NOTHING
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - REPLICA IDENTITY NOTHING means all column lists are valid
+-- it still fails later because without RI we can/* REPLACED */''t replicate updates
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a, b, c, d)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - REPLICA IDENTITY NOTHING means all column lists are valid
+-- it still fails later because without RI we can/* REPLACED */''t replicate updates
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (d)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - REPLICA IDENTITY NOTHING means all column lists are valid
+-- it still fails later because without RI we can/* REPLACED */''t replicate updates
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Case 4. REPLICA IDENTITY INDEX
+ALTER TABLE rf_tbl_abcd_pk ALTER COLUMN c SET NOT NULL
+RESULT: []
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX idx_abcd_pk_c ON rf_tbl_abcd_pk(c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY USING INDEX idx_abcd_pk_c
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk ALTER COLUMN c SET NOT NULL
+RESULT: []
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX idx_abcd_nopk_c ON rf_tbl_abcd_nopk(c)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY USING INDEX idx_abcd_nopk_c
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - column list /* REPLACED */''a/* REPLACED */'' does not cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (c)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - column list /* REPLACED */''c/* REPLACED */'' does cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+UPDATE rf_tbl_abcd_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - column list /* REPLACED */''a/* REPLACED */'' does not cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (c)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - column list /* REPLACED */''c/* REPLACED */'' does cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+UPDATE rf_tbl_abcd_nopk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- Tests for partitioned table
+
+-- set PUBLISH_VIA_PARTITION_ROOT to false and test column list for partitioned
+-- table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - cannot use column list for partitioned table
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - can use column list for partition
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 (a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- set PUBLISH_VIA_PARTITION_ROOT to true and test column list for partitioned
+-- table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - can use column list for partitioned table
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk (a)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- fail - cannot set PUBLISH_VIA_PARTITION_ROOT to false if any column list is
+-- used for partitioned table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- remove partitioned table/* REPLACED */''s column list
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk
+RESULT: []
+
+-----------
+QUERY:
+-- ok - we don/* REPLACED */''t have column list for partitioned table.
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- Now change the root column list to use a column /* REPLACED */''b/* REPLACED */''
+-- (which is not in the replica identity)
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 (b)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - we don/* REPLACED */''t have column list for partitioned table.
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- set PUBLISH_VIA_PARTITION_ROOT to true
+-- can use column list for partitioned table
+ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+-- ok - can use column list for partitioned table
+ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk (b)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+UPDATE rf_tbl_abcd_part_pk SET a = 1
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub6
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_tbl_abcd_pk
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_tbl_abcd_nopk
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE rf_tbl_abcd_part_pk
+RESULT: []
+
+-----------
+QUERY:
+-- ======================================================
+
+-- Test cache invalidation FOR ALL TABLES publication
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE testpub_tbl4(a int)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO testpub_tbl4 values(1)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE testpub_tbl4 set a = 2
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_foralltables FOR ALL TABLES
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- fail missing REPLICA IDENTITY
+UPDATE testpub_tbl4 set a = 3
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_foralltables
+RESULT: []
+
+-----------
+QUERY:
+-- should pass after dropping the publication
+UPDATE testpub_tbl4 set a = 3
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_tbl4
+RESULT: []
+
+-----------
+QUERY:
+-- fail - view
+CREATE PUBLICATION testpub_fortbl FOR TABLE testpub_view
+RESULT: []
+
+-----------
+QUERY:
+CREATE TEMPORARY TABLE testpub_temptbl(a int)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - temporary table
+CREATE PUBLICATION testpub_fortemptbl FOR TABLE testpub_temptbl
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_temptbl
+RESULT: []
+
+-----------
+QUERY:
+CREATE UNLOGGED TABLE testpub_unloggedtbl(a int)
+RESULT: []
+
+-----------
+QUERY:
+-- fail - unlogged table
+CREATE PUBLICATION testpub_forunloggedtbl FOR TABLE testpub_unloggedtbl
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_unloggedtbl
+RESULT: []
+
+-----------
+QUERY:
+-- fail - system table
+CREATE PUBLICATION testpub_forsystemtbl FOR TABLE pg_publication
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_fortbl FOR TABLE testpub_tbl1, pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- fail - already added
+ALTER PUBLICATION testpub_fortbl ADD TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+-- fail - already added
+CREATE PUBLICATION testpub_fortbl FOR TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_fortbl
+
+-- fail - view
+ALTER PUBLICATION testpub_default ADD TABLE testpub_view
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default ADD TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default SET TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default ADD TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpib_ins_trunct ADD TABLE pub_test.testpub_nopk, testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+-- \d+ pub_test.testpub_nopk
+-- \d+ testpub_tbl1
+-- \dRp+ testpub_default
+
+ALTER PUBLICATION testpub_default DROP TABLE testpub_tbl1, pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- fail - nonexistent
+ALTER PUBLICATION testpub_default DROP TABLE pub_test.testpub_nopk
+RESULT: []
+
+-----------
+QUERY:
+-- \d+ testpub_tbl1
+
+-- verify relation cache invalidation when a primary key is added using
+-- an existing index
+CREATE TABLE pub_test.testpub_addpk (id int not null, data int)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default ADD TABLE pub_test.testpub_addpk
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO pub_test.testpub_addpk VALUES(1, 11)
+RESULT: []
+
+-----------
+QUERY:
+CREATE UNIQUE INDEX testpub_addpk_id_idx ON pub_test.testpub_addpk(id)
+RESULT: []
+
+-----------
+QUERY:
+-- fail:
+UPDATE pub_test.testpub_addpk SET id = 2
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE pub_test.testpub_addpk ADD PRIMARY KEY USING INDEX testpub_addpk_id_idx
+RESULT: []
+
+-----------
+QUERY:
+-- now it should work:
+UPDATE pub_test.testpub_addpk SET id = 2
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE pub_test.testpub_addpk
+RESULT: []
+
+-----------
+QUERY:
+-- permissions
+SET ROLE regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub2
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+
+SET ROLE regress_publication_user
+RESULT: []
+
+-----------
+QUERY:
+GRANT CREATE ON DATABASE regression TO regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+SET ROLE regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub2
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+CREATE PUBLICATION testpub3 FOR TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+CREATE PUBLICATION testpub3
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub2 ADD TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+ALTER PUBLICATION testpub3 ADD TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+
+SET ROLE regress_publication_user
+RESULT: []
+
+-----------
+QUERY:
+GRANT regress_publication_user TO regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+SET ROLE regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub2 ADD TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+
+DROP PUBLICATION testpub2
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub3
+RESULT: []
+
+-----------
+QUERY:
+SET ROLE regress_publication_user
+RESULT: []
+
+-----------
+QUERY:
+CREATE ROLE regress_publication_user3
+RESULT: []
+
+-----------
+QUERY:
+GRANT regress_publication_user2 TO regress_publication_user3
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub4 FOR TABLES IN SCHEMA pub_test
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub4 OWNER TO regress_publication_user3
+RESULT: []
+
+-----------
+QUERY:
+SET ROLE regress_publication_user3
+RESULT: []
+
+-----------
+QUERY:
+-- fail - new owner must be superuser
+ALTER PUBLICATION testpub4 owner to regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+ALTER PUBLICATION testpub4 owner to regress_publication_user
+RESULT: []
+
+-----------
+QUERY:
+-- ok
+
+SET ROLE regress_publication_user
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub4
+RESULT: []
+
+-----------
+QUERY:
+DROP ROLE regress_publication_user3
+RESULT: []
+
+-----------
+QUERY:
+REVOKE CREATE ON DATABASE regression FROM regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_parted
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE testpub_tbl1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_default
+
+-- fail - must be owner of publication
+SET ROLE regress_publication_user_dummy
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default RENAME TO testpub_dummy
+RESULT: []
+
+-----------
+QUERY:
+RESET ROLE
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default RENAME TO testpub_foo
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp testpub_foo
+
+-- rename back to keep the rest simple
+ALTER PUBLICATION testpub_foo RENAME TO testpub_default
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub_default OWNER TO regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp testpub_default
+
+-- adding schemas and tables
+CREATE SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA pub_test2
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA pub_test3
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA "CURRENT_SCHEMA"
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_test1.tbl (id int, data text)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_test1.tbl1 (id serial primary key, data text)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_test2.tbl1 (id serial primary key, data text)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE "CURRENT_SCHEMA"."CURRENT_SCHEMA"(id int)
+RESULT: []
+
+-----------
+QUERY:
+-- suppress warning that depends on wal_level
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub1_forschema FOR TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+CREATE PUBLICATION testpub2_forschema FOR TABLES IN SCHEMA pub_test1, pub_test2, pub_test3
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub2_forschema
+
+-- check create publication on CURRENT_SCHEMA
+CREATE PUBLICATION testpub3_forschema FOR TABLES IN SCHEMA CURRENT_SCHEMA
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub4_forschema FOR TABLES IN SCHEMA "CURRENT_SCHEMA"
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub5_forschema FOR TABLES IN SCHEMA CURRENT_SCHEMA, "CURRENT_SCHEMA"
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub6_forschema FOR TABLES IN SCHEMA "CURRENT_SCHEMA", CURRENT_SCHEMA
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_fortable FOR TABLE "CURRENT_SCHEMA"."CURRENT_SCHEMA"
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub3_forschema
+-- \dRp+ testpub4_forschema
+-- \dRp+ testpub5_forschema
+-- \dRp+ testpub6_forschema
+-- \dRp+ testpub_fortable
+
+-- check create publication on CURRENT_SCHEMA where search_path is not set
+SET SEARCH_PATH=''
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_forschema FOR TABLES IN SCHEMA CURRENT_SCHEMA
+RESULT: []
+
+-----------
+QUERY:
+RESET SEARCH_PATH
+RESULT: []
+
+-----------
+QUERY:
+-- check create publication on CURRENT_SCHEMA where TABLE/TABLES in SCHEMA
+-- is not specified
+CREATE PUBLICATION testpub_forschema1 FOR CURRENT_SCHEMA
+RESULT: []
+
+-----------
+QUERY:
+-- check create publication on CURRENT_SCHEMA along with FOR TABLE
+CREATE PUBLICATION testpub_forschema1 FOR TABLE CURRENT_SCHEMA
+RESULT: []
+
+-----------
+QUERY:
+-- check create publication on a schema that does not exist
+CREATE PUBLICATION testpub_forschema FOR TABLES IN SCHEMA non_existent_schema
+RESULT: []
+
+-----------
+QUERY:
+-- check create publication on a system schema
+CREATE PUBLICATION testpub_forschema FOR TABLES IN SCHEMA pg_catalog
+RESULT: []
+
+-----------
+QUERY:
+-- check create publication on an object which is not schema
+CREATE PUBLICATION testpub1_forschema1 FOR TABLES IN SCHEMA testpub_view
+RESULT: []
+
+-----------
+QUERY:
+-- dropping the schema should reflect the change in publication
+DROP SCHEMA pub_test3
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub2_forschema
+
+-- renaming the schema should reflect the change in publication
+ALTER SCHEMA pub_test1 RENAME to pub_test1_renamed
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub2_forschema
+
+ALTER SCHEMA pub_test1_renamed RENAME to pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub2_forschema
+
+-- alter publication add schema
+ALTER PUBLICATION testpub1_forschema ADD TABLES IN SCHEMA pub_test2
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- add non existent schema
+ALTER PUBLICATION testpub1_forschema ADD TABLES IN SCHEMA non_existent_schema
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- add a schema which is already added to the publication
+ALTER PUBLICATION testpub1_forschema ADD TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- alter publication drop schema
+ALTER PUBLICATION testpub1_forschema DROP TABLES IN SCHEMA pub_test2
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- drop schema that is not present in the publication
+ALTER PUBLICATION testpub1_forschema DROP TABLES IN SCHEMA pub_test2
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- drop a schema that does not exist in the system
+ALTER PUBLICATION testpub1_forschema DROP TABLES IN SCHEMA non_existent_schema
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- drop all schemas
+ALTER PUBLICATION testpub1_forschema DROP TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- alter publication set multiple schema
+ALTER PUBLICATION testpub1_forschema SET TABLES IN SCHEMA pub_test1, pub_test2
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- alter publication set non-existent schema
+ALTER PUBLICATION testpub1_forschema SET TABLES IN SCHEMA non_existent_schema
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- alter publication set it duplicate schemas should set the schemas after
+-- removing the duplicate schemas
+ALTER PUBLICATION testpub1_forschema SET TABLES IN SCHEMA pub_test1, pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub1_forschema
+
+-- Verify that it fails to add a schema with a column specification
+ALTER PUBLICATION testpub1_forschema ADD TABLES IN SCHEMA foo (a, b)
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub1_forschema ADD TABLES IN SCHEMA foo, bar (a, b)
+RESULT: []
+
+-----------
+QUERY:
+-- cleanup pub_test1 schema for invalidation tests
+ALTER PUBLICATION testpub2_forschema DROP TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub3_forschema, testpub4_forschema, testpub5_forschema, testpub6_forschema, testpub_fortable
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA "CURRENT_SCHEMA" CASCADE
+RESULT: []
+
+-----------
+QUERY:
+-- verify relation cache invalidations through update statement for the
+-- default REPLICA IDENTITY on the relation, if schema is part of the
+-- publication then update will fail because relation/* REPLACED */''s relreplident
+-- option will be set, if schema is not part of the publication then update
+-- will be successful.
+INSERT INTO pub_test1.tbl VALUES(1, 'test')
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+UPDATE pub_test1.tbl SET id = 2
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub1_forschema DROP TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- success
+UPDATE pub_test1.tbl SET id = 2
+RESULT: []
+
+-----------
+QUERY:
+ALTER PUBLICATION testpub1_forschema SET TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+UPDATE pub_test1.tbl SET id = 2
+RESULT: []
+
+-----------
+QUERY:
+-- verify invalidation of partition table having parent and child tables in
+-- different schema
+CREATE SCHEMA pub_testpart1
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA pub_testpart2
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_testpart1.parent1 (a int) partition by list (a)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_testpart2.child_parent1 partition of pub_testpart1.parent1 for values in (1)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO pub_testpart2.child_parent1 values(1)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE pub_testpart2.child_parent1 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpubpart_forschema FOR TABLES IN SCHEMA pub_testpart1
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+UPDATE pub_testpart1.parent1 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+UPDATE pub_testpart2.child_parent1 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpubpart_forschema
+RESULT: []
+
+-----------
+QUERY:
+-- verify invalidation of partition tables for schema publication that has
+-- parent and child tables of different partition hierarchies
+CREATE TABLE pub_testpart2.parent2 (a int) partition by list (a)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE pub_testpart1.child_parent2 partition of pub_testpart2.parent2 for values in (1)
+RESULT: []
+
+-----------
+QUERY:
+INSERT INTO pub_testpart1.child_parent2 values(1)
+RESULT: []
+
+-----------
+QUERY:
+UPDATE pub_testpart1.child_parent2 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpubpart_forschema FOR TABLES IN SCHEMA pub_testpart2
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- fail
+UPDATE pub_testpart2.child_parent1 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+UPDATE pub_testpart2.parent2 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+UPDATE pub_testpart1.child_parent2 set a = 1
+RESULT: []
+
+-----------
+QUERY:
+-- alter publication set /* REPLACED */''TABLES IN SCHEMA/* REPLACED */'' on an empty publication.
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub3_forschema
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub3_forschema
+ALTER PUBLICATION testpub3_forschema SET TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub3_forschema
+
+-- create publication including both /* REPLACED */''FOR TABLE/* REPLACED */'' and /* REPLACED */''FOR TABLES IN SCHEMA/* REPLACED */''
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_forschema_fortable FOR TABLES IN SCHEMA pub_test1, TABLE pub_test2.tbl1
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION testpub_fortable_forschema FOR TABLE pub_test2.tbl1, TABLES IN SCHEMA pub_test1
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+-- \dRp+ testpub_forschema_fortable
+-- \dRp+ testpub_fortable_forschema
+
+-- fail specifying table without any of /* REPLACED */''FOR TABLES IN SCHEMA/* REPLACED */'' or
+--/* REPLACED */''FOR TABLE/* REPLACED */'' or /* REPLACED */''FOR ALL TABLES/* REPLACED */''
+CREATE PUBLICATION testpub_error FOR pub_test2.tbl1
+RESULT: []
+
+-----------
+QUERY:
+DROP VIEW testpub_view
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_default
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpib_ins_trunct
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_fortbl
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub1_forschema
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub2_forschema
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub3_forschema
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_forschema_fortable
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpub_fortable_forschema
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION testpubpart_forschema
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA pub_test CASCADE
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA pub_test1 CASCADE
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA pub_test2 CASCADE
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA pub_testpart1 CASCADE
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA pub_testpart2 CASCADE
+RESULT: []
+
+-----------
+QUERY:
+-- Test the list of partitions published with or without
+-- /* REPLACED */''PUBLISH_VIA_PARTITION_ROOT/* REPLACED */'' parameter
+SET client_min_messages = 'ERROR'
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA sch1
+RESULT: []
+
+-----------
+QUERY:
+CREATE SCHEMA sch2
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE sch1.tbl1 (a int) PARTITION BY RANGE(a)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE sch2.tbl1_part1 PARTITION OF sch1.tbl1 FOR VALUES FROM (1) to (10)
+RESULT: []
+
+-----------
+QUERY:
+-- Schema publication that does not include the schema that has the parent table
+CREATE PUBLICATION pub FOR TABLES IN SCHEMA sch2 WITH (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION pub
+RESULT: []
+
+-----------
+QUERY:
+-- Table publication that does not include the parent table
+CREATE PUBLICATION pub FOR TABLE sch2.tbl1_part1 WITH (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+-- Table publication that includes both the parent table and the child table
+ALTER PUBLICATION pub ADD TABLE sch1.tbl1
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION pub
+RESULT: []
+
+-----------
+QUERY:
+-- Schema publication that does not include the schema that has the parent table
+CREATE PUBLICATION pub FOR TABLES IN SCHEMA sch2 WITH (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION pub
+RESULT: []
+
+-----------
+QUERY:
+-- Table publication that does not include the parent table
+CREATE PUBLICATION pub FOR TABLE sch2.tbl1_part1 WITH (PUBLISH_VIA_PARTITION_ROOT=0)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+-- Table publication that includes both the parent table and the child table
+ALTER PUBLICATION pub ADD TABLE sch1.tbl1
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION pub
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE sch2.tbl1_part1
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE sch1.tbl1
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE sch1.tbl1 (a int) PARTITION BY RANGE(a)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE sch1.tbl1_part1 PARTITION OF sch1.tbl1 FOR VALUES FROM (1) to (10)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE sch1.tbl1_part2 PARTITION OF sch1.tbl1 FOR VALUES FROM (10) to (20)
+RESULT: []
+
+-----------
+QUERY:
+CREATE TABLE sch1.tbl1_part3 (a int) PARTITION BY RANGE(a)
+RESULT: []
+
+-----------
+QUERY:
+ALTER TABLE sch1.tbl1 ATTACH PARTITION sch1.tbl1_part3 FOR VALUES FROM (20) to (30)
+RESULT: []
+
+-----------
+QUERY:
+CREATE PUBLICATION pub FOR TABLES IN SCHEMA sch1 WITH (PUBLISH_VIA_PARTITION_ROOT=1)
+RESULT: []
+
+-----------
+QUERY:
+SELECT * FROM pg_publication_tables
+RESULT: []
+
+-----------
+QUERY:
+RESET client_min_messages
+RESULT: []
+
+-----------
+QUERY:
+DROP PUBLICATION pub
+RESULT: []
+
+-----------
+QUERY:
+DROP TABLE sch1.tbl1
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA sch1 cascade
+RESULT: []
+
+-----------
+QUERY:
+DROP SCHEMA sch2 cascade
+RESULT: []
+
+-----------
+QUERY:
+RESET SESSION AUTHORIZATION
+RESULT: []
+
+-----------
+QUERY:
+DROP ROLE regress_publication_user, regress_publication_user2
+RESULT: []
+
+-----------
+QUERY:
+DROP ROLE regress_publication_user_dummy
+RESULT: []
+=========================================
+Summary for test case publication/test.sql of postgres
+=========================================

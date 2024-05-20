@@ -1,3 +1,6 @@
+
+-----------
+QUERY:
 CREATE TABLE brintest_bloom (byteacol bytea,
 	charcol "char",
 	namecol name,
@@ -21,35 +24,14 @@ CREATE TABLE brintest_bloom (byteacol bytea,
 	numericcol numeric,
 	uuidcol uuid,
 	lsncol pg_lsn
-) WITH (fillfactor=10)
-ERROR: CREATE TABLE brintest_bloom (byteacol bytea,
-	charcol "char",
-	namecol name,
-	int8col bigint,
-	int2col smallint,
-	int4col integer,
-	textcol text,
-	oidcol oid,
-	float4col real,
-	float8col double precision,
-	macaddrcol macaddr,
-	inetcol inet,
-	cidrcol cidr,
-	bpcharcol character,
-	datecol date,
-	timecol time without time zone,
-	timestampcol timestamp without time zone,
-	timestamptzcol timestamp with time zone,
-	intervalcol interval,
-	timetzcol time with time zone,
-	numericcol numeric,
-	uuidcol uuid,
-	lsncol pg_lsn
-) WITH (fillfactor=10)
-
-Catalog Error: Type with name name does not exist!
+) WITH (fillfactor=10);
+RESULT:
+	ERROR - Catalog Error: Type with name name does not exist!
 Did you mean "date"?
 
+-----------
+QUERY:
+
 
 INSERT INTO brintest_bloom SELECT
 	repeat(stringu1, 8)::bytea,
@@ -74,91 +56,57 @@ INSERT INTO brintest_bloom SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 100
-ERROR: 
-
-INSERT INTO brintest_bloom SELECT
-	repeat(stringu1, 8)::bytea,
-	substr(stringu1, 1, 1)::"char",
-	stringu1::name, 142857 * tenthous,
-	thousand,
-	twothousand,
-	repeat(stringu1, 8),
-	unique1::oid,
-	(four + 1.0)/(hundred+1),
-	odd::float8 / (tenthous + 1),
-	format('%s:00:%s:00:%s:00', to_hex(odd), to_hex(even), to_hex(hundred))::macaddr,
-	inet '10.2.3.4/24' + tenthous,
-	cidr '10.2.3/24' + tenthous,
-	substr(stringu1, 1, 1)::bpchar,
-	date '1995-08-15' + tenthous,
-	time '01:20:30' + thousand * interval '18.5 second',
-	timestamp '1942-07-23 03:05:09' + tenthous * interval '36.38 hours',
-	timestamptz '1972-10-10 03:00' + thousand * interval '1 hour',
-	justify_days(justify_hours(tenthous * interval '12 minutes')),
-	timetz '01:30:20+02' + hundred * interval '15 seconds',
-	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
-	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
-	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 100
-
-Catalog Error: Table with name brintest_bloom does not exist!
+FROM tenk1 ORDER BY unique2 LIMIT 100;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_bloom does not exist!
 Did you mean "INT2_TBL"?
 
+-----------
+QUERY:
 
--- throw in some NULL''s and different values
+
+-- throw in some NULL/* REPLACED */''s and different values
 INSERT INTO brintest_bloom (inetcol, cidrcol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
-FROM tenk1 ORDER BY thousand, tenthous LIMIT 25
-ERROR: 
-
--- throw in some NULL''s and different values
-INSERT INTO brintest_bloom (inetcol, cidrcol) SELECT
-	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
-	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous
-FROM tenk1 ORDER BY thousand, tenthous LIMIT 25
-
-Catalog Error: Table with name brintest_bloom does not exist!
+FROM tenk1 ORDER BY thousand, tenthous LIMIT 25;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_bloom does not exist!
 Did you mean "INT2_TBL"?
+
+-----------
+QUERY:
 
 
 -- test bloom specific index options
 -- ndistinct must be >= -1.0
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	byteacol bytea_bloom_ops(n_distinct_per_range = -1.1)
-)
-ERROR: 
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
--- test bloom specific index options
--- ndistinct must be >= -1.0
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(n_distinct_per_range = -1.1)
-)
-
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
 -- false_positive_rate must be between 0.0001 and 0.25
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	byteacol bytea_bloom_ops(false_positive_rate = 0.00009)
-)
-ERROR: 
--- false_positive_rate must be between 0.0001 and 0.25
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(false_positive_rate = 0.00009)
-)
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	byteacol bytea_bloom_ops(false_positive_rate = 0.26)
-)
-ERROR: 
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops(false_positive_rate = 0.26)
-)
+);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "("
 
-Parser Error: syntax error at or near "("
+-----------
+QUERY:
 
 
 CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
@@ -185,50 +133,23 @@ CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
 	numericcol numeric_bloom_ops,
 	uuidcol uuid_bloom_ops,
 	lsncol pg_lsn_bloom_ops
-) with (pages_per_range = 1)
-ERROR: 
+) with (pages_per_range = 1);
+RESULT:
+	ERROR - Not implemented Error: Index with opclass not supported yet!
 
-CREATE INDEX brinidx_bloom ON brintest_bloom USING brin (
-	byteacol bytea_bloom_ops,
-	charcol char_bloom_ops,
-	namecol name_bloom_ops,
-	int8col int8_bloom_ops,
-	int2col int2_bloom_ops,
-	int4col int4_bloom_ops,
-	textcol text_bloom_ops,
-	oidcol oid_bloom_ops,
-	float4col float4_bloom_ops,
-	float8col float8_bloom_ops,
-	macaddrcol macaddr_bloom_ops,
-	inetcol inet_bloom_ops,
-	cidrcol inet_bloom_ops,
-	bpcharcol bpchar_bloom_ops,
-	datecol date_bloom_ops,
-	timecol time_bloom_ops,
-	timestampcol timestamp_bloom_ops,
-	timestamptzcol timestamptz_bloom_ops,
-	intervalcol interval_bloom_ops,
-	timetzcol timetz_bloom_ops,
-	numericcol numeric_bloom_ops,
-	uuidcol uuid_bloom_ops,
-	lsncol pg_lsn_bloom_ops
-) with (pages_per_range = 1)
-
-Not implemented Error: Index with opclass not supported yet!
+-----------
+QUERY:
 
 
 CREATE TABLE brinopers_bloom (colname name, typ text,
 	op text[], value text[], matches int[],
 	check (cardinality(op) = cardinality(value)),
-	check (cardinality(op) = cardinality(matches)))
-ERROR: 
+	check (cardinality(op) = cardinality(matches)));
+RESULT:
+	ERROR - Binder Error: Cardinality can only operate on MAPs
 
-CREATE TABLE brinopers_bloom (colname name, typ text,
-	op text[], value text[], matches int[],
-	check (cardinality(op) = cardinality(value)),
-	check (cardinality(op) = cardinality(matches)))
-
-Binder Error: Cardinality can only operate on MAPs
+-----------
+QUERY:
 
 
 INSERT INTO brinopers_bloom VALUES
@@ -339,498 +260,399 @@ INSERT INTO brinopers_bloom VALUES
 	('lsncol', 'pg_lsn',
 	 '{=, IS, IS NOT}',
 	 '{44/455222, NULL, NULL}',
-	 '{1, 25, 100}')
-ERROR: 
-
-INSERT INTO brinopers_bloom VALUES
-	('byteacol', 'bytea',
-	 '{=}',
-	 '{BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA}',
-	 '{1}'),
-	('charcol', '"char"',
-	 '{=}',
-	 '{M}',
-	 '{6}'),
-	('namecol', 'name',
-	 '{=}',
-	 '{MAAAAA}',
-	 '{2}'),
-	('int2col', 'int2',
-	 '{=}',
-	 '{800}',
-	 '{1}'),
-	('int4col', 'int4',
-	 '{=}',
-	 '{800}',
-	 '{1}'),
-	('int8col', 'int8',
-	 '{=}',
-	 '{1257141600}',
-	 '{1}'),
-	('textcol', 'text',
-	 '{=}',
-	 '{BNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAABNAAAA}',
-	 '{1}'),
-	('oidcol', 'oid',
-	 '{=}',
-	 '{8800}',
-	 '{1}'),
-	('float4col', 'float4',
-	 '{=}',
-	 '{1}',
-	 '{4}'),
-	('float8col', 'float8',
-	 '{=}',
-	 '{0}',
-	 '{1}'),
-	('macaddrcol', 'macaddr',
-	 '{=}',
-	 '{2c:00:2d:00:16:00}',
-	 '{2}'),
-	('inetcol', 'inet',
-	 '{=}',
-	 '{10.2.14.231/24}',
-	 '{1}'),
-	('inetcol', 'cidr',
-	 '{=}',
-	 '{fe80::6e40:8ff:fea9:8c46}',
-	 '{1}'),
-	('cidrcol', 'inet',
-	 '{=}',
-	 '{10.2.14/24}',
-	 '{2}'),
-	('cidrcol', 'inet',
-	 '{=}',
-	 '{fe80::6e40:8ff:fea9:8c46}',
-	 '{1}'),
-	('cidrcol', 'cidr',
-	 '{=}',
-	 '{10.2.14/24}',
-	 '{2}'),
-	('cidrcol', 'cidr',
-	 '{=}',
-	 '{fe80::6e40:8ff:fea9:8c46}',
-	 '{1}'),
-	('bpcharcol', 'bpchar',
-	 '{=}',
-	 '{W}',
-	 '{6}'),
-	('datecol', 'date',
-	 '{=}',
-	 '{2009-12-01}',
-	 '{1}'),
-	('timecol', 'time',
-	 '{=}',
-	 '{02:28:57}',
-	 '{1}'),
-	('timestampcol', 'timestamp',
-	 '{=}',
-	 '{1964-03-24 19:26:45}',
-	 '{1}'),
-	('timestamptzcol', 'timestamptz',
-	 '{=}',
-	 '{1972-10-19 09:00:00-07}',
-	 '{1}'),
-	('intervalcol', 'interval',
-	 '{=}',
-	 '{1 mons 13 days 12:24}',
-	 '{1}'),
-	('timetzcol', 'timetz',
-	 '{=}',
-	 '{01:35:50+02}',
-	 '{2}'),
-	('numericcol', 'numeric',
-	 '{=}',
-	 '{2268164.347826086956521739130434782609}',
-	 '{1}'),
-	('uuidcol', 'uuid',
-	 '{=}',
-	 '{52225222-5222-5222-5222-522252225222}',
-	 '{1}'),
-	('lsncol', 'pg_lsn',
-	 '{=, IS, IS NOT}',
-	 '{44/455222, NULL, NULL}',
-	 '{1, 25, 100}')
-
-Catalog Error: Table with name brinopers_bloom does not exist!
+	 '{1, 25, 100}');
+RESULT:
+	ERROR - Catalog Error: Table with name brinopers_bloom does not exist!
 Did you mean "INT2_TBL"?
 
+-----------
+QUERY:
+
 
 DO $x$
 DECLARE
-	r record
-ERROR: 
+	r record;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DO"
 
-DO $x$
-DECLARE
-	r record
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "DO"
+	r2 record;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "r2"
 
-	r2 record
-ERROR: 
-	r2 record
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "r2"
+	cond text;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "cond"
 
-	cond text
-ERROR: 
-	cond text
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "cond"
+	idx_ctids tid[];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "idx_ctids"
 
-	idx_ctids tid[]
-ERROR: 
-	idx_ctids tid[]
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "idx_ctids"
+	ss_ctids tid[];
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ss_ctids"
 
-	ss_ctids tid[]
-ERROR: 
-	ss_ctids tid[]
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "ss_ctids"
+	count int;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "count"
 
-	count int
-ERROR: 
-	count int
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "count"
+	plan_ok bool;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_ok"
 
-	plan_ok bool
-ERROR: 
-	plan_ok bool
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "plan_ok"
+	plan_line text;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_line"
 
-	plan_line text
-ERROR: 
-	plan_line text
-
-Parser Error: syntax error at or near "plan_line"
+-----------
+QUERY:
 
 BEGIN
 	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_bloom, unnest(op) WITH ORDINALITY AS oper LOOP
 
 		-- prepare the condition
 		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-ERROR: 
-BEGIN
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers_bloom, unnest(op) WITH ORDINALITY AS oper LOOP
+			cond := format('%I %s %L', r.colname, r.oper, r.value);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-		-- prepare the condition
-		IF r.value IS NULL THEN
-			cond := format('%I %s %L', r.colname, r.oper, r.value)
-
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
 		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
-ERROR: 
-		ELSE
-			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ)
+			cond := format('%I %s %L::%s', r.colname, r.oper, r.value, r.typ);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "ELSE"
 
-Parser Error: syntax error at or near "ELSE"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		-- run the query using the brin index
-		SET enable_seqscan = 0
-ERROR: 
-
-		-- run the query using the brin index
-		SET enable_seqscan = 0
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+		SET enable_seqscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-		SET enable_bitmapscan = 1
-ERROR: 
-		SET enable_bitmapscan = 1
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+		SET enable_bitmapscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
 
-		plan_ok := false
-ERROR: 
 
-		plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_ok"
 
-Parser Error: syntax error at or near "plan_ok"
+-----------
+QUERY:
 
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
 			IF plan_line LIKE '%Bitmap Heap Scan on brintest_bloom%' THEN
-				plan_ok := true
-ERROR: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Bitmap Heap Scan on brintest_bloom%' THEN
-				plan_ok := true
+				plan_ok := true;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
-			END IF
-ERROR: 
-			END IF
+			END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END LOOP
-ERROR: 
-		END LOOP
+		END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-Parser Error: syntax error at or near "LOOP"
+-----------
+QUERY:
 
 		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
-ERROR: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get bitmap indexscan plan for %', r
+			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO idx_ctids
-ERROR: 
+			INTO idx_ctids;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INTO"
 
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO idx_ctids
-
-Parser Error: syntax error at or near "INTO"
+-----------
+QUERY:
 
 
 		-- run the query using a seqscan
-		SET enable_seqscan = 1
-ERROR: 
-
-		-- run the query using a seqscan
-		SET enable_seqscan = 1
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+		SET enable_seqscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-		SET enable_bitmapscan = 0
-ERROR: 
-		SET enable_bitmapscan = 0
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+		SET enable_bitmapscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
 
-		plan_ok := false
-ERROR: 
 
-		plan_ok := false
+		plan_ok := false;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "plan_ok"
 
-Parser Error: syntax error at or near "plan_ok"
+-----------
+QUERY:
 
 		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
 			IF plan_line LIKE '%Seq Scan on brintest_bloom%' THEN
-				plan_ok := true
-ERROR: 
-		FOR plan_line IN EXECUTE format($y$EXPLAIN SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond) LOOP
-			IF plan_line LIKE '%Seq Scan on brintest_bloom%' THEN
-				plan_ok := true
+				plan_ok := true;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
-			END IF
-ERROR: 
-			END IF
+			END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END LOOP
-ERROR: 
-		END LOOP
+		END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-Parser Error: syntax error at or near "LOOP"
+-----------
+QUERY:
 
 		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
-ERROR: 
-		IF NOT plan_ok THEN
-			RAISE WARNING 'did not get seqscan plan for %', r
+			RAISE WARNING 'did not get seqscan plan for %', r;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO ss_ctids
-ERROR: 
+			INTO ss_ctids;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "INTO"
 
-		EXECUTE format($y$SELECT array_agg(ctid) FROM brintest_bloom WHERE %s $y$, cond)
-			INTO ss_ctids
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "INTO"
-
-
-		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
-ERROR: 
 
 		-- make sure both return the same results
-		count := array_length(idx_ctids, 1)
+		count := array_length(idx_ctids, 1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near "count"
 
-Parser Error: syntax error at or near "count"
+-----------
+QUERY:
 
 
 		IF NOT (count = array_length(ss_ctids, 1) AND
 				idx_ctids @> ss_ctids AND
 				idx_ctids <@ ss_ctids) THEN
 			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
-ERROR: 
+			RAISE WARNING 'something not right in %: count %', r, count;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-		IF NOT (count = array_length(ss_ctids, 1) AND
-				idx_ctids @> ss_ctids AND
-				idx_ctids <@ ss_ctids) THEN
-			-- report the results of each scan to make the differences obvious
-			RAISE WARNING 'something not right in %: count %', r, count
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "IF"
-
-			SET enable_seqscan = 1
-ERROR: 
-			SET enable_seqscan = 1
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+			SET enable_seqscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
-			SET enable_bitmapscan = 0
-ERROR: 
-			SET enable_bitmapscan = 0
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
-
-Did you mean: "enable_object_cache"
-
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-ERROR: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'seqscan: %', r2
-
-Parser Error: syntax error at or near "FOR"
-
-			END LOOP
-ERROR: 
-			END LOOP
-
-Parser Error: syntax error at or near "LOOP"
-
-
-			SET enable_seqscan = 0
-ERROR: 
-
-			SET enable_seqscan = 0
-
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+			SET enable_bitmapscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
-			SET enable_bitmapscan = 1
-ERROR: 
-			SET enable_bitmapscan = 1
+-----------
+QUERY:
 
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
+				RAISE NOTICE 'seqscan: %', r2;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
+
+-----------
+QUERY:
+
+			END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
+
+-----------
+QUERY:
+
+
+			SET enable_seqscan = 0;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
 Did you mean: "enable_object_cache"
 
+-----------
+QUERY:
+
+			SET enable_bitmapscan = 1;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+
 			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
-ERROR: 
-			FOR r2 IN EXECUTE 'SELECT ' || r.colname || ' FROM brintest_bloom WHERE ' || cond LOOP
-				RAISE NOTICE 'bitmapscan: %', r2
+				RAISE NOTICE 'bitmapscan: %', r2;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "FOR"
 
-Parser Error: syntax error at or near "FOR"
+-----------
+QUERY:
 
-			END LOOP
-ERROR: 
-			END LOOP
+			END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-Parser Error: syntax error at or near "LOOP"
+-----------
+QUERY:
 
-		END IF
-ERROR: 
-		END IF
+		END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
+-----------
+QUERY:
 
 
 		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
-ERROR: 
+		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-		-- make sure we found expected number of matches
-		IF count != r.matches THEN RAISE WARNING 'unexpected number of results % for %', count, r
+-----------
+QUERY:
+ END IF;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "IF"
 
-Parser Error: syntax error at or near "IF"
- END IF
-ERROR:  END IF
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "IF"
+	END LOOP;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "LOOP"
 
-	END LOOP
-ERROR: 
-	END LOOP
+-----------
+QUERY:
 
-Parser Error: syntax error at or near "LOOP"
+END;
+RESULT:
+	ERROR - TransactionContext Error: cannot commit - no transaction is active
 
-END
-ERROR: 
-END
+-----------
+QUERY:
 
-TransactionContext Error: cannot commit - no transaction is active
+$x$;
+RESULT:
+	ERROR - Parser Error: unterminated dollar-quoted string at or near "$x$;"
 
-$x$
-ERROR: 
-$x$
-
-Parser Error: unterminated dollar-quoted string at or near "$x$
-"
+-----------
+QUERY:
 
 
-RESET enable_seqscan
-ERROR: 
+RESET enable_seqscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_seqscan"
 
-RESET enable_seqscan
+Did you mean: "enable_object_cache"
 
-Catalog Error: unrecognized configuration parameter "enable_seqscan"
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	ERROR - Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
 
 Did you mean: "enable_object_cache"
 
-RESET enable_bitmapscan
-ERROR: 
-RESET enable_bitmapscan
-
-Catalog Error: unrecognized configuration parameter "enable_bitmapscan"
-
-Did you mean: "enable_object_cache"
+-----------
+QUERY:
 
 
 INSERT INTO brintest_bloom SELECT
@@ -856,143 +678,131 @@ INSERT INTO brintest_bloom SELECT
 	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
 	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
 	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5
-ERROR: 
-
-INSERT INTO brintest_bloom SELECT
-	repeat(stringu1, 42)::bytea,
-	substr(stringu1, 1, 1)::"char",
-	stringu1::name, 142857 * tenthous,
-	thousand,
-	twothousand,
-	repeat(stringu1, 42),
-	unique1::oid,
-	(four + 1.0)/(hundred+1),
-	odd::float8 / (tenthous + 1),
-	format('%s:00:%s:00:%s:00', to_hex(odd), to_hex(even), to_hex(hundred))::macaddr,
-	inet '10.2.3.4' + tenthous,
-	cidr '10.2.3/24' + tenthous,
-	substr(stringu1, 1, 1)::bpchar,
-	date '1995-08-15' + tenthous,
-	time '01:20:30' + thousand * interval '18.5 second',
-	timestamp '1942-07-23 03:05:09' + tenthous * interval '36.38 hours',
-	timestamptz '1972-10-10 03:00' + thousand * interval '1 hour',
-	justify_days(justify_hours(tenthous * interval '12 minutes')),
-	timetz '01:30:20' + hundred * interval '15 seconds',
-	tenthous::numeric(36,30) * fivethous * even / (hundred + 1),
-	format('%s%s-%s-%s-%s-%s%s%s', to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'), to_char(tenthous, 'FM0000'))::uuid,
-	format('%s/%s%s', odd, even, tenthous)::pg_lsn
-FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5
-
-Catalog Error: Table with name brintest_bloom does not exist!
+FROM tenk1 ORDER BY unique2 LIMIT 5 OFFSET 5;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_bloom does not exist!
 Did you mean "INT2_TBL"?
 
+-----------
+QUERY:
 
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-ERROR: 
 
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_bloom', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
 
-VACUUM brintest_bloom
-ERROR: 
-VACUUM brintest_bloom
+-----------
+QUERY:
 
-Catalog Error: Table with name brintest_bloom does not exist!
+VACUUM brintest_bloom;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_bloom does not exist!
 Did you mean "INT2_TBL"?
-LINE 2: VACUUM brintest_bloom
+LINE 2: VACUUM brintest_bloom;
                ^
+
+-----------
+QUERY:
   -- force a summarization cycle in brinidx
 
-UPDATE brintest_bloom SET int8col = int8col * int4col
-ERROR:   -- force a summarization cycle in brinidx
-
-UPDATE brintest_bloom SET int8col = int8col * int4col
-
-Catalog Error: Table with name brintest_bloom does not exist!
+UPDATE brintest_bloom SET int8col = int8col * int4col;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_bloom does not exist!
 Did you mean "INT2_TBL"?
 LINE 3: U...
                ^
 
-UPDATE brintest_bloom SET textcol = '' WHERE textcol IS NOT NULL
-ERROR: 
-UPDATE brintest_bloom SET textcol = '' WHERE textcol IS NOT NULL
+-----------
+QUERY:
 
-Catalog Error: Table with name brintest_bloom does not exist!
+UPDATE brintest_bloom SET textcol = '' WHERE textcol IS NOT NULL;
+RESULT:
+	ERROR - Catalog Error: Table with name brintest_bloom does not exist!
 Did you mean "INT2_TBL"?
 LINE 2: UPDATE brintest_bloom SET textcol = '' WHERE ...
                ^
 
+-----------
+QUERY:
+
 
 -- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_bloom')
-ERROR: 
-
--- Tests for brin_summarize_new_values
-SELECT brin_summarize_new_values('brintest_bloom')
-
-Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
+SELECT brin_summarize_new_values('brintest_bloom');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
 Did you mean "map_values"?
+
+-----------
+QUERY:
  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
-ERROR:  -- error, not an index
-SELECT brin_summarize_new_values('tenk1_unique1')
-
-Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
+SELECT brin_summarize_new_values('tenk1_unique1');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
 Did you mean "map_values"?
+
+-----------
+QUERY:
  -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_bloom')
-ERROR:  -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_bloom')
-
-Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
+SELECT brin_summarize_new_values('brinidx_bloom');
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_new_values does not exist!
 Did you mean "map_values"?
+
+-----------
+QUERY:
  -- ok, no change expected
 
 -- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_bloom', -1)
-ERROR:  -- ok, no change expected
-
--- Tests for brin_desummarize_range
-SELECT brin_desummarize_range('brinidx_bloom', -1)
-
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_bloom', -1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
  -- error, invalid range
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-ERROR:  -- error, invalid range
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_bloom', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
 
-SELECT brin_desummarize_range('brinidx_bloom', 0)
-ERROR: 
-SELECT brin_desummarize_range('brinidx_bloom', 0)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_bloom', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
 
-SELECT brin_desummarize_range('brinidx_bloom', 100000000)
-ERROR: 
-SELECT brin_desummarize_range('brinidx_bloom', 100000000)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
+SELECT brin_desummarize_range('brinidx_bloom', 100000000);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_desummarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 
 -- Test brin_summarize_range
 CREATE TABLE brin_summarize_bloom (
     value int
-) WITH (fillfactor=10, autovacuum_enabled=false)
+) WITH (fillfactor=10, autovacuum_enabled=false);
+RESULT:
+	[]
 
-CREATE INDEX brin_summarize_bloom_idx ON brin_summarize_bloom USING brin (value) WITH (pages_per_range=2)
-ERROR: 
-CREATE INDEX brin_summarize_bloom_idx ON brin_summarize_bloom USING brin (value) WITH (pages_per_range=2)
+-----------
+QUERY:
 
-Binder Error: Unknown index type: BRIN
+CREATE INDEX brin_summarize_bloom_idx ON brin_summarize_bloom USING brin (value) WITH (pages_per_range=2);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BRIN
+
+-----------
+QUERY:
 
 -- Fill a few pages
 DO $$
@@ -1003,112 +813,115 @@ BEGIN
     EXIT WHEN curtid > tid '(2, 0)';
   END LOOP;
 END;
-$$
-ERROR: 
--- Fill a few pages
-DO $$
-DECLARE curtid tid;
-BEGIN
-  LOOP
-    INSERT INTO brin_summarize_bloom VALUES (1) RETURNING ctid INTO curtid;
-    EXIT WHEN curtid > tid '(2, 0)';
-  END LOOP;
-END;
-$$
+$$;
+RESULT:
+	ERROR - Parser Error: syntax error at or near "DO"
 
-Parser Error: syntax error at or near "DO"
+-----------
+QUERY:
 
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 0)
-ERROR: 
-
--- summarize one range
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 0)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 0);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 -- nothing: already summarized
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 1)
-ERROR: 
--- nothing: already summarized
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 1)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 -- summarize one range
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 2)
-ERROR: 
--- summarize one range
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 2)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 2);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
 
--- nothing: page doesn''t exist in table
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967295)
-ERROR: 
--- nothing: page doesn''t exist in table
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967295)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+-- nothing: page doesn/* REPLACED */''t exist in table
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967295);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 -- invalid block number values
-SELECT brin_summarize_range('brin_summarize_bloom_idx', -1)
-ERROR: 
--- invalid block number values
-SELECT brin_summarize_range('brin_summarize_bloom_idx', -1)
-
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_bloom_idx', -1);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
 
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967296)
-ERROR: 
-SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967296)
+-----------
+QUERY:
 
-Catalog Error: Scalar Function with name brin_summarize_range does not exist!
+SELECT brin_summarize_range('brin_summarize_bloom_idx', 4294967296);
+RESULT:
+	ERROR - Catalog Error: Scalar Function with name brin_summarize_range does not exist!
 Did you mean "enum_range"?
+
+-----------
+QUERY:
 
 
 
 -- test brin cost estimates behave sanely based on correlation of values
-CREATE TABLE brin_test_bloom (a INT, b INT)
+CREATE TABLE brin_test_bloom (a INT, b INT);
+RESULT:
+	[]
 
-INSERT INTO brin_test_bloom SELECT x/100,x%100 FROM generate_series(1,10000) x(x)
+-----------
+QUERY:
 
-CREATE INDEX brin_test_bloom_a_idx ON brin_test_bloom USING brin (a) WITH (pages_per_range = 2)
-ERROR: 
-CREATE INDEX brin_test_bloom_a_idx ON brin_test_bloom USING brin (a) WITH (pages_per_range = 2)
+INSERT INTO brin_test_bloom SELECT x/100,x%100 FROM generate_series(1,10000) x(x);
+RESULT:
+	[]
 
-Binder Error: Unknown index type: BRIN
+-----------
+QUERY:
 
-CREATE INDEX brin_test_bloom_b_idx ON brin_test_bloom USING brin (b) WITH (pages_per_range = 2)
-ERROR: 
-CREATE INDEX brin_test_bloom_b_idx ON brin_test_bloom USING brin (b) WITH (pages_per_range = 2)
+CREATE INDEX brin_test_bloom_a_idx ON brin_test_bloom USING brin (a) WITH (pages_per_range = 2);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BRIN
 
-Binder Error: Unknown index type: BRIN
+-----------
+QUERY:
 
-VACUUM ANALYZE brin_test_bloom
+CREATE INDEX brin_test_bloom_b_idx ON brin_test_bloom USING brin (b) WITH (pages_per_range = 2);
+RESULT:
+	ERROR - Binder Error: Unknown index type: BRIN
+
+-----------
+QUERY:
+
+VACUUM ANALYZE brin_test_bloom;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- Ensure brin index is used when columns are perfectly correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE a = 1
-ERROR: 
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE a = 1;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: COSTS
 
--- Ensure brin index is used when columns are perfectly correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE a = 1
-
-Not implemented Error: Unimplemented explain type: COSTS
+-----------
+QUERY:
 
 -- Ensure brin index is not used when values are not correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE b = 1
-ERROR: 
--- Ensure brin index is not used when values are not correlated
-EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE b = 1
-
-Not implemented Error: Unimplemented explain type: COSTS
-
-
+EXPLAIN (COSTS OFF) SELECT * FROM brin_test_bloom WHERE b = 1;
+RESULT:
+	ERROR - Not implemented Error: Unimplemented explain type: COSTS

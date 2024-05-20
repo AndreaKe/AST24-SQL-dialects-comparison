@@ -1,553 +1,680 @@
+
+-----------
+QUERY:
 -- \set HIDE_TOAST_COMPRESSION false
 
--- ensure we get stable results regardless of installation''s default
-SET default_toast_compression = 'pglz'
+-- ensure we get stable results regardless of installation/* REPLACED */''s default
+SET default_toast_compression = 'pglz';
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test creating table with compression method
-CREATE TABLE cmdata(f1 text COMPRESSION pglz)
+CREATE TABLE cmdata(f1 text COMPRESSION pglz);
+RESULT:
+	[]
 
-CREATE INDEX idx ON cmdata(f1)
+-----------
+QUERY:
 
-INSERT INTO cmdata VALUES(repeat('1234567890', 1000))
+CREATE INDEX idx ON cmdata(f1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO cmdata VALUES(repeat('1234567890', 1000));
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- \d+ cmdata
-CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4)
-ERROR: 
--- \d+ cmdata
-CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4)
+CREATE TABLE cmdata1(f1 TEXT COMPRESSION lz4);
+RESULT:
+	[]
 
-compression method lz4 not supported
-DETAIL:  This functionality requires the server to be built with lz4 support.
+-----------
+QUERY:
 
+INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004));
+RESULT:
+	[]
 
-INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004))
-ProgrammingError: 
-INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004))
-
-relation "cmdata1" does not exist
-LINE 2: INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004))
-                    ^
-
+-----------
+QUERY:
 
 -- \d+ cmdata1
 
 -- verify stored compression method in the data
-SELECT pg_column_compression(f1) FROM cmdata
-RESULT: 
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
 	[('pglz',)]
 
-SELECT pg_column_compression(f1) FROM cmdata1
-ProgrammingError: 
-SELECT pg_column_compression(f1) FROM cmdata1
+-----------
+QUERY:
 
-relation "cmdata1" does not exist
-LINE 2: SELECT pg_column_compression(f1) FROM cmdata1
-                                              ^
+SELECT pg_column_compression(f1) FROM cmdata1;
+RESULT:
+	[('lz4',)]
 
+-----------
+QUERY:
 
 
 -- decompress data slice
-SELECT SUBSTR(f1, 200, 5) FROM cmdata
-RESULT: 
+SELECT SUBSTR(f1, 200, 5) FROM cmdata;
+RESULT:
 	[('01234',)]
 
-SELECT SUBSTR(f1, 2000, 50) FROM cmdata1
-ProgrammingError: 
-SELECT SUBSTR(f1, 2000, 50) FROM cmdata1
+-----------
+QUERY:
 
-relation "cmdata1" does not exist
-LINE 2: SELECT SUBSTR(f1, 2000, 50) FROM cmdata1
-                                         ^
+SELECT SUBSTR(f1, 2000, 50) FROM cmdata1;
+RESULT:
+	[('01234567890123456789012345678901234567890123456789',)]
 
+-----------
+QUERY:
 
 
 -- copy with table creation
-SELECT * INTO cmmove1 FROM cmdata
+SELECT * INTO cmmove1 FROM cmdata;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- \d+ cmmove1
-SELECT pg_column_compression(f1) FROM cmmove1
-RESULT: 
+SELECT pg_column_compression(f1) FROM cmmove1;
+RESULT:
 	[('pglz',)]
+
+-----------
+QUERY:
 
 
 -- copy to existing table
-CREATE TABLE cmmove3(f1 text COMPRESSION pglz)
+CREATE TABLE cmmove3(f1 text COMPRESSION pglz);
+RESULT:
+	[]
 
-INSERT INTO cmmove3 SELECT * FROM cmdata
+-----------
+QUERY:
 
-INSERT INTO cmmove3 SELECT * FROM cmdata1
-ProgrammingError: 
-INSERT INTO cmmove3 SELECT * FROM cmdata1
+INSERT INTO cmmove3 SELECT * FROM cmdata;
+RESULT:
+	[]
 
-relation "cmdata1" does not exist
-LINE 2: INSERT INTO cmmove3 SELECT * FROM cmdata1
-                                          ^
+-----------
+QUERY:
 
+INSERT INTO cmmove3 SELECT * FROM cmdata1;
+RESULT:
+	[]
 
-SELECT pg_column_compression(f1) FROM cmmove3
-RESULT: 
-	[('pglz',)]
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmmove3;
+RESULT:
+	[('pglz',), ('lz4',)]
+
+-----------
+QUERY:
 
 
 -- test LIKE INCLUDING COMPRESSION
-CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION)
-ProgrammingError: 
+CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION);
+RESULT:
+	[]
 
--- test LIKE INCLUDING COMPRESSION
-CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION)
-
-relation "cmdata1" does not exist
-LINE 4: CREATE TABLE cmdata2 (LIKE cmdata1 INCLUDING COMPRESSION)
-                                   ^
-
+-----------
+QUERY:
 
 -- \d+ cmdata2
-DROP TABLE cmdata2
-ProgrammingError: 
--- \d+ cmdata2
-DROP TABLE cmdata2
+DROP TABLE cmdata2;
+RESULT:
+	[]
 
-table "cmdata2" does not exist
-
+-----------
+QUERY:
 
 
 -- try setting compression for incompressible data type
-CREATE TABLE cmdata2 (f1 int COMPRESSION pglz)
-ERROR: 
+CREATE TABLE cmdata2 (f1 int COMPRESSION pglz);
+RESULT:
+	ERROR - column data type integer does not support compression
 
--- try setting compression for incompressible data type
-CREATE TABLE cmdata2 (f1 int COMPRESSION pglz)
 
-column data type integer does not support compression
-
+-----------
+QUERY:
 
 
 -- update using datum from different table
-CREATE TABLE cmmove2(f1 text COMPRESSION pglz)
+CREATE TABLE cmmove2(f1 text COMPRESSION pglz);
+RESULT:
+	[]
 
-INSERT INTO cmmove2 VALUES (repeat('1234567890', 1004))
+-----------
+QUERY:
 
-SELECT pg_column_compression(f1) FROM cmmove2
-RESULT: 
+INSERT INTO cmmove2 VALUES (repeat('1234567890', 1004));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmmove2;
+RESULT:
 	[('pglz',)]
 
-UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1
-ProgrammingError: 
-UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1
+-----------
+QUERY:
 
-relation "cmdata1" does not exist
-LINE 2: UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1
-                                                ^
+UPDATE cmmove2 SET f1 = cmdata1.f1 FROM cmdata1;
+RESULT:
+	[]
 
+-----------
+QUERY:
 
-SELECT pg_column_compression(f1) FROM cmmove2
-RESULT: 
-	[('pglz',)]
+SELECT pg_column_compression(f1) FROM cmmove2;
+RESULT:
+	[('lz4',)]
+
+-----------
+QUERY:
 
 
 -- test externally stored compressed data
 CREATE OR REPLACE FUNCTION large_val() RETURNS TEXT LANGUAGE SQL AS
-'select array_agg(fipshash(g::text))::text from generate_series(1, 256) g'
+'select array_agg(fipshash(g::text))::text from generate_series(1, 256) g';
+RESULT:
+	[]
 
-CREATE TABLE cmdata2 (f1 text COMPRESSION pglz)
+-----------
+QUERY:
 
-INSERT INTO cmdata2 SELECT large_val() || repeat('a', 4000)
+CREATE TABLE cmdata2 (f1 text COMPRESSION pglz);
+RESULT:
+	[]
 
-SELECT pg_column_compression(f1) FROM cmdata2
-RESULT: 
+-----------
+QUERY:
+
+INSERT INTO cmdata2 SELECT large_val() || repeat('a', 4000);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata2;
+RESULT:
 	[('pglz',)]
 
-INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000)
-ProgrammingError: 
-INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000)
+-----------
+QUERY:
 
-relation "cmdata1" does not exist
-LINE 2: INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000)
-                    ^
+INSERT INTO cmdata1 SELECT large_val() || repeat('a', 4000);
+RESULT:
+	[]
 
+-----------
+QUERY:
 
-SELECT pg_column_compression(f1) FROM cmdata1
-ProgrammingError: 
-SELECT pg_column_compression(f1) FROM cmdata1
+SELECT pg_column_compression(f1) FROM cmdata1;
+RESULT:
+	[('lz4',), ('lz4',)]
 
-relation "cmdata1" does not exist
-LINE 2: SELECT pg_column_compression(f1) FROM cmdata1
-                                              ^
+-----------
+QUERY:
 
+SELECT SUBSTR(f1, 200, 5) FROM cmdata1;
+RESULT:
+	[('01234',), ('79026',)]
 
-SELECT SUBSTR(f1, 200, 5) FROM cmdata1
-ProgrammingError: 
-SELECT SUBSTR(f1, 200, 5) FROM cmdata1
+-----------
+QUERY:
 
-relation "cmdata1" does not exist
-LINE 2: SELECT SUBSTR(f1, 200, 5) FROM cmdata1
-                                       ^
-
-
-SELECT SUBSTR(f1, 200, 5) FROM cmdata2
-RESULT: 
+SELECT SUBSTR(f1, 200, 5) FROM cmdata2;
+RESULT:
 	[('79026',)]
 
-DROP TABLE cmdata2
+-----------
+QUERY:
+
+DROP TABLE cmdata2;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 --test column type update varlena/non-varlena
-CREATE TABLE cmdata2 (f1 int)
+CREATE TABLE cmdata2 (f1 int);
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- \d+ cmdata2
-ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- \d+ cmdata2
-ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE int USING f1::integer
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE int USING f1::integer;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 -- \d+ cmdata2
 
 --changing column storage should not impact the compression method
 --but the data should not be compressed
-ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar
-
-ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION pglz
-
--- \d+ cmdata2
-ALTER TABLE cmdata2 ALTER COLUMN f1 SET STORAGE plain
-
--- \d+ cmdata2
-INSERT INTO cmdata2 VALUES (repeat('123456789', 800))
-
-SELECT pg_column_compression(f1) FROM cmdata2
-RESULT: 
-	[(None,)]
-
-
--- test compression with materialized view
-CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1
-ProgrammingError: 
-
--- test compression with materialized view
-CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1
-
-relation "cmdata1" does not exist
-LINE 4: ...ATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1
-                                                                ^
-
-
--- \d+ compressmv
-SELECT pg_column_compression(f1) FROM cmdata1
-ProgrammingError: 
--- \d+ compressmv
-SELECT pg_column_compression(f1) FROM cmdata1
-
-relation "cmdata1" does not exist
-LINE 3: SELECT pg_column_compression(f1) FROM cmdata1
-                                              ^
-
-
-SELECT pg_column_compression(x) FROM compressmv
-ProgrammingError: 
-SELECT pg_column_compression(x) FROM compressmv
-
-relation "compressmv" does not exist
-LINE 2: SELECT pg_column_compression(x) FROM compressmv
-                                             ^
-
-
-
--- test compression with partition
-CREATE TABLE cmpart(f1 text COMPRESSION lz4) PARTITION BY HASH(f1)
-ERROR: 
-
--- test compression with partition
-CREATE TABLE cmpart(f1 text COMPRESSION lz4) PARTITION BY HASH(f1)
-
-compression method lz4 not supported
-DETAIL:  This functionality requires the server to be built with lz4 support.
-
-
-CREATE TABLE cmpart1 PARTITION OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0)
-ProgrammingError: 
-CREATE TABLE cmpart1 PARTITION OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0)
-
-relation "cmpart" does not exist
-
-
-CREATE TABLE cmpart2(f1 text COMPRESSION pglz)
-
-
-ALTER TABLE cmpart ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1)
-ProgrammingError: 
-
-ALTER TABLE cmpart ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1)
-
-relation "cmpart" does not exist
-
-
-INSERT INTO cmpart VALUES (repeat('123456789', 1004))
-ProgrammingError: 
-INSERT INTO cmpart VALUES (repeat('123456789', 1004))
-
-relation "cmpart" does not exist
-LINE 2: INSERT INTO cmpart VALUES (repeat('123456789', 1004))
-                    ^
-
-
-INSERT INTO cmpart VALUES (repeat('123456789', 4004))
-ProgrammingError: 
-INSERT INTO cmpart VALUES (repeat('123456789', 4004))
-
-relation "cmpart" does not exist
-LINE 2: INSERT INTO cmpart VALUES (repeat('123456789', 4004))
-                    ^
-
-
-SELECT pg_column_compression(f1) FROM cmpart1
-ProgrammingError: 
-SELECT pg_column_compression(f1) FROM cmpart1
-
-relation "cmpart1" does not exist
-LINE 2: SELECT pg_column_compression(f1) FROM cmpart1
-                                              ^
-
-
-SELECT pg_column_compression(f1) FROM cmpart2
-RESULT: 
+ALTER TABLE cmdata2 ALTER COLUMN f1 TYPE varchar;
+RESULT:
 	[]
 
+-----------
+QUERY:
+
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION pglz;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET STORAGE plain;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+INSERT INTO cmdata2 VALUES (repeat('123456789', 800));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata2;
+RESULT:
+	[(None,)]
+
+-----------
+QUERY:
+
+
+-- test compression with materialized view
+CREATE MATERIALIZED VIEW compressmv(x) AS SELECT * FROM cmdata1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ compressmv
+SELECT pg_column_compression(f1) FROM cmdata1;
+RESULT:
+	[('lz4',), ('lz4',)]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(x) FROM compressmv;
+RESULT:
+	[('lz4',), ('lz4',)]
+
+-----------
+QUERY:
+
+
+-- test compression with partition
+CREATE TABLE cmpart(f1 text COMPRESSION lz4) PARTITION BY HASH(f1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cmpart1 PARTITION OF cmpart FOR VALUES WITH (MODULUS 2, REMAINDER 0);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cmpart2(f1 text COMPRESSION pglz);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER TABLE cmpart ATTACH PARTITION cmpart2 FOR VALUES WITH (MODULUS 2, REMAINDER 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO cmpart VALUES (repeat('123456789', 1004));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO cmpart VALUES (repeat('123456789', 4004));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart1;
+RESULT:
+	[('lz4',)]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart2;
+RESULT:
+	[('pglz',)]
+
+-----------
+QUERY:
+
 
 -- test compression with inheritance, error
-CREATE TABLE cminh() INHERITS(cmdata, cmdata1)
-ProgrammingError: 
-
--- test compression with inheritance, error
-CREATE TABLE cminh() INHERITS(cmdata, cmdata1)
-
-relation "cmdata1" does not exist
-
-
-CREATE TABLE cminh(f1 TEXT COMPRESSION lz4) INHERITS(cmdata)
-ProgrammingError: 
-CREATE TABLE cminh(f1 TEXT COMPRESSION lz4) INHERITS(cmdata)
-
-column "f1" has a compression method conflict
+CREATE TABLE cminh() INHERITS(cmdata, cmdata1);
+RESULT:
+	ERROR - column "f1" has a compression method conflict
 DETAIL:  pglz versus lz4
 
 
+-----------
+QUERY:
+
+CREATE TABLE cminh(f1 TEXT COMPRESSION lz4) INHERITS(cmdata);
+RESULT:
+	ERROR - column "f1" has a compression method conflict
+DETAIL:  pglz versus lz4
+
+
+-----------
+QUERY:
+
 
 -- test default_toast_compression GUC
-SET default_toast_compression = ''
-ERROR: 
-
--- test default_toast_compression GUC
-SET default_toast_compression = ''
-
-invalid value for parameter "default_toast_compression": ""
-HINT:  Available values: pglz.
+SET default_toast_compression = '';
+RESULT:
+	ERROR - invalid value for parameter "default_toast_compression": ""
+HINT:  Available values: pglz, lz4.
 
 
-SET default_toast_compression = 'I do not exist compression'
-ERROR: 
-SET default_toast_compression = 'I do not exist compression'
+-----------
+QUERY:
 
-invalid value for parameter "default_toast_compression": "I do not exist compression"
-HINT:  Available values: pglz.
-
-
-SET default_toast_compression = 'lz4'
-ERROR: 
-SET default_toast_compression = 'lz4'
-
-invalid value for parameter "default_toast_compression": "lz4"
-HINT:  Available values: pglz.
+SET default_toast_compression = 'I do not exist compression';
+RESULT:
+	ERROR - invalid value for parameter "default_toast_compression": "I do not exist compression"
+HINT:  Available values: pglz, lz4.
 
 
-SET default_toast_compression = 'pglz'
+-----------
+QUERY:
+
+SET default_toast_compression = 'lz4';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET default_toast_compression = 'pglz';
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- test alter compression method
-ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4
-ERROR: 
+ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4;
+RESULT:
+	[]
 
--- test alter compression method
-ALTER TABLE cmdata ALTER COLUMN f1 SET COMPRESSION lz4
+-----------
+QUERY:
 
-compression method lz4 not supported
-DETAIL:  This functionality requires the server to be built with lz4 support.
+INSERT INTO cmdata VALUES (repeat('123456789', 4004));
+RESULT:
+	[]
 
-
-INSERT INTO cmdata VALUES (repeat('123456789', 4004))
+-----------
+QUERY:
 
 -- \d+ cmdata
-SELECT pg_column_compression(f1) FROM cmdata
-RESULT: 
-	[('pglz',), ('pglz',)]
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	[('pglz',), ('lz4',)]
+
+-----------
+QUERY:
 
 
-ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION default
-
--- \d+ cmdata2
-
--- test alter compression method for materialized views
-ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4
-ProgrammingError: 
--- \d+ cmdata2
-
--- test alter compression method for materialized views
-ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4
-
-relation "compressmv" does not exist
-
-
--- \d+ compressmv
-
--- test alter compression method for partitioned tables
-ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz
-ProgrammingError: 
--- \d+ compressmv
-
--- test alter compression method for partitioned tables
-ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz
-
-relation "cmpart1" does not exist
-
-
-ALTER TABLE cmpart2 ALTER COLUMN f1 SET COMPRESSION lz4
-ERROR: 
-ALTER TABLE cmpart2 ALTER COLUMN f1 SET COMPRESSION lz4
-
-compression method lz4 not supported
-DETAIL:  This functionality requires the server to be built with lz4 support.
-
-
-
--- new data should be compressed with the current compression method
-INSERT INTO cmpart VALUES (repeat('123456789', 1004))
-ProgrammingError: 
-
--- new data should be compressed with the current compression method
-INSERT INTO cmpart VALUES (repeat('123456789', 1004))
-
-relation "cmpart" does not exist
-LINE 4: INSERT INTO cmpart VALUES (repeat('123456789', 1004))
-                    ^
-
-
-INSERT INTO cmpart VALUES (repeat('123456789', 4004))
-ProgrammingError: 
-INSERT INTO cmpart VALUES (repeat('123456789', 4004))
-
-relation "cmpart" does not exist
-LINE 2: INSERT INTO cmpart VALUES (repeat('123456789', 4004))
-                    ^
-
-
-SELECT pg_column_compression(f1) FROM cmpart1
-ProgrammingError: 
-SELECT pg_column_compression(f1) FROM cmpart1
-
-relation "cmpart1" does not exist
-LINE 2: SELECT pg_column_compression(f1) FROM cmpart1
-                                              ^
-
-
-SELECT pg_column_compression(f1) FROM cmpart2
-RESULT: 
+ALTER TABLE cmdata2 ALTER COLUMN f1 SET COMPRESSION default;
+RESULT:
 	[]
+
+-----------
+QUERY:
+
+-- \d+ cmdata2
+
+-- test alter compression method for materialized views
+ALTER MATERIALIZED VIEW compressmv ALTER COLUMN x SET COMPRESSION lz4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ compressmv
+
+-- test alter compression method for partitioned tables
+ALTER TABLE cmpart1 ALTER COLUMN f1 SET COMPRESSION pglz;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE cmpart2 ALTER COLUMN f1 SET COMPRESSION lz4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- new data should be compressed with the current compression method
+INSERT INTO cmpart VALUES (repeat('123456789', 1004));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO cmpart VALUES (repeat('123456789', 4004));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart1;
+RESULT:
+	[('lz4',), ('pglz',)]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmpart2;
+RESULT:
+	[('pglz',), ('lz4',)]
+
+-----------
+QUERY:
 
 
 -- VACUUM FULL does not recompress
-SELECT pg_column_compression(f1) FROM cmdata
-RESULT: 
-	[('pglz',), ('pglz',)]
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	[('pglz',), ('lz4',)]
 
-VACUUM FULL cmdata
+-----------
+QUERY:
 
-SELECT pg_column_compression(f1) FROM cmdata
-RESULT: 
-	[('pglz',), ('pglz',)]
+VACUUM FULL cmdata;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT pg_column_compression(f1) FROM cmdata;
+RESULT:
+	[('pglz',), ('lz4',)]
+
+-----------
+QUERY:
 
 
 -- test expression index
-DROP TABLE cmdata2
+DROP TABLE cmdata2;
+RESULT:
+	[]
 
-CREATE TABLE cmdata2 (f1 TEXT COMPRESSION pglz, f2 TEXT COMPRESSION lz4)
-ERROR: 
-CREATE TABLE cmdata2 (f1 TEXT COMPRESSION pglz, f2 TEXT COMPRESSION lz4)
+-----------
+QUERY:
 
-compression method lz4 not supported
-DETAIL:  This functionality requires the server to be built with lz4 support.
+CREATE TABLE cmdata2 (f1 TEXT COMPRESSION pglz, f2 TEXT COMPRESSION lz4);
+RESULT:
+	[]
 
+-----------
+QUERY:
 
-CREATE UNIQUE INDEX idx1 ON cmdata2 ((f1 || f2))
-ProgrammingError: 
-CREATE UNIQUE INDEX idx1 ON cmdata2 ((f1 || f2))
+CREATE UNIQUE INDEX idx1 ON cmdata2 ((f1 || f2));
+RESULT:
+	[]
 
-relation "cmdata2" does not exist
-
+-----------
+QUERY:
 
 INSERT INTO cmdata2 VALUES((SELECT array_agg(fipshash(g::TEXT))::TEXT FROM
-generate_series(1, 50) g), VERSION())
-ProgrammingError: 
-INSERT INTO cmdata2 VALUES((SELECT array_agg(fipshash(g::TEXT))::TEXT FROM
-generate_series(1, 50) g), VERSION())
+generate_series(1, 50) g), VERSION());
+RESULT:
+	[]
 
-relation "cmdata2" does not exist
-LINE 2: INSERT INTO cmdata2 VALUES((SELECT array_agg(fipshash(g::TEX...
-                    ^
-
+-----------
+QUERY:
 
 
 -- check data is ok
-SELECT length(f1) FROM cmdata
-RESULT: 
+SELECT length(f1) FROM cmdata;
+RESULT:
 	[(10000,), (36036,)]
 
-SELECT length(f1) FROM cmdata1
-ProgrammingError: 
-SELECT length(f1) FROM cmdata1
+-----------
+QUERY:
 
-relation "cmdata1" does not exist
-LINE 2: SELECT length(f1) FROM cmdata1
-                               ^
+SELECT length(f1) FROM cmdata1;
+RESULT:
+	[(10040,), (12449,)]
 
+-----------
+QUERY:
 
-SELECT length(f1) FROM cmmove1
-RESULT: 
+SELECT length(f1) FROM cmmove1;
+RESULT:
 	[(10000,)]
 
-SELECT length(f1) FROM cmmove2
-RESULT: 
+-----------
+QUERY:
+
+SELECT length(f1) FROM cmmove2;
+RESULT:
 	[(10040,)]
 
-SELECT length(f1) FROM cmmove3
-RESULT: 
-	[(10000,)]
+-----------
+QUERY:
+
+SELECT length(f1) FROM cmmove3;
+RESULT:
+	[(10000,), (10040,)]
+
+-----------
+QUERY:
 
 
-CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression)
-ERROR: 
+CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression);
+RESULT:
+	ERROR - invalid compression method "i_do_not_exist_compression"
 
-CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression)
 
-invalid compression method "i_do_not_exist_compression"
-
+-----------
+QUERY:
  -- fails
-CREATE TABLE badcompresstbl (a text)
+CREATE TABLE badcompresstbl (a text);
+RESULT:
+	[]
 
-ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression
-ERROR: 
-ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression
+-----------
+QUERY:
 
-invalid compression method "i_do_not_exist_compression"
+ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression;
+RESULT:
+	ERROR - invalid compression method "i_do_not_exist_compression"
 
+
+-----------
+QUERY:
  -- fails
-DROP TABLE badcompresstbl
+DROP TABLE badcompresstbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
 
 
 -- \set HIDE_TOAST_COMPRESSION true
 
-ProgrammingError: 
-
--- \set HIDE_TOAST_COMPRESSION true
-
-
-can't execute an empty query
+RESULT:
+	ERROR - can't execute an empty query

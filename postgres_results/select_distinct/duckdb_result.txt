@@ -1,0 +1,684 @@
+
+-----------
+QUERY:
+--
+-- SELECT_DISTINCT
+--
+
+--
+-- awk /* REPLACED */''{print $3 /* REPLACED */,}/* REPLACED */'' onek.data | sort -n | uniq
+--
+SELECT DISTINCT two FROM onek ORDER BY 1
+RESULT:
+	duckdb: Catalog Error: Table with name onek does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+--
+-- awk /* REPLACED */''{print $5 /* REPLACED */,}/* REPLACED */'' onek.data | sort -n | uniq
+--
+SELECT DISTINCT ten FROM onek ORDER BY 1
+RESULT:
+	duckdb: Catalog Error: Table with name onek does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+--
+-- awk /* REPLACED */''{print $16 /* REPLACED */,}/* REPLACED */'' onek.data | sort -d | uniq
+--
+SELECT DISTINCT string4 FROM onek ORDER BY 1
+RESULT:
+	duckdb: Catalog Error: Table with name onek does not exist!
+Did you mean "boolindex"?
+
+-----------
+QUERY:
+--
+-- awk /* REPLACED */''{print $3,$16,$5 /* REPLACED */,}/* REPLACED */'' onek.data | sort -d | uniq |
+-- sort +0n -1 +1d -2 +2n -3
+--
+SELECT DISTINCT two, string4, ten
+   FROM onek
+   ORDER BY two using <, string4 using <, ten using <
+RESULT:
+	duckdb: Not implemented Error: Unimplemented order by type
+
+-----------
+QUERY:
+--
+-- awk /* REPLACED */''{print $2 /* REPLACED */,}/* REPLACED */'' person.data |
+-- awk /* REPLACED */''{if(NF!=1){print $2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - emp.data |
+-- awk /* REPLACED */''{if(NF!=1){print $2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - student.data |
+-- awk /* REPLACED */''BEGIN{FS=/* REPLACED */''      /* REPLACED */'' /* REPLACED */,}{if(NF!=1){print $5 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - stud_emp.data |
+-- sort -n -r | uniq
+--
+SELECT DISTINCT p.age FROM person* p ORDER BY age using >
+RESULT:
+	duckdb: Not implemented Error: Unimplemented order by type
+
+-----------
+QUERY:
+--
+-- Check mentioning same column more than once
+--
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT count(*) FROM
+  (SELECT DISTINCT two, four, two FROM tenk1) ss
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: VERBOSE
+
+-----------
+QUERY:
+SELECT count(*) FROM
+  (SELECT DISTINCT two, four, two FROM tenk1) ss
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+--
+-- Compare results between plans using sorting and plans using hash
+-- aggregation. Force spilling in both cases by setting work_mem low.
+--
+
+SET work_mem='64kB'
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "work_mem"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+-- Produce results with sorting.
+
+SET enable_hashagg=FALSE
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_hashagg"
+
+Did you mean: "enable_progress_bar"
+
+-----------
+QUERY:
+SET jit_above_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "jit_above_cost"
+
+Did you mean: "disabled_optimizers"
+
+-----------
+QUERY:
+EXPLAIN (costs off)
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+CREATE TABLE distinct_group_1 AS
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '%(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	%(TINYINT, TINYINT) -> TINYINT
+	%(SMALLINT, SMALLINT) -> SMALLINT
+	%(INTEGER, INTEGER) -> INTEGER
+	%(BIGINT, BIGINT) -> BIGINT
+	%(HUGEINT, HUGEINT) -> HUGEINT
+	%(FLOAT, FLOAT) -> FLOAT
+	%(DOUBLE, DOUBLE) -> DOUBLE
+	%(UTINYINT, UTINYINT) -> UTINYINT
+	%(USMALLINT, USMALLINT) -> USMALLINT
+	%(UINTEGER, UINTEGER) -> UINTEGER
+	%(UBIGINT, UBIGINT) -> UBIGINT
+	%(UHUGEINT, UHUGEINT) -> UHUGEINT
+
+LINE 2: SELECT DISTINCT g%1000 FROM generate_series(0,9999) g
+                         ^
+
+-----------
+QUERY:
+SET jit_above_cost TO DEFAULT
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "jit_above_cost"
+
+Did you mean: "disabled_optimizers"
+
+-----------
+QUERY:
+CREATE TABLE distinct_group_2 AS
+SELECT DISTINCT (g%1000)::text FROM generate_series(0,9999) g
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '%(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	%(TINYINT, TINYINT) -> TINYINT
+	%(SMALLINT, SMALLINT) -> SMALLINT
+	%(INTEGER, INTEGER) -> INTEGER
+	%(BIGINT, BIGINT) -> BIGINT
+	%(HUGEINT, HUGEINT) -> HUGEINT
+	%(FLOAT, FLOAT) -> FLOAT
+	%(DOUBLE, DOUBLE) -> DOUBLE
+	%(UTINYINT, UTINYINT) -> UTINYINT
+	%(USMALLINT, USMALLINT) -> USMALLINT
+	%(UINTEGER, UINTEGER) -> UINTEGER
+	%(UBIGINT, UBIGINT) -> UBIGINT
+	%(UHUGEINT, UHUGEINT) -> UHUGEINT
+
+LINE 2: SELECT DISTINCT (g%1000)...
+                          ^
+
+-----------
+QUERY:
+SET enable_seqscan = 0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+-- Check to see we get an incremental sort plan
+EXPLAIN (costs off)
+SELECT DISTINCT hundred, two FROM tenk1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+RESET enable_seqscan
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_seqscan"
+
+Did you mean: "enable_object_cache"
+
+-----------
+QUERY:
+SET enable_hashagg=TRUE
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_hashagg"
+
+Did you mean: "enable_progress_bar"
+
+-----------
+QUERY:
+-- Produce results with hash aggregation.
+
+SET enable_sort=FALSE
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_sort"
+
+Did you mean: "enable_fsst_vectors"
+
+-----------
+QUERY:
+SET jit_above_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "jit_above_cost"
+
+Did you mean: "disabled_optimizers"
+
+-----------
+QUERY:
+EXPLAIN (costs off)
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+CREATE TABLE distinct_hash_1 AS
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '%(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	%(TINYINT, TINYINT) -> TINYINT
+	%(SMALLINT, SMALLINT) -> SMALLINT
+	%(INTEGER, INTEGER) -> INTEGER
+	%(BIGINT, BIGINT) -> BIGINT
+	%(HUGEINT, HUGEINT) -> HUGEINT
+	%(FLOAT, FLOAT) -> FLOAT
+	%(DOUBLE, DOUBLE) -> DOUBLE
+	%(UTINYINT, UTINYINT) -> UTINYINT
+	%(USMALLINT, USMALLINT) -> USMALLINT
+	%(UINTEGER, UINTEGER) -> UINTEGER
+	%(UBIGINT, UBIGINT) -> UBIGINT
+	%(UHUGEINT, UHUGEINT) -> UHUGEINT
+
+LINE 2: SELECT DISTINCT g%1000 FROM generate_series(0,9999) g
+                         ^
+
+-----------
+QUERY:
+SET jit_above_cost TO DEFAULT
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "jit_above_cost"
+
+Did you mean: "disabled_optimizers"
+
+-----------
+QUERY:
+CREATE TABLE distinct_hash_2 AS
+SELECT DISTINCT (g%1000)::text FROM generate_series(0,9999) g
+RESULT:
+	duckdb: Binder Error: No function matches the given name and argument types '%(STRUCT(generate_series BIGINT), INTEGER_LITERAL)'. You might need to add explicit type casts.
+	Candidate functions:
+	%(TINYINT, TINYINT) -> TINYINT
+	%(SMALLINT, SMALLINT) -> SMALLINT
+	%(INTEGER, INTEGER) -> INTEGER
+	%(BIGINT, BIGINT) -> BIGINT
+	%(HUGEINT, HUGEINT) -> HUGEINT
+	%(FLOAT, FLOAT) -> FLOAT
+	%(DOUBLE, DOUBLE) -> DOUBLE
+	%(UTINYINT, UTINYINT) -> UTINYINT
+	%(USMALLINT, USMALLINT) -> USMALLINT
+	%(UINTEGER, UINTEGER) -> UINTEGER
+	%(UBIGINT, UBIGINT) -> UBIGINT
+	%(UHUGEINT, UHUGEINT) -> UHUGEINT
+
+LINE 2: SELECT DISTINCT (g%1000):...
+                          ^
+
+-----------
+QUERY:
+SET enable_sort=TRUE
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "enable_sort"
+
+Did you mean: "enable_fsst_vectors"
+
+-----------
+QUERY:
+SET work_mem TO DEFAULT
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "work_mem"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+-- Compare results
+
+(SELECT * FROM distinct_hash_1 EXCEPT SELECT * FROM distinct_group_1)
+  UNION ALL
+(SELECT * FROM distinct_group_1 EXCEPT SELECT * FROM distinct_hash_1)
+RESULT:
+	duckdb: Catalog Error: Table with name distinct_hash_1 does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+(SELECT * FROM distinct_hash_1 EXCEPT SELECT * FROM distinct_group_1)
+  UNION ALL
+(SELECT * FROM distinct_group_1 EXCEPT SELECT * FROM distinct_hash_1)
+RESULT:
+	duckdb: Catalog Error: Table with name distinct_hash_1 does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+DROP TABLE distinct_hash_1
+RESULT:
+	duckdb: Catalog Error: Table with name distinct_hash_1 does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+DROP TABLE distinct_hash_2
+RESULT:
+	duckdb: Catalog Error: Table with name distinct_hash_2 does not exist!
+Did you mean "CHAR_TBL"?
+
+-----------
+QUERY:
+DROP TABLE distinct_group_1
+RESULT:
+	duckdb: Catalog Error: Table with name distinct_group_1 does not exist!
+Did you mean "INT2_TBL"?
+
+-----------
+QUERY:
+DROP TABLE distinct_group_2
+RESULT:
+	duckdb: Catalog Error: Table with name distinct_group_2 does not exist!
+Did you mean "INT2_TBL"?
+
+-----------
+QUERY:
+-- Test parallel DISTINCT
+SET parallel_tuple_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_tuple_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+SET parallel_setup_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_setup_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+SET min_parallel_table_scan_size=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "min_parallel_table_scan_size"
+
+Did you mean: "binary_as_string"
+
+-----------
+QUERY:
+SET max_parallel_workers_per_gather=2
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "max_parallel_workers_per_gather"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+-- Ensure we get a parallel plan
+EXPLAIN (costs off)
+SELECT DISTINCT four FROM tenk1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: costs
+
+-----------
+QUERY:
+-- Ensure the parallel plan produces the correct results
+SELECT DISTINCT four FROM tenk1
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+CREATE OR REPLACE FUNCTION distinct_func(a INT) RETURNS INT AS $$
+  BEGIN
+    RETURN a;
+  END;
+$$ LANGUAGE plpgsql PARALLEL UNSAFE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "INT"
+
+-----------
+QUERY:
+-- Ensure we don/* REPLACED */''t do parallel distinct with a parallel unsafe function
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT distinct_func(1) FROM tenk1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- make the function parallel safe
+CREATE OR REPLACE FUNCTION distinct_func(a INT) RETURNS INT AS $$
+  BEGIN
+    RETURN a;
+  END;
+$$ LANGUAGE plpgsql PARALLEL SAFE
+RESULT:
+	duckdb: Parser Error: syntax error at or near "INT"
+
+-----------
+QUERY:
+-- Ensure we do parallel distinct now that the function is parallel safe
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT distinct_func(1) FROM tenk1
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+RESET max_parallel_workers_per_gather
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "max_parallel_workers_per_gather"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+RESET min_parallel_table_scan_size
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "min_parallel_table_scan_size"
+
+Did you mean: "binary_as_string"
+
+-----------
+QUERY:
+RESET parallel_setup_cost
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_setup_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+RESET parallel_tuple_cost
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_tuple_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+--
+-- Test the planner/* REPLACED */''s ability to use a LIMIT 1 instead of a Unique node when
+-- all of the distinct_pathkeys have been marked as redundant
+--
+
+-- Ensure we get a plan with a Limit 1
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four FROM tenk1 WHERE four = 0
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure the above gives us the correct result
+SELECT DISTINCT four FROM tenk1 WHERE four = 0
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- Ensure we get a plan with a Limit 1
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four FROM tenk1 WHERE four = 0 AND two <> 0
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure no rows are returned
+SELECT DISTINCT four FROM tenk1 WHERE four = 0 AND two <> 0
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+-- Ensure we get a plan with a Limit 1 when the SELECT list contains constants
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four,1,2,3 FROM tenk1 WHERE four = 0
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+-- Ensure we only get 1 row
+SELECT DISTINCT four,1,2,3 FROM tenk1 WHERE four = 0
+RESULT:
+	duckdb: Catalog Error: Table with name tenk1 does not exist!
+Did you mean "temp.information_schema.tables"?
+
+-----------
+QUERY:
+SET parallel_setup_cost=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_setup_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+SET min_parallel_table_scan_size=0
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "min_parallel_table_scan_size"
+
+Did you mean: "binary_as_string"
+
+-----------
+QUERY:
+SET max_parallel_workers_per_gather=2
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "max_parallel_workers_per_gather"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+-- Ensure we get a plan with a Limit 1 in both partial distinct and final
+-- distinct
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four FROM tenk1 WHERE four = 10
+RESULT:
+	duckdb: Not implemented Error: Unimplemented explain type: COSTS
+
+-----------
+QUERY:
+RESET max_parallel_workers_per_gather
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "max_parallel_workers_per_gather"
+
+Did you mean: "worker_threads"
+
+-----------
+QUERY:
+RESET min_parallel_table_scan_size
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "min_parallel_table_scan_size"
+
+Did you mean: "binary_as_string"
+
+-----------
+QUERY:
+RESET parallel_setup_cost
+RESULT:
+	duckdb: Catalog Error: unrecognized configuration parameter "parallel_setup_cost"
+
+Did you mean: "profile_output"
+
+-----------
+QUERY:
+--
+-- Also, some tests of IS DISTINCT FROM, which doesn/* REPLACED */''t quite deserve its
+-- very own regression file.
+--
+
+CREATE TEMP TABLE disttable (f1 integer)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO DISTTABLE VALUES(1)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO DISTTABLE VALUES(2)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO DISTTABLE VALUES(3)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+INSERT INTO DISTTABLE VALUES(NULL)
+RESULT:
+	duckdb: None
+
+-----------
+QUERY:
+-- basic cases
+SELECT f1, f1 IS DISTINCT FROM 2 as "not 2" FROM disttable
+RESULT:
+	duckdb: [(1, True), (2, False), (3, True), (None, True)]
+
+-----------
+QUERY:
+SELECT f1, f1 IS DISTINCT FROM NULL as "not null" FROM disttable
+RESULT:
+	duckdb: [(1, True), (2, True), (3, True), (None, False)]
+
+-----------
+QUERY:
+SELECT f1, f1 IS DISTINCT FROM f1 as "false" FROM disttable
+RESULT:
+	duckdb: [(1, False), (2, False), (3, False), (None, False)]
+
+-----------
+QUERY:
+SELECT f1, f1 IS DISTINCT FROM f1+1 as "not null" FROM disttable
+RESULT:
+	duckdb: [(1, True), (2, True), (3, True), (None, False)]
+
+-----------
+QUERY:
+-- check that optimizer constant-folds it properly
+SELECT 1 IS DISTINCT FROM 2 as "yes"
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+SELECT 2 IS DISTINCT FROM 2 as "no"
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+SELECT 2 IS DISTINCT FROM null as "yes"
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+SELECT null IS DISTINCT FROM null as "no"
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+-- negated form
+SELECT 1 IS NOT DISTINCT FROM 2 as "no"
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+SELECT 2 IS NOT DISTINCT FROM 2 as "yes"
+RESULT:
+	duckdb: [(True,)]
+
+-----------
+QUERY:
+SELECT 2 IS NOT DISTINCT FROM null as "no"
+RESULT:
+	duckdb: [(False,)]
+
+-----------
+QUERY:
+SELECT null IS NOT DISTINCT FROM null as "yes"
+RESULT:
+	duckdb: [(True,)]

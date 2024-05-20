@@ -1,0 +1,1675 @@
+
+-----------
+QUERY:
+/*
+ * This test is for Linux/glibc systems and assumes that a full set of
+ * locales is installed.  It must be run in a database with UTF-8 encoding,
+ * because other encodings don't support all the characters used.
+ */
+
+SELECT getdatabaseencoding() <> 'UTF8' OR
+       (SELECT count(*) FROM pg_collation WHERE collname IN ('de_DE', 'en_US', 'sv_SE', 'tr_TR') AND collencoding = pg_char_to_encoding('UTF8')) <> 4 OR
+       version() !~ 'linux-gnu'
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+SET client_encoding TO UTF8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '!~ 'linux-gnu'\n       AS skip_test \\gset\n\\if :skip_test\n\\quit\n\\endif\n\nSET client' at line 9")
+
+-----------
+QUERY:
+
+
+CREATE SCHEMA collate_tests;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET search_path = collate_tests;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'search_path'")
+
+-----------
+QUERY:
+
+
+
+CREATE TABLE collate_test1 (
+    a int,
+    b text COLLATE "en_US" NOT NULL
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+
+-- \d collate_test1
+
+CREATE TABLE collate_test_fail (
+    a int,
+    b text COLLATE "ja_JP.eucjp"
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'ja_JP.eucjp'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test_fail (
+    a int,
+    b text COLLATE "foo"
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'foo'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test_fail (
+    a int COLLATE "en_US",
+    b text
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test_like (
+    LIKE collate_test1
+);
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- \d collate_test_like
+
+CREATE TABLE collate_test2 (
+    a int,
+    b text COLLATE "sv_SE"
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'sv_SE'")
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test3 (
+    a int,
+    b text COLLATE "C"
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+INSERT INTO collate_test1 VALUES (1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC');
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO collate_test2 SELECT * FROM collate_test1;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO collate_test3 SELECT * FROM collate_test1;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT * FROM collate_test1 WHERE b >= 'bbc';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test2 WHERE b >= 'bbc';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test3 WHERE b >= 'bbc';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test3 WHERE b >= 'BBC';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc';
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b >= 'bbc' COLLATE "C";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "C";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "en_US";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+
+CREATE DOMAIN testdomain_sv AS text COLLATE "sv_SE";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DOMAIN testdomain_sv AS text COLLATE "sv_SE"\' at line 1')
+
+-----------
+QUERY:
+
+CREATE DOMAIN testdomain_i AS int COLLATE "sv_SE";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DOMAIN testdomain_i AS int COLLATE "sv_SE"\' at line 1')
+
+-----------
+QUERY:
+ -- fails
+CREATE TABLE collate_test4 (
+    a int,
+    b testdomain_sv
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'testdomain_sv\n)' at line 4")
+
+-----------
+QUERY:
+
+INSERT INTO collate_test4 SELECT * FROM collate_test1;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test4' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test4 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test4' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test5 (
+    a int,
+    b testdomain_sv COLLATE "en_US"
+);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'testdomain_sv COLLATE "en_US"\n)\' at line 3')
+
+-----------
+QUERY:
+
+INSERT INTO collate_test5 SELECT * FROM collate_test1;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test5' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test5 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test5' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+SELECT a, b FROM collate_test1 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test2 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test3 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+-- star expansion
+SELECT * FROM collate_test1 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test2 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test3 ORDER BY b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- constant expression folding
+SELECT 'bbc' COLLATE "en_US" > 'äbc' COLLATE "en_US" AS "true";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+SELECT 'bbc' COLLATE "sv_SE" > 'äbc' COLLATE "sv_SE" AS "false";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'sv_SE'")
+
+-----------
+QUERY:
+
+
+-- upper/lower
+
+CREATE TABLE collate_test10 (
+    a int,
+    x text COLLATE "en_US",
+    y text COLLATE "tr_TR"
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+
+INSERT INTO collate_test10 VALUES (1, 'hij', 'hij'), (2, 'HIJ', 'HIJ');
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a, lower(x), lower(y), upper(x), upper(y), initcap(x), initcap(y) FROM collate_test10;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, lower(x COLLATE "C"), lower(y COLLATE "C") FROM collate_test10;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+SELECT a, x, y FROM collate_test10 ORDER BY lower(y), a;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- LIKE/ILIKE
+
+SELECT * FROM collate_test1 WHERE b LIKE 'abc';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b LIKE 'abc%';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b LIKE '%bc%';
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ILIKE 'abc';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ILIKE 'abc'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ILIKE 'abc%';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ILIKE 'abc%'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ILIKE '%bc%';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ILIKE '%bc%'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT 'Türkiye' COLLATE "en_US" ILIKE '%KI%' AS "true";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+SELECT 'Türkiye' COLLATE "tr_TR" ILIKE '%KI%' AS "false";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'tr_TR'")
+
+-----------
+QUERY:
+
+
+SELECT 'bıt' ILIKE 'BIT' COLLATE "en_US" AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'BIT\' COLLATE "en_US" AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'bıt' ILIKE 'BIT' COLLATE "tr_TR" AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'BIT\' COLLATE "tr_TR" AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- The following actually exercises the selectivity estimation for ILIKE.
+SELECT relname FROM pg_class WHERE relname ILIKE 'abc%';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ILIKE 'abc%'' at line 2")
+
+-----------
+QUERY:
+
+
+-- regular expressions
+
+SELECT * FROM collate_test1 WHERE b ~ '^abc$';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '^abc$'' at line 3")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ~ '^abc';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '^abc'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ~ 'bc';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ 'bc'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ~* '^abc$';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* '^abc$'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ~* '^abc';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* '^abc'' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM collate_test1 WHERE b ~* 'bc';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* 'bc'' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_test6 (
+    a int,
+    b text COLLATE "en_US"
+);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+INSERT INTO collate_test6 VALUES (1, 'abc'), (2, 'ABC'), (3, '123'), (4, 'ab1'),
+                                 (5, 'a1!'), (6, 'a c'), (7, '!.;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''!.' at line 2")
+
+-----------
+QUERY:
+'), (8, '   '),
+                                 (9, 'äbç'), (10, 'ÄBÇ');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''), (8, '   '),\n                                 (9, 'äbç'), (10, 'ÄBÇ')' at line 1")
+
+-----------
+QUERY:
+
+SELECT b,
+       b ~ '^[[:alpha:]]+$' AS is_alpha,
+       b ~ '^[[:upper:]]+$' AS is_upper,
+       b ~ '^[[:lower:]]+$' AS is_lower,
+       b ~ '^[[:digit:]]+$' AS is_digit,
+       b ~ '^[[:alnum:]]+$' AS is_alnum,
+       b ~ '^[[:graph:]]+$' AS is_graph,
+       b ~ '^[[:print:]]+$' AS is_print,
+       b ~ '^[[:punct:]]+$' AS is_punct,
+       b ~ '^[[:space:]]+$' AS is_space
+FROM collate_test6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~ '^[[:alpha:]]+$' AS is_alpha,\n       b ~ '^[[:upper:]]+$' AS is_upper,\n       ' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT 'Türkiye' COLLATE "en_US" ~* 'KI' AS "true";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+SELECT 'Türkiye' COLLATE "tr_TR" ~* 'KI' AS "false";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'tr_TR'")
+
+-----------
+QUERY:
+
+
+SELECT 'bıt' ~* 'BIT' COLLATE "en_US" AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'~* \'BIT\' COLLATE "en_US" AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'bıt' ~* 'BIT' COLLATE "tr_TR" AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'~* \'BIT\' COLLATE "tr_TR" AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- The following actually exercises the selectivity estimation for ~*.
+SELECT relname FROM pg_class WHERE relname ~* '^abc';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '~* '^abc'' at line 2")
+
+-----------
+QUERY:
+
+
+
+-- to_char
+
+SET lc_time TO 'tr_TR';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO 'tr_TR'' at line 3")
+
+-----------
+QUERY:
+
+SELECT to_char(date '2010-02-01', 'DD TMMON YYYY');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_char does not exist')
+
+-----------
+QUERY:
+
+SELECT to_char(date '2010-02-01', 'DD TMMON YYYY' COLLATE "tr_TR");
+RESULT:
+	ERROR - (1273, "Unknown collation: 'tr_TR'")
+
+-----------
+QUERY:
+
+SELECT to_char(date '2010-04-01', 'DD TMMON YYYY');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_char does not exist')
+
+-----------
+QUERY:
+
+SELECT to_char(date '2010-04-01', 'DD TMMON YYYY' COLLATE "tr_TR");
+RESULT:
+	ERROR - (1273, "Unknown collation: 'tr_TR'")
+
+-----------
+QUERY:
+
+
+-- to_date
+
+SELECT to_date('01 ŞUB 2010', 'DD TMMON YYYY');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_date does not exist')
+
+-----------
+QUERY:
+
+SELECT to_date('01 Şub 2010', 'DD TMMON YYYY');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_date does not exist')
+
+-----------
+QUERY:
+
+SELECT to_date('1234567890ab 2010', 'TMMONTH YYYY');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_date does not exist')
+
+-----------
+QUERY:
+ -- fail
+
+
+-- backwards parsing
+
+CREATE VIEW collview1 AS SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc';
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+CREATE VIEW collview2 AS SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+CREATE VIEW collview3 AS SELECT a, lower((x || x) COLLATE "C") FROM collate_test10;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+SELECT table_name, view_definition FROM information_schema.views
+  WHERE table_name LIKE 'collview%' ORDER BY 1;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+
+-- collation propagation in various expression types
+
+SELECT a, coalesce(b, 'foo') FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, coalesce(b, 'foo') FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, coalesce(b, 'foo') FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, lower(coalesce(x, 'foo')), lower(coalesce(y, 'foo')) FROM collate_test10;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a, b, greatest(b, 'CCC') FROM collate_test1 ORDER BY 3;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b, greatest(b, 'CCC') FROM collate_test2 ORDER BY 3;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b, greatest(b, 'CCC') FROM collate_test3 ORDER BY 3;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, x, y, lower(greatest(x, 'foo')), lower(greatest(y, 'foo')) FROM collate_test10;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a, nullif(b, 'abc') FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, nullif(b, 'abc') FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, nullif(b, 'abc') FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, lower(nullif(x, 'foo')), lower(nullif(y, 'foo')) FROM collate_test10;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE DOMAIN testdomain AS text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN testdomain AS text' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::testdomain FROM collate_test1 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::testdomain FROM collate_test2 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::testdomain FROM collate_test3 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, b::testdomain_sv FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::testdomain_sv FROM collate_test3 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, lower(x::testdomain), lower(y::testdomain) FROM collate_test10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::testdomain), lower(y::testdomain) FROM collate_test10' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT min(b), max(b) FROM collate_test1;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT min(b), max(b) FROM collate_test2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT min(b), max(b) FROM collate_test3;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT array_agg(b ORDER BY b) FROM collate_test1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ORDER BY b) FROM collate_test1' at line 1")
+
+-----------
+QUERY:
+
+SELECT array_agg(b ORDER BY b) FROM collate_test2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ORDER BY b) FROM collate_test2' at line 1")
+
+-----------
+QUERY:
+
+SELECT array_agg(b ORDER BY b) FROM collate_test3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ORDER BY b) FROM collate_test3' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test2 UNION SELECT a, b FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test3 WHERE a < 4 INTERSECT SELECT a, b FROM collate_test3 WHERE a > 1 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, b FROM collate_test3 EXCEPT SELECT a, b FROM collate_test3 WHERE a < 2 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test3;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+ -- ok
+SELECT a, b FROM collate_test1 UNION SELECT a, b FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+SELECT a, b COLLATE "C" FROM collate_test1 UNION SELECT a, b FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+ -- ok
+SELECT a, b FROM collate_test1 INTERSECT SELECT a, b FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+SELECT a, b FROM collate_test1 EXCEPT SELECT a, b FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+
+CREATE TABLE test_u AS SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test3;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+
+-- ideally this would be a parse-time error, but for now it must be run-time:
+select x < y from collate_test10;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+ -- fail
+select x || y from collate_test10;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+ -- ok, because || is not collation aware
+select x, y from collate_test10 order by x || y;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test10' doesn't exist")
+
+-----------
+QUERY:
+ -- not so ok
+
+-- collation mismatch between recursive and non-recursive term
+WITH RECURSIVE foo(x) AS
+   (SELECT x FROM (VALUES('a' COLLATE "en_US"),('b')) t(x)
+   UNION ALL
+   SELECT (x || 'c') COLLATE "de_DE" FROM foo WHERE length(x) < 10)
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'(\'a\' COLLATE "en_US"),(\'b\')) t(x)\n   UNION ALL\n   SELECT (x || \'c\') COLLATE "de_\' at line 5')
+
+-----------
+QUERY:
+
+
+
+-- casting
+
+SELECT CAST('42' AS text COLLATE "C");
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'text COLLATE "C")\' at line 3')
+
+-----------
+QUERY:
+
+
+SELECT a, CAST(b AS varchar) FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar) FROM collate_test1 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, CAST(b AS varchar) FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar) FROM collate_test2 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+SELECT a, CAST(b AS varchar) FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar) FROM collate_test3 ORDER BY 2' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- propagation of collation in SQL functions (inlined and non-inlined cases)
+-- and plpgsql functions too
+
+CREATE FUNCTION mylt (text, text) RETURNS boolean LANGUAGE sql
+    AS $$ select $1 < $2 $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', text) RETURNS boolean LANGUAGE sql\n    AS $$ select $1 < $2 $$' at line 4")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION mylt_noninline (text, text) RETURNS boolean LANGUAGE sql
+    AS $$ select $1 < $2 limit 1 $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', text) RETURNS boolean LANGUAGE sql\n    AS $$ select $1 < $2 limit 1 $$' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION mylt_plpgsql (text, text) RETURNS boolean LANGUAGE plpgsql
+    AS $$ begin return $1 < $2; end $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', text) RETURNS boolean LANGUAGE plpgsql\n    AS $$ begin return $1 < $2; end $$' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT a.b AS a, b.b AS b, a.b < b.b AS lt,
+       mylt(a.b, b.b), mylt_noninline(a.b, b.b), mylt_plpgsql(a.b, b.b)
+FROM collate_test1 a, collate_test1 b
+ORDER BY a.b, b.b;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT a.b AS a, b.b AS b, a.b < b.b COLLATE "C" AS lt,
+       mylt(a.b, b.b COLLATE "C"), mylt_noninline(a.b, b.b COLLATE "C"),
+       mylt_plpgsql(a.b, b.b COLLATE "C")
+FROM collate_test1 a, collate_test1 b
+ORDER BY a.b, b.b;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+
+
+
+-- collation override in plpgsql
+
+CREATE FUNCTION mylt2 (x text, y text) RETURNS boolean LANGUAGE plpgsql AS $$
+declare
+  xx text := x;
+  yy text := y;
+begin
+  return xx < yy;
+end
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'plpgsql AS $$\ndeclare\n  xx text := x;\n  yy text := y;\nbegin\n  return xx < yy;\nen' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT mylt2('a', 'B' collate "en_US") as t, mylt2('a', 'B' collate "C") as f;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'en_US'")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION
+  mylt2 (x text, y text) RETURNS boolean LANGUAGE plpgsql AS $$
+declare
+  xx text COLLATE "POSIX" := x;
+  yy text := y;
+begin
+  return xx < yy;
+end
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION\n  mylt2 (x text, y text) RETURNS boolean LANGUAGE plpgsql AS $$\ndeclare' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT mylt2('a', 'B') as f;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.mylt2 does not exist')
+
+-----------
+QUERY:
+
+SELECT mylt2('a', 'B' collate "C") as fail;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+ -- conflicting collations
+SELECT mylt2('a', 'B' collate "POSIX") as f;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'POSIX'")
+
+-----------
+QUERY:
+
+
+
+-- polymorphism
+
+SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test1)) ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '((SELECT array_agg(b ORDER BY b) FROM collate_test1)) ORDER BY 1' at line 3")
+
+-----------
+QUERY:
+
+SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test2)) ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '((SELECT array_agg(b ORDER BY b) FROM collate_test2)) ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test3)) ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '((SELECT array_agg(b ORDER BY b) FROM collate_test3)) ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION dup (anyelement) RETURNS anyelement
+    AS 'select $1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') RETURNS anyelement\n    AS 'select $1' LANGUAGE sql' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT a, dup(b) FROM collate_test1 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, dup(b) FROM collate_test2 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test2' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT a, dup(b) FROM collate_test3 ORDER BY 2;
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test3' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- indexes
+
+CREATE INDEX collate_test1_idx1 ON collate_test1 (b);
+RESULT:
+	ERROR - (1146, "Table 'test.collate_test1' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE INDEX collate_test1_idx2 ON collate_test1 (b COLLATE "C");
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COLLATE "C")\' at line 1')
+
+-----------
+QUERY:
+
+CREATE INDEX collate_test1_idx3 ON collate_test1 ((b COLLATE "C"));
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+ -- this is different grammatically
+CREATE INDEX collate_test1_idx4 ON collate_test1 (((b||'foo') COLLATE "POSIX"));
+RESULT:
+	ERROR - (1273, "Unknown collation: 'POSIX'")
+
+-----------
+QUERY:
+
+
+CREATE INDEX collate_test1_idx5 ON collate_test1 (a COLLATE "C");
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COLLATE "C")\' at line 1')
+
+-----------
+QUERY:
+ -- fail
+CREATE INDEX collate_test1_idx6 ON collate_test1 ((a COLLATE "C"));
+RESULT:
+	ERROR - (1273, "Unknown collation: 'C'")
+
+-----------
+QUERY:
+ -- fail
+
+SELECT relname, pg_get_indexdef(oid) FROM pg_class WHERE relname LIKE 'collate_test%_idx%' ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+
+-- schema manipulation commands
+
+CREATE ROLE regress_test_role;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SCHEMA test_schema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- We need to do this this way to cope with varying names for encodings:
+do $$
+BEGIN
+  EXECUTE 'CREATE COLLATION test0 (locale = ' ||
+          quote_literal((SELECT datcollate FROM pg_database WHERE datname = current_database())) || ');';
+END
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE 'CREATE COLLATION test0 (locale = ' ||\n          quote_literal((SELECT d' at line 4")
+
+-----------
+QUERY:
+
+CREATE COLLATION test0 FROM "C";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COLLATION test0 FROM "C"\' at line 1')
+
+-----------
+QUERY:
+ -- fail, duplicate name
+CREATE COLLATION IF NOT EXISTS test0 FROM "C";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COLLATION IF NOT EXISTS test0 FROM "C"\' at line 2')
+
+-----------
+QUERY:
+ -- ok, skipped
+CREATE COLLATION IF NOT EXISTS test0 (locale = 'foo');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION IF NOT EXISTS test0 (locale = 'foo')' at line 2")
+
+-----------
+QUERY:
+ -- ok, skipped
+do $$
+BEGIN
+  EXECUTE 'CREATE COLLATION test1 (lc_collate = ' ||
+          quote_literal((SELECT datcollate FROM pg_database WHERE datname = current_database())) ||
+          ', lc_ctype = ' ||
+          quote_literal((SELECT datctype FROM pg_database WHERE datname = current_database())) || ');';
+END
+$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXECUTE 'CREATE COLLATION test1 (lc_collate = ' ||\n          quote_literal((SELE' at line 4")
+
+-----------
+QUERY:
+
+CREATE COLLATION test3 (lc_collate = 'en_US.utf8');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test3 (lc_collate = 'en_US.utf8')' at line 1")
+
+-----------
+QUERY:
+ -- fail, need lc_ctype
+CREATE COLLATION testx (locale = 'nonsense');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION testx (locale = 'nonsense')' at line 2")
+
+-----------
+QUERY:
+ -- fail
+
+CREATE COLLATION test4 FROM nonsense;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test4 FROM nonsense' at line 3")
+
+-----------
+QUERY:
+
+CREATE COLLATION test5 FROM test0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test5 FROM test0' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT collname FROM pg_collation WHERE collname LIKE 'test%' ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_collation' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER COLLATION test1 RENAME TO test11;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test1 RENAME TO test11' at line 1")
+
+-----------
+QUERY:
+
+ALTER COLLATION test0 RENAME TO test11;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test0 RENAME TO test11' at line 1")
+
+-----------
+QUERY:
+ -- fail
+ALTER COLLATION test1 RENAME TO test22;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test1 RENAME TO test22' at line 2")
+
+-----------
+QUERY:
+ -- fail
+
+ALTER COLLATION test11 OWNER TO regress_test_role;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test11 OWNER TO regress_test_role' at line 3")
+
+-----------
+QUERY:
+
+ALTER COLLATION test11 OWNER TO nonsense;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test11 OWNER TO nonsense' at line 1")
+
+-----------
+QUERY:
+
+ALTER COLLATION test11 SET SCHEMA test_schema;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test11 SET SCHEMA test_schema' at line 1")
+
+-----------
+QUERY:
+
+
+COMMENT ON COLLATION test0 IS 'US English';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLLATION test0 IS 'US English'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT collname, nspname, obj_description(pg_collation.oid, 'pg_collation')
+    FROM pg_collation JOIN pg_namespace ON (collnamespace = pg_namespace.oid)
+    WHERE collname LIKE 'test%'
+    ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_collation' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP COLLATION test0, test_schema.test11, test5;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test0, test_schema.test11, test5' at line 1")
+
+-----------
+QUERY:
+
+DROP COLLATION test0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test0' at line 1")
+
+-----------
+QUERY:
+ -- fail
+DROP COLLATION IF EXISTS test0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION IF EXISTS test0' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT collname FROM pg_collation WHERE collname LIKE 'test%';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_collation' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP SCHEMA test_schema;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP ROLE regress_test_role;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+-- ALTER
+
+ALTER COLLATION "en_US" REFRESH VERSION;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COLLATION "en_US" REFRESH VERSION\' at line 3')
+
+-----------
+QUERY:
+
+
+-- also test for database while we are here
+SELECT current_database() AS datname \gset
+ALTER DATABASE :"datname" REFRESH COLLATION VERSION;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\\gset\nALTER DATABASE :"datname" REFRESH COLLATION VERSION\' at line 2')
+
+-----------
+QUERY:
+
+
+
+-- dependencies
+
+CREATE COLLATION test0 FROM "C";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'COLLATION test0 FROM "C"\' at line 3')
+
+-----------
+QUERY:
+
+
+CREATE TABLE collate_dep_test1 (a int, b text COLLATE test0);
+RESULT:
+	ERROR - (1273, "Unknown collation: 'test0'")
+
+-----------
+QUERY:
+
+CREATE DOMAIN collate_dep_dom1 AS text COLLATE test0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DOMAIN collate_dep_dom1 AS text COLLATE test0' at line 1")
+
+-----------
+QUERY:
+
+CREATE TYPE collate_dep_test2 AS (x int, y text COLLATE test0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE collate_dep_test2 AS (x int, y text COLLATE test0)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW collate_dep_test3 AS SELECT text 'foo' COLLATE test0 AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATE test0 AS foo' at line 1")
+
+-----------
+QUERY:
+
+CREATE TABLE collate_dep_test4t (a int, b text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX collate_dep_test4i ON collate_dep_test4t (b COLLATE test0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATE test0)' at line 1")
+
+-----------
+QUERY:
+
+
+DROP COLLATION test0 RESTRICT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test0 RESTRICT' at line 1")
+
+-----------
+QUERY:
+ -- fail
+DROP COLLATION test0 CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION test0 CASCADE' at line 2")
+
+-----------
+QUERY:
+
+
+-- \d collate_dep_test1
+-- \d collate_dep_test2
+
+DROP TABLE collate_dep_test1, collate_dep_test4t;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.collate_dep_test1'")
+
+-----------
+QUERY:
+
+DROP TYPE collate_dep_test2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE collate_dep_test2' at line 1")
+
+-----------
+QUERY:
+
+
+-- test range types and collations
+
+create type textrange_c as range(subtype=text, collation="C");
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'type textrange_c as range(subtype=text, collation="C")\' at line 3')
+
+-----------
+QUERY:
+
+create type textrange_en_us as range(subtype=text, collation="en_US");
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'type textrange_en_us as range(subtype=text, collation="en_US")\' at line 1')
+
+-----------
+QUERY:
+
+
+select textrange_c('A','Z') @> 'b'::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@> 'b'::text' at line 1")
+
+-----------
+QUERY:
+
+select textrange_en_us('A','Z') @> 'b'::text;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@> 'b'::text' at line 1")
+
+-----------
+QUERY:
+
+
+drop type textrange_c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type textrange_c' at line 1")
+
+-----------
+QUERY:
+
+drop type textrange_en_us;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type textrange_en_us' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- standard collations
+
+SELECT * FROM collate_test2 ORDER BY b COLLATE UCS_BASIC;
+RESULT:
+	ERROR - (1273, "Unknown collation: 'UCS_BASIC'")
+
+-----------
+QUERY:
+
+
+
+-- nondeterministic collations
+-- (not supported with libc provider)
+
+CREATE COLLATION ctest_det (locale = 'en_US.utf8', deterministic = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION ctest_det (locale = 'en_US.utf8', deterministic = true)' at line 4")
+
+-----------
+QUERY:
+
+CREATE COLLATION ctest_nondet (locale = 'en_US.utf8', deterministic = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COLLATION ctest_nondet (locale = 'en_US.utf8', deterministic = false)' at line 1")
+
+-----------
+QUERY:
+
+
+
+-- cleanup
+SET client_min_messages TO warning;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO warning' at line 2")
+
+-----------
+QUERY:
+
+DROP SCHEMA collate_tests CASCADE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'CASCADE' at line 1")

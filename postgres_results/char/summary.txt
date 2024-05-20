@@ -1,0 +1,268 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+--
+-- CHAR
+--
+
+-- Per SQL standard, CHAR means character(1), that is a varlena type
+-- with a constraint restricting it to one character (not byte)
+
+SELECT char 'c' = char 'c' AS true;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+--
+-- Build a table for testing
+-- (This temporarily hides the table created in test_setup.sql)
+--
+
+CREATE TEMP TABLE CHAR_TBL(f1 char);
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('a');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('A');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- any of the following three input formats are acceptable
+INSERT INTO CHAR_TBL (f1) VALUES ('1');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES (2);
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('3');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- zero-length char
+INSERT INTO CHAR_TBL (f1) VALUES ('');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+-- try char/* REPLACED */''s of greater than 1 length
+INSERT INTO CHAR_TBL (f1) VALUES ('cd');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+INSERT INTO CHAR_TBL (f1) VALUES ('c     ');
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+
+SELECT * FROM CHAR_TBL;
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 <> 'a';
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 = 'a';
+RESULT: [duckdb: SAME, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 < 'a';
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 <= 'a';
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 > 'a';
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 >= 'a';
+RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+
+-----------
+QUERY:
+
+
+DROP TABLE CHAR_TBL;
+RESULT: [duckdb: SAME, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+--
+-- Now test longer arrays of char
+--
+-- This char_tbl was already created and filled in test_setup.sql.
+-- Here we just try to insert bad values.
+--
+
+INSERT INTO CHAR_TBL (f1) VALUES ('abcde');
+RESULT: [duckdb: ERROR, mySQL: SAME]
+
+-----------
+QUERY:
+
+
+SELECT * FROM CHAR_TBL;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('abcd  ', 'char(4)');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('abcde', 'char(4)');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('abcde', 'char(4)');
+RESULT: [duckdb: ERROR, mySQL: ERROR]
+
+-----------
+QUERY:
+
+
+--
+-- Also test /* REPLACED */''char/* REPLACED */'', which is an ad-hoc one-byte type.  It can only
+-- really store ASCII characters, but we allow high-bit-set characters
+-- to be accessed via bytea-like escapes.
+--
+
+SELECT 'a'::"char";
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT '\101'::"char";
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT '\377'::"char";
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT 'a'::"char"::text;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT '\377'::"char"::text;
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT '\000'::"char"::text;
+RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT 'a'::text::"char";
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT '\377'::text::"char";
+RESULT: [duckdb: SAME, mySQL: ERROR]
+
+-----------
+QUERY:
+
+SELECT ''::text::"char";
+RESULT: [duckdb: SAME, mySQL: ERROR]
+=========================================
+Summary for test case char/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 18 queries, which is 56.25%
+DIFFERENT: 9 queries, which is 28.12%
+ERROR: 5 queries, which is 15.62%
+
+=================
+Results for mySQL
+SAME: 9 queries, which is 28.12%
+DIFFERENT: 7 queries, which is 21.88%
+ERROR: 16 queries, which is 50.00%

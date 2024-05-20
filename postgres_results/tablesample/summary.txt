@@ -1,0 +1,325 @@
+Guest DBMS identified: postgres
+-----------
+QUERY:
+CREATE TABLE test_tablesample (id int, name text) WITH (fillfactor=10)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- use fillfactor so we don/* REPLACED */''t have to load too much data to get multiple pages
+
+INSERT INTO test_tablesample
+  SELECT i, repeat(i::text, 200) FROM generate_series(0, 9) s(i)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT t.id FROM test_tablesample AS t TABLESAMPLE SYSTEM (50) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (100.0/11) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (50) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE BERNOULLI (50) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE BERNOULLI (5.5) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- 100% should give repeatable count results (ie, all rows) in any case
+SELECT count(*) FROM test_tablesample TABLESAMPLE SYSTEM (100)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tablesample TABLESAMPLE SYSTEM (100) REPEATABLE (1+2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT count(*) FROM test_tablesample TABLESAMPLE SYSTEM (100) REPEATABLE (0.4)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE VIEW test_tablesample_v1 AS
+  SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (10*2) REPEATABLE (2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CREATE VIEW test_tablesample_v2 AS
+  SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (99)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- \d+ test_tablesample_v1
+-- \d+ test_tablesample_v2
+
+-- check a sampled query doesn/* REPLACED */''t affect cursor in progress
+BEGIN
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+DECLARE tablesample_cur SCROLL CURSOR FOR
+  SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (50) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH FIRST FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (50) REPEATABLE (0)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH FIRST FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+FETCH NEXT FROM tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+CLOSE tablesample_cur
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+END
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+  SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (50) REPEATABLE (2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+EXPLAIN (COSTS OFF)
+  SELECT * FROM test_tablesample_v1
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- check inheritance behavior
+explain (costs off)
+  select count(*) from person tablesample bernoulli (100)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select count(*) from person tablesample bernoulli (100)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select count(*) from person
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- check that collations get assigned within the tablesample arguments
+SELECT count(*) FROM test_tablesample TABLESAMPLE bernoulli (('1'::text < '0'::text)::int)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- check behavior during rescans, as well as correct handling of min/max pct
+select * from
+  (values (0),(100)) v(pct),
+  lateral (select count(*) from tenk1 tablesample bernoulli (pct)) ss
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select * from
+  (values (0),(100)) v(pct),
+  lateral (select count(*) from tenk1 tablesample system (pct)) ss
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off)
+select pct, count(unique1) from
+  (values (0),(100)) v(pct),
+  lateral (select * from tenk1 tablesample bernoulli (pct)) ss
+  group by pct
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select pct, count(unique1) from
+  (values (0),(100)) v(pct),
+  lateral (select * from tenk1 tablesample bernoulli (pct)) ss
+  group by pct
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+select pct, count(unique1) from
+  (values (0),(100)) v(pct),
+  lateral (select * from tenk1 tablesample system (pct)) ss
+  group by pct
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+-- errors
+SELECT id FROM test_tablesample TABLESAMPLE FOOBAR (1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (NULL)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (50) REPEATABLE (NULL)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE BERNOULLI (-1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE BERNOULLI (200)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (-1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (200)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT id FROM test_tablesample_v1 TABLESAMPLE BERNOULLI (1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+INSERT INTO test_tablesample_v1 VALUES(1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+WITH query_select AS (SELECT * FROM test_tablesample)
+SELECT * FROM query_select TABLESAMPLE BERNOULLI (5.5) REPEATABLE (1)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+SELECT q.* FROM (SELECT * FROM test_tablesample) as q TABLESAMPLE BERNOULLI (5)
+RESULT: ['duckdb: SAME']
+
+-----------
+QUERY:
+-- check partitioned tables support tablesample
+create table parted_sample (a int) partition by list (a)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create table parted_sample_1 partition of parted_sample for values in (1)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+create table parted_sample_2 partition of parted_sample for values in (2)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+explain (costs off)
+  select * from parted_sample tablesample bernoulli (100)
+RESULT: ['duckdb: ERROR']
+
+-----------
+QUERY:
+drop table parted_sample, parted_sample_1, parted_sample_2
+RESULT: ['duckdb: ERROR']
+=========================================
+Summary for test case tablesample/test.sql of postgres
+=========================================
+
+=================
+Results for duckdb
+SAME: 16 queries, which is 28.57%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 40 queries, which is 71.43%
+Guest results are identical to expected results

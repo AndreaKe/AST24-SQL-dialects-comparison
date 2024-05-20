@@ -1,0 +1,285 @@
+
+-----------
+QUERY:
+--
+-- CHAR
+--
+
+-- Per SQL standard, CHAR means character(1), that is a varlena type
+-- with a constraint restricting it to one character (not byte)
+
+SELECT char 'c' = char 'c' AS true;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''c' = char 'c' AS true' at line 8")
+
+-----------
+QUERY:
+
+
+--
+-- Build a table for testing
+-- (This temporarily hides the table created in test_setup.sql)
+--
+
+CREATE TEMP TABLE CHAR_TBL(f1 char);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE CHAR_TBL(f1 char)' at line 6")
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('a');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('A');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- any of the following three input formats are acceptable
+INSERT INTO CHAR_TBL (f1) VALUES ('1');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES (2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHAR_TBL (f1) VALUES ('3');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- zero-length char
+INSERT INTO CHAR_TBL (f1) VALUES ('');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- try char/* REPLACED */''s of greater than 1 length
+INSERT INTO CHAR_TBL (f1) VALUES ('cd');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO CHAR_TBL (f1) VALUES ('c     ');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+SELECT * FROM CHAR_TBL;
+RESULT:
+	(('a',), ('ab',), ('abcd',), ('abcd',), ('a',), ('A',), ('1',), ('2',), ('3',), ('',), ('cd',), ('c',))
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 <> 'a';
+RESULT:
+	(('ab',), ('abcd',), ('abcd',), ('1',), ('2',), ('3',), ('',), ('cd',), ('c',))
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 = 'a';
+RESULT:
+	(('a',), ('a',), ('A',))
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 < 'a';
+RESULT:
+	(('1',), ('2',), ('3',), ('',))
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 <= 'a';
+RESULT:
+	(('a',), ('a',), ('A',), ('1',), ('2',), ('3',), ('',))
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 > 'a';
+RESULT:
+	(('ab',), ('abcd',), ('abcd',), ('cd',), ('c',))
+
+-----------
+QUERY:
+
+
+SELECT c.*
+   FROM CHAR_TBL c
+   WHERE c.f1 >= 'a';
+RESULT:
+	(('a',), ('ab',), ('abcd',), ('abcd',), ('a',), ('A',), ('cd',), ('c',))
+
+-----------
+QUERY:
+
+
+DROP TABLE CHAR_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Now test longer arrays of char
+--
+-- This char_tbl was already created and filled in test_setup.sql.
+-- Here we just try to insert bad values.
+--
+
+INSERT INTO CHAR_TBL (f1) VALUES ('abcde');
+RESULT:
+	ERROR - (1146, "Table 'test.CHAR_TBL' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT * FROM CHAR_TBL;
+RESULT:
+	ERROR - (1146, "Table 'test.CHAR_TBL' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('abcd  ', 'char(4)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('abcde', 'char(4)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('abcde', 'char(4)');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('abcde', 'char(4)')' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Also test /* REPLACED */''char/* REPLACED */'', which is an ad-hoc one-byte type.  It can only
+-- really store ASCII characters, but we allow high-bit-set characters
+-- to be accessed via bytea-like escapes.
+--
+
+SELECT 'a'::"char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::"char"\' at line 7')
+
+-----------
+QUERY:
+
+SELECT '\101'::"char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::"char"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT '\377'::"char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::"char"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'a'::"char"::text;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::"char"::text\' at line 1')
+
+-----------
+QUERY:
+
+SELECT '\377'::"char"::text;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::"char"::text\' at line 1')
+
+-----------
+QUERY:
+
+SELECT '\000'::"char"::text;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::"char"::text\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'a'::text::"char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::text::"char"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT '\377'::text::"char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::text::"char"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT ''::text::"char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::text::"char"\' at line 1')
