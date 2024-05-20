@@ -53,6 +53,7 @@ def getNextLine(f, currLine):
         return l
     if b'shutdown' in currLine:
         return getNextLine(f, l) # two shutdowns after each other does not make sense
+    l = re.sub(b"BY <secret>", '""', l)
     return l
 
 parser = argparse.ArgumentParser()
@@ -96,7 +97,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
             test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename):
-            # and filename == 'all_persisted_variables.test': # TODO
+            #and filename == 'group_by.test': # TODO
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
@@ -143,7 +144,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                         oldCheckIsError = False
                         prev_line=l
                     f2.close()
-            os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #     TODO: Ensure it is executed on one thread, log output?
+            os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} > /dev/null") #  --fast  TODO: Ensure it is executed on one thread, log output?
             test_path.mkdir(exist_ok=True, parents=True)
             setup_path = test_path / 'setup.sql'
             with open(setup_path.resolve(), 'wb+') as setup_f:
