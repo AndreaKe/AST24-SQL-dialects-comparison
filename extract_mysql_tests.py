@@ -92,11 +92,11 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
     for filename in files:
         filepath = Path(root) / filename
         test_path = Path('mysql_tests') / filepath.stem
-        if SKIP_EXISTING and test_path.is_dir():
+        if SKIP_EXISTING and test_path.exists():
             test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename):
-            # and filename == 'group_by.test': # TODO
+            # and filename == 'all_persisted_variables.test': # TODO
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
@@ -212,7 +212,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                 os.remove(setup_path.resolve())
                 os.remove(test_path.resolve())
                 if test_path.parent.exists():
-                    test_path.parent.rmdir()
+                    os.rmdir(test_path.parent.relative())
                 print(e)
                 failed_file.write(f"{filepath.resolve()}\n")
             test_file.close()
