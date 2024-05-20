@@ -1,13 +1,11 @@
 import os
 import re
+import argparse
 from pathlib import Path
 
 SKIP_EXISTING = True
-# TODO: mysql_inplace_upgrade.test
-#       mysql-bug41486
-#       create-big_myisam.test
-#       filesort_debug.test
-#       What to do with optimizer_switch as in func_in_icp?
+MYSQL_TEST_SUITE_PATH = (Path.home() / 'mysql-server/mysql-test/t').absolute()
+MYSQL_BUILD_PATH = (Path.home() / 'mysql-server/build').absolute()
 
 timestamp_pattern = re.compile(b'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}Z')
 
@@ -19,15 +17,6 @@ set_general_log_file_off_pattern = re.compile(b"^.*SET\sGLOBAL\sgeneral_log.*=.*
 set_general_log_output_table_pattern = re.compile(b"^.*SET\sGLOBAL\slog_output.*=.*(\"|')TABLE(\"|').*$", re.IGNORECASE)
 
 wait_until_connected_pattern = re.compile(b"^--source include/(wait_until_connected_again|.*start.*).inc$")
-
-mysql_test_path = '/home/stephanie/mysql-server/mysql-test/t' # TODO Only from /t, which suites to include?
-mysql_build_path = '/home/stephanie/mysql-server/build'
-
-temp_path = Path('temp_mysql')
-temp_path.mkdir(exist_ok=True)
-
-failed_file = open('failed.txt', 'w+')
-failed_file.write('Extraction failed:\n')
 
 def isIncludedTestCase(filename):
     return filename != 'check-testcase.test' and filename != 'windows_myisam.test' \
@@ -66,25 +55,51 @@ def getNextLine(f, currLine):
         return getNextLine(f, l) # two shutdowns after each other does not make sense
     return l
 
-total_num_of_tests = 0
-for root, dirs, files in os.walk(mysql_test_path):
+parser = argparse.ArgumentParser()
+parser.add_argument("-MYSQL_TEST_SUITE_PATH", 
+                    help="path to mySQL test suite folder",
+                    default= (Path.home() / 'mysql-server/mysql-test/t').absolute(),
+                    required=False,
+                    type=str)
+parser.add_argument("-MYSQL_BUILD_PATH", 
+                    default= (Path.home() / 'mysql-server/build').absolute(),
+                    help="mySQL build path",
+                    required=False,
+                    type=str)
+parser.add_argument('-dont_skip_existing',
+                    action='store_false')
+args = parser.parse_args()
+MYSQL_TEST_SUITE_PATH = args.MYSQL_TEST_SUITE_PATH
+MYSQL_BUILD_PATH = args.MYSQL_BUILD_PATH
+SKIP_EXISTING = args.dont_skip_existing
+
+temp_path = Path('temp_mysql')
+temp_path.mkdir(exist_ok=True)
+
+failed_file = open(f'failed.txt', 'w+')
+failed_file.write('Extraction failed:\n')
+
+total_num_tests = 0
+for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
     for filename in files:
         filepath = Path(root) / filename
         if filepath.suffix == '.test' and isIncludedTestCase(filename):
-            total_num_of_tests += 1
+            total_num_tests += 1
 
 test_num = 0
-for root, dirs, files in os.walk(mysql_test_path):
+print(MYSQL_TEST_SUITE_PATH)
+for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
     for filename in files:
         filepath = Path(root) / filename
         test_path = Path('mysql_tests') / filepath.stem
         if SKIP_EXISTING and test_path.is_dir():
+            test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename) \
-            and filename == 'rewrite_general_log.test': # TODO
+            and filename == 'group_by.test': # TODO
             print(filepath)
             test_num += 1
-            print(f"Extracting test ({test_num}\{total_num_of_tests})")
+            print(f"Extracting test ({test_num}\{total_num_tests})")
             with open(filepath.resolve(), "rb") as f1:
                 file_bytes_lines = f1.readlines()
                 log_file_path = temp_path / f"{filepath.stem}.log"
@@ -92,7 +107,8 @@ for root, dirs, files in os.walk(mysql_test_path):
                             (f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode(), \
                             b"SET GLOBAL general_log = 'ON';\n", \
                             b'SELECT "2024_automated_software_testing";\n']
-                if not file_bytes_lines[3].startswith(b'SELECT "2024_automated_software_testing"'):
+                if len(file_bytes_lines) < 4 \
+                    or not file_bytes_lines[3].startswith(b'SELECT "2024_automated_software_testing"'):
                     f2 = open(filepath.resolve(), "wb")
                     f2.writelines(prepend_lines)
                     prev_line = b""
@@ -127,7 +143,7 @@ for root, dirs, files in os.walk(mysql_test_path):
                         oldCheckIsError = False
                         prev_line=l
                     f2.close()
-            os.system(f"{mysql_build_path}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #     TODO: Ensure it is executed on one thread, log output?
+            os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --fast > /dev/null") #     TODO: Ensure it is executed on one thread, log output?
             test_path.mkdir(exist_ok=True, parents=True)
             setup_path = test_path / 'setup.sql'
             with open(setup_path.resolve(), 'wb+') as setup_f:
@@ -197,7 +213,7 @@ for root, dirs, files in os.walk(mysql_test_path):
                 os.remove(test_path.resolve())
                 if test_path.parent.exists():
                     test_path.parent.rmdir()
-                #print(e)
+                print(e)
                 failed_file.write(f"{filepath.resolve()}\n")
             test_file.close()
 failed_file.close()
