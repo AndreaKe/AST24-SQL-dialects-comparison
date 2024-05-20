@@ -530,7 +530,7 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
             dialect.close_result_file()
 
 
-def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
+def execute_test_sql(sql_dialects, sql_file, result_folder, compute_summary_enabled=True):
     logging.debug(f"Executing setup {sql_file}")
     # We write the results to a file such that results can be compare without needing to rerun the tests all the time
     for dialect in sql_dialects:
@@ -579,7 +579,9 @@ def execute_test_sql(sql_dialects, sql_file, result_folder, printErrors=True):
 
     sql_file_parts = sql_file.split("/")
 
-    overall_compatibility = compute_summary(all_results, sql_dialects, summary_file, "/".join(sql_file_parts[-2:]), guest_dbms)
+    overall_compatibility = []
+    if compute_summary_enabled:
+        overall_compatibility = compute_summary(all_results, sql_dialects, summary_file, "/".join(sql_file_parts[-2:]), guest_dbms)
     if COMPARE_TO_EXPECTED_RESULT:
         guest_result_file = [d.result_file_name for d in sql_dialects if d.name == guest_dbms][0]
         compare_to_expected_result(os.path.join(result_folder, guest_result_file), sql_file, summary_file)
@@ -702,7 +704,7 @@ def extract_unused_names(setup_file, test_file):
         pattern = re.compile(r'[\s\(;\[\)\]]{}[\s\(;\[\)\]]'.format(re.escape(name), re.IGNORECASE))
         if not re.search(pattern, test_string):
             unused_names.append(name)
-    return unused_names
+    return list(set(unused_names))
 
 
 def is_create_unused_name(query, unused_names):
@@ -759,7 +761,7 @@ def purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove):
 
 
 def purge_test_sql(dialect, sql_file, expected_file):
-    logging.info(f"Purge test {sql_file}")
+    logging.warning(f"Purge test {sql_file}")
     
     test_file_stream = open(sql_file, 'r')
     test_data = test_file_stream.read()
@@ -793,7 +795,7 @@ def purge_test_sql(dialect, sql_file, expected_file):
 
                 result = dialect.exec_query(transform_to_executable_query(query))
 
-                result_string = f"RESULT:\n\t{result}\n"
+                result_string = f"RESULT:\n\t{result.short_str()}\n"
 
                 is_result_different = False
                 for line in result_string.splitlines():
@@ -852,6 +854,7 @@ def purge_single_test(test_folder):
     unused_names_idx = 0
     names_to_remove = []
     remove_all = True
+    print(f"unused names: {unused_names}")
 
     # in the first pass we remove readonly and errenous queries
     # in the second pass we try to remove all unused names + all errenous queries
@@ -867,12 +870,12 @@ def purge_single_test(test_folder):
 
         has_changed = purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove) 
 
-        execute_test_sql(dialects1, test_file, test_folder)
+        execute_test_sql(dialects1, test_file, test_folder, compute_summary_enabled=False)
 
         check_expected = compare_to_expected_result(os.path.join(test_folder, dialect.result_file_name), test_folder + "/expected.txt", None)
 
         if has_changed and check_expected: # identical to expected result file
-            logging.info("Result was identical to expected. Apply changes.")
+            logging.debug("Result was identical to expected. Apply changes.")
             if os.path.exists(setup_file):
                 os.remove(setup_file)
             os.rename(setup_tmp_file, setup_file) # save new setup file
@@ -894,7 +897,7 @@ def purge_single_test(test_folder):
             else:
                 names_to_remove.pop(-1) # removing last name failed, so we do not remove it from now on and continue
         else:
-            logging.info("Nothing changed")
+            logging.debug("Nothing changed")
             # revert changes
             if os.path.exists(setup_tmp_file):
                 os.remove(setup_tmp_file)
@@ -906,7 +909,9 @@ def purge_single_test(test_folder):
             dialect.teardown_connection()
 
         if len(names_to_remove) == 0 and remove_all: # first try to remove all unused names, if it fails then remove one by one
-            print("Try to remove all unused names")
+            if len(unused_names) == 0:
+                break
+            logging.info(f"Try to remove all unused names in {setup_file}")
             names_to_remove = [n for n in unused_names]
             unused_names_idx = len(unused_names)
         elif unused_names_idx < len(unused_names):
@@ -914,7 +919,6 @@ def purge_single_test(test_folder):
             unused_names_idx = unused_names_idx + 1
         elif unused_names_idx >= len(unused_names) and not has_changed: # all names have been removed and nothing changes anymore. Done
             break
-
 
     print("Removed names (not required by test): ", names_to_remove)
 
@@ -940,6 +944,7 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
             test_result = execute_single_test(test_folder, result_folder)
             all_results.append(test_result)
             if PURGE_TESTS:
+                print("purge tests: ", test_folder)
                 purge_single_test(test_folder)
             return all_results # we assume there are no subfolders with tests
     return all_results
