@@ -56,7 +56,7 @@ def getNextLine(f, currLine):
         l = re.sub(b'\]_AST_2024"', b"", l)
         l = re.sub(b"&apos&", b"'", l)
         l = re.sub(b'&quot&', b'"', l)
-        if currLine in l:
+        if re.sub(b'^.*Query\t', b'', currLine) in l:
             return getNextLine(f, currLine)
     if b'shutdown' in currLine:
         l = getNextLine(f, l) # two shutdowns after each other does not make sense
@@ -100,13 +100,19 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
             l = b"SET GLOBAL log_output= \"TABLE,FILE\";"
         if l.startswith(b"SHOW") or l.startswith(b"show"):
             f.write(b'SELECT "2024_AST_SHOW";\n')
-        if l.startswith(b"LET") or l.startswith(b"let"):
+        if (l.startswith(b"LET") or l.startswith(b"let")) and \
+            ((b"SELECT" in l or b"select" in l) or (b"SET" in l or b"set" in l)):
             f.write(b'SELECT "2024_AST_LET";\n')
         if oldCheckIsError:
-            mlQuery += l.strip()
-            if re.match(b"^.*;[\s]*$", l):
+            if l.startswith(b"--eval"):
                 f.write(prev_line)
-                f.write(mlQuery)
+                f.write(l)
+                oldCheckIsError = False
+                prev_line = l
+            elif re.match(b"^.*;$", l) :
+                mlQuery += l.strip()
+                f.write(prev_line)
+                f.write(mlQuery + b'\n')
                 mlQuery_escaped = re.sub(b'"', b'&quot&', mlQuery)
                 mlQuery_escaped = re.sub(b"'", b"&apos&", mlQuery_escaped)
                 mlQuery_escaped = (mlQuery_escaped.strip(b';')).strip(b"\n")
@@ -115,6 +121,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
                 oldCheckIsError = False
                 prev_line = l
             else:
+                mlQuery += l.strip()
                 oldCheckIsError = True
             continue
         f.write(l)
@@ -163,7 +170,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
             test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename) \
-            and filename == 'invalid_collation.test': # TODO
+            and filename == 'create-big_myisam.test': # TODO mysqlpump_partial_bkp
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
