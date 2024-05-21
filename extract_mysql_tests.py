@@ -59,7 +59,9 @@ def getNextLine(f, currLine):
         if currLine in l:
             return getNextLine(f, currLine)
     if b'shutdown' in currLine:
-        return getNextLine(f, l) # two shutdowns after each other does not make sense
+        l = getNextLine(f, l) # two shutdowns after each other does not make sense
+        if b"Query\tSET GLOBAL general_log = 'ON'\n" in l:
+            return getNextLine(f,l)
     l = re.sub(b"BY <secret>", '""', l)
     return l
 
@@ -107,7 +109,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
                 f.write(mlQuery)
                 mlQuery_escaped = re.sub(b'"', b'&quot&', mlQuery)
                 mlQuery_escaped = re.sub(b"'", b"&apos&", mlQuery_escaped)
-                mlQuery_escaped = mlQuery_escaped[:-2]
+                mlQuery_escaped = (mlQuery_escaped.strip(b';')).strip(b"\n")
                 f.write((f'SELECT "2024_AST_[{mlQuery_escaped.decode()}]_AST_2024";\n').encode())
                 mlQuery = b""
                 oldCheckIsError = False
