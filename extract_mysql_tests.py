@@ -66,6 +66,7 @@ def getNextLine(f, currLine):
 def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
     prev_line = b""
     oldCheckIsError = False
+    mlQuery = b""
     for l in file_bytes_lines:
         if re.match(b"--source .*$", l):
             source_file_path = (re.sub(b"--source\s", b"", l)).decode()
@@ -99,14 +100,21 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
         if l.startswith(b"LET") or l.startswith(b"let"):
             f.write(b'SELECT "2024_AST_LET";\n')
         if oldCheckIsError:
-            f.write(prev_line)
-            f.write(l)
-            l_escaped = re.sub(b'"', b'&quot&', l)
-            l_escaped = re.sub(b"'", b"&apos&", l)
-            l_escaped = l_escaped[:-2]
-            f.write((f'SELECT "2024_AST_[{l_escaped.decode()}]_AST_2024";\n').encode())
-        else:
-            f.write(l)
+            mlQuery += l.strip()
+            if re.match(b"^.*;[\s]*$", l):
+                f.write(prev_line)
+                f.write(mlQuery)
+                mlQuery_escaped = re.sub(b'"', b'&quot&', mlQuery)
+                mlQuery_escaped = re.sub(b"'", b"&apos&", mlQuery_escaped)
+                mlQuery_escaped = mlQuery_escaped[:-2]
+                f.write((f'SELECT "2024_AST_[{mlQuery_escaped.decode()}]_AST_2024";\n').encode())
+                mlQuery = b""
+                oldCheckIsError = False
+                prev_line = l
+            else:
+                oldCheckIsError = True
+            continue
+        f.write(l)
         if wait_until_connected_pattern.match(l):
             f.writelines(prepend_lines[:-1])
         oldCheckIsError = False
@@ -151,8 +159,8 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
         if SKIP_EXISTING and test_path.is_dir():
             test_num += 1
             continue
-        if filepath.suffix == '.test' and isIncludedTestCase(filename) \
-            and filename == 'filesort_debug.test': # TODO
+        if filepath.suffix == '.test' and isIncludedTestCase(filename):
+            #and filename == 'filesort_debug.test': # TODO
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
@@ -170,7 +178,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                     rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines)
                     f.close()
             os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --debug-server > /dev/null") #  --fast  TODO: Ensure it is executed on one thread, log output?
-            # os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
+            os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
             test_path.mkdir(exist_ok=True, parents=True)
             setup_path = test_path / 'setup.sql'
             with open(setup_path.resolve(), 'wb+') as setup_f:
