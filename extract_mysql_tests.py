@@ -68,7 +68,8 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
     oldCheckIsError = False
     mlQuery = b""
     for l in file_bytes_lines:
-        if re.match(b"--source .*$", l):
+        is_wait_until_connected = wait_until_connected_pattern.match(l)
+        if re.match(b"--source .*$", l) and not is_wait_until_connected:
             source_file_path = (re.sub(b"--source\s", b"", l)).decode()
             source_file_path = (Path(MYSQL_TEST_SUITE_PATH).parent / source_file_path.strip()).absolute() if "/" in source_file_path \
                     else f"{MYSQL_TEST_SUITE_PATH}/{source_file_path.strip()}"
@@ -115,7 +116,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
                 oldCheckIsError = True
             continue
         f.write(l)
-        if wait_until_connected_pattern.match(l):
+        if is_wait_until_connected:
             f.writelines(prepend_lines[:-1])
         oldCheckIsError = False
         prev_line=l
@@ -159,8 +160,8 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
         if SKIP_EXISTING and test_path.is_dir():
             test_num += 1
             continue
-        if filepath.suffix == '.test' and isIncludedTestCase(filename):
-            #and filename == 'filesort_debug.test': # TODO
+        if filepath.suffix == '.test' and isIncludedTestCase(filename) \
+            and filename == 'invalid_collation.test': # TODO
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
@@ -178,7 +179,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                     rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines)
                     f.close()
             os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --debug-server > /dev/null") #  --fast  TODO: Ensure it is executed on one thread, log output?
-            os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
+            #os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
             test_path.mkdir(exist_ok=True, parents=True)
             setup_path = test_path / 'setup.sql'
             with open(setup_path.resolve(), 'wb+') as setup_f:
