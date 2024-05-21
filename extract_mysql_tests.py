@@ -101,7 +101,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
         if l.startswith(b"SHOW") or l.startswith(b"show"):
             f.write(b'SELECT "2024_AST_SHOW";\n')
         if (l.startswith(b"LET") or l.startswith(b"let")) and \
-            ((b"SELECT " in l or b"select " in l) or (b"SET " in l or b"set " in l)):
+            (b"SELECT " in l or b"select " in l):
             f.write(b'SELECT "2024_AST_LET";\n')
         if oldCheckIsError:
             if l.startswith(b"--eval"):
@@ -170,7 +170,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
             test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename) \
-            and filename == 'create-big_myisam.test': # TODO mysqlpump_partial_bkp
+            and filename == 'filesort_debug.test': # TODO 
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
