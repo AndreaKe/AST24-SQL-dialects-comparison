@@ -26,7 +26,7 @@ $$ language sql;
 
 select polyf(array[2,4]) as int, polyf(array[4.5, 7.7]) as num;
 
-select polyf(stavalues1) from pg_statistic;  -- fail, can/* REPLACED */''t infer element type
+select polyf(stavalues1) from pg_statistic;  -- fail, can/* REPLACED */ ''t infer element type
 
 drop function polyf(x anyarray);
 
@@ -36,11 +36,11 @@ $$ language sql;
 
 select polyf(array[2,4]) as int, polyf(array[4.5, 7.7]) as num;
 
-select polyf(stavalues1) from pg_statistic;  -- fail, can/* REPLACED */''t infer element type
+select polyf(stavalues1) from pg_statistic;  -- fail, can/* REPLACED */ ''t infer element type
 
 drop function polyf(x anyarray);
 
--- fail, can/* REPLACED */''t infer type:
+-- fail, can/* REPLACED */ ''t infer type:
 create function polyf(x anyelement) returns anyrange as $$
   select array[x + 1, x + 2]
 $$ language sql;
@@ -67,7 +67,7 @@ $$ language sql;
 
 select polyf(int4range(42, 49), 11, 2::smallint) as int, polyf(float8range(4.5, 7.8), 7.8, 11::real) as num;
 
-select polyf(int4range(42, 49), 11, 4.5) as fail;  -- range type doesn/* REPLACED */''t fit
+select polyf(int4range(42, 49), 11, 4.5) as fail;  -- range type doesn/* REPLACED */ ''t fit
 
 drop function polyf(x anycompatiblerange, y anycompatible, z anycompatible);
 
@@ -77,11 +77,11 @@ $$ language sql;
 
 select polyf(multirange(int4range(42, 49)), 11, 2::smallint) as int, polyf(multirange(float8range(4.5, 7.8)), 7.8, 11::real) as num;
 
-select polyf(multirange(int4range(42, 49)), 11, 4.5) as fail;  -- range type doesn/* REPLACED */''t fit
+select polyf(multirange(int4range(42, 49)), 11, 4.5) as fail;  -- range type doesn/* REPLACED */ ''t fit
 
 drop function polyf(x anycompatiblemultirange, y anycompatible, z anycompatible);
 
--- fail, can/* REPLACED */''t infer type:
+-- fail, can/* REPLACED */ ''t infer type:
 create function polyf(x anycompatible) returns anycompatiblerange as $$
   select array[x + 1, x + 2]
 $$ language sql;
@@ -94,7 +94,7 @@ select polyf(int4range(42, 49), array[11]) as int, polyf(float8range(4.5, 7.8), 
 
 drop function polyf(x anycompatiblerange, y anycompatiblearray);
 
--- fail, can/* REPLACED */''t infer type:
+-- fail, can/* REPLACED */ ''t infer type:
 create function polyf(x anycompatible) returns anycompatiblemultirange as $$
   select array[x + 1, x + 2]
 $$ language sql;
@@ -606,7 +606,7 @@ create aggregate build_group(anyelement, integer) (
 
 select build_group(q1,3) from int8_tbl;
 
--- this should fail because stype isn/* REPLACED */''t compatible with arg
+-- this should fail because stype isn/* REPLACED */ ''t compatible with arg
 create aggregate build_group(int8, integer) (
   SFUNC = add_group,
   STYPE = int2[]
@@ -647,7 +647,7 @@ select first_el_agg_any(x) over(order by x) from generate_series(1,10) x;
 select distinct array_ndims(histogram_bounds) from pg_stats
 where histogram_bounds is not null;
 
--- such functions must protect themselves if varying element type isn/* REPLACED */''t OK
+-- such functions must protect themselves if varying element type isn/* REPLACED */ ''t OK
 -- (WHERE clause here is to avoid possibly getting a collation error instead)
 select max(histogram_bounds) from pg_stats where tablename = 'pg_am';
 
@@ -815,7 +815,7 @@ select dfunc();  -- now ok
 select dfunc(10);
 select dfunc(10,20);
 
--- can/* REPLACED */''t remove the default once it exists
+-- can/* REPLACED */ ''t remove the default once it exists
 create or replace function dfunc(a variadic int[]) returns int as
 $$ select array_upper($1, 1) $$ language sql;
 
@@ -823,7 +823,7 @@ $$ select array_upper($1, 1) $$ language sql;
 
 drop function dfunc(a variadic int[]);
 
--- Ambiguity should be reported only if there/* REPLACED */''s not a better match available
+-- Ambiguity should be reported only if there/* REPLACED */ ''s not a better match available
 
 create function dfunc(int = 1, int = 2, int = 3) returns int as $$
   select 3;
@@ -840,7 +840,7 @@ $$ language sql;
 -- dfunc(narg=2) and dfunc(narg=3) are ambiguous
 select dfunc(1);  -- fail
 
--- but this works since the ambiguous functions aren/* REPLACED */''t preferred anyway
+-- but this works since the ambiguous functions aren/* REPLACED */ ''t preferred anyway
 select dfunc('Hi');
 
 drop function dfunc(int, int, int);
@@ -903,7 +903,7 @@ select * from dfunc('Hello');
 select * from dfunc('Hello', c := 100);
 select * from dfunc(c := 100);
 
--- fail, can no longer change an input parameter/* REPLACED */''s name
+-- fail, can no longer change an input parameter/* REPLACED */ ''s name
 create or replace function dfunc(a varchar = 'def a', out _a varchar, x numeric = NULL, out _c numeric)
 returns record as $$
   select $1, $2;
@@ -1062,7 +1062,7 @@ select x, pg_typeof(x) from anyctest(int4range(11,12), numrange(4,7)) x; -- fail
 
 drop function anyctest(anycompatiblerange, anycompatiblerange);
 
--- fail, can/* REPLACED */''t infer result type:
+-- fail, can/* REPLACED */ ''t infer result type:
 create function anyctest(anycompatible)
 returns anycompatiblerange as $$
   select $1
@@ -1091,7 +1091,7 @@ select x, pg_typeof(x) from anyctest(multirange(int4range(11,12)), multirange(nu
 
 drop function anyctest(anycompatiblemultirange, anycompatiblemultirange);
 
--- fail, can/* REPLACED */''t infer result type:
+-- fail, can/* REPLACED */ ''t infer result type:
 create function anyctest(anycompatible)
 returns anycompatiblemultirange as $$
   select $1

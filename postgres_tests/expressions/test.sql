@@ -1,5 +1,5 @@
 --
--- expression evaluation tests that don/* REPLACED */''t fit into a more specific file
+-- expression evaluation tests that don/* REPLACED */ ''t fit into a more specific file
 --
 
 --
@@ -87,9 +87,9 @@ explain (verbose, costs off)
 select random() IN (1, 4, 8.0);
 explain (verbose, costs off)
 select random()::int IN (1, 4, 8.0);
--- However, if there/* REPLACED */''s not a common supertype for the IN elements,
--- we should instead try to produce /* REPLACED */''x = v1 OR x = v2 OR .../* REPLACED */''.
--- In most cases that/* REPLACED */''ll fail for lack of all the requisite = operators,
+-- However, if there/* REPLACED */ ''s not a common supertype for the IN elements,
+-- we should instead try to produce /* REPLACED */ ''x = v1 OR x = v2 OR .../* REPLACED */ ''.
+-- In most cases that/* REPLACED */ ''ll fail for lack of all the requisite = operators,
 -- but it can succeed sometimes.  So this should complain about lack of
 -- an = operator, not about cast failure.
 select '(0,0)'::point in ('(0,0,0,0)'::box, point(0,0));
@@ -100,7 +100,7 @@ select '(0,0)'::point in ('(0,0,0,0)'::box, point(0,0));
 --
 
 -- create a stable function so that the tests below are not
--- evaluated using the planner/* REPLACED */''s constant folding.
+-- evaluated using the planner/* REPLACED */ ''s constant folding.
 begin;
 
 create function return_int_input(int) returns int as $$
@@ -203,7 +203,7 @@ select * from inttest where a in (1::myint,2::myint,3::myint,4::myint,5::myint,6
 select * from inttest where a not in (1::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint, null);
 select * from inttest where a not in (0::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint, null);
 -- ensure the result matched with the non-hashed version.  We simply remove
--- some array elements so that we don/* REPLACED */''t reach the hashing threshold.
+-- some array elements so that we don/* REPLACED */ ''t reach the hashing threshold.
 select * from inttest where a in (1::myint,2::myint,3::myint,4::myint,5::myint, null);
 select * from inttest where a not in (1::myint,2::myint,3::myint,4::myint,5::myint, null);
 select * from inttest where a not in (0::myint,2::myint,3::myint,4::myint,5::myint, null);

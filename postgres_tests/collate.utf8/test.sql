@@ -64,4 +64,4 @@ SELECT 'xYz' ~* 'XyZ' COLLATE PG_C_UTF8;
 SELECT 'xAb' ~* '[W-Y]' COLLATE PG_C_UTF8;
 SELECT 'xAb' !~* '[c-d]' COLLATE PG_C_UTF8;
 SELECT 'Δ' ~* '[γ-λ]' COLLATE PG_C_UTF8;
-SELECT 'δ' ~* '[Γ-Λ]' COLLATE PG_C_UTF8; -- same as above with cases reversed
+SELECT 'δ' ~* '[Γ-Λ]' COLLATE PG_C_UTF8;

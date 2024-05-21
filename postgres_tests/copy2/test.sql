@@ -179,8 +179,8 @@ COPY y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E'\\');
 COPY y TO stdout (FORMAT CSV, FORCE_QUOTE *);
 
 -- \copy y TO stdout (FORMAT CSV)
--- \copy y TO stdout (FORMAT CSV, QUOTE /* REPLACED */''/* REPLACED */''/* REPLACED */''/* REPLACED */'', DELIMITER /* REPLACED */''|/* REPLACED */'')
--- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E/* REPLACED */''\\/* REPLACED */'')
+-- \copy y TO stdout (FORMAT CSV, QUOTE /* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ '', DELIMITER /* REPLACED */ ''|/* REPLACED */ '')
+-- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E/* REPLACED */ ''\\/* REPLACED */ '')
 -- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE *)
 
 --test that we read consecutive LFs properly
@@ -320,7 +320,7 @@ CREATE TEMP TABLE forcetest (
     e TEXT
 );
 -- \pset null NULL
--- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with no effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string, /* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(b), FORCE_NULL(c));
 1,,""
@@ -340,45 +340,45 @@ COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL(b), FORCE_NOT_N
 3,,""
 -- \.
 ROLLBACK;
--- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''not referenced by COPY/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (d, e) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(b));
 ROLLBACK;
--- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''not referenced by COPY/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (d, e) FROM STDIN WITH (FORMAT csv, FORCE_NULL(b));
 ROLLBACK;
--- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with no effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string, /* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *, FORCE_NULL *);
 4,,""
 -- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 4;
--- should succeed with effect (/* REPLACED */''b/* REPLACED */'' remains an empty string)
+-- should succeed with effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *);
 5,,""
 -- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 5;
--- should succeed with effect (/* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with effect (/* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL *);
 6,"b",""
 -- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 6;
--- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''conflicting or redundant options/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *, FORCE_NOT_NULL(b));
 ROLLBACK;
--- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''conflicting or redundant options/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL *, FORCE_NULL(b));
 ROLLBACK;
 
--- \pset null /* REPLACED */''/* REPLACED */''
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
 
 -- test case with whole-row Var in a check constraint
 create table check_con_tbl (f1 int);
@@ -521,7 +521,7 @@ a	{2}	2
 -- \.
 SELECT * FROM check_ign_err;
 
--- test datatype error that can/* REPLACED */''t be handled as soft: should fail
+-- test datatype error that can/* REPLACED */ ''t be handled as soft: should fail
 CREATE TABLE hard_err(foo widget);
 COPY hard_err FROM STDIN WITH (on_error ignore);
 1
@@ -601,7 +601,7 @@ copy copy_default from stdin with (default '\N');
 
 -- cannot use DEFAULT marker in column that has no DEFAULT value
 copy copy_default from stdin with (default '\D');
--- \D	value	/* REPLACED */''2022-07-04/* REPLACED */''
+-- \D	value	/* REPLACED */ ''2022-07-04/* REPLACED */ ''
 2	\D	'2022-07-05'
 -- \.
 
@@ -610,7 +610,7 @@ copy copy_default from stdin with (format csv, default '\D');
 2,\D,2022-07-05
 -- \.
 
--- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */''s not recognized
+-- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */ ''s not recognized
 copy copy_default from stdin with (default '\D');
 1	\D	'2022-07-04'
 2	\\D	'2022-07-04'

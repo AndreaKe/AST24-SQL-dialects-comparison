@@ -25,5 +25,3 @@ SELECT version() ~ 'powerpc64[^,]*-linux-gnu'
 -- \set VERBOSITY sqlstate
 
 select infinite_recurse();
-
--- \echo :LAST_ERROR_MESSAGE

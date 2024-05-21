@@ -1,5 +1,5 @@
 --
--- Tests for psql features that aren/* REPLACED */''t closely connected to any
+-- Tests for psql features that aren/* REPLACED */ ''t closely connected to any
 -- specific server features
 --
 
@@ -15,11 +15,11 @@
 -- \set ON_ERROR_ROLLBACK
 -- \echo :ON_ERROR_ROLLBACK
 -- \set ON_ERROR_ROLLBACK foo
--- \echo /* REPLACED */foo
+-- \echo /* REPLACED */ foo
 -- \set ON_ERROR_ROLLBACK on
--- \echo /* REPLACED */on
+-- \echo /* REPLACED */ on
 -- \unset ON_ERROR_ROLLBACK
--- \echo /* REPLACED */on
+-- \echo /* REPLACED */ on
 
 -- \g and \gx
 
@@ -81,7 +81,7 @@ select 7 as x, 8 as y \g \gset pref01_ \echo :pref01_x :pref01_y
 -- NULL should unset the variable
 -- \set var2 xyz
 select 1 as var1, NULL as var2, 3 as var3 \gset
--- \echo :var1 /* REPLACED */xyz :var3
+-- \echo :var1 /* REPLACED */ xyz :var3
 
 -- \gset requires just one tuple
 select 10 as test01, 20 as test02 from generate_series(1,3) \gset
@@ -169,15 +169,15 @@ select 'drop table gexec_test', 'select ''2000-01-01''::date as party_over'
 
 -- \setenv, \getenv
 
--- ensure MYVAR isn/* REPLACED */''t set
+-- ensure MYVAR isn/* REPLACED */ ''t set
 -- \setenv MYVAR
--- in which case, reading it doesn/* REPLACED */''t change the target
+-- in which case, reading it doesn/* REPLACED */ ''t change the target
 -- \getenv res MYVAR
--- \echo /* REPLACED */MYVAR
+-- \echo /* REPLACED */ MYVAR
 -- now set it
 -- \setenv MYVAR 'environment value'
 -- \getenv res MYVAR
--- \echo /* REPLACED */MYVAR
+-- \echo /* REPLACED */ MYVAR
 
 -- show all pset options
 -- \pset
@@ -529,7 +529,7 @@ DROP SCHEMA tableam_display CASCADE;
 DROP ACCESS METHOD heap_psql;
 DROP ROLE regress_display_role;
 
--- test numericlocale (as best we can without control of psql/* REPLACED */''s locale)
+-- test numericlocale (as best we can without control of psql/* REPLACED */ ''s locale)
 
 -- \pset format aligned
 -- \pset expanded off
@@ -614,21 +614,21 @@ deallocate q;
 -- special cases
 -- \pset expanded off
 select 'comma,comma' as comma, 'semi;semi' as semi;
--- \pset csv_fieldsep /* REPLACED */'' /* REPLACED */,/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */ '' /* REPLACED */ ,/* REPLACED */ ''
 select 'comma,comma' as comma, 'semi;semi' as semi;
 select '\.' as data;
--- \pset csv_fieldsep /* REPLACED */''./* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */ ''./* REPLACED */ ''
 select '\' as d1, '' as d2;
 
 -- illegal csv separators
--- \pset csv_fieldsep /* REPLACED */''/* REPLACED */''
--- \pset csv_fieldsep /* REPLACED */''\0/* REPLACED */''
--- \pset csv_fieldsep /* REPLACED */''\n/* REPLACED */''
--- \pset csv_fieldsep /* REPLACED */''\r/* REPLACED */''
--- \pset csv_fieldsep /* REPLACED */''/* REPLACED */''/* REPLACED */''
--- \pset csv_fieldsep /* REPLACED */'',,/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */ ''/* REPLACED */ ''
+-- \pset csv_fieldsep /* REPLACED */ ''\0/* REPLACED */ ''
+-- \pset csv_fieldsep /* REPLACED */ ''\n/* REPLACED */ ''
+-- \pset csv_fieldsep /* REPLACED */ ''\r/* REPLACED */ ''
+-- \pset csv_fieldsep /* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''
+-- \pset csv_fieldsep /* REPLACED */ '',,/* REPLACED */ ''
 
--- \pset csv_fieldsep /* REPLACED */'',/* REPLACED */''
+-- \pset csv_fieldsep /* REPLACED */ '',/* REPLACED */ ''
 
 -- test html output format
 
@@ -842,16 +842,16 @@ drop table psql_serial_tab;
 -- \echo this is a test
 -- \echo -n without newline
 -- \echo with -n newline
--- \echo /* REPLACED */''-n/* REPLACED */'' with newline
+-- \echo /* REPLACED */ ''-n/* REPLACED */ '' with newline
 
 -- \set foo bar
--- \echo foo = /* REPLACED */bar
+-- \echo foo = /* REPLACED */ bar
 
 -- \qecho this is a test
--- \qecho foo = /* REPLACED */bar
+-- \qecho foo = /* REPLACED */ bar
 
 -- \warn this is a test
--- \warn foo = /* REPLACED */bar
+-- \warn foo = /* REPLACED */ bar
 
 -- tests for \if ... \endif
 
@@ -978,16 +978,16 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 
 -- show that vars and backticks are not expanded when ignoring extra args
 -- \set foo bar
--- \echo /* REPLACED */bar /* REPLACED */bar :/* REPLACED */''foo/* REPLACED */''
--- \pset fieldsep | `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :/* REPLACED */''foo/* REPLACED */''
+-- \echo /* REPLACED */ bar /* REPLACED */ bar :/* REPLACED */ ''foo/* REPLACED */ ''
+-- \pset fieldsep | `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :/* REPLACED */ ''foo/* REPLACED */ ''
 
 -- show that vars and backticks are not expanded and commands are ignored
 -- when in a false if-branch
 -- \set try_to_quit '\\q'
 -- \if false
-	/* REPLACED */'\\q'
-	\echo `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :"foo"
-	\pset fieldsep | `nosuchcommand` /* REPLACED */bar /* REPLACED */bar :"foo"
+	/* REPLACED */ '\\q'
+	\echo `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :"foo"
+	\pset fieldsep | `nosuchcommand` /* REPLACED */ bar /* REPLACED */ bar :"foo"
 	\a
 	SELECT $1 \bind 1 \g
 	\C arg1
@@ -1103,78 +1103,78 @@ ORDER BY 1;
 
 -- working query, 2 rows selected
 SELECT 1 AS stuff UNION SELECT 2;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
 
 -- syntax error
 SELECT 1 UNION;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
--- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''last error code:/* REPLACED */ '' :LAST_ERROR_SQLSTATE
 
 -- empty query
 ;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
 -- must have kept previous values
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
--- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''last error code:/* REPLACED */ '' :LAST_ERROR_SQLSTATE
 
 -- other query error
 DROP TABLE this_table_does_not_exist;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
--- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''last error code:/* REPLACED */ '' :LAST_ERROR_SQLSTATE
 
 -- nondefault verbosity error settings (except verbose, which is too unstable)
 -- \set VERBOSITY terse
 SELECT 1 UNION;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
 
 -- \set VERBOSITY sqlstate
 SELECT 1/0;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
 
 -- \set VERBOSITY default
 
 -- working \gdesc
 SELECT 3 AS three, 4 AS four \gdesc
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
 
 -- \gdesc with an error
 SELECT 4 AS \gdesc
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
--- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''last error code:/* REPLACED */ '' :LAST_ERROR_SQLSTATE
 
 -- check row count for a cursor-fetched query
 -- \set FETCH_COUNT 10
 select unique2 from tenk1 order by unique2 limit 19;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
 
 -- cursor-fetched query with an error after the first group
 select 1/(15-unique2) from tenk1 order by unique2 limit 19;
--- \echo /* REPLACED */''error:/* REPLACED */'' :ERROR
--- \echo /* REPLACED */''error code:/* REPLACED */'' :SQLSTATE
--- \echo /* REPLACED */''number of rows:/* REPLACED */'' :ROW_COUNT
--- \echo /* REPLACED */''last error message:/* REPLACED */'' :LAST_ERROR_MESSAGE
--- \echo /* REPLACED */''last error code:/* REPLACED */'' :LAST_ERROR_SQLSTATE
+-- \echo /* REPLACED */ ''error:/* REPLACED */ '' :ERROR
+-- \echo /* REPLACED */ ''error code:/* REPLACED */ '' :SQLSTATE
+-- \echo /* REPLACED */ ''number of rows:/* REPLACED */ '' :ROW_COUNT
+-- \echo /* REPLACED */ ''last error message:/* REPLACED */ '' :LAST_ERROR_MESSAGE
+-- \echo /* REPLACED */ ''last error code:/* REPLACED */ '' :LAST_ERROR_SQLSTATE
 
 -- \unset FETCH_COUNT
 
@@ -1247,7 +1247,7 @@ set search_path to default;
 set role to default;
 drop role regress_partitioning_role;
 
--- \d on toast table (use pg_statistic/* REPLACED */''s toast table, which has a known name)
+-- \d on toast table (use pg_statistic/* REPLACED */ ''s toast table, which has a known name)
 -- \d pg_toast.pg_toast_2619
 
 -- check printing info about access methods
@@ -1316,7 +1316,7 @@ drop role regress_psql_user;
 -- \sf information_schema._pg_index_position
 -- \sf+ information_schema._pg_index_position
 -- \sf+ interval_pl_time
--- \sf ts_debug(text) /* REPLACED */,
+-- \sf ts_debug(text) /* REPLACED */ ,
 -- \sf+ ts_debug(text)
 
 -- AUTOCOMMIT
@@ -1428,19 +1428,19 @@ DROP FUNCTION warn(TEXT);
 -- \g with file
 --
 -- \getenv abs_builddir PG_ABS_BUILDDIR
--- \set g_out_file /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
+-- \set g_out_file /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1'
 
 CREATE TEMPORARY TABLE reload_output(
   lineno int NOT NULL GENERATED ALWAYS AS IDENTITY,
   line text
 );
 
-SELECT 1 AS a \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
-SELECT 2 AS b\; SELECT 3 AS c\; SELECT 4 AS d \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
-COPY (SELECT 'foo') TO STDOUT \; COPY (SELECT 'bar') TO STDOUT \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
+SELECT 1 AS a \g /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1';
+SELECT 2 AS b\; SELECT 3 AS c\; SELECT 4 AS d \g /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1';
+COPY (SELECT 'foo') TO STDOUT \; COPY (SELECT 'bar') TO STDOUT \g /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1'
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1';
 
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
@@ -1448,42 +1448,42 @@ TRUNCATE TABLE reload_output;
 --
 -- \o with file
 --
--- \set o_out_file /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2'
+-- \set o_out_file /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output2'
 
--- \o /* REPLACED */PG_ABS_BUILDDIR /* REPLACED */''/results/psql-output2/* REPLACED */''
+-- \o /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/psql-output2/* REPLACED */ ''
 SELECT max(unique1) FROM onek;
 SELECT 1 AS a\; SELECT 2 AS b\; SELECT 3 AS c;
 
 -- COPY TO file
--- The data goes to /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1' and the status to /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2'
+-- The data goes to /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1' and the status to /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output2'
 -- \set QUIET false
-COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
+COPY (SELECT unique1 FROM onek ORDER BY unique1 LIMIT 10) TO /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1';
 -- DML command status
 UPDATE onek SET unique1 = unique1 WHERE false;
 -- \set QUIET true
 -- \o
 
 -- Check the contents of the files generated.
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2';
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output2';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
 
 -- Multiple COPY TO STDOUT with output file
--- \o /* REPLACED */PG_ABS_BUILDDIR /* REPLACED */''/results/psql-output2/* REPLACED */''
--- The data goes to /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2' with no status generated.
+-- \o /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/psql-output2/* REPLACED */ ''
+-- The data goes to /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output2' with no status generated.
 COPY (SELECT 'foo1') TO STDOUT \; COPY (SELECT 'bar1') TO STDOUT;
 -- Combination of \o and \g file with multiple COPY queries.
-COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1'
+COPY (SELECT 'foo2') TO STDOUT \; COPY (SELECT 'bar2') TO STDOUT \g /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1'
 -- \o
 
 -- Check the contents of the files generated.
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output1';
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output1';
 SELECT line FROM reload_output ORDER BY lineno;
 TRUNCATE TABLE reload_output;
-COPY reload_output(line) FROM /* REPLACED */PG_ABS_BUILDDIR '/results/psql-output2';
+COPY reload_output(line) FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/psql-output2';
 SELECT line FROM reload_output ORDER BY lineno;
 
 DROP TABLE reload_output;
@@ -1492,7 +1492,7 @@ DROP TABLE reload_output;
 -- AUTOCOMMIT and combined queries
 --
 -- \set AUTOCOMMIT off
--- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */off
+-- \echo /* REPLACED */ ''# AUTOCOMMIT:/* REPLACED */ '' /* REPLACED */ off
 -- BEGIN is now implicit
 
 CREATE TABLE foo(s TEXT) \;
@@ -1511,7 +1511,7 @@ DROP TABLE foo \;
 COMMIT;
 
 -- \set AUTOCOMMIT on
--- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */on
+-- \echo /* REPLACED */ ''# AUTOCOMMIT:/* REPLACED */ '' /* REPLACED */ on
 -- BEGIN now explicit for multi-statement transactions
 
 BEGIN \;
@@ -1537,8 +1537,8 @@ CREATE FUNCTION psql_error(msg TEXT) RETURNS BOOLEAN AS $$
 $$ LANGUAGE plpgsql;
 
 -- \set ON_ERROR_ROLLBACK on
--- \echo /* REPLACED */''# ON_ERROR_ROLLBACK:/* REPLACED */'' /* REPLACED */on
--- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */on
+-- \echo /* REPLACED */ ''# ON_ERROR_ROLLBACK:/* REPLACED */ '' /* REPLACED */ on
+-- \echo /* REPLACED */ ''# AUTOCOMMIT:/* REPLACED */ '' /* REPLACED */ on
 
 BEGIN;
 CREATE TABLE bla(s NO_SUCH_TYPE);               -- fails
@@ -1564,7 +1564,7 @@ SELECT * FROM bla ORDER BY 1;
 
 -- some with autocommit off
 -- \set AUTOCOMMIT off
--- \echo /* REPLACED */''# AUTOCOMMIT:/* REPLACED */'' /* REPLACED */off
+-- \echo /* REPLACED */ ''# AUTOCOMMIT:/* REPLACED */ '' /* REPLACED */ off
 
 -- implicit BEGIN
 INSERT INTO bla VALUES ('Dad');           -- succeeds
@@ -1584,7 +1584,7 @@ COMMIT;
 -- reset all
 -- \set AUTOCOMMIT on
 -- \set ON_ERROR_ROLLBACK off
--- \echo /* REPLACED */''# final ON_ERROR_ROLLBACK:/* REPLACED */'' /* REPLACED */off
+-- \echo /* REPLACED */ ''# final ON_ERROR_ROLLBACK:/* REPLACED */ '' /* REPLACED */ off
 DROP TABLE bla;
 DROP FUNCTION psql_error;
 
@@ -1669,19 +1669,19 @@ DROP FUNCTION psql_error;
 -- \dL *.plpgsql
 -- \dL nonesuch.plpgsql
 -- \dn host.regression.public
--- \dn /* REPLACED */''/* REPLACED */''/* REPLACED */''/* REPLACED */''.public
+-- \dn /* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''.public
 -- \dn nonesuch.public
 -- \do host.regression.public.!=-
--- \do /* REPLACED */''regression|mydb/* REPLACED */''.public.!=-
+-- \do /* REPLACED */ ''regression|mydb/* REPLACED */ ''.public.!=-
 -- \do nonesuch.public.!=-
 -- \dO host.regression.pg_catalog.POSIX
 -- \dO .pg_catalog.POSIX
 -- \dO nonesuch.pg_catalog.POSIX
 -- \dp host.regression.public.a_star
--- \dp /* REPLACED */''regres+ion/* REPLACED */''.public.a_star
+-- \dp /* REPLACED */ ''regres+ion/* REPLACED */ ''.public.a_star
 -- \dp nonesuch.public.a_star
 -- \dP host.regression.public.mlparted
--- \dP /* REPLACED */''regres(sion)/* REPLACED */''.public.mlparted
+-- \dP /* REPLACED */ ''regres(sion)/* REPLACED */ ''.public.mlparted
 -- \dP nonesuch.public.mlparted
 -- \drds nonesuch.lc_messages
 -- \drds regression.lc_messages
@@ -1690,145 +1690,145 @@ DROP FUNCTION psql_error;
 -- \dRs public.mysub
 -- \dRs regression.mysub
 -- \dT host.regression.public.widget
--- \dT /* REPLACED */''regression{1,2}/* REPLACED */''.public.widget
+-- \dT /* REPLACED */ ''regression{1,2}/* REPLACED */ ''.public.widget
 -- \dT nonesuch.public.widget
 -- \dx regression.plpgsql
 -- \dx nonesuch.plpgsql
 -- \dX host.regression.public.func_deps_stat
--- \dX /* REPLACED */''^regression$/* REPLACED */''.public.func_deps_stat
+-- \dX /* REPLACED */ ''^regression$/* REPLACED */ ''.public.func_deps_stat
 -- \dX nonesuch.public.func_deps_stat
 -- \dy regression.myevt
 -- \dy nonesuch.myevt
 
 -- check that dots within quoted name segments are not counted
--- \dA /* REPLACED */''no.such.access.method/* REPLACED */''
--- \dt /* REPLACED */''no.such.table.relation/* REPLACED */''
--- \da /* REPLACED */''no.such.aggregate.function/* REPLACED */''
--- \dAc /* REPLACED */''no.such.operator.class/* REPLACED */''
--- \dAf /* REPLACED */''no.such.operator.family/* REPLACED */''
--- \dAo /* REPLACED */''no.such.operator.of.operator.family/* REPLACED */''
--- \dAp /* REPLACED */''no.such.operator.support.function.of.operator.family/* REPLACED */''
--- \db /* REPLACED */''no.such.tablespace/* REPLACED */''
--- \dc /* REPLACED */''no.such.conversion/* REPLACED */''
--- \dC /* REPLACED */''no.such.cast/* REPLACED */''
--- \dd /* REPLACED */''no.such.object.description/* REPLACED */''
--- \dD /* REPLACED */''no.such.domain/* REPLACED */''
--- \ddp /* REPLACED */''no.such.default.access.privilege/* REPLACED */''
--- \di /* REPLACED */''no.such.index.relation/* REPLACED */''
--- \dm /* REPLACED */''no.such.materialized.view/* REPLACED */''
--- \ds /* REPLACED */''no.such.relation/* REPLACED */''
--- \dt /* REPLACED */''no.such.relation/* REPLACED */''
--- \dv /* REPLACED */''no.such.relation/* REPLACED */''
--- \des /* REPLACED */''no.such.foreign.server/* REPLACED */''
--- \dew /* REPLACED */''no.such.foreign.data.wrapper/* REPLACED */''
--- \df /* REPLACED */''no.such.function/* REPLACED */''
--- \dF /* REPLACED */''no.such.text.search.configuration/* REPLACED */''
--- \dFd /* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
--- \dFp /* REPLACED */''no.such.text.search.parser/* REPLACED */''
--- \dFt /* REPLACED */''no.such.text.search.template/* REPLACED */''
--- \dg /* REPLACED */''no.such.role/* REPLACED */''
--- \dL /* REPLACED */''no.such.language/* REPLACED */''
--- \dn /* REPLACED */''no.such.schema/* REPLACED */''
--- \do /* REPLACED */''no.such.operator/* REPLACED */''
--- \dO /* REPLACED */''no.such.collation/* REPLACED */''
--- \dp /* REPLACED */''no.such.access.privilege/* REPLACED */''
--- \dP /* REPLACED */''no.such.partitioned.relation/* REPLACED */''
--- \drds /* REPLACED */''no.such.setting/* REPLACED */''
--- \dRp /* REPLACED */''no.such.publication/* REPLACED */''
--- \dRs /* REPLACED */''no.such.subscription/* REPLACED */''
--- \dT /* REPLACED */''no.such.data.type/* REPLACED */''
--- \dx /* REPLACED */''no.such.installed.extension/* REPLACED */''
--- \dX /* REPLACED */''no.such.extended.statistics/* REPLACED */''
--- \dy /* REPLACED */''no.such.event.trigger/* REPLACED */''
+-- \dA /* REPLACED */ ''no.such.access.method/* REPLACED */ ''
+-- \dt /* REPLACED */ ''no.such.table.relation/* REPLACED */ ''
+-- \da /* REPLACED */ ''no.such.aggregate.function/* REPLACED */ ''
+-- \dAc /* REPLACED */ ''no.such.operator.class/* REPLACED */ ''
+-- \dAf /* REPLACED */ ''no.such.operator.family/* REPLACED */ ''
+-- \dAo /* REPLACED */ ''no.such.operator.of.operator.family/* REPLACED */ ''
+-- \dAp /* REPLACED */ ''no.such.operator.support.function.of.operator.family/* REPLACED */ ''
+-- \db /* REPLACED */ ''no.such.tablespace/* REPLACED */ ''
+-- \dc /* REPLACED */ ''no.such.conversion/* REPLACED */ ''
+-- \dC /* REPLACED */ ''no.such.cast/* REPLACED */ ''
+-- \dd /* REPLACED */ ''no.such.object.description/* REPLACED */ ''
+-- \dD /* REPLACED */ ''no.such.domain/* REPLACED */ ''
+-- \ddp /* REPLACED */ ''no.such.default.access.privilege/* REPLACED */ ''
+-- \di /* REPLACED */ ''no.such.index.relation/* REPLACED */ ''
+-- \dm /* REPLACED */ ''no.such.materialized.view/* REPLACED */ ''
+-- \ds /* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dt /* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dv /* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \des /* REPLACED */ ''no.such.foreign.server/* REPLACED */ ''
+-- \dew /* REPLACED */ ''no.such.foreign.data.wrapper/* REPLACED */ ''
+-- \df /* REPLACED */ ''no.such.function/* REPLACED */ ''
+-- \dF /* REPLACED */ ''no.such.text.search.configuration/* REPLACED */ ''
+-- \dFd /* REPLACED */ ''no.such.text.search.dictionary/* REPLACED */ ''
+-- \dFp /* REPLACED */ ''no.such.text.search.parser/* REPLACED */ ''
+-- \dFt /* REPLACED */ ''no.such.text.search.template/* REPLACED */ ''
+-- \dg /* REPLACED */ ''no.such.role/* REPLACED */ ''
+-- \dL /* REPLACED */ ''no.such.language/* REPLACED */ ''
+-- \dn /* REPLACED */ ''no.such.schema/* REPLACED */ ''
+-- \do /* REPLACED */ ''no.such.operator/* REPLACED */ ''
+-- \dO /* REPLACED */ ''no.such.collation/* REPLACED */ ''
+-- \dp /* REPLACED */ ''no.such.access.privilege/* REPLACED */ ''
+-- \dP /* REPLACED */ ''no.such.partitioned.relation/* REPLACED */ ''
+-- \drds /* REPLACED */ ''no.such.setting/* REPLACED */ ''
+-- \dRp /* REPLACED */ ''no.such.publication/* REPLACED */ ''
+-- \dRs /* REPLACED */ ''no.such.subscription/* REPLACED */ ''
+-- \dT /* REPLACED */ ''no.such.data.type/* REPLACED */ ''
+-- \dx /* REPLACED */ ''no.such.installed.extension/* REPLACED */ ''
+-- \dX /* REPLACED */ ''no.such.extended.statistics/* REPLACED */ ''
+-- \dy /* REPLACED */ ''no.such.event.trigger/* REPLACED */ ''
 
 -- again, but with dotted schema qualifications.
--- \dA /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.method/* REPLACED */''
--- \dt /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.table.relation/* REPLACED */''
--- \da /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.aggregate.function/* REPLACED */''
--- \dAc /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.class/* REPLACED */''
--- \dAf /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.family/* REPLACED */''
--- \dAo /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.of.operator.family/* REPLACED */''
--- \dAp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator.support.function.of.operator.family/* REPLACED */''
--- \db /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.tablespace/* REPLACED */''
--- \dc /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.conversion/* REPLACED */''
--- \dC /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.cast/* REPLACED */''
--- \dd /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.object.description/* REPLACED */''
--- \dD /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.domain/* REPLACED */''
--- \ddp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.default.access.privilege/* REPLACED */''
--- \di /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.index.relation/* REPLACED */''
--- \dm /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.materialized.view/* REPLACED */''
--- \ds /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \dt /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \dv /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \des /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.foreign.server/* REPLACED */''
--- \dew /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.foreign.data.wrapper/* REPLACED */''
--- \df /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.function/* REPLACED */''
--- \dF /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.configuration/* REPLACED */''
--- \dFd /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
--- \dFp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.parser/* REPLACED */''
--- \dFt /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.template/* REPLACED */''
--- \dg /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.role/* REPLACED */''
--- \dL /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.language/* REPLACED */''
--- \do /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator/* REPLACED */''
--- \dO /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.collation/* REPLACED */''
--- \dp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.privilege/* REPLACED */''
--- \dP /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.partitioned.relation/* REPLACED */''
--- \drds /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.setting/* REPLACED */''
--- \dRp /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.publication/* REPLACED */''
--- \dRs /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.subscription/* REPLACED */''
--- \dT /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.data.type/* REPLACED */''
--- \dx /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.installed.extension/* REPLACED */''
--- \dX /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.extended.statistics/* REPLACED */''
--- \dy /* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.event.trigger/* REPLACED */''
+-- \dA /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.access.method/* REPLACED */ ''
+-- \dt /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.table.relation/* REPLACED */ ''
+-- \da /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.aggregate.function/* REPLACED */ ''
+-- \dAc /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator.class/* REPLACED */ ''
+-- \dAf /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator.family/* REPLACED */ ''
+-- \dAo /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator.of.operator.family/* REPLACED */ ''
+-- \dAp /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator.support.function.of.operator.family/* REPLACED */ ''
+-- \db /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.tablespace/* REPLACED */ ''
+-- \dc /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.conversion/* REPLACED */ ''
+-- \dC /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.cast/* REPLACED */ ''
+-- \dd /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.object.description/* REPLACED */ ''
+-- \dD /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.domain/* REPLACED */ ''
+-- \ddp /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.default.access.privilege/* REPLACED */ ''
+-- \di /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.index.relation/* REPLACED */ ''
+-- \dm /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.materialized.view/* REPLACED */ ''
+-- \ds /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dt /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dv /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \des /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.foreign.server/* REPLACED */ ''
+-- \dew /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.foreign.data.wrapper/* REPLACED */ ''
+-- \df /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.function/* REPLACED */ ''
+-- \dF /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.configuration/* REPLACED */ ''
+-- \dFd /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.dictionary/* REPLACED */ ''
+-- \dFp /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.parser/* REPLACED */ ''
+-- \dFt /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.template/* REPLACED */ ''
+-- \dg /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.role/* REPLACED */ ''
+-- \dL /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.language/* REPLACED */ ''
+-- \do /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator/* REPLACED */ ''
+-- \dO /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.collation/* REPLACED */ ''
+-- \dp /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.access.privilege/* REPLACED */ ''
+-- \dP /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.partitioned.relation/* REPLACED */ ''
+-- \drds /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.setting/* REPLACED */ ''
+-- \dRp /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.publication/* REPLACED */ ''
+-- \dRs /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.subscription/* REPLACED */ ''
+-- \dT /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.data.type/* REPLACED */ ''
+-- \dx /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.installed.extension/* REPLACED */ ''
+-- \dX /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.extended.statistics/* REPLACED */ ''
+-- \dy /* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.event.trigger/* REPLACED */ ''
 
 -- again, but with current database and dotted schema qualifications.
--- \dt regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.table.relation/* REPLACED */''
--- \da regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.aggregate.function/* REPLACED */''
--- \dc regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.conversion/* REPLACED */''
--- \dC regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.cast/* REPLACED */''
--- \dd regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.object.description/* REPLACED */''
--- \dD regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.domain/* REPLACED */''
--- \di regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.index.relation/* REPLACED */''
--- \dm regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.materialized.view/* REPLACED */''
--- \ds regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \dt regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \dv regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \df regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.function/* REPLACED */''
--- \dF regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.configuration/* REPLACED */''
--- \dFd regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
--- \dFp regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.parser/* REPLACED */''
--- \dFt regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.template/* REPLACED */''
--- \do regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator/* REPLACED */''
--- \dO regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.collation/* REPLACED */''
--- \dp regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.privilege/* REPLACED */''
--- \dP regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.partitioned.relation/* REPLACED */''
--- \dT regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.data.type/* REPLACED */''
--- \dX regression./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.extended.statistics/* REPLACED */''
+-- \dt regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.table.relation/* REPLACED */ ''
+-- \da regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.aggregate.function/* REPLACED */ ''
+-- \dc regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.conversion/* REPLACED */ ''
+-- \dC regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.cast/* REPLACED */ ''
+-- \dd regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.object.description/* REPLACED */ ''
+-- \dD regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.domain/* REPLACED */ ''
+-- \di regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.index.relation/* REPLACED */ ''
+-- \dm regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.materialized.view/* REPLACED */ ''
+-- \ds regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dt regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dv regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \df regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.function/* REPLACED */ ''
+-- \dF regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.configuration/* REPLACED */ ''
+-- \dFd regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.dictionary/* REPLACED */ ''
+-- \dFp regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.parser/* REPLACED */ ''
+-- \dFt regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.template/* REPLACED */ ''
+-- \do regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator/* REPLACED */ ''
+-- \dO regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.collation/* REPLACED */ ''
+-- \dp regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.access.privilege/* REPLACED */ ''
+-- \dP regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.partitioned.relation/* REPLACED */ ''
+-- \dT regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.data.type/* REPLACED */ ''
+-- \dX regression./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.extended.statistics/* REPLACED */ ''
 
 -- again, but with dotted database and dotted schema qualifications.
--- \dt /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.table.relation/* REPLACED */''
--- \da /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.aggregate.function/* REPLACED */''
--- \dc /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.conversion/* REPLACED */''
--- \dC /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.cast/* REPLACED */''
--- \dd /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.object.description/* REPLACED */''
--- \dD /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.domain/* REPLACED */''
--- \ddp /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.default.access.privilege/* REPLACED */''
--- \di /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.index.relation/* REPLACED */''
--- \dm /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.materialized.view/* REPLACED */''
--- \ds /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \dt /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \dv /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.relation/* REPLACED */''
--- \df /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.function/* REPLACED */''
--- \dF /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.configuration/* REPLACED */''
--- \dFd /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.dictionary/* REPLACED */''
--- \dFp /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.parser/* REPLACED */''
--- \dFt /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.text.search.template/* REPLACED */''
--- \do /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.operator/* REPLACED */''
--- \dO /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.collation/* REPLACED */''
--- \dp /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.access.privilege/* REPLACED */''
--- \dP /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.partitioned.relation/* REPLACED */''
--- \dT /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.data.type/* REPLACED */''
--- \dX /* REPLACED */''no.such.database/* REPLACED */''./* REPLACED */''no.such.schema/* REPLACED */''./* REPLACED */''no.such.extended.statistics/* REPLACED */''
+-- \dt /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.table.relation/* REPLACED */ ''
+-- \da /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.aggregate.function/* REPLACED */ ''
+-- \dc /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.conversion/* REPLACED */ ''
+-- \dC /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.cast/* REPLACED */ ''
+-- \dd /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.object.description/* REPLACED */ ''
+-- \dD /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.domain/* REPLACED */ ''
+-- \ddp /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.default.access.privilege/* REPLACED */ ''
+-- \di /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.index.relation/* REPLACED */ ''
+-- \dm /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.materialized.view/* REPLACED */ ''
+-- \ds /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dt /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \dv /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.relation/* REPLACED */ ''
+-- \df /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.function/* REPLACED */ ''
+-- \dF /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.configuration/* REPLACED */ ''
+-- \dFd /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.dictionary/* REPLACED */ ''
+-- \dFp /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.parser/* REPLACED */ ''
+-- \dFt /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.text.search.template/* REPLACED */ ''
+-- \do /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.operator/* REPLACED */ ''
+-- \dO /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.collation/* REPLACED */ ''
+-- \dp /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.access.privilege/* REPLACED */ ''
+-- \dP /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.partitioned.relation/* REPLACED */ ''
+-- \dT /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.data.type/* REPLACED */ ''
+-- \dX /* REPLACED */ ''no.such.database/* REPLACED */ ''./* REPLACED */ ''no.such.schema/* REPLACED */ ''./* REPLACED */ ''no.such.extended.statistics/* REPLACED */ ''
 
 -- check \drg and \du
 CREATE ROLE regress_du_role0;
@@ -1882,7 +1882,7 @@ ROLLBACK;
 
 -- Test display of default privileges with \pset null.
 CREATE TABLE defprivs (a int);
--- \pset null /* REPLACED */''(default)/* REPLACED */''
+-- \pset null /* REPLACED */ ''(default)/* REPLACED */ ''
 -- \z defprivs
--- \pset null /* REPLACED */''/* REPLACED */''
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
 DROP TABLE defprivs;

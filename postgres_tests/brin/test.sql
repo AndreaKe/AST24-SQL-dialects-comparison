@@ -58,7 +58,7 @@ INSERT INTO brintest SELECT
 	box(point(odd, even), point(thousand, twothousand))
 FROM tenk1 ORDER BY unique2 LIMIT 100;
 
--- throw in some NULL/* REPLACED */''s and different values
+-- throw in some NULL/* REPLACED */ ''s and different values
 INSERT INTO brintest (inetcol, cidrcol, int4rangecol) SELECT
 	inet 'fe80::6e40:8ff:fea9:8c46' + tenthous,
 	cidr 'fe80::6e40:8ff:fea9:8c46' + tenthous,
@@ -442,7 +442,7 @@ SELECT brin_summarize_range('brin_summarize_idx', 0);
 SELECT brin_summarize_range('brin_summarize_idx', 1);
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_idx', 2);
--- nothing: page doesn/* REPLACED */''t exist in table
+-- nothing: page doesn/* REPLACED */ ''t exist in table
 SELECT brin_summarize_range('brin_summarize_idx', 4294967295);
 -- invalid block number values
 SELECT brin_summarize_range('brin_summarize_idx', -1);

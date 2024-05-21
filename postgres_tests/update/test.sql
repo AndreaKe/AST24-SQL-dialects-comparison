@@ -31,7 +31,7 @@ UPDATE update_test t SET b = t.b + 10 WHERE t.a = 10;
 
 SELECT * FROM update_test;
 
--- error, you/* REPLACED */''re not supposed to qualify the target column
+-- error, you/* REPLACED */ ''re not supposed to qualify the target column
 UPDATE update_test t SET t.b = t.b + 10 WHERE t.a = 10;
 
 --
@@ -80,11 +80,11 @@ SELECT * FROM update_test;
 -- *-expansion should work in this context:
 UPDATE update_test SET (a,b) = ROW(v.*) FROM (VALUES(21, 100)) AS v(i, j)
   WHERE update_test.a = v.i;
--- you might expect this to work, but syntactically it/* REPLACED */''s not a RowExpr:
+-- you might expect this to work, but syntactically it/* REPLACED */ ''s not a RowExpr:
 UPDATE update_test SET (a,b) = (v.*) FROM (VALUES(21, 101)) AS v(i, j)
   WHERE update_test.a = v.i;
 
--- if an alias for the target table is specified, don/* REPLACED */''t allow references
+-- if an alias for the target table is specified, don/* REPLACED */ ''t allow references
 -- to the original table name
 UPDATE update_test AS t SET b = update_test.b + 10 WHERE t.a = 10;
 
@@ -124,7 +124,7 @@ INSERT INTO upsert_test VALUES (1, 'Bat'), (3, 'Zot') ON CONFLICT(a)
 INSERT INTO upsert_test VALUES (2, 'Beeble') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
   RETURNING tableoid::regclass, xmin = pg_current_xact_id()::xid AS xmin_correct, xmax = 0 AS xmax_correct;
--- currently xmax is set after a conflict - that/* REPLACED */''s probably not good,
+-- currently xmax is set after a conflict - that/* REPLACED */ ''s probably not good,
 -- but it seems worthwhile to have to be explicit if that changes.
 INSERT INTO upsert_test VALUES (2, 'Brox') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
@@ -162,7 +162,7 @@ DROP TABLE upsert_test;
 ---------------------------
 
 -- When a partitioned table receives an UPDATE to the partitioned key and the
--- new values no longer meet the partition/* REPLACED */''s bound, the row must be moved to
+-- new values no longer meet the partition/* REPLACED */ ''s bound, the row must be moved to
 -- the correct partition for the new partition key (if one exists). We must
 -- also ensure that updatable views on partitioned tables properly enforce any
 -- WITH CHECK OPTION that is defined. The situation with triggers in this case
@@ -192,7 +192,7 @@ CREATE TABLE part_a_1_a_10 PARTITION OF range_parted FOR VALUES FROM ('a', 1) TO
 UPDATE part_b_10_b_20 set b = b - 6;
 
 -- Create some more partitions following the above pattern of descending bound
--- order, but let/* REPLACED */''s make the situation a bit more complex by having the
+-- order, but let/* REPLACED */ ''s make the situation a bit more complex by having the
 -- attribute numbers of the columns vary from their parent partition.
 CREATE TABLE part_c_100_200 (e varchar, c numeric, a text, b bigint, d int) PARTITION BY range (abs(d));
 ALTER TABLE part_c_100_200 DROP COLUMN e, DROP COLUMN c, DROP COLUMN a;
@@ -209,8 +209,8 @@ ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_1_100 FOR VALUES FROM (1) TO 
 
 -- \set init_range_parted 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)'
 -- \set show_data 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- The order of subplans should be in bound order
 EXPLAIN (costs off) UPDATE range_parted set c = c - 50 WHERE c > 97;
@@ -218,7 +218,7 @@ EXPLAIN (costs off) UPDATE range_parted set c = c - 50 WHERE c > 97;
 -- fail, row movement happens only within the partition subtree.
 UPDATE part_c_100_200 set c = c - 20, d = c WHERE c = 105;
 -- fail, no partition key update, so no attempt to move tuple,
--- but /* REPLACED */''a = /* REPLACED */''a/* REPLACED */''/* REPLACED */'' violates partition constraint enforced by root partition)
+-- but /* REPLACED */ ''a = /* REPLACED */ ''a/* REPLACED */ ''/* REPLACED */ '' violates partition constraint enforced by root partition)
 UPDATE part_b_10_b_20 set a = 'a';
 -- ok, partition key update, no constraint violation
 UPDATE range_parted set d = d - 10 WHERE d > 10;
@@ -228,14 +228,14 @@ UPDATE range_parted set e = d;
 UPDATE part_c_1_100 set c = c + 20 WHERE c = 98;
 -- ok, row movement
 UPDATE part_b_10_b_20 set c = c + 20 returning c, b, a;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- fail, row movement happens only within the partition subtree.
 UPDATE part_b_10_b_20 set b = b - 6 WHERE c > 116 returning *;
 -- ok, row movement, with subset of rows moved into different partition.
 UPDATE range_parted set b = b - 6 WHERE c > 116 returning a, b + c;
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- Common table needed for multiple test scenarios.
 CREATE TABLE mintab(c1 int);
@@ -252,19 +252,19 @@ UPDATE upview set a = 'b', b = 15, c = 120 WHERE b = 4;
 -- ok, row movement, check option passes
 UPDATE upview set a = 'b', b = 15 WHERE b = 4;
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- cleanup
 DROP VIEW upview;
 
 -- RETURNING having whole-row vars.
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 UPDATE range_parted set c = 95 WHERE a = 'b' and b > 10 and c > 100 returning (range_parted), *;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 
 -- Transition tables with update row movement
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 
 CREATE FUNCTION trans_updatetrigfunc() RETURNS trigger LANGUAGE plpgsql AS
 $$
@@ -282,8 +282,8 @@ CREATE TRIGGER trans_updatetrig
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
 
 UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end ) WHERE a = 'b' and b > 10 and c >= 96;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 
 -- Enabling OLD TABLE capture for both DELETE as well as UPDATE stmt triggers
 -- should not cause DELETEd rows to be captured twice. Similar thing for
@@ -295,10 +295,10 @@ CREATE TRIGGER trans_inserttrig
   AFTER INSERT ON range_parted REFERENCING NEW TABLE AS new_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
 UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 DROP TRIGGER trans_deletetrig ON range_parted;
 DROP TRIGGER trans_inserttrig ON range_parted;
--- Don/* REPLACED */''t drop trans_updatetrig yet. It is required below.
+-- Don/* REPLACED */ ''t drop trans_updatetrig yet. It is required below.
 
 -- Test with transition tuple conversion happening for rows moved into the
 -- new partition. This requires a trigger that references transition table
@@ -318,19 +318,19 @@ CREATE TRIGGER trig_d1_15 BEFORE UPDATE OR INSERT ON part_d_1_15
    FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
 CREATE TRIGGER trig_d15_20 BEFORE UPDATE OR INSERT ON part_d_15_20
    FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end) WHERE a = 'b' and b > 10 and c >= 96;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- Case where per-partition tuple conversion map array is allocated, but the
 -- map is not required for the particular tuple that is routed, thanks to
 -- matching table attributes of the partition and the target table.
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 UPDATE range_parted set b = 15 WHERE b = 1;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 DROP TRIGGER trans_updatetrig ON range_parted;
 DROP TRIGGER trig_c1_100 ON part_c_1_100;
@@ -347,10 +347,10 @@ GRANT ALL ON range_parted, mintab TO regress_range_parted_user;
 CREATE POLICY seeall ON range_parted AS PERMISSIVE FOR SELECT USING (true);
 CREATE POLICY policy_range_parted ON range_parted for UPDATE USING (true) WITH CHECK (c % 2 = 0);
 
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 SET SESSION AUTHORIZATION regress_range_parted_user;
 -- This should fail with RLS violation error while moving row from
--- part_a_10_a_20 to part_d_1_15, because we are setting /* REPLACED */''c/* REPLACED */'' to an odd number.
+-- part_a_10_a_20 to part_d_1_15, because we are setting /* REPLACED */ ''c/* REPLACED */ '' to an odd number.
 UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
 
 RESET SESSION AUTHORIZATION;
@@ -363,19 +363,19 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trig_d_1_15 BEFORE INSERT ON part_d_1_15
    FOR EACH ROW EXECUTE PROCEDURE func_d_1_15();
 
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 SET SESSION AUTHORIZATION regress_range_parted_user;
 
 -- Here, RLS checks should succeed while moving row from part_a_10_a_20 to
--- part_d_1_15. Even though the UPDATE is setting /* REPLACED */''c/* REPLACED */'' to an odd number, the
+-- part_d_1_15. Even though the UPDATE is setting /* REPLACED */ ''c/* REPLACED */ '' to an odd number, the
 -- trigger at the destination partition again makes it an even number.
 UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
 
 RESET SESSION AUTHORIZATION;
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 SET SESSION AUTHORIZATION regress_range_parted_user;
 -- This should fail with RLS violation error. Even though the UPDATE is setting
--- /* REPLACED */''c/* REPLACED */'' to an even number, the trigger at the destination partition again makes
+-- /* REPLACED */ ''c/* REPLACED */ '' to an even number, the trigger at the destination partition again makes
 -- it an odd number.
 UPDATE range_parted set a = 'b', c = 150 WHERE a = 'a' and c = 200;
 
@@ -386,7 +386,7 @@ DROP FUNCTION func_d_1_15();
 
 -- Policy expression contains SubPlan
 RESET SESSION AUTHORIZATION;
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 CREATE POLICY policy_range_parted_subplan on range_parted
     AS RESTRICTIVE for UPDATE USING (true)
     WITH CHECK ((SELECT range_parted.c <= c1 FROM mintab));
@@ -399,14 +399,14 @@ UPDATE range_parted set a = 'b', c = 120 WHERE a = 'a' and c = 200;
 -- RLS policy expression contains whole row.
 
 RESET SESSION AUTHORIZATION;
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 CREATE POLICY policy_range_parted_wholerow on range_parted AS RESTRICTIVE for UPDATE USING (true)
    WITH CHECK (range_parted = row('b', 10, 112, 1, NULL)::range_parted);
 SET SESSION AUTHORIZATION regress_range_parted_user;
 -- ok, should pass the RLS check
 UPDATE range_parted set a = 'b', c = 112 WHERE a = 'a' and c = 200;
 RESET SESSION AUTHORIZATION;
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 SET SESSION AUTHORIZATION regress_range_parted_user;
 -- fail, the whole row RLS check should fail
 UPDATE range_parted set a = 'b', c = 116 WHERE a = 'a' and c = 200;
@@ -424,7 +424,7 @@ DROP TABLE mintab;
 -- statement triggers with update row movement
 ---------------------------------------------------
 
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 
 CREATE FUNCTION trigfunc() returns trigger language plpgsql as
 $$
@@ -468,7 +468,7 @@ CREATE TRIGGER d15_insert_trig
 -- Move all rows from part_c_100_200 to part_c_1_100. None of the delete or
 -- insert statement triggers should be fired.
 UPDATE range_parted set c = c - 50 WHERE c > 97;
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 DROP TRIGGER parent_delete_trig ON range_parted;
 DROP TRIGGER parent_update_trig ON range_parted;
@@ -485,7 +485,7 @@ DROP TRIGGER d15_insert_trig ON part_d_15_20;
 
 
 -- Creating default partition for range
-/* REPLACED */'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
+/* REPLACED */ 'truncate range_parted; insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 create table part_def partition of range_parted default;
 -- \d+ part_def
 insert into range_parted values ('c', 9);
@@ -494,20 +494,20 @@ update part_def set a = 'd' where a = 'c';
 -- fail
 update part_def set a = 'a' where a = 'd';
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- Update row movement from non-default to default partition.
--- fail, default partition is not under part_a_10_a_20 /* REPLACED */,
+-- fail, default partition is not under part_a_10_a_20 /* REPLACED */ ,
 UPDATE part_a_10_a_20 set a = 'ad' WHERE a = 'a';
 -- ok
 UPDATE range_parted set a = 'ad' WHERE a = 'a';
 UPDATE range_parted set a = 'bd' WHERE a = 'b';
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 -- Update row movement from default to non-default partitions.
 -- ok
 UPDATE range_parted set a = 'a' WHERE a = 'ad';
 UPDATE range_parted set a = 'b' WHERE a = 'bd';
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 
 -- Cleanup: range_parted no longer needed.
 DROP TABLE range_parted;

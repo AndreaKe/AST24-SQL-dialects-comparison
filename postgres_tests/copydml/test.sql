@@ -18,9 +18,9 @@ copy (delete from copydml_test where t = 'g' returning id) to stdout;
 --
 -- Test \copy (insert/update/delete ...)
 --
--- \copy (insert into copydml_test (t) values (/* REPLACED */''f/* REPLACED */'') returning id) to stdout /* REPLACED */,
--- \copy (update copydml_test set t = /* REPLACED */''g/* REPLACED */'' where t = /* REPLACED */''f/* REPLACED */'' returning id) to stdout /* REPLACED */,
--- \copy (delete from copydml_test where t = /* REPLACED */''g/* REPLACED */'' returning id) to stdout /* REPLACED */,
+-- \copy (insert into copydml_test (t) values (/* REPLACED */ ''f/* REPLACED */ '') returning id) to stdout /* REPLACED */ ,
+-- \copy (update copydml_test set t = /* REPLACED */ ''g/* REPLACED */ '' where t = /* REPLACED */ ''f/* REPLACED */ '' returning id) to stdout /* REPLACED */ ,
+-- \copy (delete from copydml_test where t = /* REPLACED */ ''g/* REPLACED */ '' returning id) to stdout /* REPLACED */ ,
 
 -- Error cases
 copy (insert into copydml_test default values) to stdout;

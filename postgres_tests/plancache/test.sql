@@ -21,26 +21,26 @@ EXECUTE prepstmt;
 EXECUTE prepstmt2(123);
 
 -- recreate the temp table (this demonstrates that the raw plan is
--- purely textual and doesn/* REPLACED */''t depend on OIDs, for instance)
+-- purely textual and doesn/* REPLACED */ ''t depend on OIDs, for instance)
 CREATE TEMP TABLE pcachetest AS SELECT * FROM int8_tbl ORDER BY 2;
 
 EXECUTE prepstmt;
 EXECUTE prepstmt2(123);
 
 -- prepared statements should prevent change in output tupdesc,
--- since clients probably aren/* REPLACED */''t expecting that to change on the fly
+-- since clients probably aren/* REPLACED */ ''t expecting that to change on the fly
 ALTER TABLE pcachetest ADD COLUMN q3 bigint;
 
 EXECUTE prepstmt;
 EXECUTE prepstmt2(123);
 
--- but we/* REPLACED */''re nice guys and will let you undo your mistake
+-- but we/* REPLACED */ ''re nice guys and will let you undo your mistake
 ALTER TABLE pcachetest DROP COLUMN q3;
 
 EXECUTE prepstmt;
 EXECUTE prepstmt2(123);
 
--- Try it with a view, which isn/* REPLACED */''t directly used in the resulting plan
+-- Try it with a view, which isn/* REPLACED */ ''t directly used in the resulting plan
 -- but should trigger invalidation anyway
 CREATE TEMP VIEW pcacheview AS
   SELECT * FROM pcachetest;
@@ -74,7 +74,7 @@ select cache_test(1);
 select cache_test(2);
 select cache_test(3);
 
--- Check invalidation of plpgsql /* REPLACED */''simple expression/* REPLACED */''
+-- Check invalidation of plpgsql /* REPLACED */ ''simple expression/* REPLACED */ ''
 
 create temp view v1 as
   select 2+2 as f1;

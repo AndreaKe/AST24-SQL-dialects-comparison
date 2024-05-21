@@ -40,7 +40,7 @@ begin
       cmd := cmd || ' = fk.' || quote_ident(fk.fkcols[i]);
     end loop;
     cmd := cmd || ')';
-    -- raise notice /* REPLACED */''cmd = %/* REPLACED */'', cmd /* REPLACED */,
+    -- raise notice /* REPLACED */ ''cmd = %/* REPLACED */ '', cmd /* REPLACED */ ,
     for err in execute cmd loop
       raise warning 'FK VIOLATION IN %(%): %', fk.fktable, fk.fkcols, err;
     end loop;

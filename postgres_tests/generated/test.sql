@@ -128,7 +128,7 @@ INSERT INTO gtest1_1 VALUES (4);
 SELECT * FROM gtest1_1;
 SELECT * FROM gtest1;
 
--- can/* REPLACED */''t have generated column that is a child of normal column
+-- can/* REPLACED */ ''t have generated column that is a child of normal column
 CREATE TABLE gtest_normal (a int, b int);
 CREATE TABLE gtest_normal_child (a int, b int GENERATED ALWAYS AS (a * 2) STORED) INHERITS (gtest_normal);  -- error
 CREATE TABLE gtest_normal_child (a int, b int GENERATED ALWAYS AS (a * 2) STORED);
@@ -162,7 +162,7 @@ CREATE TABLE gtest1_y () INHERITS (gtest1, gtesty);  -- error
 CREATE TABLE gtest1_y (b int GENERATED ALWAYS AS (x + 1) STORED) INHERITS (gtest1, gtesty);  -- ok
 -- \d gtest1_y
 
--- test correct handling of GENERATED column that/* REPLACED */''s only in child
+-- test correct handling of GENERATED column that/* REPLACED */ ''s only in child
 CREATE TABLE gtestp (f1 int);
 CREATE TABLE gtestc (f2 int GENERATED ALWAYS AS (f1+1) STORED) INHERITS(gtestp);
 INSERT INTO gtestc values(42);
@@ -434,7 +434,7 @@ SELECT tableoid::regclass, * FROM gtest_parent ORDER BY 1, 2, 3;
 UPDATE gtest_parent SET f1 = f1 + 60 WHERE f2 = 1;
 SELECT tableoid::regclass, * FROM gtest_parent ORDER BY 1, 2, 3;
 
--- alter only parent/* REPLACED */''s and one child/* REPLACED */''s generation expression
+-- alter only parent/* REPLACED */ ''s and one child/* REPLACED */ ''s generation expression
 ALTER TABLE ONLY gtest_parent ALTER COLUMN f3 SET EXPRESSION AS (f2 * 4);
 ALTER TABLE gtest_child ALTER COLUMN f3 SET EXPRESSION AS (f2 * 10);
 -- \d gtest_parent
@@ -484,7 +484,7 @@ ALTER TABLE gtest27 ALTER COLUMN x TYPE numeric;
 SELECT * FROM gtest27;
 ALTER TABLE gtest27 ALTER COLUMN x TYPE boolean USING x <> 0;  -- error
 ALTER TABLE gtest27 ALTER COLUMN x DROP DEFAULT;  -- error
--- It/* REPLACED */''s possible to alter the column types this way:
+-- It/* REPLACED */ ''s possible to alter the column types this way:
 ALTER TABLE gtest27
   DROP COLUMN x,
   ALTER COLUMN a TYPE bigint,
@@ -610,7 +610,7 @@ DROP TRIGGER gtest1 ON gtest26;
 DROP TRIGGER gtest2 ON gtest26;
 DROP TRIGGER gtest3 ON gtest26;
 
--- Check that an UPDATE of /* REPLACED */''a/* REPLACED */'' fires the trigger for UPDATE OF b, per
+-- Check that an UPDATE of /* REPLACED */ ''a/* REPLACED */ '' fires the trigger for UPDATE OF b, per
 -- SQL standard.
 CREATE FUNCTION gtest_trigger_func3() RETURNS trigger
   LANGUAGE plpgsql

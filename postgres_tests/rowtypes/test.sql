@@ -77,7 +77,7 @@ update quadtable set q.c1 = 12;  -- error, type mismatch
 select * from quadtable;
 
 -- The object here is to ensure that toasted references inside
--- composite values don/* REPLACED */''t cause problems.  The large f1 value will
+-- composite values don/* REPLACED */ ''t cause problems.  The large f1 value will
 -- be toasted inside pp, it must still work after being copied to people.
 
 create temp table pp (f1 text);
@@ -277,7 +277,7 @@ select row(1, -2)::testtype1 *<> row(1, -2)::testtype1;
 select row(1, -3)::testtype1 *>= row(1, -2)::testtype1;
 select row(1, -3)::testtype1 *> row(1, -2)::testtype1;
 
--- This returns the /* REPLACED */''wrong/* REPLACED */'' order because record_image_cmp works on
+-- This returns the /* REPLACED */ ''wrong/* REPLACED */ '' order because record_image_cmp works on
 -- unsigned datums without knowing about the actual data type.
 select row(1, -2)::testtype1 *< row(1, 3)::testtype1;
 
@@ -417,7 +417,7 @@ as $$select $1.first || ' ' || $1.last$$;
 select f.longname from fullname f;
 select longname(f) from fullname f;
 
--- Starting in v11, the notational form does matter if there/* REPLACED */''s ambiguity
+-- Starting in v11, the notational form does matter if there/* REPLACED */ ''s ambiguity
 alter table fullname add column longname text;
 
 select f.longname from fullname f;
@@ -429,10 +429,10 @@ select longname(f) from fullname f;
 --
 
 select row_to_json(i) from int8_tbl i;
--- since /* REPLACED */''i/* REPLACED */'' is of type /* REPLACED */''int8_tbl/* REPLACED */'', attaching aliases doesn/* REPLACED */''t change anything:
+-- since /* REPLACED */ ''i/* REPLACED */ '' is of type /* REPLACED */ ''int8_tbl/* REPLACED */ '', attaching aliases doesn/* REPLACED */ ''t change anything:
 select row_to_json(i) from int8_tbl i(x,y);
 
--- in these examples, we/* REPLACED */''ll report the exposed column names of the subselect:
+-- in these examples, we/* REPLACED */ ''ll report the exposed column names of the subselect:
 select row_to_json(ss) from
   (select q1, q2 from int8_tbl) as ss;
 select row_to_json(ss) from
@@ -526,18 +526,18 @@ drop view composite_v;
 CREATE TABLE compositetable(a text, b text);
 INSERT INTO compositetable(a, b) VALUES('fa', 'fb');
 
--- composite type columns can/* REPLACED */''t directly be accessed (error)
+-- composite type columns can/* REPLACED */ ''t directly be accessed (error)
 SELECT d.a FROM (SELECT compositetable AS d FROM compositetable) s;
 -- but can be accessed with proper parens
 SELECT (d).a, (d).b FROM (SELECT compositetable AS d FROM compositetable) s;
--- system columns can/* REPLACED */''t be accessed in composite types (error)
+-- system columns can/* REPLACED */ ''t be accessed in composite types (error)
 SELECT (d).ctid FROM (SELECT compositetable AS d FROM compositetable) s;
 
 -- accessing non-existing column in NULL datum errors out
 SELECT (NULL::compositetable).nonexistent;
 -- existing column in a NULL composite yield NULL
 SELECT (NULL::compositetable).a;
--- oids can/* REPLACED */''t be accessed in composite types (error)
+-- oids can/* REPLACED */ ''t be accessed in composite types (error)
 SELECT (NULL::compositetable).oid;
 
 DROP TABLE compositetable;

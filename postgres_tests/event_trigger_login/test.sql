@@ -21,4 +21,3 @@ SELECT dathasloginevt FROM pg_database WHERE datname= :'DBNAME';
 DROP TABLE user_logins;
 DROP EVENT TRIGGER on_login_trigger;
 DROP FUNCTION on_login_proc();
--- \c

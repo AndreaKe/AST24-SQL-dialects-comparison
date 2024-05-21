@@ -5,10 +5,10 @@
 CREATE TABLE TIMESTAMPTZ_TBL (d1 timestamp(2) with time zone);
 
 -- Test shorthand input values
--- We can/* REPLACED */''t just /* REPLACED */''select/* REPLACED */'' the results since they aren/* REPLACED */''t constants /* REPLACED */, test for
+-- We can/* REPLACED */ ''t just /* REPLACED */ ''select/* REPLACED */ '' the results since they aren/* REPLACED */ ''t constants /* REPLACED */ , test for
 -- equality instead.  We can do that by running the test inside a transaction
--- block, within which the value of /* REPLACED */''now/* REPLACED */'' shouldn/* REPLACED */''t change, and so these
--- related values shouldn/* REPLACED */''t either.
+-- block, within which the value of /* REPLACED */ ''now/* REPLACED */ '' shouldn/* REPLACED */ ''t change, and so these
+-- related values shouldn/* REPLACED */ ''t either.
 
 BEGIN;
 
@@ -28,8 +28,8 @@ COMMIT;
 
 DELETE FROM TIMESTAMPTZ_TBL;
 
--- Verify that /* REPLACED */''now/* REPLACED */'' *does* change over a reasonable interval such as 100 msec,
--- and that it doesn/* REPLACED */''t change over the same interval within a transaction block
+-- Verify that /* REPLACED */ ''now/* REPLACED */ '' *does* change over a reasonable interval such as 100 msec,
+-- and that it doesn/* REPLACED */ ''t change over the same interval within a transaction block
 
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
 SELECT pg_sleep(0.1);
@@ -157,7 +157,7 @@ INSERT INTO TIMESTAMPTZ_TBL VALUES ('Jan 01 17:32:01 2001');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Feb 16 17:32:01 -0097');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Feb 16 17:32:01 5097 BC');
 
--- Alternative field order that we/* REPLACED */''ve historically supported (sort of)
+-- Alternative field order that we/* REPLACED */ ''ve historically supported (sort of)
 -- with regular and POSIXy timezone specs
 SELECT 'Wed Jul 11 10:51:14 America/New_York 2001'::timestamptz;
 SELECT 'Wed Jul 11 10:51:14 GMT-4 2001'::timestamptz;
@@ -458,7 +458,7 @@ select * from generate_series('2020-01-01 00:00'::timestamptz,
                               '2020-01-02 03:00'::timestamptz,
                               '1 hour'::interval);
 -- the LIMIT should allow this to terminate in a reasonable amount of time
--- (but that unfortunately doesn/* REPLACED */''t work yet for SELECT * FROM ...)
+-- (but that unfortunately doesn/* REPLACED */ ''t work yet for SELECT * FROM ...)
 select generate_series('2022-01-01 00:00'::timestamptz,
                        'infinity'::timestamptz,
                        '1 month'::interval) limit 10;
@@ -645,7 +645,7 @@ DROP VIEW timestamp_local_view;
 COMMIT;
 
 --
--- Test that AT TIME ZONE isn/* REPLACED */''t misoptimized when using an index (bug #14504)
+-- Test that AT TIME ZONE isn/* REPLACED */ ''t misoptimized when using an index (bug #14504)
 --
 create temp table tmptz (f1 timestamptz primary key);
 insert into tmptz values ('2017-01-18 00:00+00');

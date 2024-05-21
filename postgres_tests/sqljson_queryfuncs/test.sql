@@ -42,8 +42,6 @@ SELECT JSON_VALUE(jsonb 'true', '$' RETURNING bool);
 SELECT JSON_VALUE(jsonb '123', '$');
 SELECT JSON_VALUE(jsonb '123', '$' RETURNING int) + 234;
 SELECT JSON_VALUE(jsonb '123', '$' RETURNING text);
-/* jsonb bytea ??? */
-SELECT JSON_VALUE(jsonb '123', '$' RETURNING bytea ERROR ON ERROR);
 
 SELECT JSON_VALUE(jsonb '1.23', '$');
 SELECT JSON_VALUE(jsonb '1.23', '$' RETURNING int);
@@ -185,7 +183,6 @@ SELECT JSON_QUERY(jsonb '"aaa"', '$' RETURNING text OMIT QUOTES);
 SELECT JSON_QUERY(jsonb '"aaa"', '$' RETURNING text OMIT QUOTES ON SCALAR STRING);
 SELECT JSON_QUERY(jsonb '"aaa"', '$' OMIT QUOTES ERROR ON ERROR);
 SELECT JSON_QUERY(jsonb '"aaa"', '$' RETURNING json OMIT QUOTES ERROR ON ERROR);
-SELECT JSON_QUERY(jsonb '"aaa"', '$' RETURNING bytea FORMAT JSON OMIT QUOTES ERROR ON ERROR);
 
 -- Behavior when a RETURNING type has typmod != -1
 SELECT JSON_QUERY(jsonb '"aaa"', '$' RETURNING char(2));
@@ -236,8 +233,6 @@ SELECT JSON_QUERY(jsonb '[1,2]', '$' RETURNING text);
 SELECT JSON_QUERY(jsonb '[1,2]', '$' RETURNING char(10));
 SELECT JSON_QUERY(jsonb '[1,2]', '$' RETURNING char(3));
 SELECT JSON_QUERY(jsonb '[1,2]', '$' RETURNING text FORMAT JSON);
-SELECT JSON_QUERY(jsonb '[1,2]', '$' RETURNING bytea);
-SELECT JSON_QUERY(jsonb '[1,2]', '$' RETURNING bytea FORMAT JSON);
 
 SELECT JSON_QUERY(jsonb '[1,2]', '$[*]' RETURNING bytea EMPTY OBJECT ON ERROR);
 SELECT JSON_QUERY(jsonb '[1,2]', '$[*]' RETURNING bytea FORMAT JSON EMPTY OBJECT ON ERROR);

@@ -248,7 +248,7 @@ UPDATE INSERT_TBL SET x = z, z = x;
 
 SELECT * FROM INSERT_TBL;
 
--- DROP TABLE INSERT_TBL /* REPLACED */,
+-- DROP TABLE INSERT_TBL /* REPLACED */ ,
 
 --
 -- Check constraints on COPY FROM
@@ -258,13 +258,13 @@ CREATE TABLE COPY_TBL (x INT, y TEXT, z INT,
 	CONSTRAINT COPY_CON
 	CHECK (x > 3 AND y <> 'check failed' AND x < 7 ));
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/constro.data'
-COPY COPY_TBL FROM /* REPLACED */PG_ABS_SRCDIR '/data/constro.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/constro.data'
+COPY COPY_TBL FROM /* REPLACED */ PG_ABS_SRCDIR '/data/constro.data';
 
 SELECT * FROM COPY_TBL;
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/constrf.data'
-COPY COPY_TBL FROM /* REPLACED */PG_ABS_SRCDIR '/data/constrf.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/constrf.data'
+COPY COPY_TBL FROM /* REPLACED */ PG_ABS_SRCDIR '/data/constrf.data';
 
 SELECT * FROM COPY_TBL;
 
@@ -506,7 +506,7 @@ CREATE TABLE circles (
     WHERE (circle_center(c1) <> '(0,0)')
 );
 
--- these should succeed because they don/* REPLACED */''t match the index predicate
+-- these should succeed because they don/* REPLACED */ ''t match the index predicate
 INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 5>');
 INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 4>');
 
@@ -520,9 +520,9 @@ INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 4>')
 -- fail, because DO UPDATE variant requires unique index
 INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 4>')
   ON CONFLICT ON CONSTRAINT circles_c1_c2_excl DO UPDATE SET c2 = EXCLUDED.c2;
--- succeed because c1 doesn/* REPLACED */''t overlap
+-- succeed because c1 doesn/* REPLACED */ ''t overlap
 INSERT INTO circles VALUES('<(20,20), 1>', '<(0,0), 5>');
--- succeed because c2 doesn/* REPLACED */''t overlap
+-- succeed because c2 doesn/* REPLACED */ ''t overlap
 INSERT INTO circles VALUES('<(20,20), 10>', '<(10,10), 5>');
 
 -- should fail on existing data without the WHERE clause
@@ -589,10 +589,10 @@ select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl
 ALTER TABLE notnull_tbl1 ALTER a SET NOT NULL;
 -- \d notnull_tbl1
 select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
--- Doing it twice doesn/* REPLACED */''t create a redundant constraint
+-- Doing it twice doesn/* REPLACED */ ''t create a redundant constraint
 ALTER TABLE notnull_tbl1 ALTER a SET NOT NULL;
 select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
--- Using the /* REPLACED */''table constraint/* REPLACED */'' syntax also works
+-- Using the /* REPLACED */ ''table constraint/* REPLACED */ '' syntax also works
 ALTER TABLE notnull_tbl1 ALTER a DROP NOT NULL;
 ALTER TABLE notnull_tbl1 ADD CONSTRAINT foobar NOT NULL a;
 -- \d notnull_tbl1

@@ -263,7 +263,7 @@ SELECT tsvector_to_array('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D st
 SELECT tsvector_to_array('base hidden rebel spaceship strike'::tsvector);
 
 SELECT array_to_tsvector(ARRAY['base','hidden','rebel','spaceship','strike']);
--- null and empty string are disallowed, since we mustn/* REPLACED */''t make an empty lexeme
+-- null and empty string are disallowed, since we mustn/* REPLACED */ ''t make an empty lexeme
 SELECT array_to_tsvector(ARRAY['base','hidden','rebel','spaceship', NULL]);
 SELECT array_to_tsvector(ARRAY['base','hidden','rebel','spaceship', '']);
 -- array_to_tsvector must sort and de-dup

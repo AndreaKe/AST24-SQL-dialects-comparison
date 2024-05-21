@@ -136,7 +136,7 @@ BEGIN;
 COMMIT;
 -- should exist: trans_barbaz, trans_baz, trans_foo
 SELECT * FROM trans_foo;		-- should be empty
-SELECT * FROM trans_bar;		-- shouldn/* REPLACED */''t exist
+SELECT * FROM trans_bar;		-- shouldn/* REPLACED */ ''t exist
 SELECT * FROM trans_barbaz;	-- should be empty
 SELECT * FROM trans_baz;		-- should be empty
 
@@ -261,7 +261,7 @@ SAVEPOINT one;
 ROLLBACK TO SAVEPOINT one;
 RELEASE SAVEPOINT one;
 
--- Only /* REPLACED */''rollback to/* REPLACED */'' allowed in aborted state
+-- Only /* REPLACED */ ''rollback to/* REPLACED */ '' allowed in aborted state
 BEGIN;
   SAVEPOINT one;
   SELECT 0/0;
@@ -294,10 +294,10 @@ BEGIN;
 COMMIT;
 
 --
--- Check that /* REPLACED */''stable/* REPLACED */'' functions are really stable.  They should not be
+-- Check that /* REPLACED */ ''stable/* REPLACED */ '' functions are really stable.  They should not be
 -- able to see the partial results of the calling query.  (Ideally we would
--- also check that they don/* REPLACED */''t see commits of concurrent transactions, but
--- that/* REPLACED */''s a mite hard to do within the limitations of pg_regress.)
+-- also check that they don/* REPLACED */ ''t see commits of concurrent transactions, but
+-- that/* REPLACED */ ''s a mite hard to do within the limitations of pg_regress.)
 --
 select * from xacttest;
 
@@ -457,7 +457,7 @@ SHOW transaction_isolation;
 SHOW transaction_read_only;
 SHOW transaction_deferrable;
 INSERT INTO trans_abc VALUES ('error');
-INSERT INTO trans_abc VALUES (3);  -- check it/* REPLACED */''s really aborted
+INSERT INTO trans_abc VALUES (3);  -- check it/* REPLACED */ ''s really aborted
 COMMIT AND CHAIN;  -- TBLOCK_ABORT_END
 SHOW transaction_isolation;
 SHOW transaction_read_only;
@@ -640,5 +640,3 @@ ROLLBACK;
 begin;
 select 1/0;
 rollback to X;
-
--- DO NOT ADD ANYTHING HERE.

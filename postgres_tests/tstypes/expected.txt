@@ -1,0 +1,1714 @@
+
+-----------
+QUERY:
+-- deal with numeric instability of ts_rank
+SET extra_float_digits = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--Base tsvector test
+
+SELECT '1'::tsvector;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT '1 '::tsvector;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT ' 1'::tsvector;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT ' 1 '::tsvector;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT '1 2'::tsvector;
+RESULT:
+	[("'1' '2'",)]
+
+-----------
+QUERY:
+
+SELECT '''1 2'''::tsvector;
+RESULT:
+	[("'1 2'",)]
+
+-----------
+QUERY:
+
+SELECT E'''1 \\''2'''::tsvector;
+RESULT:
+	[("'1 ''2'",)]
+
+-----------
+QUERY:
+
+SELECT E'''1 \\''2''3'::tsvector;
+RESULT:
+	[("'1 ''2' '3'",)]
+
+-----------
+QUERY:
+
+SELECT E'''1 \\''2'' 3'::tsvector;
+RESULT:
+	[("'1 ''2' '3'",)]
+
+-----------
+QUERY:
+
+SELECT E'''1 \\''2'' '' 3'' 4 '::tsvector;
+RESULT:
+	[("' 3' '1 ''2' '4'",)]
+
+-----------
+QUERY:
+
+SELECT $$'\\as' ab\c ab\\c AB\\\c ab\\\\c$$::tsvector;
+RESULT:
+	[("'AB\\\\c' '\\\\as' 'ab\\\\\\\\c' 'ab\\\\c' 'abc'",)]
+
+-----------
+QUERY:
+
+SELECT tsvectorin(tsvectorout($$'\\as' ab\c ab\\c AB\\\c ab\\\\c$$::tsvector));
+RESULT:
+	[("'AB\\\\c' '\\\\as' 'ab\\\\\\\\c' 'ab\\\\c' 'abc'",)]
+
+-----------
+QUERY:
+
+SELECT '''w'':4A,3B,2C,1D,5 a:8';
+RESULT:
+	[("'w':4A,3B,2C,1D,5 a:8",)]
+
+-----------
+QUERY:
+
+SELECT 'a:3A b:2a'::tsvector || 'ba:1234 a:1B';
+RESULT:
+	[("'a':3A,4B 'b':2A 'ba':1237",)]
+
+-----------
+QUERY:
+
+SELECT $$'' '1' '2'$$::tsvector;
+RESULT:
+	ERROR - syntax error in tsvector: "'' '1' '2'"
+LINE 2: SELECT $$'' '1' '2'$$::tsvector;
+               ^
+
+
+-----------
+QUERY:
+  -- error, empty lexeme is not allowed
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('foo', 'tsvector');
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid($$''$$, 'tsvector');
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info($$''$$, 'tsvector');
+RESULT:
+	[('syntax error in tsvector: "\'\'"', None, None, '42601')]
+
+-----------
+QUERY:
+
+
+--Base tsquery test
+SELECT '1'::tsquery;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT '1 '::tsquery;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT ' 1'::tsquery;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT ' 1 '::tsquery;
+RESULT:
+	[("'1'",)]
+
+-----------
+QUERY:
+
+SELECT '''1 2'''::tsquery;
+RESULT:
+	[("'1 2'",)]
+
+-----------
+QUERY:
+
+SELECT E'''1 \\''2'''::tsquery;
+RESULT:
+	[("'1 ''2'",)]
+
+-----------
+QUERY:
+
+SELECT '!1'::tsquery;
+RESULT:
+	[("!'1'",)]
+
+-----------
+QUERY:
+
+SELECT '1|2'::tsquery;
+RESULT:
+	[("'1' | '2'",)]
+
+-----------
+QUERY:
+
+SELECT '1|!2'::tsquery;
+RESULT:
+	[("'1' | !'2'",)]
+
+-----------
+QUERY:
+
+SELECT '!1|2'::tsquery;
+RESULT:
+	[("!'1' | '2'",)]
+
+-----------
+QUERY:
+
+SELECT '!1|!2'::tsquery;
+RESULT:
+	[("!'1' | !'2'",)]
+
+-----------
+QUERY:
+
+SELECT '!(!1|!2)'::tsquery;
+RESULT:
+	[("!( !'1' | !'2' )",)]
+
+-----------
+QUERY:
+
+SELECT '!(!1|2)'::tsquery;
+RESULT:
+	[("!( !'1' | '2' )",)]
+
+-----------
+QUERY:
+
+SELECT '!(1|!2)'::tsquery;
+RESULT:
+	[("!( '1' | !'2' )",)]
+
+-----------
+QUERY:
+
+SELECT '!(1|2)'::tsquery;
+RESULT:
+	[("!( '1' | '2' )",)]
+
+-----------
+QUERY:
+
+SELECT '1&2'::tsquery;
+RESULT:
+	[("'1' & '2'",)]
+
+-----------
+QUERY:
+
+SELECT '!1&2'::tsquery;
+RESULT:
+	[("!'1' & '2'",)]
+
+-----------
+QUERY:
+
+SELECT '1&!2'::tsquery;
+RESULT:
+	[("'1' & !'2'",)]
+
+-----------
+QUERY:
+
+SELECT '!1&!2'::tsquery;
+RESULT:
+	[("!'1' & !'2'",)]
+
+-----------
+QUERY:
+
+SELECT '(1&2)'::tsquery;
+RESULT:
+	[("'1' & '2'",)]
+
+-----------
+QUERY:
+
+SELECT '1&(2)'::tsquery;
+RESULT:
+	[("'1' & '2'",)]
+
+-----------
+QUERY:
+
+SELECT '!(1)&2'::tsquery;
+RESULT:
+	[("!'1' & '2'",)]
+
+-----------
+QUERY:
+
+SELECT '!(1&2)'::tsquery;
+RESULT:
+	[("!( '1' & '2' )",)]
+
+-----------
+QUERY:
+
+SELECT '1|2&3'::tsquery;
+RESULT:
+	[("'1' | '2' & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '1|(2&3)'::tsquery;
+RESULT:
+	[("'1' | '2' & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '(1|2)&3'::tsquery;
+RESULT:
+	[("( '1' | '2' ) & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '1|2&!3'::tsquery;
+RESULT:
+	[("'1' | '2' & !'3'",)]
+
+-----------
+QUERY:
+
+SELECT '1|!2&3'::tsquery;
+RESULT:
+	[("'1' | !'2' & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '!1|2&3'::tsquery;
+RESULT:
+	[("!'1' | '2' & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '!1|(2&3)'::tsquery;
+RESULT:
+	[("!'1' | '2' & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '!(1|2)&3'::tsquery;
+RESULT:
+	[("!( '1' | '2' ) & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '(!1|2)&3'::tsquery;
+RESULT:
+	[("( !'1' | '2' ) & '3'",)]
+
+-----------
+QUERY:
+
+SELECT '1|(2|(4|(5|6)))'::tsquery;
+RESULT:
+	[("'1' | '2' | '4' | '5' | '6'",)]
+
+-----------
+QUERY:
+
+SELECT '1|2|4|5|6'::tsquery;
+RESULT:
+	[("'1' | '2' | '4' | '5' | '6'",)]
+
+-----------
+QUERY:
+
+SELECT '1&(2&(4&(5&6)))'::tsquery;
+RESULT:
+	[("'1' & '2' & '4' & '5' & '6'",)]
+
+-----------
+QUERY:
+
+SELECT '1&2&4&5&6'::tsquery;
+RESULT:
+	[("'1' & '2' & '4' & '5' & '6'",)]
+
+-----------
+QUERY:
+
+SELECT '1&(2&(4&(5|6)))'::tsquery;
+RESULT:
+	[("'1' & '2' & '4' & ( '5' | '6' )",)]
+
+-----------
+QUERY:
+
+SELECT '1&(2&(4&(5|!6)))'::tsquery;
+RESULT:
+	[("'1' & '2' & '4' & ( '5' | !'6' )",)]
+
+-----------
+QUERY:
+
+SELECT E'1&(''2''&('' 4''&(\\|5 | ''6 \\'' !|&'')))'::tsquery;
+RESULT:
+	[("'1' & '2' & ' 4' & ( '|5' | '6 '' !|&' )",)]
+
+-----------
+QUERY:
+
+SELECT $$'\\as'$$::tsquery;
+RESULT:
+	[("'\\\\as'",)]
+
+-----------
+QUERY:
+
+SELECT 'a:* & nbb:*ac | doo:a* | goo'::tsquery;
+RESULT:
+	[("'a':* & 'nbb':*AC | 'doo':*A | 'goo'",)]
+
+-----------
+QUERY:
+
+SELECT '!!b'::tsquery;
+RESULT:
+	[("!!'b'",)]
+
+-----------
+QUERY:
+
+SELECT '!!!b'::tsquery;
+RESULT:
+	[("!!!'b'",)]
+
+-----------
+QUERY:
+
+SELECT '!(!b)'::tsquery;
+RESULT:
+	[("!!'b'",)]
+
+-----------
+QUERY:
+
+SELECT 'a & !!b'::tsquery;
+RESULT:
+	[("'a' & !!'b'",)]
+
+-----------
+QUERY:
+
+SELECT '!!a & b'::tsquery;
+RESULT:
+	[("!!'a' & 'b'",)]
+
+-----------
+QUERY:
+
+SELECT '!!a & !!b'::tsquery;
+RESULT:
+	[("!!'a' & !!'b'",)]
+
+-----------
+QUERY:
+
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('foo', 'tsquery');
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('foo!', 'tsquery');
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('foo!', 'tsquery');
+RESULT:
+	[('syntax error in tsquery: "foo!"', None, None, '42601')]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('a <100000> b', 'tsquery');
+RESULT:
+	[('distance in phrase operator must be an integer value between zero and 16384 inclusive', None, None, '22023')]
+
+-----------
+QUERY:
+
+
+--comparisons
+SELECT 'a' < 'b & c'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a' > 'b & c'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a | f' < 'b & c'::tsquery as "false";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a | ff' < 'b & c'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a | f | g' < 'b & c'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+
+--concatenation
+SELECT numnode( 'new'::tsquery );
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT numnode( 'new & york'::tsquery );
+RESULT:
+	[(3,)]
+
+-----------
+QUERY:
+
+SELECT numnode( 'new & york | qwery'::tsquery );
+RESULT:
+	[(5,)]
+
+-----------
+QUERY:
+
+
+SELECT 'foo & bar'::tsquery && 'asd';
+RESULT:
+	[("'foo' & 'bar' & 'asd'",)]
+
+-----------
+QUERY:
+
+SELECT 'foo & bar'::tsquery || 'asd & fg';
+RESULT:
+	[("'foo' & 'bar' | 'asd' & 'fg'",)]
+
+-----------
+QUERY:
+
+SELECT 'foo & bar'::tsquery || !!'asd & fg'::tsquery;
+RESULT:
+	[("'foo' & 'bar' | !( 'asd' & 'fg' )",)]
+
+-----------
+QUERY:
+
+SELECT 'foo & bar'::tsquery && 'asd | fg';
+RESULT:
+	[("'foo' & 'bar' & ( 'asd' | 'fg' )",)]
+
+-----------
+QUERY:
+
+SELECT 'a' <-> 'b & d'::tsquery;
+RESULT:
+	[("'a' <-> ( 'b' & 'd' )",)]
+
+-----------
+QUERY:
+
+SELECT 'a & g' <-> 'b & d'::tsquery;
+RESULT:
+	[("( 'a' & 'g' ) <-> ( 'b' & 'd' )",)]
+
+-----------
+QUERY:
+
+SELECT 'a & g' <-> 'b | d'::tsquery;
+RESULT:
+	[("( 'a' & 'g' ) <-> ( 'b' | 'd' )",)]
+
+-----------
+QUERY:
+
+SELECT 'a & g' <-> 'b <-> d'::tsquery;
+RESULT:
+	[("( 'a' & 'g' ) <-> ( 'b' <-> 'd' )",)]
+
+-----------
+QUERY:
+
+SELECT tsquery_phrase('a <3> g', 'b & d', 10);
+RESULT:
+	[("'a' <3> 'g' <10> ( 'b' & 'd' )",)]
+
+-----------
+QUERY:
+
+
+-- tsvector-tsquery operations
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & ca' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & ca:B' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & ca:A' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & ca:C' as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & ca:CB' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & c:*C' as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b d:34c'::tsvector @@ 'd:AC & c:*CB' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64b cb:80c d:34c'::tsvector @@ 'd:AC & c:*C' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64c cb:80b d:34c'::tsvector @@ 'd:AC & c:*C' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a b:89  ca:23A,64c cb:80b d:34c'::tsvector @@ 'd:AC & c:*B' as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1D wb:2A'::tsvector @@ 'w:*D & w:*A'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1D wb:2A'::tsvector @@ 'w:*D <-> w:*A'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1A wb:2D'::tsvector @@ 'w:*D <-> w:*A'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1A'::tsvector @@ 'w:*A'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1A'::tsvector @@ 'w:*D'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1A'::tsvector @@ '!w:*A'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'wa:1A'::tsvector @@ '!w:*D'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+-- historically, a stripped tsvector matches queries ignoring weights:
+SELECT strip('wa:1A'::tsvector) @@ 'w:*A'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT strip('wa:1A'::tsvector) @@ 'w:*D'::tsquery as "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT strip('wa:1A'::tsvector) @@ '!w:*A'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT strip('wa:1A'::tsvector) @@ '!w:*D'::tsquery as "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+
+SELECT 'supernova'::tsvector @@ 'super'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'supeanova supernova'::tsvector @@ 'super'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'supeznova supernova'::tsvector @@ 'super'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'supernova'::tsvector @@ 'super:*'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'supeanova supernova'::tsvector @@ 'super:*'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'supeznova supernova'::tsvector @@ 'super:*'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+--phrase search
+SELECT to_tsvector('simple', '1 2 3 1') @@ '1 <-> 2' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 3 1') @@ '1 <2> 2' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 3 1') @@ '1 <-> 3' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 3 1') @@ '1 <2> 3' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 1 2') @@ '1 <3> 2' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+SELECT to_tsvector('simple', '1 2 11 3') @@ '1 <-> 3' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 11 3') @@ '1:* <-> 3' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+SELECT to_tsvector('simple', '1 2 3 4') @@ '1 <-> 2 <-> 3' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 3 4') @@ '(1 <-> 2) <-> 3' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 3 4') @@ '1 <-> (2 <-> 3)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 3 4') @@ '1 <2> (2 <-> 3)' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 1 2 3 4') @@ '(1 <-> 2) <-> 3' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT to_tsvector('simple', '1 2 1 2 3 4') @@ '1 <-> 2 <-> 3' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+-- without position data, phrase search does not match
+SELECT strip(to_tsvector('simple', '1 2 3 4')) @@ '1 <-> 2 <-> 3' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+
+select to_tsvector('simple', 'q x q y') @@ 'q <-> (x & y)' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'q x') @@ 'q <-> (x | y <-> z)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'q y') @@ 'q <-> (x | y <-> z)' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'q y z') @@ 'q <-> (x | y <-> z)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'q y x') @@ 'q <-> (x | y <-> z)' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'q x y') @@ 'q <-> (x | y <-> z)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'q x') @@ '(x | y <-> z) <-> q' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x q') @@ '(x | y <-> z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q') @@ '(x | y <-> z) <-> q' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y z') @@ '(x | y <-> z) <-> q' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y z q') @@ '(x | y <-> z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'y z q') @@ '(x | y <-> z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'y y q') @@ '(x | y <-> z) <-> q' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'y y q') @@ '(!x | y <-> z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q') @@ '(!x | y <-> z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'y y q') @@ '(x | y <-> !z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x q') @@ '(x | y <-> !z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x q') @@ '(!x | y <-> z) <-> q' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'z q') @@ '(!x | y <-> z) <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q') @@ '(!x | y) <-> y <-> q' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q') @@ '(!x | !y) <-> y <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q') @@ '(x | !y) <-> y <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q') @@ '(x | !!z) <-> y <-> q' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q y') @@ '!x <-> y' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q y') @@ '!x <-> !y' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q y') @@ '!x <-> !!y' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q y') @@ '!(x <-> y)' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q y') @@ '!(x <2> y)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select strip(to_tsvector('simple', 'x y q y')) @@ '!x <-> y' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select strip(to_tsvector('simple', 'x y q y')) @@ '!x <-> !y' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select strip(to_tsvector('simple', 'x y q y')) @@ '!x <-> !!y' AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+select strip(to_tsvector('simple', 'x y q y')) @@ '!(x <-> y)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select strip(to_tsvector('simple', 'x y q y')) @@ '!(x <2> y)' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', 'x y q y') @@ '!foo' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+select to_tsvector('simple', '') @@ '!foo' AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+--ranking
+SELECT ts_rank(' a:1 s:2C d g'::tsvector, 'a | s');
+RESULT:
+	[(0.0911891,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 sa:2C d g'::tsvector, 'a | s');
+RESULT:
+	[(0.0303964,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 sa:2C d g'::tsvector, 'a | s:*');
+RESULT:
+	[(0.0911891,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 sa:2C d g'::tsvector, 'a | sa:*');
+RESULT:
+	[(0.0911891,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 s:2B d g'::tsvector, 'a | s');
+RESULT:
+	[(0.151982,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 s:2 d g'::tsvector, 'a | s');
+RESULT:
+	[(0.0607927,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 s:2C d g'::tsvector, 'a & s');
+RESULT:
+	[(0.140153,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 s:2B d g'::tsvector, 'a & s');
+RESULT:
+	[(0.198206,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank(' a:1 s:2 d g'::tsvector, 'a & s');
+RESULT:
+	[(0.0991032,)]
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(' a:1 s:2C d g'::tsvector, 'a | s');
+RESULT:
+	[(0.3,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2C d g'::tsvector, 'a | s');
+RESULT:
+	[(0.1,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2C d g'::tsvector, 'a | s:*');
+RESULT:
+	[(0.3,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2C d g'::tsvector, 'a | sa:*');
+RESULT:
+	[(0.3,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:3C sab:2c d g'::tsvector, 'a | sa:*');
+RESULT:
+	[(0.5,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2B d g'::tsvector, 'a | s');
+RESULT:
+	[(0.5,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2 d g'::tsvector, 'a | s');
+RESULT:
+	[(0.2,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2C d g'::tsvector, 'a & s');
+RESULT:
+	[(0.133333,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2B d g'::tsvector, 'a & s');
+RESULT:
+	[(0.16,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2 d g'::tsvector, 'a & s');
+RESULT:
+	[(0.1,)]
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(' a:1 s:2A d g'::tsvector, 'a <-> s');
+RESULT:
+	[(0.181818,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2C d g'::tsvector, 'a <-> s');
+RESULT:
+	[(0.133333,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2 d g'::tsvector, 'a <-> s');
+RESULT:
+	[(0.1,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2 d:2A g'::tsvector, 'a <-> s');
+RESULT:
+	[(0.1,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 s:2,3A d:2A g'::tsvector, 'a <2> s:A');
+RESULT:
+	[(0.0909091,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 b:2 s:3A d:2A g'::tsvector, 'a <2> s:A');
+RESULT:
+	[(0.0909091,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2D sb:2A g'::tsvector, 'a <-> s:*');
+RESULT:
+	[(0.1,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2A sb:2D g'::tsvector, 'a <-> s:*');
+RESULT:
+	[(0.1,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2A sb:2D g'::tsvector, 'a <-> s:* <-> sa:A');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT ts_rank_cd(' a:1 sa:2A sb:2D g'::tsvector, 'a <-> s:* <-> sa:B');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+
+SELECT 'a:1 b:2'::tsvector @@ 'a <-> b'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:2'::tsvector @@ 'a <0> b'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:2'::tsvector @@ 'a <1> b'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:2'::tsvector @@ 'a <2> b'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:3'::tsvector @@ 'a <-> b'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:3'::tsvector @@ 'a <0> b'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:3'::tsvector @@ 'a <1> b'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:3'::tsvector @@ 'a <2> b'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:3'::tsvector @@ 'a <3> b'::tsquery AS "false";
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT 'a:1 b:3'::tsvector @@ 'a <0> a:*'::tsquery AS "true";
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+
+-- tsvector editing operations
+
+SELECT strip('w:12B w:13* w:12,5,6 a:1,3* a:3 w asd:1dc asd'::tsvector);
+RESULT:
+	[("'a' 'asd' 'w'",)]
+
+-----------
+QUERY:
+
+SELECT strip('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector);
+RESULT:
+	[("'base' 'hidden' 'rebel' 'spaceship' 'strike'",)]
+
+-----------
+QUERY:
+
+SELECT strip('base hidden rebel spaceship strike'::tsvector);
+RESULT:
+	[("'base' 'hidden' 'rebel' 'spaceship' 'strike'",)]
+
+-----------
+QUERY:
+
+
+SELECT ts_delete(to_tsvector('english', 'Rebel spaceships, striking from a hidden base'), 'spaceship');
+RESULT:
+	[("'base':7 'hidden':6 'rebel':1 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, 'base');
+RESULT:
+	[("'hidden':6 'rebel':1 'spaceship':2,33A,34B,35C,36 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, 'bas');
+RESULT:
+	[("'base':7 'hidden':6 'rebel':1 'spaceship':2,33A,34B,35C,36 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, 'bases');
+RESULT:
+	[("'base':7 'hidden':6 'rebel':1 'spaceship':2,33A,34B,35C,36 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, 'spaceship');
+RESULT:
+	[("'base':7 'hidden':6 'rebel':1 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base hidden rebel spaceship strike'::tsvector, 'spaceship');
+RESULT:
+	[("'base' 'hidden' 'rebel' 'strike'",)]
+
+-----------
+QUERY:
+
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, ARRAY['spaceship','rebel']);
+RESULT:
+	[("'base':7 'hidden':6 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, ARRAY['spaceships','rebel']);
+RESULT:
+	[("'base':7 'hidden':6 'spaceship':2,33A,34B,35C,36 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, ARRAY['spaceshi','rebel']);
+RESULT:
+	[("'base':7 'hidden':6 'spaceship':2,33A,34B,35C,36 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector, ARRAY['spaceship','leya','rebel']);
+RESULT:
+	[("'base':7 'hidden':6 'strike':3",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base hidden rebel spaceship strike'::tsvector, ARRAY['spaceship','leya','rebel']);
+RESULT:
+	[("'base' 'hidden' 'strike'",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base hidden rebel spaceship strike'::tsvector, ARRAY['spaceship','leya','rebel','rebel']);
+RESULT:
+	[("'base' 'hidden' 'strike'",)]
+
+-----------
+QUERY:
+
+SELECT ts_delete('base hidden rebel spaceship strike'::tsvector, ARRAY['spaceship','leya','rebel', '', NULL]);
+RESULT:
+	[("'base' 'hidden' 'strike'",)]
+
+-----------
+QUERY:
+
+
+SELECT unnest('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector);
+RESULT:
+	[('(base,{7},{D})',), ('(hidden,{6},{D})',), ('(rebel,{1},{D})',), ('(spaceship,"{2,33,34,35,36}","{D,A,B,C,D}")',), ('(strike,{3},{D})',)]
+
+-----------
+QUERY:
+
+SELECT unnest('base hidden rebel spaceship strike'::tsvector);
+RESULT:
+	[('(base,,)',), ('(hidden,,)',), ('(rebel,,)',), ('(spaceship,,)',), ('(strike,,)',)]
+
+-----------
+QUERY:
+
+SELECT * FROM unnest('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector);
+RESULT:
+	[('base', [7], ['D']), ('hidden', [6], ['D']), ('rebel', [1], ['D']), ('spaceship', [2, 33, 34, 35, 36], ['D', 'A', 'B', 'C', 'D']), ('strike', [3], ['D'])]
+
+-----------
+QUERY:
+
+SELECT * FROM unnest('base hidden rebel spaceship strike'::tsvector);
+RESULT:
+	[('base', None, None), ('hidden', None, None), ('rebel', None, None), ('spaceship', None, None), ('strike', None, None)]
+
+-----------
+QUERY:
+
+SELECT lexeme, positions[1] from unnest('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector);
+RESULT:
+	[('base', 7), ('hidden', 6), ('rebel', 1), ('spaceship', 2), ('strike', 3)]
+
+-----------
+QUERY:
+
+
+SELECT tsvector_to_array('base:7 hidden:6 rebel:1 spaceship:2,33A,34B,35C,36D strike:3'::tsvector);
+RESULT:
+	[(['base', 'hidden', 'rebel', 'spaceship', 'strike'],)]
+
+-----------
+QUERY:
+
+SELECT tsvector_to_array('base hidden rebel spaceship strike'::tsvector);
+RESULT:
+	[(['base', 'hidden', 'rebel', 'spaceship', 'strike'],)]
+
+-----------
+QUERY:
+
+
+SELECT array_to_tsvector(ARRAY['base','hidden','rebel','spaceship','strike']);
+RESULT:
+	[("'base' 'hidden' 'rebel' 'spaceship' 'strike'",)]
+
+-----------
+QUERY:
+
+-- null and empty string are disallowed, since we mustn/* REPLACED */ ''t make an empty lexeme
+SELECT array_to_tsvector(ARRAY['base','hidden','rebel','spaceship', NULL]);
+RESULT:
+	ERROR - lexeme array may not contain nulls
+
+
+-----------
+QUERY:
+
+SELECT array_to_tsvector(ARRAY['base','hidden','rebel','spaceship', '']);
+RESULT:
+	ERROR - lexeme array may not contain empty strings
+
+
+-----------
+QUERY:
+
+-- array_to_tsvector must sort and de-dup
+SELECT array_to_tsvector(ARRAY['foo','bar','baz','bar']);
+RESULT:
+	[("'bar' 'baz' 'foo'",)]
+
+-----------
+QUERY:
+
+
+SELECT setweight('w:12B w:13* w:12,5,6 a:1,3* a:3 w asd:1dc asd zxc:81,567,222A'::tsvector, 'c');
+RESULT:
+	[("'a':1C,3C 'asd':1C 'w':5C,6C,12C,13C 'zxc':81C,222C,567C",)]
+
+-----------
+QUERY:
+
+SELECT setweight('a:1,3A asd:1C w:5,6,12B,13A zxc:81,222A,567'::tsvector, 'c');
+RESULT:
+	[("'a':1C,3C 'asd':1C 'w':5C,6C,12C,13C 'zxc':81C,222C,567C",)]
+
+-----------
+QUERY:
+
+SELECT setweight('a:1,3A asd:1C w:5,6,12B,13A zxc:81,222A,567'::tsvector, 'c', '{a}');
+RESULT:
+	[("'a':1C,3C 'asd':1C 'w':5,6,12B,13A 'zxc':81,222A,567",)]
+
+-----------
+QUERY:
+
+SELECT setweight('a:1,3A asd:1C w:5,6,12B,13A zxc:81,222A,567'::tsvector, 'c', '{a}');
+RESULT:
+	[("'a':1C,3C 'asd':1C 'w':5,6,12B,13A 'zxc':81,222A,567",)]
+
+-----------
+QUERY:
+
+SELECT setweight('a:1,3A asd:1C w:5,6,12B,13A zxc:81,222A,567'::tsvector, 'c', '{a,zxc}');
+RESULT:
+	[("'a':1C,3C 'asd':1C 'w':5,6,12B,13A 'zxc':81C,222C,567C",)]
+
+-----------
+QUERY:
+
+SELECT setweight('a asd w:5,6,12B,13A zxc'::tsvector, 'c', ARRAY['a', 'zxc', '', NULL]);
+RESULT:
+	[("'a' 'asd' 'w':5,6,12B,13A 'zxc'",)]
+
+-----------
+QUERY:
+
+
+SELECT ts_filter('base:7A empir:17 evil:15 first:11 galact:16 hidden:6A rebel:1A spaceship:2A strike:3A victori:12 won:9'::tsvector, '{a}');
+RESULT:
+	[("'base':7A 'hidden':6A 'rebel':1A 'spaceship':2A 'strike':3A",)]
+
+-----------
+QUERY:
+
+SELECT ts_filter('base hidden rebel spaceship strike'::tsvector, '{a}');
+RESULT:
+	[('',)]
+
+-----------
+QUERY:
+
+SELECT ts_filter('base hidden rebel spaceship strike'::tsvector, '{a,b,NULL}');
+RESULT:
+	ERROR - weight array may not contain nulls
+

@@ -165,7 +165,7 @@ SELECT xmlserialize(CONTENT  '<!DOCTYPE a><a/>' AS text INDENT);
 -- indent xml with empty element
 SELECT xmlserialize(DOCUMENT '<foo><bar></bar></foo>' AS text INDENT);
 SELECT xmlserialize(CONTENT  '<foo><bar></bar></foo>' AS text INDENT);
--- /* REPLACED */''no indent/* REPLACED */'' = not using /* REPLACED */''no indent/* REPLACED */''
+-- /* REPLACED */ ''no indent/* REPLACED */ '' = not using /* REPLACED */ ''no indent/* REPLACED */ ''
 SELECT xmlserialize(DOCUMENT '<foo><bar><val x="y">42</val></bar></foo>' AS text) = xmlserialize(DOCUMENT '<foo><bar><val x="y">42</val></bar></foo>' AS text NO INDENT);
 SELECT xmlserialize(CONTENT  '<foo><bar><val x="y">42</val></bar></foo>' AS text) = xmlserialize(CONTENT '<foo><bar><val x="y">42</val></bar></foo>' AS text NO INDENT);
 
@@ -266,9 +266,9 @@ BEGIN
       res[1], convert_to(res[1]::text, 'UTF8');
   END IF;
 EXCEPTION
-  -- character with byte sequence 0xc2 0xb0 in encoding /* REPLACED */''UTF8/* REPLACED */'' has no equivalent in encoding /* REPLACED */''LATIN8/* REPLACED */''
+  -- character with byte sequence 0xc2 0xb0 in encoding /* REPLACED */ ''UTF8/* REPLACED */ '' has no equivalent in encoding /* REPLACED */ ''LATIN8/* REPLACED */ ''
   WHEN untranslatable_character
-  -- default conversion function for encoding /* REPLACED */''UTF8/* REPLACED */'' to /* REPLACED */''MULE_INTERNAL/* REPLACED */'' does not exist
+  -- default conversion function for encoding /* REPLACED */ ''UTF8/* REPLACED */ '' to /* REPLACED */ ''MULE_INTERNAL/* REPLACED */ '' does not exist
   OR undefined_function
   -- unsupported XML feature
   OR feature_not_supported THEN
@@ -331,13 +331,13 @@ SELECT xml_is_well_formed('<twoerrors>&idontexist;</unbalanced>');
 SET xmloption TO CONTENT;
 SELECT xml_is_well_formed('abc');
 
--- Since xpath() deals with namespaces, it/* REPLACED */''s a bit stricter about
--- what/* REPLACED */''s well-formed and what/* REPLACED */''s not. If we don/* REPLACED */''t obey these rules
+-- Since xpath() deals with namespaces, it/* REPLACED */ ''s a bit stricter about
+-- what/* REPLACED */ ''s well-formed and what/* REPLACED */ ''s not. If we don/* REPLACED */ ''t obey these rules
 -- (i.e. ignore namespace-related errors from libxml), xpath()
 -- fails in subtle ways. The following would for example produce
 -- the xml value
---   <invalidns xmlns=/* REPLACED */''</* REPLACED */''/>
--- which is invalid because /* REPLACED */''</* REPLACED */'' may not appear un-escaped in
+--   <invalidns xmlns=/* REPLACED */ ''</* REPLACED */ ''/>
+-- which is invalid because /* REPLACED */ ''</* REPLACED */ '' may not appear un-escaped in
 -- attribute values.
 -- Since different libxml versions emit slightly different
 -- error messages, we suppress the DETAIL in this test.
@@ -345,17 +345,17 @@ SELECT xml_is_well_formed('abc');
 SELECT xpath('/*', '<invalidns xmlns=''&lt;''/>');
 -- \set VERBOSITY default
 
--- Again, the XML isn/* REPLACED */''t well-formed for namespace purposes
+-- Again, the XML isn/* REPLACED */ ''t well-formed for namespace purposes
 SELECT xpath('/*', '<nosuchprefix:tag/>');
 
--- XPath deprecates relative namespaces, but they/* REPLACED */''re not supposed to
+-- XPath deprecates relative namespaces, but they/* REPLACED */ ''re not supposed to
 -- throw an error, only a warning.
 SELECT xpath('/*', '<relativens xmlns=''relative''/>');
 
 -- External entity references should not leak filesystem information.
 SELECT XMLPARSE(DOCUMENT '<!DOCTYPE foo [<!ENTITY c SYSTEM "/etc/passwd">]><foo>&c;</foo>');
 SELECT XMLPARSE(DOCUMENT '<!DOCTYPE foo [<!ENTITY c SYSTEM "/etc/no.such.file">]><foo>&c;</foo>');
--- This might or might not load the requested DTD, but it mustn/* REPLACED */''t throw error.
+-- This might or might not load the requested DTD, but it mustn/* REPLACED */ ''t throw error.
 SELECT XMLPARSE(DOCUMENT '<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd"><chapter>&nbsp;</chapter>');
 
 -- XMLPATH tests

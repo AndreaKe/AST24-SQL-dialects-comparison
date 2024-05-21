@@ -6,10 +6,10 @@
 -- \getenv libdir PG_LIBDIR
 -- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION test_enc_conversion(bytea, name, name, bool, validlen OUT int, result OUT bytea)
-    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_enc_conversion'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_enc_conversion'
     LANGUAGE C STRICT;
 
 CREATE USER regress_conversion_user WITH NOCREATEDB NOCREATEROLE;
@@ -38,7 +38,7 @@ DROP CONVERSION myconv;
 DROP CONVERSION mydef;
 --
 -- Note: the built-in conversions are exercised in opr_sanity.sql,
--- so there/* REPLACED */''s no need to do that here.
+-- so there/* REPLACED */ ''s no need to do that here.
 --
 --
 -- return to the superuser

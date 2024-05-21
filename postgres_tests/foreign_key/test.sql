@@ -463,7 +463,7 @@ SELECT * from FKTABLE;
 DROP TABLE FKTABLE;
 DROP TABLE PKTABLE;
 
--- Test for ON DELETE SET NULL/DEFAULT (column_list) /* REPLACED */,
+-- Test for ON DELETE SET NULL/DEFAULT (column_list) /* REPLACED */ ,
 CREATE TABLE PKTABLE (tid int, id int, PRIMARY KEY (tid, id));
 CREATE TABLE FKTABLE (tid int, id int, foo int, FOREIGN KEY (tid, id) REFERENCES PKTABLE ON DELETE SET NULL (bar));
 CREATE TABLE FKTABLE (tid int, id int, foo int, FOREIGN KEY (tid, id) REFERENCES PKTABLE ON DELETE SET NULL (foo));
@@ -526,8 +526,8 @@ INSERT INTO FKTABLE VALUES(43);		-- should fail
 UPDATE FKTABLE SET ftest1 = ftest1;	-- should succeed
 UPDATE FKTABLE SET ftest1 = ftest1 + 1;	-- should fail
 DROP TABLE FKTABLE;
--- This should fail, because we/* REPLACED */''d have to cast numeric to int which is
--- not an implicit coercion (or use numeric=numeric, but that/* REPLACED */''s not part
+-- This should fail, because we/* REPLACED */ ''d have to cast numeric to int which is
+-- not an implicit coercion (or use numeric=numeric, but that/* REPLACED */ ''s not part
 -- of the integer opfamily)
 CREATE TABLE FKTABLE (ftest1 numeric REFERENCES pktable);
 DROP TABLE PKTABLE;
@@ -573,13 +573,13 @@ DROP TABLE PKTABLE;
 CREATE TABLE PKTABLE (ptest1 int, ptest2 inet, ptest3 int, ptest4 inet, PRIMARY KEY(ptest1, ptest2), FOREIGN KEY(ptest3,
 ptest4) REFERENCES pktable);
 DROP TABLE PKTABLE;
--- This shouldn/* REPLACED */''t (mixed up columns)
+-- This shouldn/* REPLACED */ ''t (mixed up columns)
 CREATE TABLE PKTABLE (ptest1 int, ptest2 inet, ptest3 int, ptest4 inet, PRIMARY KEY(ptest1, ptest2), FOREIGN KEY(ptest3,
 ptest4) REFERENCES pktable(ptest2, ptest1));
 -- Nor should this... (same reason, we have 4,3 referencing 1,2 which mismatches types
 CREATE TABLE PKTABLE (ptest1 int, ptest2 inet, ptest3 int, ptest4 inet, PRIMARY KEY(ptest1, ptest2), FOREIGN KEY(ptest4,
 ptest3) REFERENCES pktable(ptest1, ptest2));
--- Not this one either... Same as the last one except we didn/* REPLACED */''t defined the columns being referenced.
+-- Not this one either... Same as the last one except we didn/* REPLACED */ ''t defined the columns being referenced.
 CREATE TABLE PKTABLE (ptest1 int, ptest2 inet, ptest3 int, ptest4 inet, PRIMARY KEY(ptest1, ptest2), FOREIGN KEY(ptest4,
 ptest3) REFERENCES pktable);
 
@@ -592,17 +592,17 @@ create table fktable (ftest1 int references pktable(base1));
 -- now some ins, upd, del
 insert into pktable(base1) values (1);
 insert into pktable(base1) values (2);
---  let/* REPLACED */''s insert a non-existent fktable value
+--  let/* REPLACED */ ''s insert a non-existent fktable value
 insert into fktable(ftest1) values (3);
---  let/* REPLACED */''s make a valid row for that
+--  let/* REPLACED */ ''s make a valid row for that
 insert into pktable(base1) values (3);
 insert into fktable(ftest1) values (3);
--- let/* REPLACED */''s try removing a row that should fail from pktable
+-- let/* REPLACED */ ''s try removing a row that should fail from pktable
 delete from pktable where base1>2;
--- okay, let/* REPLACED */''s try updating all of the base1 values to *4
+-- okay, let/* REPLACED */ ''s try updating all of the base1 values to *4
 -- which should fail.
 update pktable set base1=base1*4;
--- okay, let/* REPLACED */''s try an update that should work.
+-- okay, let/* REPLACED */ ''s try an update that should work.
 update pktable set base1=base1*4 where base1<3;
 -- and a delete that should work
 delete from pktable where base1>3;
@@ -615,17 +615,17 @@ create table fktable (ftest1 int, ftest2 int, foreign key(ftest1, ftest2) refere
 -- now some ins, upd, del
 insert into pktable(base1, ptest1) values (1, 1);
 insert into pktable(base1, ptest1) values (2, 2);
---  let/* REPLACED */''s insert a non-existent fktable value
+--  let/* REPLACED */ ''s insert a non-existent fktable value
 insert into fktable(ftest1, ftest2) values (3, 1);
---  let/* REPLACED */''s make a valid row for that
+--  let/* REPLACED */ ''s make a valid row for that
 insert into pktable(base1,ptest1) values (3, 1);
 insert into fktable(ftest1, ftest2) values (3, 1);
--- let/* REPLACED */''s try removing a row that should fail from pktable
+-- let/* REPLACED */ ''s try removing a row that should fail from pktable
 delete from pktable where base1>2;
--- okay, let/* REPLACED */''s try updating all of the base1 values to *4
+-- okay, let/* REPLACED */ ''s try updating all of the base1 values to *4
 -- which should fail.
 update pktable set base1=base1*4;
--- okay, let/* REPLACED */''s try an update that should work.
+-- okay, let/* REPLACED */ ''s try an update that should work.
 update pktable set base1=base1*4 where base1<3;
 -- and a delete that should work
 delete from pktable where base1>3;
@@ -634,7 +634,7 @@ drop table fktable;
 drop table pktable;
 drop table pktable_base;
 
--- Now we/* REPLACED */''ll do one all in 1 table with 2 columns of matching types
+-- Now we/* REPLACED */ ''ll do one all in 1 table with 2 columns of matching types
 create table pktable_base(base1 int not null, base2 int);
 create table pktable(ptest1 int, ptest2 int, primary key(base1, ptest1), foreign key(base2, ptest2) references
                                              pktable(base1, ptest1)) inherits (pktable_base);
@@ -642,7 +642,7 @@ insert into pktable (base1, ptest1, base2, ptest2) values (1, 1, 1, 1);
 insert into pktable (base1, ptest1, base2, ptest2) values (2, 1, 1, 1);
 insert into pktable (base1, ptest1, base2, ptest2) values (2, 2, 2, 1);
 insert into pktable (base1, ptest1, base2, ptest2) values (1, 3, 2, 2);
--- fails (3,2) isn/* REPLACED */''t in base1, ptest1
+-- fails (3,2) isn/* REPLACED */ ''t in base1, ptest1
 insert into pktable (base1, ptest1, base2, ptest2) values (2, 3, 3, 2);
 -- fails (2,2) is being referenced
 delete from pktable where base1=2;
@@ -660,7 +660,7 @@ create table pktable(ptest1 inet, primary key(base1, ptest1)) inherits (pktable_
 -- just generally bad types (with and without column references on the referenced table)
 create table fktable(ftest1 cidr, ftest2 int[], foreign key (ftest1, ftest2) references pktable);
 create table fktable(ftest1 cidr, ftest2 int[], foreign key (ftest1, ftest2) references pktable(base1, ptest1));
--- let/* REPLACED */''s mix up which columns reference which
+-- let/* REPLACED */ ''s mix up which columns reference which
 create table fktable(ftest1 int, ftest2 inet, foreign key(ftest2, ftest1) references pktable);
 create table fktable(ftest1 int, ftest2 inet, foreign key(ftest2, ftest1) references pktable(base1, ptest1));
 create table fktable(ftest1 int, ftest2 inet, foreign key(ftest1, ftest2) references pktable(ptest1, base1));
@@ -742,7 +742,7 @@ COMMIT;
 DROP TABLE fktable, pktable;
 
 -- tricky behavior: according to SQL99, if a deferred constraint is set
--- to /* REPLACED */''immediate/* REPLACED */'' mode, it should be checked for validity *immediately*,
+-- to /* REPLACED */ ''immediate/* REPLACED */ '' mode, it should be checked for validity *immediately*,
 -- not when the current transaction commits (i.e. the mode change applies
 -- retroactively)
 CREATE TABLE pktable (
@@ -869,7 +869,7 @@ DROP TABLE pktable, fktable;
 
 -- test a tricky case: we can elide firing the FK check trigger during
 -- an UPDATE if the UPDATE did not change the foreign key
--- field. However, we can/* REPLACED */''t do this if our transaction was the one that
+-- field. However, we can/* REPLACED */ ''t do this if our transaction was the one that
 -- created the updated row and the trigger is deferred, since our UPDATE
 -- will have invalidated the original newly-inserted tuple, and therefore
 -- cause the on-INSERT RI trigger not to be fired.
@@ -888,10 +888,10 @@ INSERT INTO pktable VALUES (5, 10);
 
 BEGIN;
 
--- doesn/* REPLACED */''t match PK, but no error yet
+-- doesn/* REPLACED */ ''t match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
 
--- don/* REPLACED */''t change FK
+-- don/* REPLACED */ ''t change FK
 UPDATE fktable SET id = id + 1;
 
 -- should catch error from initial INSERT
@@ -901,13 +901,13 @@ COMMIT;
 
 BEGIN;
 
--- doesn/* REPLACED */''t match PK, but no error yet
+-- doesn/* REPLACED */ ''t match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
 
 -- UPDATE will be in a subxact
 SAVEPOINT savept1;
 
--- don/* REPLACED */''t change FK
+-- don/* REPLACED */ ''t change FK
 UPDATE fktable SET id = id + 1;
 
 -- should catch error from initial INSERT
@@ -918,12 +918,12 @@ BEGIN;
 -- INSERT will be in a subxact
 SAVEPOINT savept1;
 
--- doesn/* REPLACED */''t match PK, but no error yet
+-- doesn/* REPLACED */ ''t match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
 
 RELEASE SAVEPOINT savept1;
 
--- don/* REPLACED */''t change FK
+-- don/* REPLACED */ ''t change FK
 UPDATE fktable SET id = id + 1;
 
 -- should catch error from initial INSERT
@@ -931,13 +931,13 @@ COMMIT;
 
 BEGIN;
 
--- doesn/* REPLACED */''t match PK, but no error yet
+-- doesn/* REPLACED */ ''t match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
 
 -- UPDATE will be in a subxact
 SAVEPOINT savept1;
 
--- don/* REPLACED */''t change FK
+-- don/* REPLACED */ ''t change FK
 UPDATE fktable SET id = id + 1;
 
 -- Roll back the UPDATE
@@ -956,14 +956,14 @@ ALTER TABLE fktable ALTER CONSTRAINT fktable_fk_fkey DEFERRABLE INITIALLY IMMEDI
 
 BEGIN;
 
--- doesn/* REPLACED */''t match FK, should throw error now
+-- doesn/* REPLACED */ ''t match FK, should throw error now
 UPDATE pktable SET id = 10 WHERE id = 5;
 
 COMMIT;
 
 BEGIN;
 
--- doesn/* REPLACED */''t match PK, should throw error now
+-- doesn/* REPLACED */ ''t match PK, should throw error now
 INSERT INTO fktable VALUES (0, 20);
 
 COMMIT;
@@ -1149,7 +1149,7 @@ commit;
 drop table pktable2, fktable2;
 
 --
--- Test keys that /* REPLACED */''look/* REPLACED */'' different but compare as equal
+-- Test keys that /* REPLACED */ ''look/* REPLACED */ '' different but compare as equal
 --
 create table pktable2 (a float8, b float8, primary key (a, b));
 create table fktable2 (x float8, y float8, foreign key (x, y) references pktable2 (a, b) on update cascade);
@@ -1230,7 +1230,7 @@ UPDATE fk_partitioned_fk SET a = a + 1 WHERE a = 2501;
 INSERT INTO fk_notpartitioned_pk (a,b) VALUES (2502, 2503);
 UPDATE fk_partitioned_fk SET a = a + 1 WHERE a = 2501;
 
--- these updates would leave lingering rows in the referencing table /* REPLACED */, disallow
+-- these updates would leave lingering rows in the referencing table /* REPLACED */ , disallow
 UPDATE fk_notpartitioned_pk SET b = 502 WHERE a = 500;
 UPDATE fk_notpartitioned_pk SET b = 1502 WHERE a = 1500;
 UPDATE fk_notpartitioned_pk SET b = 2504 WHERE a = 2500;
@@ -1266,7 +1266,7 @@ ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_3 FOR VALUES IN
 -- this insert fails
 INSERT INTO fk_partitioned_fk (a, b) VALUES (2502, 2503);
 INSERT INTO fk_partitioned_fk_3 (a, b) VALUES (2502, 2503);
--- but since the FK is MATCH SIMPLE, this one doesn/* REPLACED */''t
+-- but since the FK is MATCH SIMPLE, this one doesn/* REPLACED */ ''t
 INSERT INTO fk_partitioned_fk_3 (a, b) VALUES (2502, NULL);
 -- now create the referenced row ...
 INSERT INTO fk_notpartitioned_pk VALUES (2502, 2503);
@@ -1347,7 +1347,7 @@ SELECT * FROM fk_partitioned_fk WHERE b = 142857;
 -- Now you see it ...
 SELECT * FROM fk_partitioned_fk WHERE b = 142857;
 DELETE FROM fk_notpartitioned_pk WHERE b = 142857;
--- now you don/* REPLACED */''t.
+-- now you don/* REPLACED */ ''t.
 SELECT * FROM fk_partitioned_fk WHERE a = 142857;
 
 -- verify that DROP works
@@ -1360,7 +1360,7 @@ ALTER TABLE fk_partitioned_fk DETACH PARTITION fk_partitioned_fk_2;
 BEGIN;
 DROP TABLE fk_partitioned_fk;
 -- constraint should still be there
--- \d fk_partitioned_fk_2 /* REPLACED */,
+-- \d fk_partitioned_fk_2 /* REPLACED */ ,
 ROLLBACK;
 ALTER TABLE fk_partitioned_fk ATTACH PARTITION fk_partitioned_fk_2 FOR VALUES IN (1500,1502);
 DROP TABLE fk_partitioned_fk_2;
@@ -1560,7 +1560,7 @@ alter table fkpart2.fk_part_1 drop constraint fkey;	-- should fail
 alter table fkpart2.fk_part_1_1 drop constraint my_fkey;	-- should fail
 alter table fkpart2.fk_part detach partition fkpart2.fk_part_1;
 alter table fkpart2.fk_part_1 drop constraint fkey;	-- ok
-alter table fkpart2.fk_part_1_1 drop constraint my_fkey;	-- doesn/* REPLACED */''t exist
+alter table fkpart2.fk_part_1_1 drop constraint my_fkey;	-- doesn/* REPLACED */ ''t exist
 
 -- verify constraint deferrability
 create schema fkpart3
@@ -1658,7 +1658,7 @@ DELETE FROM pk WHERE a = 4502;
 CREATE SCHEMA fkpart4;
 SET search_path TO fkpart4;
 -- dropping/detaching PARTITIONs is prevented if that would break
--- a foreign key/* REPLACED */''s existing data
+-- a foreign key/* REPLACED */ ''s existing data
 CREATE TABLE droppk (a int PRIMARY KEY) PARTITION BY RANGE (a);
 CREATE TABLE droppk1 PARTITION OF droppk FOR VALUES FROM (0) TO (1000);
 CREATE TABLE droppk_d PARTITION OF droppk DEFAULT;
@@ -1893,7 +1893,7 @@ ALTER TABLE fkpart7.pkpart ADD PRIMARY KEY (a);
 CREATE TABLE fkpart7.fk (a int REFERENCES fkpart7.pkpart);
 DROP SCHEMA fkpart7 CASCADE;
 
--- ensure we check partitions are /* REPLACED */''not used/* REPLACED */'' when dropping constraints
+-- ensure we check partitions are /* REPLACED */ ''not used/* REPLACED */ '' when dropping constraints
 CREATE SCHEMA fkpart8
   CREATE TABLE tbl1(f1 int PRIMARY KEY)
   CREATE TABLE tbl2(f1 int REFERENCES tbl1 DEFERRABLE INITIALLY DEFERRED) PARTITION BY RANGE(f1)
@@ -1974,7 +1974,7 @@ COMMIT;
 
 -- Now test where the row referenced from the table with an IMMEDIATE
 -- constraint stays in place, while those referenced from the table with a
--- DEFERRED constraint don/* REPLACED */''t.
+-- DEFERRED constraint don/* REPLACED */ ''t.
 DELETE FROM fkpart10.tbl5;
 INSERT INTO fkpart10.tbl5 VALUES (0);
 BEGIN;
@@ -2022,18 +2022,18 @@ SELECT tableoid::pg_catalog.regclass, * FROM fkpart11.fk;
 SELECT tableoid::pg_catalog.regclass, * FROM fkpart11.fk_parted;
 SELECT tableoid::pg_catalog.regclass, * FROM fkpart11.fk_another;
 
--- let/* REPLACED */''s try with the foreign key pointing at tables in the partition tree
--- that are not the same as the query/* REPLACED */''s target table
+-- let/* REPLACED */ ''s try with the foreign key pointing at tables in the partition tree
+-- that are not the same as the query/* REPLACED */ ''s target table
 
 -- 1. foreign key pointing into a non-root ancestor
 --
 -- A cross-partition update on the root table will fail, because we currently
--- can/* REPLACED */''t enforce the foreign keys pointing into a non-leaf partition
+-- can/* REPLACED */ ''t enforce the foreign keys pointing into a non-leaf partition
 ALTER TABLE fkpart11.fk DROP CONSTRAINT fkey;
 DELETE FROM fkpart11.fk WHERE a = 4;
 ALTER TABLE fkpart11.fk ADD CONSTRAINT fkey FOREIGN KEY (a) REFERENCES fkpart11.pk1 (a) ON UPDATE CASCADE ON DELETE CASCADE;
 UPDATE fkpart11.pk SET a = a - 1;
--- it/* REPLACED */''s okay though if the non-leaf partition is updated directly
+-- it/* REPLACED */ ''s okay though if the non-leaf partition is updated directly
 UPDATE fkpart11.pk1 SET a = a - 1;
 SELECT tableoid::pg_catalog.regclass, * FROM fkpart11.pk;
 SELECT tableoid::pg_catalog.regclass, * FROM fkpart11.fk;

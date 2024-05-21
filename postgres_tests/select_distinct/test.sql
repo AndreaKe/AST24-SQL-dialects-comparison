@@ -3,22 +3,22 @@
 --
 
 --
--- awk /* REPLACED */''{print $3 /* REPLACED */,}/* REPLACED */'' onek.data | sort -n | uniq
+-- awk /* REPLACED */ ''{print $3 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -n | uniq
 --
 SELECT DISTINCT two FROM onek ORDER BY 1;
 
 --
--- awk /* REPLACED */''{print $5 /* REPLACED */,}/* REPLACED */'' onek.data | sort -n | uniq
+-- awk /* REPLACED */ ''{print $5 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -n | uniq
 --
 SELECT DISTINCT ten FROM onek ORDER BY 1;
 
 --
--- awk /* REPLACED */''{print $16 /* REPLACED */,}/* REPLACED */'' onek.data | sort -d | uniq
+-- awk /* REPLACED */ ''{print $16 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -d | uniq
 --
 SELECT DISTINCT string4 FROM onek ORDER BY 1;
 
 --
--- awk /* REPLACED */''{print $3,$16,$5 /* REPLACED */,}/* REPLACED */'' onek.data | sort -d | uniq |
+-- awk /* REPLACED */ ''{print $3,$16,$5 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -d | uniq |
 -- sort +0n -1 +1d -2 +2n -3
 --
 SELECT DISTINCT two, string4, ten
@@ -26,10 +26,10 @@ SELECT DISTINCT two, string4, ten
    ORDER BY two using <, string4 using <, ten using <;
 
 --
--- awk /* REPLACED */''{print $2 /* REPLACED */,}/* REPLACED */'' person.data |
--- awk /* REPLACED */''{if(NF!=1){print $2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - emp.data |
--- awk /* REPLACED */''{if(NF!=1){print $2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - student.data |
--- awk /* REPLACED */''BEGIN{FS=/* REPLACED */''      /* REPLACED */'' /* REPLACED */,}{if(NF!=1){print $5 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - stud_emp.data |
+-- awk /* REPLACED */ ''{print $2 /* REPLACED */ ,}/* REPLACED */ '' person.data |
+-- awk /* REPLACED */ ''{if(NF!=1){print $2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - emp.data |
+-- awk /* REPLACED */ ''{if(NF!=1){print $2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - student.data |
+-- awk /* REPLACED */ ''BEGIN{FS=/* REPLACED */ ''      /* REPLACED */ '' /* REPLACED */ ,}{if(NF!=1){print $5 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - stud_emp.data |
 -- sort -n -r | uniq
 --
 SELECT DISTINCT p.age FROM person* p ORDER BY age using >;
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION distinct_func(a INT) RETURNS INT AS $$
   END;
 $$ LANGUAGE plpgsql PARALLEL UNSAFE;
 
--- Ensure we don/* REPLACED */''t do parallel distinct with a parallel unsafe function
+-- Ensure we don/* REPLACED */ ''t do parallel distinct with a parallel unsafe function
 EXPLAIN (COSTS OFF)
 SELECT DISTINCT distinct_func(1) FROM tenk1;
 
@@ -155,7 +155,7 @@ RESET parallel_setup_cost;
 RESET parallel_tuple_cost;
 
 --
--- Test the planner/* REPLACED */''s ability to use a LIMIT 1 instead of a Unique node when
+-- Test the planner/* REPLACED */ ''s ability to use a LIMIT 1 instead of a Unique node when
 -- all of the distinct_pathkeys have been marked as redundant
 --
 
@@ -194,7 +194,7 @@ RESET min_parallel_table_scan_size;
 RESET parallel_setup_cost;
 
 --
--- Also, some tests of IS DISTINCT FROM, which doesn/* REPLACED */''t quite deserve its
+-- Also, some tests of IS DISTINCT FROM, which doesn/* REPLACED */ ''t quite deserve its
 -- very own regression file.
 --
 

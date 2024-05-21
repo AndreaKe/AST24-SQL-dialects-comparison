@@ -117,7 +117,7 @@ alter type insenum add value 'i30' before 'L2';
 
 -- The exact values of enumsortorder will now depend on the local properties
 -- of float4, but in any reasonable implementation we should get at least
--- 20 splits before having to renumber /* REPLACED */, so only hide values > 20.
+-- 20 splits before having to renumber /* REPLACED */ , so only hide values > 20.
 
 SELECT enumlabel,
        case when enumsortorder > 20 then null else enumsortorder end as so
@@ -224,7 +224,7 @@ SELECT enum_range('orange'::rainbow, NULL);
 SELECT enum_range(NULL::rainbow, NULL);
 
 --
--- User functions, can/* REPLACED */''t test perl/python etc here since may not be compiled.
+-- User functions, can/* REPLACED */ ''t test perl/python etc here since may not be compiled.
 --
 CREATE FUNCTION echo_me(anyenum) RETURNS text AS $$
 BEGIN
@@ -242,8 +242,8 @@ END
 $$ LANGUAGE plpgsql;
 SELECT echo_me('red'::rainbow);
 --
--- If we drop the original generic one, we don/* REPLACED */''t have to qualify the type
--- anymore, since there/* REPLACED */''s only one match
+-- If we drop the original generic one, we don/* REPLACED */ ''t have to qualify the type
+-- anymore, since there/* REPLACED */ ''s only one match
 --
 DROP FUNCTION echo_me(anyenum);
 SELECT echo_me('red');
@@ -282,7 +282,7 @@ ALTER TYPE rainbow RENAME VALUE 'blue' TO 'green';
 CREATE TYPE bogus AS ENUM('good');
 
 -- check that we can add new values to existing enums in a transaction
--- but we can/* REPLACED */''t use them
+-- but we can/* REPLACED */ ''t use them
 BEGIN;
 ALTER TYPE bogus ADD VALUE 'new';
 SAVEPOINT x;
@@ -301,7 +301,7 @@ WHERE enumtypid = 'bogus'::regtype
 ORDER BY 2;
 
 -- check that we recognize the case where the enum already existed but was
--- modified in the current txn /* REPLACED */, this should not be considered safe
+-- modified in the current txn /* REPLACED */ , this should not be considered safe
 BEGIN;
 ALTER TYPE bogus RENAME TO bogon;
 ALTER TYPE bogon ADD VALUE 'bad';
@@ -323,7 +323,7 @@ ALTER TYPE bogus RENAME TO bogon;
 select enum_range(null::bogon);
 ROLLBACK;
 
--- ideally, we/* REPLACED */''d allow this usage /* REPLACED */, but it requires keeping track of whether
+-- ideally, we/* REPLACED */ ''d allow this usage /* REPLACED */ , but it requires keeping track of whether
 -- the enum type was created in the current transaction, which is expensive
 BEGIN;
 CREATE TYPE bogus AS ENUM('good');

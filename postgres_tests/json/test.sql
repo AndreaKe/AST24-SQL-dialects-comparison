@@ -19,7 +19,7 @@ SELECT '1'::json;				-- OK
 SELECT '0'::json;				-- OK
 SELECT '01'::json;				-- ERROR, not valid according to JSON spec
 SELECT '0.1'::json;				-- OK
-SELECT '9223372036854775808'::json;	-- OK, even though it/* REPLACED */''s too large for int8
+SELECT '9223372036854775808'::json;	-- OK, even though it/* REPLACED */ ''s too large for int8
 SELECT '1e100'::json;			-- OK
 SELECT '1.3e100'::json;			-- OK
 SELECT '1f2'::json;				-- ERROR
@@ -72,7 +72,7 @@ SELECT '{
 		true}'::json; -- OK
 SELECT '{
 		"one": 1,
-		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */''two/* REPLACED */''
+		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */ ''two/* REPLACED */ ''
 		"three":
 		true}'::json;
 SELECT '{

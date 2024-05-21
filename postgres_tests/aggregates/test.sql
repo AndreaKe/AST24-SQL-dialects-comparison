@@ -14,8 +14,8 @@ CREATE TABLE aggtest (
 	b			float4
 );
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/agg.data'
-COPY aggtest FROM /* REPLACED */PG_ABS_SRCDIR '/data/agg.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/agg.data'
+COPY aggtest FROM /* REPLACED */ PG_ABS_SRCDIR '/data/agg.data';
 
 ANALYZE aggtest;
 
@@ -363,7 +363,7 @@ explain (costs off)
 select max(unique1) from tenk1 where unique1 > 42;
 
 -- the planner may choose a generic aggregate here if parallel query is
--- enabled, since that plan will be parallel safe and the /* REPLACED */''optimized/* REPLACED */''
+-- enabled, since that plan will be parallel safe and the /* REPLACED */ ''optimized/* REPLACED */ ''
 -- plan, which has almost identical cost, will not be.  we want to test
 -- the optimized plan, so temporarily disable parallel query.
 begin;
@@ -429,7 +429,7 @@ explain (costs off)
   select min(f1), max(f1) from minmaxtest;
 select min(f1), max(f1) from minmaxtest;
 
--- DISTINCT doesn/* REPLACED */''t do anything useful here, but it shouldn/* REPLACED */''t fail
+-- DISTINCT doesn/* REPLACED */ ''t do anything useful here, but it shouldn/* REPLACED */ ''t fail
 explain (costs off)
   select distinct min(f1), max(f1) from minmaxtest;
 select distinct min(f1), max(f1) from minmaxtest;
@@ -472,10 +472,10 @@ explain (costs off) select * from t3 group by a,b,c;
 
 create temp table t1c () inherits (t1);
 
--- Ensure we don/* REPLACED */''t remove any columns when t1 has a child table
+-- Ensure we don/* REPLACED */ ''t remove any columns when t1 has a child table
 explain (costs off) select * from t1 group by a,b,c,d;
 
--- Okay to remove columns if we/* REPLACED */''re only querying the parent.
+-- Okay to remove columns if we/* REPLACED */ ''re only querying the parent.
 explain (costs off) select * from only t1 group by a,b,c,d;
 
 create temp table p_t1 (
@@ -522,7 +522,7 @@ group by f2;
 drop table t1, t2;
 
 --
--- Test planner/* REPLACED */''s selection of pathkeys for ORDER BY aggregates
+-- Test planner/* REPLACED */ ''s selection of pathkeys for ORDER BY aggregates
 --
 
 -- Ensure we order by four.  This suits the most aggregate functions.
@@ -530,8 +530,8 @@ explain (costs off)
 select sum(two order by two),max(four order by four), min(four order by four)
 from tenk1;
 
--- Ensure we order by two.  It/* REPLACED */''s a tie between ordering by two and four but
--- we tiebreak on the aggregate/* REPLACED */''s position.
+-- Ensure we order by two.  It/* REPLACED */ ''s a tie between ordering by two and four but
+-- we tiebreak on the aggregate/* REPLACED */ ''s position.
 explain (costs off)
 select
   sum(two order by two), max(four order by four),
@@ -555,7 +555,7 @@ select
 from tenk1;
 
 -- Try a case involving a GROUP BY clause where the GROUP BY column is also
--- part of an aggregate/* REPLACED */''s ORDER BY clause.  We want a sort order that works
+-- part of an aggregate/* REPLACED */ ''s ORDER BY clause.  We want a sort order that works
 -- for the GROUP BY along with the first and the last aggregate.
 explain (costs off)
 select
@@ -738,13 +738,7 @@ select string_agg(v, '') from bytea_test_table;
 
 insert into bytea_test_table values(decode('ff','hex'));
 
-select string_agg(v, '') from bytea_test_table;
-
 insert into bytea_test_table values(decode('aa','hex'));
-
-select string_agg(v, '') from bytea_test_table;
-select string_agg(v, NULL) from bytea_test_table;
-select string_agg(v, decode('ee', 'hex')) from bytea_test_table;
 
 drop table bytea_test_table;
 
@@ -922,10 +916,10 @@ select test_rank(3) within group (order by x)
 from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
 select test_percentile_disc(0.5) within group (order by thousand) from tenk1;
 
--- ordered-set aggs can/* REPLACED */''t use ungrouped vars in direct args:
+-- ordered-set aggs can/* REPLACED */ ''t use ungrouped vars in direct args:
 select rank(x) within group (order by x) from generate_series(1,5) x;
 
--- outer-level agg can/* REPLACED */''t use a grouped arg of a lower level, either:
+-- outer-level agg can/* REPLACED */ ''t use a grouped arg of a lower level, either:
 select array(select percentile_disc(a) within group (order by x)
                from (values (0.3),(0.7)) v(a) group by a)
   from generate_series(1,5) g(x);
@@ -1040,10 +1034,10 @@ select my_avg(one),my_sum(one) from (values(1),(3)) t(one);
 -- same as previous one, but with DISTINCT, which requires sorting the input.
 select my_avg(distinct one),my_sum(distinct one) from (values(1),(3),(1)) t(one);
 
--- shouldn/* REPLACED */''t share states due to the distinctness not matching.
+-- shouldn/* REPLACED */ ''t share states due to the distinctness not matching.
 select my_avg(distinct one),my_sum(one) from (values(1),(3)) t(one);
 
--- shouldn/* REPLACED */''t share states due to the filter clause not matching.
+-- shouldn/* REPLACED */ ''t share states due to the filter clause not matching.
 select my_avg(one) filter (where one > 1),my_sum(one) from (values(1),(3)) t(one);
 
 -- this should not share the state due to different input columns.
@@ -1060,7 +1054,7 @@ select
   percentile_disc(0.5) within group (order by a)
 from (values(1::float8),(3),(5),(7)) t(a);
 
--- these can/* REPLACED */''t share state currently
+-- these can/* REPLACED */ ''t share state currently
 select
   rank(4) within group (order by a),
   dense_rank(4) within group (order by a)

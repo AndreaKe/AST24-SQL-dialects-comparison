@@ -53,7 +53,7 @@ SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
 -- add small record to the second page
 INSERT INTO large_tuple_test (select 3, NULL);
 
--- now this tuple won/* REPLACED */''t fit on the second page, but the insert should
+-- now this tuple won/* REPLACED */ ''t fit on the second page, but the insert should
 -- still succeed by extending the relation
 INSERT INTO large_tuple_test (select 4, repeat('a', 8126));
 
@@ -256,7 +256,7 @@ create table part_default_p2 partition of part_default for values from (30) to (
 -- fail
 insert into part_ee_ff1 values ('EE', 11);
 insert into part_default_p2 values ('gg', 43);
--- fail (even the parent/* REPLACED */''s, ie, part_ee_ff/* REPLACED */''s partition constraint applies)
+-- fail (even the parent/* REPLACED */ ''s, ie, part_ee_ff/* REPLACED */ ''s partition constraint applies)
 insert into part_ee_ff1 values ('cc', 1);
 insert into part_default values ('gg', 43);
 -- ok
@@ -337,9 +337,9 @@ create table hpart3 partition of hash_parted for values with (modulus 4, remaind
 
 insert into hash_parted values(generate_series(1,10));
 
--- direct insert of values divisible by 4 - ok /* REPLACED */,
+-- direct insert of values divisible by 4 - ok /* REPLACED */ ,
 insert into hpart0 values(12),(16);
--- fail /* REPLACED */,
+-- fail /* REPLACED */ ,
 insert into hpart0 values(11);
 -- 11 % 4 -> 3 remainder i.e. valid data for hpart3 partition
 insert into hpart3 values(11);
@@ -376,7 +376,7 @@ alter table mlparted11 drop a;
 alter table mlparted11 add a int;
 alter table mlparted11 drop a;
 alter table mlparted11 add a int not null;
--- attnum for key attribute /* REPLACED */''a/* REPLACED */'' is different in mlparted, mlparted1, and mlparted11
+-- attnum for key attribute /* REPLACED */ ''a/* REPLACED */ '' is different in mlparted, mlparted1, and mlparted11
 select attrelid::regclass, attname, attnum
 from pg_attribute
 where attname = 'a'
@@ -388,7 +388,7 @@ order by attrelid::regclass::text;
 alter table mlparted1 attach partition mlparted11 for values from (2) to (5);
 alter table mlparted attach partition mlparted1 for values from (1, 2) to (1, 10);
 
--- check that /* REPLACED */''(1, 2)/* REPLACED */'' is correctly routed to mlparted11.
+-- check that /* REPLACED */ ''(1, 2)/* REPLACED */ '' is correctly routed to mlparted11.
 insert into mlparted values (1, 2);
 select tableoid::regclass, * from mlparted;
 
@@ -412,7 +412,7 @@ create trigger mlparted11_trig before insert ON mlparted11
   for each row execute procedure mlparted11_trig_fn();
 
 -- check that the correct row is shown when constraint check_b fails after
--- /* REPLACED */''(1, 2)/* REPLACED */'' is routed to mlparted11 (actually /* REPLACED */''(1, 4)/* REPLACED */'' would be shown due
+-- /* REPLACED */ ''(1, 2)/* REPLACED */ '' is routed to mlparted11 (actually /* REPLACED */ ''(1, 4)/* REPLACED */ '' would be shown due
 -- to the BR trigger mlparted11_trig_fn)
 insert into mlparted values (1, 2);
 drop trigger mlparted11_trig on mlparted11;
@@ -586,7 +586,7 @@ select tableoid::regclass::text, * from mcrparted order by 1;
 -- cleanup
 drop table mcrparted;
 
--- check that a BR constraint can/* REPLACED */''t make partition contain violating rows
+-- check that a BR constraint can/* REPLACED */ ''t make partition contain violating rows
 create table brtrigpartcon (a int, b text) partition by list (a);
 create table brtrigpartcon1 partition of brtrigpartcon for values in (1);
 create or replace function brtrigpartcon1trigf() returns trigger as $$begin new.a := 2; return new; end$$ language plpgsql;
@@ -614,7 +614,7 @@ drop table inserttest3;
 drop table brtrigpartcon;
 drop function brtrigpartcon1trigf();
 
--- check that /* REPLACED */''do nothing/* REPLACED */'' BR triggers work with tuple-routing
+-- check that /* REPLACED */ ''do nothing/* REPLACED */ '' BR triggers work with tuple-routing
 create table donothingbrtrig_test (a int, b text) partition by list (a);
 create table donothingbrtrig_test1 (b text, a int);
 create table donothingbrtrig_test2 (c text, b text, a int);

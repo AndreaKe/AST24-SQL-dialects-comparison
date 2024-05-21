@@ -23,7 +23,7 @@ INSERT INTO VARCHAR_TBL (f1) VALUES ('3');
 -- zero-length char
 INSERT INTO VARCHAR_TBL (f1) VALUES ('');
 
--- try varchar/* REPLACED */''s of greater than 1 length
+-- try varchar/* REPLACED */ ''s of greater than 1 length
 INSERT INTO VARCHAR_TBL (f1) VALUES ('cd');
 INSERT INTO VARCHAR_TBL (f1) VALUES ('c     ');
 

@@ -122,7 +122,7 @@ INSERT INTO clstr_2 VALUES (1);
 INSERT INTO clstr_3 VALUES (2);
 INSERT INTO clstr_3 VALUES (1);
 
--- /* REPLACED */''CLUSTER <tablename>/* REPLACED */'' on a table that hasn/* REPLACED */''t been clustered
+-- /* REPLACED */ ''CLUSTER <tablename>/* REPLACED */ '' on a table that hasn/* REPLACED */ ''t been clustered
 CLUSTER clstr_2;
 
 CLUSTER clstr_1_pkey ON clstr_1;
@@ -145,7 +145,7 @@ INSERT INTO clstr_3 VALUES (1);
 -- this user can only cluster clstr_1 and clstr_3, but the latter
 -- has not been clustered
 SET SESSION AUTHORIZATION regress_clstr_user;
-SET client_min_messages = ERROR;  -- order of /* REPLACED */''skipping/* REPLACED */'' warnings may vary
+SET client_min_messages = ERROR;  -- order of /* REPLACED */ ''skipping/* REPLACED */ '' warnings may vary
 CLUSTER;
 RESET client_min_messages;
 SELECT * FROM clstr_1 UNION ALL
@@ -159,7 +159,7 @@ INSERT INTO clstr_1 VALUES (1);
 CLUSTER clstr_1;
 SELECT * FROM clstr_1;
 
--- Test MVCC-safety of cluster. There isn/* REPLACED */''t much we can do to verify the
+-- Test MVCC-safety of cluster. There isn/* REPLACED */ ''t much we can do to verify the
 -- results with a single backend...
 
 CREATE TABLE clustertest (key int PRIMARY KEY);
@@ -170,7 +170,7 @@ INSERT INTO clustertest VALUES (30);
 INSERT INTO clustertest VALUES (40);
 INSERT INTO clustertest VALUES (50);
 
--- Use a transaction so that updates are not committed when CLUSTER sees /* REPLACED */''em
+-- Use a transaction so that updates are not committed when CLUSTER sees /* REPLACED */ ''em
 BEGIN;
 
 -- Test update where the old row version is found first in the scan
@@ -224,7 +224,7 @@ CREATE TEMP TABLE old_cluster_info AS SELECT relname, level, relfilenode, relkin
 CLUSTER clstrpart USING clstrpart_idx;
 CREATE TEMP TABLE new_cluster_info AS SELECT relname, level, relfilenode, relkind FROM pg_partition_tree('clstrpart'::regclass) AS tree JOIN pg_class c ON c.oid=tree.relid ;
 SELECT relname, old.level, old.relkind, old.relfilenode = new.relfilenode FROM old_cluster_info AS old JOIN new_cluster_info AS new USING (relname) ORDER BY relname COLLATE "C";
--- Partitioned indexes aren/* REPLACED */''t and can/* REPLACED */''t be marked un/clustered:
+-- Partitioned indexes aren/* REPLACED */ ''t and can/* REPLACED */ ''t be marked un/clustered:
 -- \d clstrpart
 CLUSTER clstrpart;
 ALTER TABLE clstrpart SET WITHOUT CLUSTER;
@@ -257,7 +257,7 @@ DROP ROLE regress_ptnowner;
 
 create table clstr_4 as select * from tenk1;
 create index cluster_sort on clstr_4 (hundred, thousand, tenthous);
--- ensure we don/* REPLACED */''t use the index in CLUSTER nor the checking SELECTs
+-- ensure we don/* REPLACED */ ''t use the index in CLUSTER nor the checking SELECTs
 set enable_indexscan = off;
 
 -- Use external sort:

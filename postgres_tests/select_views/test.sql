@@ -97,7 +97,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_property_secure WHERE f_leak(passwd);
 
 --
 -- scenario: qualifiers can be pushed down if they contain leaky functions,
---           provided they aren/* REPLACED */''t passed data from inside the view.
+--           provided they aren/* REPLACED */ ''t passed data from inside the view.
 --
 SELECT * FROM my_property_normal v
 		WHERE f_leak('passwd') AND f_leak(passwd);
@@ -122,7 +122,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_secure WHERE f_leak(cnum);
 
 --
 -- scenario: an external qualifier can be pushed-down by in-front-of the
---           views with /* REPLACED */''security_barrier/* REPLACED */'' attribute, except for operators
+--           views with /* REPLACED */ ''security_barrier/* REPLACED */ '' attribute, except for operators
 --           implemented with leakproof functions.
 --
 SELECT * FROM my_credit_card_usage_normal

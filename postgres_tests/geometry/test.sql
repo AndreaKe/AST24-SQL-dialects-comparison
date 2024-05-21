@@ -26,22 +26,22 @@ SELECT (@@ f1) AS center
    FROM POLYGON_TBL
    WHERE (# f1) > 2;
 
--- /* REPLACED */''is horizontal/* REPLACED */'' function
+-- /* REPLACED */ ''is horizontal/* REPLACED */ '' function
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE ishorizontal(p1.f1, point '(0,0)');
 
--- /* REPLACED */''is horizontal/* REPLACED */'' operator
+-- /* REPLACED */ ''is horizontal/* REPLACED */ '' operator
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE p1.f1 ?- point '(0,0)';
 
--- /* REPLACED */''is vertical/* REPLACED */'' function
+-- /* REPLACED */ ''is vertical/* REPLACED */ '' function
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE isvertical(p1.f1, point '(5.1,34.5)');
 
--- /* REPLACED */''is vertical/* REPLACED */'' operator
+-- /* REPLACED */ ''is vertical/* REPLACED */ '' operator
 SELECT p1.f1
    FROM POINT_TBL p1
    WHERE p1.f1 ?| point '(5.1,34.5)';

@@ -1,6 +1,6 @@
 -- \set HIDE_TOAST_COMPRESSION false
 
--- ensure we get stable results regardless of installation/* REPLACED */''s default
+-- ensure we get stable results regardless of installation/* REPLACED */ ''s default
 SET default_toast_compression = 'pglz';
 
 -- test creating table with compression method
@@ -149,5 +149,3 @@ CREATE TABLE badcompresstbl (a text COMPRESSION I_Do_Not_Exist_Compression); -- 
 CREATE TABLE badcompresstbl (a text);
 ALTER TABLE badcompresstbl ALTER a SET COMPRESSION I_Do_Not_Exist_Compression; -- fails
 DROP TABLE badcompresstbl;
-
--- \set HIDE_TOAST_COMPRESSION true

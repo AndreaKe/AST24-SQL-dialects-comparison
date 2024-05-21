@@ -2,7 +2,7 @@
 -- \getenv libdir PG_LIBDIR
 -- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 --
 -- num_nulls()
@@ -42,7 +42,7 @@ SELECT num_nulls();
 
 CREATE FUNCTION test_canonicalize_path(text)
    RETURNS text
-   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
+   AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 
 SELECT test_canonicalize_path('/');
@@ -73,7 +73,7 @@ SELECT test_canonicalize_path('./abc/./def/.././ghi/../../../jkl/mno');
 --
 -- Memory contexts are logged and they are not returned to the function.
 -- Furthermore, their contents can vary depending on the timing. However,
--- we can at least verify that the code doesn/* REPLACED */''t fail, and that the
+-- we can at least verify that the code doesn/* REPLACED */ ''t fail, and that the
 -- permissions are set properly.
 --
 
@@ -105,8 +105,8 @@ DROP ROLE regress_log_memory;
 --
 -- Test some built-in SRFs
 --
--- The outputs of these are variable, so we can/* REPLACED */''t just print their results
--- directly, but we can at least verify that the code doesn/* REPLACED */''t fail.
+-- The outputs of these are variable, so we can/* REPLACED */ ''t just print their results
+-- directly, but we can at least verify that the code doesn/* REPLACED */ ''t fail.
 --
 select setting as segsize
 from pg_settings where name = 'wal_segment_size'
@@ -195,15 +195,15 @@ CREATE FUNCTION my_int_eq(int, int) RETURNS bool
   LANGUAGE internal STRICT IMMUTABLE PARALLEL SAFE
   AS $$int4eq$$;
 
--- By default, planner does not think that/* REPLACED */''s selective
+-- By default, planner does not think that/* REPLACED */ ''s selective
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN tenk1 b ON a.unique1 = b.unique1
 WHERE my_int_eq(a.unique2, 42);
 
--- With support function that knows it/* REPLACED */''s int4eq, we get a different plan
+-- With support function that knows it/* REPLACED */ ''s int4eq, we get a different plan
 CREATE FUNCTION test_support_func(internal)
     RETURNS internal
-    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_support_func'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_support_func'
     LANGUAGE C STRICT;
 
 ALTER FUNCTION my_int_eq(int, int) SUPPORT test_support_func;

@@ -4,7 +4,7 @@
 
 -- Clean up in case a prior regression run failed
 
--- Suppress NOTICE messages when users/groups don/* REPLACED */''t exist
+-- Suppress NOTICE messages when users/groups don/* REPLACED */ ''t exist
 SET client_min_messages TO 'warning';
 
 DROP USER IF EXISTS regress_rls_alice;
@@ -88,7 +88,7 @@ INSERT INTO document VALUES
 
 ALTER TABLE document ENABLE ROW LEVEL SECURITY;
 
--- user/* REPLACED */''s security level must be higher than or equal to document/* REPLACED */''s
+-- user/* REPLACED */ ''s security level must be higher than or equal to document/* REPLACED */ ''s
 CREATE POLICY p1 ON document AS PERMISSIVE
     USING (dlevel <= (SELECT seclv FROM uaccount WHERE pguser = current_user));
 
@@ -96,14 +96,14 @@ CREATE POLICY p1 ON document AS PERMISSIVE
 CREATE POLICY p1 ON document AS UGLY
     USING (dlevel <= (SELECT seclv FROM uaccount WHERE pguser = current_user));
 
--- but Dave isn/* REPLACED */''t allowed to anything at cid 50 or above
+-- but Dave isn/* REPLACED */ ''t allowed to anything at cid 50 or above
 -- this is to make sure that we sort the policies by name first
 -- when applying WITH CHECK, a later INSERT by Dave should fail due
 -- to p1r first
 CREATE POLICY p2r ON document AS RESTRICTIVE TO regress_rls_dave
     USING (cid <> 44 AND cid < 50);
 
--- and Dave isn/* REPLACED */''t allowed to see manga documents
+-- and Dave isn/* REPLACED */ ''t allowed to see manga documents
 CREATE POLICY p1r ON document AS RESTRICTIVE TO regress_rls_dave
     USING (cid <> 44);
 
@@ -188,8 +188,8 @@ INSERT INTO document VALUES (11, 33, 1, current_user, 'hoge');
 
 -- UNIQUE or PRIMARY KEY constraint violation DOES reveal presence of row
 SET SESSION AUTHORIZATION regress_rls_bob;
-INSERT INTO document VALUES (8, 44, 1, 'regress_rls_bob', 'my third manga'); -- Must fail with unique violation, revealing presence of did we can/* REPLACED */''t see
-SELECT * FROM document WHERE did = 8; -- and confirm we can/* REPLACED */''t see it
+INSERT INTO document VALUES (8, 44, 1, 'regress_rls_bob', 'my third manga'); -- Must fail with unique violation, revealing presence of did we can/* REPLACED */ ''t see
+SELECT * FROM document WHERE did = 8; -- and confirm we can/* REPLACED */ ''t see it
 
 -- RLS policies are checked before constraints
 INSERT INTO document VALUES (8, 44, 1, 'regress_rls_carol', 'my third manga'); -- Should fail with RLS check violation, not duplicate key violation
@@ -347,7 +347,7 @@ INSERT INTO part_document VALUES
 ALTER TABLE part_document ENABLE ROW LEVEL SECURITY;
 
 -- Create policy on parent
--- user/* REPLACED */''s security level must be higher than or equal to document/* REPLACED */''s
+-- user/* REPLACED */ ''s security level must be higher than or equal to document/* REPLACED */ ''s
 CREATE POLICY pp1 ON part_document AS PERMISSIVE
     USING (dlevel <= (SELECT seclv FROM uaccount WHERE pguser = current_user));
 
@@ -723,7 +723,7 @@ INSERT INTO document VALUES (2, (SELECT cid from category WHERE cname = 'novel')
 -- Violates USING qual for UPDATE policy p3.
 --
 -- UPDATE path is taken, but UPDATE fails purely because *existing* row to be
--- updated is not a /* REPLACED */''novel/* REPLACED */''/cid 11 (row is not leaked, even though we have
+-- updated is not a /* REPLACED */ ''novel/* REPLACED */ ''/cid 11 (row is not leaked, even though we have
 -- SELECT privileges sufficient to see the row in this instance):
 INSERT INTO document VALUES (33, 22, 1, 'regress_rls_bob', 'okay science fiction'); -- preparation for next statement
 INSERT INTO document VALUES (33, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_bob', 'Some novel, replaces sci-fi') -- takes UPDATE path
@@ -732,10 +732,10 @@ INSERT INTO document VALUES (33, (SELECT cid from category WHERE cname = 'novel'
 -- not violated):
 INSERT INTO document VALUES (2, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_bob', 'my first novel')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle RETURNING *;
--- Fine (we INSERT, so /* REPLACED */''cid = 33/* REPLACED */'' (/* REPLACED */''technology/* REPLACED */'') isn/* REPLACED */''t evaluated):
+-- Fine (we INSERT, so /* REPLACED */ ''cid = 33/* REPLACED */ '' (/* REPLACED */ ''technology/* REPLACED */ '') isn/* REPLACED */ ''t evaluated):
 INSERT INTO document VALUES (78, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_bob', 'some technology novel')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle, cid = 33 RETURNING *;
--- Fine (same query, but we UPDATE, so /* REPLACED */''cid = 33/* REPLACED */'', (/* REPLACED */''technology/* REPLACED */'') is not the
+-- Fine (same query, but we UPDATE, so /* REPLACED */ ''cid = 33/* REPLACED */ '', (/* REPLACED */ ''technology/* REPLACED */ '') is not the
 -- case in respect of *existing* tuple):
 INSERT INTO document VALUES (78, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_bob', 'some technology novel')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle, cid = 33 RETURNING *;
@@ -743,9 +743,9 @@ INSERT INTO document VALUES (78, (SELECT cid from category WHERE cname = 'novel'
 -- passing quals:
 INSERT INTO document VALUES (78, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_bob', 'some technology novel')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle, cid = 33 RETURNING *;
--- Don/* REPLACED */''t fail just because INSERT doesn/* REPLACED */''t satisfy WITH CHECK option that
+-- Don/* REPLACED */ ''t fail just because INSERT doesn/* REPLACED */ ''t satisfy WITH CHECK option that
 -- originated as a barrier/USING() qual from the UPDATE.  Note that the UPDATE
--- path *isn/* REPLACED */''t* taken, and so UPDATE-related policy does not apply:
+-- path *isn/* REPLACED */ ''t* taken, and so UPDATE-related policy does not apply:
 INSERT INTO document VALUES (79, (SELECT cid from category WHERE cname = 'technology'), 1, 'regress_rls_bob', 'technology book, can only insert')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle RETURNING *;
 -- But this time, the same statement fails, because the UPDATE path is taken,
@@ -772,7 +772,7 @@ SET SESSION AUTHORIZATION regress_rls_bob;
 -- as an UPDATE/ALL WCO in general).
 --
 -- UPDATE path is taken here (fails due to existing tuple).  Note that this is
--- not reported as a /* REPLACED */''USING expression/* REPLACED */'', because it/* REPLACED */''s an RLS UPDATE check that originated as
+-- not reported as a /* REPLACED */ ''USING expression/* REPLACED */ '', because it/* REPLACED */ ''s an RLS UPDATE check that originated as
 -- a USING qual for the purposes of RLS in general, as opposed to an explicit
 -- USING qual that is ordinarily a security barrier.  We leave it up to the
 -- UPDATE to make this fail:
@@ -780,7 +780,7 @@ INSERT INTO document VALUES (79, (SELECT cid from category WHERE cname = 'techno
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle RETURNING *;
 
 -- UPDATE path is taken here.  Existing tuple passes, since its cid
--- corresponds to /* REPLACED */''novel/* REPLACED */'', but default USING qual is enforced against
+-- corresponds to /* REPLACED */ ''novel/* REPLACED */ '', but default USING qual is enforced against
 -- post-UPDATE tuple too (as always when updating with a policy that lacks an
 -- explicit WCO), and so this fails:
 INSERT INTO document VALUES (2, (SELECT cid from category WHERE cname = 'technology'), 1, 'regress_rls_bob', 'my first novel')
@@ -803,7 +803,7 @@ SET SESSION AUTHORIZATION regress_rls_bob;
 INSERT INTO document VALUES (80, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_carol', 'my first novel')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle, cid = 33;
 -- Fails, since ALL policy USING qual is enforced (existing, target tuple is in
--- violation, since it has the /* REPLACED */''manga/* REPLACED */'' cid):
+-- violation, since it has the /* REPLACED */ ''manga/* REPLACED */ '' cid):
 INSERT INTO document VALUES (4, (SELECT cid from category WHERE cname = 'novel'), 1, 'regress_rls_bob', 'my first novel')
     ON CONFLICT (did) DO UPDATE SET dtitle = EXCLUDED.dtitle;
 -- Fails, since ALL WCO are enforced:
@@ -821,11 +821,11 @@ ALTER TABLE document ADD COLUMN dnotes text DEFAULT '';
 CREATE POLICY p1 ON document FOR SELECT USING (true);
 -- one may insert documents only authored by them
 CREATE POLICY p2 ON document FOR INSERT WITH CHECK (dauthor = current_user);
--- one may only update documents in /* REPLACED */''novel/* REPLACED */'' category and new dlevel must be > 0
+-- one may only update documents in /* REPLACED */ ''novel/* REPLACED */ '' category and new dlevel must be > 0
 CREATE POLICY p3 ON document FOR UPDATE
   USING (cid = (SELECT cid from category WHERE cname = 'novel'))
   WITH CHECK (dlevel > 0);
--- one may only delete documents in /* REPLACED */''manga/* REPLACED */'' category
+-- one may only delete documents in /* REPLACED */ ''manga/* REPLACED */ '' category
 CREATE POLICY p4 ON document FOR DELETE
   USING (cid = (SELECT cid from category WHERE cname = 'manga'));
 
@@ -854,8 +854,8 @@ ON did = s.sdid
 WHEN MATCHED THEN
 	UPDATE SET dnotes = dnotes || ' notes added by merge3 ', dlevel = 1;
 
--- There is a MATCH for did = 3, but UPDATE/* REPLACED */''s USING qual does not allow
--- updating an item in category /* REPLACED */''science fiction/* REPLACED */''
+-- There is a MATCH for did = 3, but UPDATE/* REPLACED */ ''s USING qual does not allow
+-- updating an item in category /* REPLACED */ ''science fiction/* REPLACED */ ''
 MERGE INTO document d
 USING (SELECT 3 as sdid) s
 ON did = s.sdid
@@ -863,14 +863,14 @@ WHEN MATCHED THEN
 	UPDATE SET dnotes = dnotes || ' notes added by merge ';
 
 -- The same thing with DELETE action, but fails again because no permissions
--- to delete items in /* REPLACED */''science fiction/* REPLACED */'' category that did 3 belongs to.
+-- to delete items in /* REPLACED */ ''science fiction/* REPLACED */ '' category that did 3 belongs to.
 MERGE INTO document d
 USING (SELECT 3 as sdid) s
 ON did = s.sdid
 WHEN MATCHED THEN
 	DELETE;
 
--- Document with did 4 belongs to /* REPLACED */''manga/* REPLACED */'' category which is allowed for
+-- Document with did 4 belongs to /* REPLACED */ ''manga/* REPLACED */ '' category which is allowed for
 -- deletion. But this fails because the UPDATE action is matched first and
 -- UPDATE policy does not allow updation in the category.
 MERGE INTO document d
@@ -883,7 +883,7 @@ WHEN MATCHED THEN
 
 -- UPDATE action is not matched this time because of the WHEN qual.
 -- DELETE still fails because role regress_rls_bob does not have SELECT
--- privileges on /* REPLACED */''manga/* REPLACED */'' category row in the category table.
+-- privileges on /* REPLACED */ ''manga/* REPLACED */ '' category row in the category table.
 MERGE INTO document d
 USING (SELECT 4 as sdid) s
 ON did = s.sdid
@@ -921,7 +921,7 @@ RESET SESSION AUTHORIZATION;
 SET SESSION AUTHORIZATION regress_rls_bob;
 
 -- Try INSERT action. This fails because we are trying to insert
--- dauthor = regress_rls_dave and INSERT/* REPLACED */''s WITH CHECK does not allow
+-- dauthor = regress_rls_dave and INSERT/* REPLACED */ ''s WITH CHECK does not allow
 -- that
 MERGE INTO document d
 USING (SELECT 12 as sdid) s
@@ -950,7 +950,7 @@ WHEN NOT MATCHED THEN
 	INSERT VALUES (12, 11, 1, 'regress_rls_bob', 'another novel');
 
 -- drop and create a new SELECT policy which prevents us from reading
--- any document except with category /* REPLACED */''novel/* REPLACED */''
+-- any document except with category /* REPLACED */ ''novel/* REPLACED */ ''
 RESET SESSION AUTHORIZATION;
 DROP POLICY p1 ON document;
 CREATE POLICY p1 ON document FOR SELECT
@@ -1179,7 +1179,7 @@ SELECT * FROM rls_view;
 EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
 
 -- Queries as other users.
--- Should return records based on current user/* REPLACED */''s policies.
+-- Should return records based on current user/* REPLACED */ ''s policies.
 SET SESSION AUTHORIZATION regress_rls_bob;
 SELECT * FROM rls_view;
 EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
@@ -1204,7 +1204,7 @@ SELECT * FROM rls_view;
 EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
 
 -- Queries as other users.
--- Should return records based on current user/* REPLACED */''s policies.
+-- Should return records based on current user/* REPLACED */ ''s policies.
 SET SESSION AUTHORIZATION regress_rls_bob;
 SELECT * FROM rls_view;
 EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
@@ -1551,14 +1551,14 @@ COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --ok
 SET row_security TO ON;
 COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --ok
 
--- Check COPY TO as user without permissions. SET row_security TO OFF /* REPLACED */,
+-- Check COPY TO as user without permissions. SET row_security TO OFF /* REPLACED */ ,
 SET SESSION AUTHORIZATION regress_rls_carol;
 SET row_security TO OFF;
 COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --fail - would be affected by RLS
 SET row_security TO ON;
 COPY (SELECT * FROM copy_t ORDER BY a ASC) TO STDOUT WITH DELIMITER ','; --fail - permission denied
 
--- Check COPY relation TO /* REPLACED */, keep it just one row to avoid reordering issues
+-- Check COPY relation TO /* REPLACED */ , keep it just one row to avoid reordering issues
 RESET SESSION AUTHORIZATION;
 SET row_security TO ON;
 CREATE TABLE copy_rel_to (a integer, b text);
@@ -1591,7 +1591,7 @@ COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 SET row_security TO ON;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 
--- Check COPY TO as user without permissions. SET row_security TO OFF /* REPLACED */,
+-- Check COPY TO as user without permissions. SET row_security TO OFF /* REPLACED */ ,
 SET SESSION AUTHORIZATION regress_rls_carol;
 SET row_security TO OFF;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --fail - permission denied
@@ -1625,7 +1625,7 @@ COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 SET row_security TO ON;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --ok
 
--- Check COPY TO as user without permissions. SET row_security TO OFF /* REPLACED */,
+-- Check COPY TO as user without permissions. SET row_security TO OFF /* REPLACED */ ,
 SET SESSION AUTHORIZATION regress_rls_carol;
 SET row_security TO OFF;
 COPY copy_rel_to TO STDOUT WITH DELIMITER ','; --fail - permission denied
@@ -2163,7 +2163,7 @@ DROP FUNCTION op_leak(int, int);
 RESET SESSION AUTHORIZATION;
 DROP TABLE rls_tbl;
 
--- Bug #16006: whole-row Vars in a policy don/* REPLACED */''t play nice with sub-selects
+-- Bug #16006: whole-row Vars in a policy don/* REPLACED */ ''t play nice with sub-selects
 SET SESSION AUTHORIZATION regress_rls_alice;
 CREATE TABLE rls_tbl (a int, b int, c int);
 CREATE POLICY p1 ON rls_tbl USING (rls_tbl >= ROW(1,1,1));

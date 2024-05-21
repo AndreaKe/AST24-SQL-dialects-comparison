@@ -4,7 +4,7 @@
 -- kill_prior_tuple optimization
 --
 -- NB: The table size is currently *not* expected to stay the same, we
--- don/* REPLACED */''t have logic to trigger opportunistic pruning in cases like
+-- don/* REPLACED */ ''t have logic to trigger opportunistic pruning in cases like
 -- this.
 BEGIN;
 
@@ -12,7 +12,7 @@ SET LOCAL enable_seqscan = false;
 SET LOCAL enable_indexonlyscan = false;
 SET LOCAL enable_bitmapscan = false;
 
--- Can/* REPLACED */''t easily use a unique index, since dead tuples can be found
+-- Can/* REPLACED */ ''t easily use a unique index, since dead tuples can be found
 -- independent of the kill_prior_tuples optimization.
 CREATE TABLE clean_aborted_self(key int, data text);
 CREATE INDEX clean_aborted_self_key ON clean_aborted_self(key);
@@ -31,7 +31,7 @@ BEGIN
 	        RAISE data_corrupted USING MESSAGE = 'these rows should not exist';
             END IF;
             INSERT INTO clean_aborted_self SELECT g.i, 'rolling back in a sec' FROM generate_series(1, 100) g(i);
-	    -- just some error that/* REPLACED */''s not normally thrown
+	    -- just some error that/* REPLACED */ ''s not normally thrown
 	    RAISE reading_sql_data_not_permitted USING MESSAGE = 'round and round again';
 	EXCEPTION WHEN reading_sql_data_not_permitted THEN END;
     END LOOP;

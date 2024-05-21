@@ -1,0 +1,1404 @@
+
+-----------
+QUERY:
+--
+-- FLOAT8
+--
+
+--
+-- Build a table for testing
+-- (This temporarily hides the table created in test_setup.sql)
+--
+
+CREATE TEMP TABLE FLOAT8_TBL(f1 float8);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('    0.0   ');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1004.30  ');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('   -34.84');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1.2345678901234e+200');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1.2345678901234e-200');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test for underflow and overflow handling
+SELECT '10e400'::float8;
+RESULT:
+	ERROR - "10e400" is out of range for type double precision
+LINE 4: SELECT '10e400'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+SELECT '-10e400'::float8;
+RESULT:
+	ERROR - "-10e400" is out of range for type double precision
+LINE 2: SELECT '-10e400'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+SELECT '10e-400'::float8;
+RESULT:
+	ERROR - "10e-400" is out of range for type double precision
+LINE 2: SELECT '10e-400'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+SELECT '-10e-400'::float8;
+RESULT:
+	ERROR - "-10e-400" is out of range for type double precision
+LINE 2: SELECT '-10e-400'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+
+-- bad input
+INSERT INTO FLOAT8_TBL(f1) VALUES ('');
+RESULT:
+	ERROR - invalid input syntax for type double precision: ""
+LINE 4: INSERT INTO FLOAT8_TBL(f1) VALUES ('');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('     ');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "     "
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('     ');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('xyz');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "xyz"
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('xyz');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('5.0.0');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "5.0.0"
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('5.0.0');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('5 . 0');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "5 . 0"
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('5 . 0');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('5.   0');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "5.   0"
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('5.   0');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('    - 3');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "    - 3"
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('    - 3');
+                                           ^
+
+
+-----------
+QUERY:
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('123           5');
+RESULT:
+	ERROR - invalid input syntax for type double precision: "123           5"
+LINE 2: INSERT INTO FLOAT8_TBL(f1) VALUES ('123           5');
+                                           ^
+
+
+-----------
+QUERY:
+
+
+-- Also try it with non-error-throwing API
+SELECT pg_input_is_valid('34.5', 'float8');
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('xyz', 'float8');
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('1e4000', 'float8');
+RESULT:
+	[(False,)]
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('1e4000', 'float8');
+RESULT:
+	[('"1e4000" is out of range for type double precision', None, None, '22003')]
+
+-----------
+QUERY:
+
+
+-- special inputs
+SELECT 'NaN'::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT 'nan'::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT '   NAN  '::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT 'infinity'::float8;
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT '          -INFINiTY   '::float8;
+RESULT:
+	[(-inf,)]
+
+-----------
+QUERY:
+
+-- bad special inputs
+SELECT 'N A N'::float8;
+RESULT:
+	ERROR - invalid input syntax for type double precision: "N A N"
+LINE 3: SELECT 'N A N'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+SELECT 'NaN x'::float8;
+RESULT:
+	ERROR - invalid input syntax for type double precision: "NaN x"
+LINE 2: SELECT 'NaN x'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+SELECT ' INFINITY    x'::float8;
+RESULT:
+	ERROR - invalid input syntax for type double precision: " INFINITY    x"
+LINE 2: SELECT ' INFINITY    x'::float8;
+               ^
+
+
+-----------
+QUERY:
+
+
+SELECT 'Infinity'::float8 + 100.0;
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT 'Infinity'::float8 / 'Infinity'::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT '42'::float8 / 'Infinity'::float8;
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT 'nan'::float8 / 'nan'::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT 'nan'::float8 / '0'::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT 'nan'::numeric::float8;
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+
+SELECT * FROM FLOAT8_TBL;
+RESULT:
+	[(0.0,), (1004.3,), (-34.84,), (1.2345678901234e+200,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+SELECT f.* FROM FLOAT8_TBL f WHERE f.f1 <> '1004.3';
+RESULT:
+	[(0.0,), (-34.84,), (1.2345678901234e+200,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+SELECT f.* FROM FLOAT8_TBL f WHERE f.f1 = '1004.3';
+RESULT:
+	[(1004.3,)]
+
+-----------
+QUERY:
+
+
+SELECT f.* FROM FLOAT8_TBL f WHERE '1004.3' > f.f1;
+RESULT:
+	[(0.0,), (-34.84,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+SELECT f.* FROM FLOAT8_TBL f WHERE  f.f1 < '1004.3';
+RESULT:
+	[(0.0,), (-34.84,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+SELECT f.* FROM FLOAT8_TBL f WHERE '1004.3' >= f.f1;
+RESULT:
+	[(0.0,), (1004.3,), (-34.84,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+SELECT f.* FROM FLOAT8_TBL f WHERE  f.f1 <= '1004.3';
+RESULT:
+	[(0.0,), (1004.3,), (-34.84,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1, f.f1 * '-10' AS x
+   FROM FLOAT8_TBL f
+   WHERE f.f1 > '0.0';
+RESULT:
+	[(1004.3, -10043.0), (1.2345678901234e+200, -1.2345678901234e+201), (1.2345678901234e-200, -1.2345678901234e-199)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1, f.f1 + '-10' AS x
+   FROM FLOAT8_TBL f
+   WHERE f.f1 > '0.0';
+RESULT:
+	[(1004.3, 994.3), (1.2345678901234e+200, 1.2345678901234e+200), (1.2345678901234e-200, -10.0)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1, f.f1 / '-10' AS x
+   FROM FLOAT8_TBL f
+   WHERE f.f1 > '0.0';
+RESULT:
+	[(1004.3, -100.42999999999999), (1.2345678901234e+200, -1.2345678901234e+199), (1.2345678901234e-200, -1.2345678901234e-201)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1, f.f1 - '-10' AS x
+   FROM FLOAT8_TBL f
+   WHERE f.f1 > '0.0';
+RESULT:
+	[(1004.3, 1014.3), (1.2345678901234e+200, 1.2345678901234e+200), (1.2345678901234e-200, 10.0)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1 ^ '2.0' AS square_f1
+   FROM FLOAT8_TBL f where f.f1 = '1004.3';
+RESULT:
+	[(1008618.4899999999,)]
+
+-----------
+QUERY:
+
+
+-- absolute value
+SELECT f.f1, @f.f1 AS abs_f1
+   FROM FLOAT8_TBL f;
+RESULT:
+	[(0.0, 0.0), (1004.3, 1004.3), (-34.84, 34.84), (1.2345678901234e+200, 1.2345678901234e+200), (1.2345678901234e-200, 1.2345678901234e-200)]
+
+-----------
+QUERY:
+
+
+-- truncate
+SELECT f.f1, trunc(f.f1) AS trunc_f1
+   FROM FLOAT8_TBL f;
+RESULT:
+	[(0.0, 0.0), (1004.3, 1004.0), (-34.84, -34.0), (1.2345678901234e+200, 1.2345678901234e+200), (1.2345678901234e-200, 0.0)]
+
+-----------
+QUERY:
+
+
+-- round
+SELECT f.f1, round(f.f1) AS round_f1
+   FROM FLOAT8_TBL f;
+RESULT:
+	[(0.0, 0.0), (1004.3, 1004.0), (-34.84, -35.0), (1.2345678901234e+200, 1.2345678901234e+200), (1.2345678901234e-200, 0.0)]
+
+-----------
+QUERY:
+
+
+-- ceil / ceiling
+select ceil(f1) as ceil_f1 from float8_tbl f;
+RESULT:
+	[(0.0,), (1005.0,), (-34.0,), (1.2345678901234e+200,), (1.0,)]
+
+-----------
+QUERY:
+
+select ceiling(f1) as ceiling_f1 from float8_tbl f;
+RESULT:
+	[(0.0,), (1005.0,), (-34.0,), (1.2345678901234e+200,), (1.0,)]
+
+-----------
+QUERY:
+
+
+-- floor
+select floor(f1) as floor_f1 from float8_tbl f;
+RESULT:
+	[(0.0,), (1004.0,), (-35.0,), (1.2345678901234e+200,), (0.0,)]
+
+-----------
+QUERY:
+
+
+-- sign
+select sign(f1) as sign_f1 from float8_tbl f;
+RESULT:
+	[(0.0,), (1.0,), (-1.0,), (1.0,), (1.0,)]
+
+-----------
+QUERY:
+
+
+-- avoid bit-exact output here because operations may not be bit-exact.
+SET extra_float_digits = 0;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- square root
+SELECT sqrt(float8 '64') AS eight;
+RESULT:
+	[(8.0,)]
+
+-----------
+QUERY:
+
+
+SELECT |/ float8 '64' AS eight;
+RESULT:
+	[(8.0,)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1, |/f.f1 AS sqrt_f1
+   FROM FLOAT8_TBL f
+   WHERE f.f1 > '0.0';
+RESULT:
+	[(1004.3, 31.6906926399535), (1.2345678901234e+200, 1.11111110611109e+100), (1.2345678901234e-200, 1.11111110611109e-100)]
+
+-----------
+QUERY:
+
+
+-- power
+SELECT power(float8 '144', float8 '0.5');
+RESULT:
+	[(12.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'NaN', float8 '0.5');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '144', float8 'NaN');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'NaN', float8 'NaN');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-1', float8 'NaN');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '1', float8 'NaN');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'NaN', float8 '0');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'inf', float8 '0');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 '0');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '0', float8 'inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '0', float8 '-inf');
+RESULT:
+	ERROR - zero raised to a negative power is undefined
+
+
+-----------
+QUERY:
+
+SELECT power(float8 '1', float8 'inf');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '1', float8 '-inf');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-1', float8 'inf');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-1', float8 '-inf');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '0.1', float8 'inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-0.1', float8 'inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '1.1', float8 'inf');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-1.1', float8 'inf');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '0.1', float8 '-inf');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-0.1', float8 '-inf');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '1.1', float8 '-inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-1.1', float8 '-inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'inf', float8 '-2');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'inf', float8 '2');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'inf', float8 'inf');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 'inf', float8 '-inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+-- Intel/* REPLACED */ ''s icc misoptimizes the code that controls the sign of this result,
+-- even with -mp1.  Pending a fix for that, only test for /* REPLACED */ ''is it zero/* REPLACED */ ''.
+SELECT power(float8 '-inf', float8 '-2') = '0';
+RESULT:
+	[(True,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 '-3');
+RESULT:
+	[(-0.0,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 '2');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 '3');
+RESULT:
+	[(-inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 '3.5');
+RESULT:
+	ERROR - a negative number raised to a non-integer power yields a complex result
+
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 'inf');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT power(float8 '-inf', float8 '-inf');
+RESULT:
+	[(0.0,)]
+
+-----------
+QUERY:
+
+
+-- take exp of ln(f.f1)
+SELECT f.f1, exp(ln(f.f1)) AS exp_ln_f1
+   FROM FLOAT8_TBL f
+   WHERE f.f1 > '0.0';
+RESULT:
+	[(1004.3, 1004.3), (1.2345678901234e+200, 1.23456789012338e+200), (1.2345678901234e-200, 1.23456789012339e-200)]
+
+-----------
+QUERY:
+
+
+-- check edge cases for exp
+SELECT exp('inf'::float8), exp('-inf'::float8), exp('nan'::float8);
+RESULT:
+	[(inf, 0.0, nan)]
+
+-----------
+QUERY:
+
+
+-- cube root
+SELECT ||/ float8 '27' AS three;
+RESULT:
+	[(3.0,)]
+
+-----------
+QUERY:
+
+
+SELECT f.f1, ||/f.f1 AS cbrt_f1 FROM FLOAT8_TBL f;
+RESULT:
+	[(0.0, 0.0), (1004.3, 10.014312837827), (-34.84, -3.26607421344208), (1.2345678901234e+200, 4.97933859234765e+66), (1.2345678901234e-200, 2.3112042409018e-67)]
+
+-----------
+QUERY:
+
+
+
+SELECT * FROM FLOAT8_TBL;
+RESULT:
+	[(0.0,), (1004.3,), (-34.84,), (1.2345678901234e+200,), (1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+UPDATE FLOAT8_TBL
+   SET f1 = FLOAT8_TBL.f1 * '-1'
+   WHERE FLOAT8_TBL.f1 > '0.0';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT f.f1 * '1e200' from FLOAT8_TBL f;
+RESULT:
+	ERROR - value out of range: overflow
+
+
+-----------
+QUERY:
+
+
+SELECT f.f1 ^ '1e200' from FLOAT8_TBL f;
+RESULT:
+	ERROR - value out of range: overflow
+
+
+-----------
+QUERY:
+
+
+SELECT 0 ^ 0 + 0 ^ 1 + 0 ^ 0.0 + 0 ^ 0.5;
+RESULT:
+	[(2.0,)]
+
+-----------
+QUERY:
+
+
+SELECT ln(f.f1) from FLOAT8_TBL f where f.f1 = '0.0' ;
+RESULT:
+	ERROR - cannot take logarithm of zero
+
+
+-----------
+QUERY:
+
+
+SELECT ln(f.f1) from FLOAT8_TBL f where f.f1 < '0.0' ;
+RESULT:
+	ERROR - cannot take logarithm of a negative number
+
+
+-----------
+QUERY:
+
+
+SELECT exp(f.f1) from FLOAT8_TBL f;
+RESULT:
+	ERROR - value out of range: underflow
+
+
+-----------
+QUERY:
+
+
+SELECT f.f1 / '0.0' from FLOAT8_TBL f;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM FLOAT8_TBL;
+RESULT:
+	[(0.0,), (-34.84,), (-1004.3,), (-1.2345678901234e+200,), (-1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+-- hyperbolic functions
+-- we run these with extra_float_digits = 0 too, since different platforms
+-- tend to produce results that vary in the last place.
+SELECT sinh(float8 '1');
+RESULT:
+	[(1.1752011936438,)]
+
+-----------
+QUERY:
+
+SELECT cosh(float8 '1');
+RESULT:
+	[(1.54308063481524,)]
+
+-----------
+QUERY:
+
+SELECT tanh(float8 '1');
+RESULT:
+	[(0.761594155955765,)]
+
+-----------
+QUERY:
+
+SELECT asinh(float8 '1');
+RESULT:
+	[(0.881373587019543,)]
+
+-----------
+QUERY:
+
+SELECT acosh(float8 '2');
+RESULT:
+	[(1.31695789692482,)]
+
+-----------
+QUERY:
+
+SELECT atanh(float8 '0.5');
+RESULT:
+	[(0.549306144334055,)]
+
+-----------
+QUERY:
+
+-- test Inf/NaN cases for hyperbolic functions
+SELECT sinh(float8 'infinity');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT sinh(float8 '-infinity');
+RESULT:
+	[(-inf,)]
+
+-----------
+QUERY:
+
+SELECT sinh(float8 'nan');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT cosh(float8 'infinity');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT cosh(float8 '-infinity');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT cosh(float8 'nan');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT tanh(float8 'infinity');
+RESULT:
+	[(1.0,)]
+
+-----------
+QUERY:
+
+SELECT tanh(float8 '-infinity');
+RESULT:
+	[(-1.0,)]
+
+-----------
+QUERY:
+
+SELECT tanh(float8 'nan');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT asinh(float8 'infinity');
+RESULT:
+	[(inf,)]
+
+-----------
+QUERY:
+
+SELECT asinh(float8 '-infinity');
+RESULT:
+	[(-inf,)]
+
+-----------
+QUERY:
+
+SELECT asinh(float8 'nan');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+-- acosh(Inf) should be Inf, but some mingw versions produce NaN, so skip test
+-- SELECT acosh(float8 /* REPLACED */ ''infinity/* REPLACED */ '') /* REPLACED */ ,
+SELECT acosh(float8 '-infinity');
+RESULT:
+	ERROR - input is out of range
+
+
+-----------
+QUERY:
+
+SELECT acosh(float8 'nan');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+SELECT atanh(float8 'infinity');
+RESULT:
+	ERROR - input is out of range
+
+
+-----------
+QUERY:
+
+SELECT atanh(float8 '-infinity');
+RESULT:
+	ERROR - input is out of range
+
+
+-----------
+QUERY:
+
+SELECT atanh(float8 'nan');
+RESULT:
+	[(nan,)]
+
+-----------
+QUERY:
+
+
+-- error functions
+-- we run these with extra_float_digits = -1, to get consistently rounded
+-- results on all platforms.
+SET extra_float_digits = -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT x,
+       erf(x),
+       erfc(x)
+FROM (VALUES (float8 '-infinity'),
+      (-28), (-6), (-3.4), (-2.1), (-1.1), (-0.45),
+      (-1.2e-9), (-2.3e-13), (-1.2e-17), (0),
+      (1.2e-17), (2.3e-13), (1.2e-9),
+      (0.45), (1.1), (2.1), (3.4), (6), (28),
+      (float8 'infinity'), (float8 'nan')) AS t(x);
+RESULT:
+	[(-inf, -1.0, 2.0), (-28.0, -1.0, 2.0), (-6.0, -1.0, 2.0), (-3.4, -0.99999847800664, 1.9999984780066), (-2.1, -0.99702053334367, 1.9970205333437), (-1.1, -0.88020506957408, 1.8802050695741), (-0.45, -0.47548171978692, 1.4754817197869), (-1.2e-09, -1.3540550005146e-09, 1.0000000013541), (-2.3e-13, -2.5952720843197e-13, 1.0000000000003), (-1.2e-17, -1.3540550005146e-17, 1.0), (0.0, 0.0, 1.0), (1.2e-17, 1.3540550005146e-17, 1.0), (2.3e-13, 2.5952720843197e-13, 0.99999999999974), (1.2e-09, 1.3540550005146e-09, 0.99999999864595), (0.45, 0.47548171978692, 0.52451828021308), (1.1, 0.88020506957408, 0.11979493042592), (2.1, 0.99702053334367, 0.002979466656333), (3.4, 0.99999847800664, 1.5219933628623e-06), (6.0, 1.0, 2.1519736712499e-17), (28.0, 1.0, 0.0), (inf, 1.0, 0.0), (nan, nan, nan)]
+
+-----------
+QUERY:
+
+
+RESET extra_float_digits;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test for over- and underflow
+INSERT INTO FLOAT8_TBL(f1) VALUES ('10e400');
+RESULT:
+	ERROR - "10e400" is out of range for type double precision
+LINE 4: INSERT INTO FLOAT8_TBL(f1) VALUES ('10e400');
+                                           ^
+
+
+-----------
+QUERY:
+
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('-10e400');
+RESULT:
+	ERROR - "-10e400" is out of range for type double precision
+LINE 3: INSERT INTO FLOAT8_TBL(f1) VALUES ('-10e400');
+                                           ^
+
+
+-----------
+QUERY:
+
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('10e-400');
+RESULT:
+	ERROR - "10e-400" is out of range for type double precision
+LINE 3: INSERT INTO FLOAT8_TBL(f1) VALUES ('10e-400');
+                                           ^
+
+
+-----------
+QUERY:
+
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('-10e-400');
+RESULT:
+	ERROR - "-10e-400" is out of range for type double precision
+LINE 3: INSERT INTO FLOAT8_TBL(f1) VALUES ('-10e-400');
+                                           ^
+
+
+-----------
+QUERY:
+
+
+DROP TABLE FLOAT8_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Check the float8 values exported for use by other tests
+
+SELECT * FROM FLOAT8_TBL;
+RESULT:
+	[(0.0,), (-34.84,), (-1004.3,), (-1.2345678901234e+200,), (-1.2345678901234e-200,)]
+
+-----------
+QUERY:
+
+
+-- test edge-case coercions to integer
+SELECT '32767.4'::float8::int2;
+RESULT:
+	[(32767,)]
+
+-----------
+QUERY:
+
+SELECT '32767.6'::float8::int2;
+RESULT:
+	ERROR - smallint out of range
+
+
+-----------
+QUERY:
+
+SELECT '-32768.4'::float8::int2;
+RESULT:
+	[(-32768,)]
+
+-----------
+QUERY:
+
+SELECT '-32768.6'::float8::int2;
+RESULT:
+	ERROR - smallint out of range
+
+
+-----------
+QUERY:
+
+SELECT '2147483647.4'::float8::int4;
+RESULT:
+	[(2147483647,)]
+
+-----------
+QUERY:
+
+SELECT '2147483647.6'::float8::int4;
+RESULT:
+	ERROR - integer out of range
+
+
+-----------
+QUERY:
+
+SELECT '-2147483648.4'::float8::int4;
+RESULT:
+	[(-2147483648,)]
+
+-----------
+QUERY:
+
+SELECT '-2147483648.6'::float8::int4;
+RESULT:
+	ERROR - integer out of range
+
+
+-----------
+QUERY:
+
+SELECT '9223372036854773760'::float8::int8;
+RESULT:
+	[(9223372036854773760,)]
+
+-----------
+QUERY:
+
+SELECT '9223372036854775807'::float8::int8;
+RESULT:
+	ERROR - bigint out of range
+
+
+-----------
+QUERY:
+
+SELECT '-9223372036854775808.5'::float8::int8;
+RESULT:
+	[(-9223372036854775808,)]
+
+-----------
+QUERY:
+
+SELECT '-9223372036854780000'::float8::int8;
+RESULT:
+	ERROR - bigint out of range
+
+
+-----------
+QUERY:
+
+
+-- test exact cases for trigonometric functions in degrees
+
+SELECT x,
+       sind(x),
+       sind(x) IN (-1,-0.5,0,0.5,1) AS sind_exact
+FROM (VALUES (0), (30), (90), (150), (180),
+      (210), (270), (330), (360)) AS t(x);
+RESULT:
+	[(0, 0.0, True), (30, 0.5, True), (90, 1.0, True), (150, 0.5, True), (180, 0.0, True), (210, -0.5, True), (270, -1.0, True), (330, -0.5, True), (360, 0.0, True)]
+
+-----------
+QUERY:
+
+
+SELECT x,
+       cosd(x),
+       cosd(x) IN (-1,-0.5,0,0.5,1) AS cosd_exact
+FROM (VALUES (0), (60), (90), (120), (180),
+      (240), (270), (300), (360)) AS t(x);
+RESULT:
+	[(0, 1.0, True), (60, 0.5, True), (90, 0.0, True), (120, -0.5, True), (180, -1.0, True), (240, -0.5, True), (270, 0.0, True), (300, 0.5, True), (360, 1.0, True)]
+
+-----------
+QUERY:
+
+
+SELECT x,
+       tand(x),
+       tand(x) IN ('-Infinity'::float8,-1,0,
+                   1,'Infinity'::float8) AS tand_exact,
+       cotd(x),
+       cotd(x) IN ('-Infinity'::float8,-1,0,
+                   1,'Infinity'::float8) AS cotd_exact
+FROM (VALUES (0), (45), (90), (135), (180),
+      (225), (270), (315), (360)) AS t(x);
+RESULT:
+	[(0, 0.0, True, inf, True), (45, 1.0, True, 1.0, True), (90, inf, True, 0.0, True), (135, -1.0, True, -1.0, True), (180, 0.0, True, -inf, True), (225, 1.0, True, 1.0, True), (270, -inf, True, 0.0, True), (315, -1.0, True, -1.0, True), (360, 0.0, True, inf, True)]
+
+-----------
+QUERY:
+
+
+SELECT x,
+       asind(x),
+       asind(x) IN (-90,-30,0,30,90) AS asind_exact,
+       acosd(x),
+       acosd(x) IN (0,60,90,120,180) AS acosd_exact
+FROM (VALUES (-1), (-0.5), (0), (0.5), (1)) AS t(x);
+RESULT:
+	[(Decimal('-1'), -90.0, True, 180.0, True), (Decimal('-0.5'), -30.0, True, 120.0, True), (Decimal('0'), 0.0, True, 90.0, True), (Decimal('0.5'), 30.0, True, 60.0, True), (Decimal('1'), 90.0, True, 0.0, True)]
+
+-----------
+QUERY:
+
+
+SELECT x,
+       atand(x),
+       atand(x) IN (-90,-45,0,45,90) AS atand_exact
+FROM (VALUES ('-Infinity'::float8), (-1), (0), (1),
+      ('Infinity'::float8)) AS t(x);
+RESULT:
+	[(-inf, -90.0, True), (-1.0, -45.0, True), (0.0, 0.0, True), (1.0, 45.0, True), (inf, 90.0, True)]
+
+-----------
+QUERY:
+
+
+SELECT x, y,
+       atan2d(y, x),
+       atan2d(y, x) IN (-90,0,90,180) AS atan2d_exact
+FROM (SELECT 10*cosd(a), 10*sind(a)
+      FROM generate_series(0, 360, 90) AS t(a)) AS t(x,y);
+RESULT:
+	[(10.0, 0.0, 0.0, True), (0.0, 10.0, 90.0, True), (-10.0, 0.0, 180.0, True), (0.0, -10.0, -90.0, True), (10.0, 0.0, 0.0, True)]
+
+-----------
+QUERY:
+
+
+--
+-- test output (and round-trip safety) of various values.
+-- To ensure we/* REPLACED */ ''re testing what we think we/* REPLACED */ ''re testing, start with
+-- float values specified by bit patterns (as a useful side effect,
+-- this means we/* REPLACED */ ''ll fail on non-IEEE platforms).
+
+create type xfloat8;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create function xfloat8in(cstring) returns xfloat8 immutable strict
+  language internal as 'int8in';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create function xfloat8out(xfloat8) returns cstring immutable strict
+  language internal as 'int8out';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create type xfloat8 (input = xfloat8in, output = xfloat8out, like = float8);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create cast (xfloat8 as float8) without function;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create cast (float8 as xfloat8) without function;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create cast (xfloat8 as bigint) without function;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create cast (bigint as xfloat8) without function;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- clean up, lest opr_sanity complain
+drop type xfloat8 cascade;
+RESULT:
+	[]

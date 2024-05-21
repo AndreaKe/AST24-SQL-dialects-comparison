@@ -1,0 +1,313 @@
+
+-----------
+QUERY:
+--
+-- encoding-sensitive tests for jsonpath
+--
+
+-- We provide expected-results files for UTF8 (jsonpath_encoding.out)
+-- and for SQL_ASCII (jsonpath_encoding_1.out).  Skip otherwise.
+SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
+       AS skip_test \gset
+-- \if :skip_test
+-- \quit
+-- \endif
+
+SELECT getdatabaseencoding();
+RESULT:
+	ERROR - syntax error at or near "\"
+LINE 8:        AS skip_test \gset
+                            ^
+
+
+-----------
+QUERY:
+           -- just to label the results files
+
+-- checks for double-quoted values
+
+-- basic unicode input
+SELECT '"\u"'::jsonpath;
+RESULT:
+	ERROR - invalid Unicode escape sequence at or near "\u" of jsonpath input
+LINE 6: SELECT '"\u"'::jsonpath;
+               ^
+
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '"\u00"'::jsonpath;
+RESULT:
+	ERROR - invalid Unicode escape sequence at or near "\u00" of jsonpath input
+LINE 2: SELECT '"\u00"'::jsonpath;
+               ^
+
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '"\u000g"'::jsonpath;
+RESULT:
+	ERROR - invalid Unicode escape sequence at or near "\u000" of jsonpath input
+LINE 2: SELECT '"\u000g"'::jsonpath;
+               ^
+
+
+-----------
+QUERY:
+	-- ERROR, g is not a hex digit
+SELECT '"\u0000"'::jsonpath;
+RESULT:
+	ERROR - unsupported Unicode escape sequence
+LINE 2: SELECT '"\u0000"'::jsonpath;
+               ^
+DETAIL:  \u0000 cannot be converted to text.
+
+
+-----------
+QUERY:
+	-- OK, legal escape
+SELECT '"\uaBcD"'::jsonpath;
+RESULT:
+	[('"ꯍ"',)]
+
+-----------
+QUERY:
+	-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+select '"\ud83d\ude04\ud83d\udc36"'::jsonpath as correct_in_utf8;
+RESULT:
+	[('"😄🐶"',)]
+
+-----------
+QUERY:
+
+select '"\ud83d\ud83d"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '"\ud83d\ud83d"'::jsonpath;
+               ^
+DETAIL:  Unicode high surrogate must not follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select '"\ude04\ud83d"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '"\ude04\ud83d"'::jsonpath;
+               ^
+DETAIL:  Unicode low surrogate must follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select '"\ud83dX"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '"\ud83dX"'::jsonpath;
+               ^
+DETAIL:  Unicode low surrogate must follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select '"\ude04X"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '"\ude04X"'::jsonpath;
+               ^
+DETAIL:  Unicode low surrogate must follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+select '"the Copyright \u00a9 sign"'::jsonpath as correct_in_utf8;
+RESULT:
+	[('"the Copyright © sign"',)]
+
+-----------
+QUERY:
+
+select '"dollar \u0024 character"'::jsonpath as correct_everywhere;
+RESULT:
+	[('"dollar $ character"',)]
+
+-----------
+QUERY:
+
+select '"dollar \\u0024 character"'::jsonpath as not_an_escape;
+RESULT:
+	[('"dollar \\\\u0024 character"',)]
+
+-----------
+QUERY:
+
+select '"null \u0000 escape"'::jsonpath as not_unescaped;
+RESULT:
+	ERROR - unsupported Unicode escape sequence
+LINE 2: select '"null \u0000 escape"'::jsonpath as not_unescaped;
+               ^
+DETAIL:  \u0000 cannot be converted to text.
+
+
+-----------
+QUERY:
+
+select '"null \\u0000 escape"'::jsonpath as not_an_escape;
+RESULT:
+	[('"null \\\\u0000 escape"',)]
+
+-----------
+QUERY:
+
+
+-- checks for quoted key names
+
+-- basic unicode input
+SELECT '$."\u"'::jsonpath;
+RESULT:
+	ERROR - invalid Unicode escape sequence at or near "\u" of jsonpath input
+LINE 6: SELECT '$."\u"'::jsonpath;
+               ^
+
+
+-----------
+QUERY:
+		-- ERROR, incomplete escape
+SELECT '$."\u00"'::jsonpath;
+RESULT:
+	ERROR - invalid Unicode escape sequence at or near "\u00" of jsonpath input
+LINE 2: SELECT '$."\u00"'::jsonpath;
+               ^
+
+
+-----------
+QUERY:
+	-- ERROR, incomplete escape
+SELECT '$."\u000g"'::jsonpath;
+RESULT:
+	ERROR - invalid Unicode escape sequence at or near "\u000" of jsonpath input
+LINE 2: SELECT '$."\u000g"'::jsonpath;
+               ^
+
+
+-----------
+QUERY:
+	-- ERROR, g is not a hex digit
+SELECT '$."\u0000"'::jsonpath;
+RESULT:
+	ERROR - unsupported Unicode escape sequence
+LINE 2: SELECT '$."\u0000"'::jsonpath;
+               ^
+DETAIL:  \u0000 cannot be converted to text.
+
+
+-----------
+QUERY:
+	-- OK, legal escape
+SELECT '$."\uaBcD"'::jsonpath;
+RESULT:
+	[('$."ꯍ"',)]
+
+-----------
+QUERY:
+	-- OK, uppercase and lower case both OK
+
+-- handling of unicode surrogate pairs
+select '$."\ud83d\ude04\ud83d\udc36"'::jsonpath as correct_in_utf8;
+RESULT:
+	[('$."😄🐶"',)]
+
+-----------
+QUERY:
+
+select '$."\ud83d\ud83d"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '$."\ud83d\ud83d"'::jsonpath;
+               ^
+DETAIL:  Unicode high surrogate must not follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- 2 high surrogates in a row
+select '$."\ude04\ud83d"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '$."\ude04\ud83d"'::jsonpath;
+               ^
+DETAIL:  Unicode low surrogate must follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- surrogates in wrong order
+select '$."\ud83dX"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '$."\ud83dX"'::jsonpath;
+               ^
+DETAIL:  Unicode low surrogate must follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- orphan high surrogate
+select '$."\ude04X"'::jsonpath;
+RESULT:
+	ERROR - invalid input syntax for type jsonpath
+LINE 2: select '$."\ude04X"'::jsonpath;
+               ^
+DETAIL:  Unicode low surrogate must follow a high surrogate.
+
+
+-----------
+QUERY:
+ -- orphan low surrogate
+
+--handling of simple unicode escapes
+select '$."the Copyright \u00a9 sign"'::jsonpath as correct_in_utf8;
+RESULT:
+	[('$."the Copyright © sign"',)]
+
+-----------
+QUERY:
+
+select '$."dollar \u0024 character"'::jsonpath as correct_everywhere;
+RESULT:
+	[('$."dollar $ character"',)]
+
+-----------
+QUERY:
+
+select '$."dollar \\u0024 character"'::jsonpath as not_an_escape;
+RESULT:
+	[('$."dollar \\\\u0024 character"',)]
+
+-----------
+QUERY:
+
+select '$."null \u0000 escape"'::jsonpath as not_unescaped;
+RESULT:
+	ERROR - unsupported Unicode escape sequence
+LINE 2: select '$."null \u0000 escape"'::jsonpath as not_unescaped;
+               ^
+DETAIL:  \u0000 cannot be converted to text.
+
+
+-----------
+QUERY:
+
+select '$."null \\u0000 escape"'::jsonpath as not_an_escape;
+RESULT:
+	[('$."null \\\\u0000 escape"',)]

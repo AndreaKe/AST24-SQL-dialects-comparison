@@ -6,7 +6,7 @@
 -- \getenv libdir PG_LIBDIR
 -- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 -- Setup
 CREATE SCHEMA lock_schema1;
@@ -23,7 +23,7 @@ CREATE ROLE regress_rol_lock1;
 ALTER ROLE regress_rol_lock1 SET search_path = lock_schema1;
 GRANT USAGE ON SCHEMA lock_schema1 TO regress_rol_lock1;
 
--- Try all valid lock options /* REPLACED */, also try omitting the optional TABLE keyword.
+-- Try all valid lock options /* REPLACED */ , also try omitting the optional TABLE keyword.
 BEGIN TRANSACTION;
 LOCK TABLE lock_tbl1 IN ACCESS SHARE MODE;
 LOCK lock_tbl1 IN ROW SHARE MODE;
@@ -194,7 +194,7 @@ RESET search_path;
 
 CREATE FUNCTION test_atomic_ops()
     RETURNS bool
-    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
     LANGUAGE C;
 
 SELECT test_atomic_ops();

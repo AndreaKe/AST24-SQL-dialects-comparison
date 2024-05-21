@@ -658,9 +658,9 @@ SELECT t1.id1, t1.result, t2.expected
 --
 -- for p in {-20..20}
 -- do
---   b=/* REPLACED */''0.084738/* REPLACED */''
---   r=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, $b^$p/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''($b, $p, $r),/* REPLACED */''
+--   b=/* REPLACED */ ''0.084738/* REPLACED */ ''
+--   r=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , $b^$p/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''($b, $p, $r),/* REPLACED */ ''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -714,9 +714,9 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for p in {-20..20}
 -- do
---   b=/* REPLACED */''37.821637/* REPLACED */''
---   r=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, $b^$p/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''($b, $p, $r),/* REPLACED */''
+--   b=/* REPLACED */ ''37.821637/* REPLACED */ ''
+--   r=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , $b^$p/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''($b, $p, $r),/* REPLACED */ ''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -774,10 +774,10 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for n in {-20..20}
 -- do
---   b=/* REPLACED */''0.06933247/* REPLACED */''
---   p=/* REPLACED */''$n.342987/* REPLACED */''
---   r=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, e($p*l($b))/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''($b, $p, $r),/* REPLACED */''
+--   b=/* REPLACED */ ''0.06933247/* REPLACED */ ''
+--   p=/* REPLACED */ ''$n.342987/* REPLACED */ ''
+--   r=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , e($p*l($b))/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''($b, $p, $r),/* REPLACED */ ''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -831,10 +831,10 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for n in {-20..20}
 -- do
---   b=/* REPLACED */''27.234987/* REPLACED */''
---   p=/* REPLACED */''$n.230957/* REPLACED */''
---   r=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, e($p*l($b))/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''($b, $p, $r),/* REPLACED */''
+--   b=/* REPLACED */ ''27.234987/* REPLACED */ ''
+--   p=/* REPLACED */ ''$n.230957/* REPLACED */ ''
+--   r=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , e($p*l($b))/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''($b, $p, $r),/* REPLACED */ ''
 -- done
 
 WITH t(b, p, bc_result) AS (VALUES
@@ -900,9 +900,9 @@ SELECT b, p, bc_result, b^p AS power, b^p - bc_result AS diff FROM t;
 --
 -- for n in {-20..20}
 -- do
---   x=/* REPLACED */''$n.29837/* REPLACED */''
---   r=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, e($x)/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''($x, $r),/* REPLACED */''
+--   x=/* REPLACED */ ''$n.29837/* REPLACED */ ''
+--   r=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , e($x)/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''($x, $r),/* REPLACED */ ''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -960,8 +960,8 @@ SELECT x, bc_result, exp(x), exp(x)-bc_result AS diff FROM t;
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l(10^-$p)/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''(/* REPLACED */''1.0e-$p/* REPLACED */'', $l),/* REPLACED */''
+--   l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l(10^-$p)/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''(/* REPLACED */ ''1.0e-$p/* REPLACED */ '', $l),/* REPLACED */ ''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1014,8 +1014,8 @@ SELECT x, bc_result, ln(x::numeric), ln(x::numeric)-bc_result AS diff FROM t;
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l(1-10^-$p)/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''(/* REPLACED */''1.0e-$p/* REPLACED */'', $l),/* REPLACED */''
+--   l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l(1-10^-$p)/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''(/* REPLACED */ ''1.0e-$p/* REPLACED */ '', $l),/* REPLACED */ ''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1068,8 +1068,8 @@ SELECT '1-'||x, bc_result, ln(1.0-x::numeric), ln(1.0-x::numeric)-bc_result AS d
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l(1+10^-$p)/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''(/* REPLACED */''1.0e-$p/* REPLACED */'', $l),/* REPLACED */''
+--   l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l(1+10^-$p)/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''(/* REPLACED */ ''1.0e-$p/* REPLACED */ '', $l),/* REPLACED */ ''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1122,8 +1122,8 @@ SELECT '1+'||x, bc_result, ln(1.0+x::numeric), ln(1.0+x::numeric)-bc_result AS d
 --
 -- for p in {1..40}
 -- do
---   l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l(10^$p)/* REPLACED */'' | head -n 1)
---   echo /* REPLACED */''(/* REPLACED */''1.0e$p/* REPLACED */'', $l),/* REPLACED */''
+--   l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l(10^$p)/* REPLACED */ '' | head -n 1)
+--   echo /* REPLACED */ ''(/* REPLACED */ ''1.0e$p/* REPLACED */ '', $l),/* REPLACED */ ''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1176,8 +1176,8 @@ SELECT x, bc_result, ln(x::numeric), ln(x::numeric)-bc_result AS diff FROM t;
 --
 -- for p in {1..10}
 -- do
---   l=$(bc -ql <<< /* REPLACED */''scale=1000  /* REPLACED */, l(10^${p}00)/* REPLACED */'' | head -n 1)
---  echo /* REPLACED */''(/* REPLACED */''1.0e${p}00/* REPLACED */'', $l),/* REPLACED */''
+--   l=$(bc -ql <<< /* REPLACED */ ''scale=1000  /* REPLACED */ , l(10^${p}00)/* REPLACED */ '' | head -n 1)
+--  echo /* REPLACED */ ''(/* REPLACED */ ''1.0e${p}00/* REPLACED */ '', $l),/* REPLACED */ ''
 -- done
 
 WITH t(x, bc_result) AS (VALUES
@@ -1224,8 +1224,8 @@ SELECT x, log(x::numeric) FROM t;
 -- do
 --   for d in {9..1..3}
 --   do
---     l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l($d*10^-$p) / l(10)/* REPLACED */'' | head -n 1)
---     echo /* REPLACED */''(/* REPLACED */''${d}.0e-$p/* REPLACED */'', $l),/* REPLACED */''
+--     l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l($d*10^-$p) / l(10)/* REPLACED */ '' | head -n 1)
+--     echo /* REPLACED */ ''(/* REPLACED */ ''${d}.0e-$p/* REPLACED */ '', $l),/* REPLACED */ ''
 --   done
 -- done
 
@@ -1265,8 +1265,8 @@ SELECT x, bc_result, log(x::numeric), log(x::numeric)-bc_result AS diff FROM t;
 -- do
 --   for d in {9..1..3}
 --   do
---     l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l(1-$d*10^-$p) / l(10)/* REPLACED */'' | head -n 1)
---     echo /* REPLACED */''(/* REPLACED */''${d}.0e-$p/* REPLACED */'', $l),/* REPLACED */''
+--     l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l(1-$d*10^-$p) / l(10)/* REPLACED */ '' | head -n 1)
+--     echo /* REPLACED */ ''(/* REPLACED */ ''${d}.0e-$p/* REPLACED */ '', $l),/* REPLACED */ ''
 --   done
 -- done
 
@@ -1300,8 +1300,8 @@ SELECT '1-'||x, bc_result, log(1.0-x::numeric), log(1.0-x::numeric)-bc_result AS
 -- do
 --   for d in {9..1..3}
 --   do
---     l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l(1+$d*10^-$p) / l(10)/* REPLACED */'' | head -n 1)
---     echo /* REPLACED */''(/* REPLACED */''${d}.0e-$p/* REPLACED */'', $l),/* REPLACED */''
+--     l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l(1+$d*10^-$p) / l(10)/* REPLACED */ '' | head -n 1)
+--     echo /* REPLACED */ ''(/* REPLACED */ ''${d}.0e-$p/* REPLACED */ '', $l),/* REPLACED */ ''
 --   done
 -- done
 
@@ -1339,8 +1339,8 @@ SELECT x, log(x::numeric) FROM t;
 --   do
 --   for d in {2..9..3}
 --   do
---     l=$(bc -ql <<< /* REPLACED */''scale=500  /* REPLACED */, l($d*10^$p) / l(10)/* REPLACED */'' | head -n 1)
---     echo /* REPLACED */''(/* REPLACED */''${d}.0e$p/* REPLACED */'', $l),/* REPLACED */''
+--     l=$(bc -ql <<< /* REPLACED */ ''scale=500  /* REPLACED */ , l($d*10^$p) / l(10)/* REPLACED */ '' | head -n 1)
+--     echo /* REPLACED */ ''(/* REPLACED */ ''${d}.0e$p/* REPLACED */ '', $l),/* REPLACED */ ''
 --   done
 -- done
 

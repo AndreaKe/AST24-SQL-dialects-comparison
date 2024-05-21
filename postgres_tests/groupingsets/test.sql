@@ -329,7 +329,7 @@ select a, b, grouping(a,b), sum(v), count(*), max(v)
 explain (costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)
   from gstest1 group by cube(a,b) order by 3,1,2;
 
--- shouldn/* REPLACED */''t try and hash
+-- shouldn/* REPLACED */ ''t try and hash
 explain (costs off)
   select a, b, grouping(a,b), array_agg(v order by v)
     from gstest1 group by cube(a,b);
@@ -556,7 +556,7 @@ drop table gs_hash_1;
 
 -- GROUP BY DISTINCT
 
--- /* REPLACED */''normal/* REPLACED */'' behavior...
+-- /* REPLACED */ ''normal/* REPLACED */ '' behavior...
 select a, b, c
 from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by all rollup(a, b), rollup(a, c)
@@ -568,13 +568,13 @@ from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by rollup(a, b), rollup(a, c)
 order by a, b, c;
 
--- /* REPLACED */''group by distinct/* REPLACED */'' behavior...
+-- /* REPLACED */ ''group by distinct/* REPLACED */ '' behavior...
 select a, b, c
 from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by distinct rollup(a, b), rollup(a, c)
 order by a, b, c;
 
--- ...which is not the same as /* REPLACED */''select distinct/* REPLACED */''
+-- ...which is not the same as /* REPLACED */ ''select distinct/* REPLACED */ ''
 select distinct a, b, c
 from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
 group by rollup(a, b), rollup(a, c)
@@ -588,5 +588,3 @@ select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
 explain (costs off)
 select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
 select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
-
--- end

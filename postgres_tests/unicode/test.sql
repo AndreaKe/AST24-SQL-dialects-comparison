@@ -35,4 +35,4 @@ FROM
           (5, '')) vals (num, val)
 ORDER BY num;
 
-SELECT is_normalized('abc', 'def');  -- run-time error
+SELECT is_normalized('abc', 'def');

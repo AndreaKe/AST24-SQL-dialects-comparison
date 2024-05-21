@@ -25,17 +25,17 @@ CREATE TABLE bt_f8_heap (
 	random 		int4
 );
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/desc.data'
-COPY bt_i4_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/desc.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/desc.data'
+COPY bt_i4_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/desc.data';
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/hash.data'
-COPY bt_name_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data'
+COPY bt_name_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/hash.data';
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/desc.data'
-COPY bt_txt_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/desc.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/desc.data'
+COPY bt_txt_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/desc.data';
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/hash.data'
-COPY bt_f8_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data'
+COPY bt_f8_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/hash.data';
 
 ANALYZE bt_i4_heap;
 ANALYZE bt_name_heap;
@@ -48,7 +48,7 @@ ANALYZE bt_f8_heap;
 -- we load int4/text from pure descending data (each key is a new
 -- low key) and name/f8 from pure ascending data (each key is a new
 -- high key).  we had a bug where new low keys would sometimes be
--- /* REPLACED */''lost/* REPLACED */''.
+-- /* REPLACED */ ''lost/* REPLACED */ ''.
 --
 CREATE INDEX bt_i4_index ON bt_i4_heap USING btree (seqno int4_ops);
 
@@ -114,12 +114,12 @@ SELECT b.*
 -- Add coverage for optimization of backwards scan index descents
 --
 -- Here we expect _bt_search to descend straight to a leaf page containing a
--- non-pivot tuple with the value /* REPLACED */''47/* REPLACED */'', which comes last (after 11 similar
+-- non-pivot tuple with the value /* REPLACED */ ''47/* REPLACED */ '', which comes last (after 11 similar
 -- non-pivot tuples).  Query execution should only need to visit a single
 -- leaf page here.
 --
 -- Test case relies on tenk1_hundred index having a leaf page whose high key
--- is /* REPLACED */''(48, -inf)/* REPLACED */''.  We use a low cardinality index to make our test case less
+-- is /* REPLACED */ ''(48, -inf)/* REPLACED */ ''.  We use a low cardinality index to make our test case less
 -- sensitive to implementation details that may change in the future.
 set enable_seqscan to false;
 set enable_indexscan to true;
@@ -129,7 +129,7 @@ select hundred, twenty from tenk1 where hundred < 48 order by hundred desc limit
 select hundred, twenty from tenk1 where hundred < 48 order by hundred desc limit 1;
 
 -- This variant of the query need only return a single tuple located to the immediate
--- right of the /* REPLACED */''(48, -inf)/* REPLACED */'' high key.  It also only needs to scan one single
+-- right of the /* REPLACED */ ''(48, -inf)/* REPLACED */ '' high key.  It also only needs to scan one single
 -- leaf page (the right sibling of the page scanned by the last test case):
 explain (costs off)
 select hundred, twenty from tenk1 where hundred <= 48 order by hundred desc limit 1;
@@ -172,7 +172,7 @@ reset enable_bitmapscan;
 create temp table btree_bpchar (f1 text collate "C");
 create index on btree_bpchar(f1 bpchar_ops) WITH (deduplicate_items=on);
 insert into btree_bpchar values ('foo'), ('fool'), ('bar'), ('quux');
--- doesn/* REPLACED */''t match index:
+-- doesn/* REPLACED */ ''t match index:
 explain (costs off)
 select * from btree_bpchar where f1 like 'foo';
 select * from btree_bpchar where f1 like 'foo';
@@ -187,7 +187,7 @@ explain (costs off)
 select * from btree_bpchar where f1::bpchar like 'foo%';
 select * from btree_bpchar where f1::bpchar like 'foo%';
 
--- get test coverage for /* REPLACED */''single value/* REPLACED */'' deduplication strategy:
+-- get test coverage for /* REPLACED */ ''single value/* REPLACED */ '' deduplication strategy:
 insert into btree_bpchar select 'foo' from generate_series(1,1500);
 
 --
@@ -219,8 +219,8 @@ INSERT INTO dedup_unique_test_table SELECT i FROM generate_series(0,450) i;
 -- Test B-tree fast path (cache rightmost leaf page) optimization.
 --
 
--- First create a tree that/* REPLACED */''s at least three levels deep (i.e. has one level
--- between the root and leaf levels). The text inserted is long.  It won/* REPLACED */''t be
+-- First create a tree that/* REPLACED */ ''s at least three levels deep (i.e. has one level
+-- between the root and leaf levels). The text inserted is long.  It won/* REPLACED */ ''t be
 -- TOAST compressed because we use plain storage in the table.  Only a few
 -- index tuples fit on each internal page, allowing us to get a tall tree with
 -- few pages.  (A tall tree is required to trigger caching.)
@@ -240,17 +240,17 @@ from generate_series(1, 130) g;
 CREATE TABLE delete_test_table (a bigint, b bigint, c bigint, d bigint);
 INSERT INTO delete_test_table SELECT i, 1, 2, 3 FROM generate_series(1,80000) i;
 ALTER TABLE delete_test_table ADD PRIMARY KEY (a,b,c,d);
--- Delete most entries, and vacuum, deleting internal pages and creating /* REPLACED */''fast
--- root/* REPLACED */''
+-- Delete most entries, and vacuum, deleting internal pages and creating /* REPLACED */ ''fast
+-- root/* REPLACED */ ''
 DELETE FROM delete_test_table WHERE a < 79990;
 VACUUM delete_test_table;
 
 --
 -- Test B-tree insertion with a metapage update (XLOG_BTREE_INSERT_META
--- WAL record type). This happens when a /* REPLACED */''fast root/* REPLACED */'' page is split.  This
+-- WAL record type). This happens when a /* REPLACED */ ''fast root/* REPLACED */ '' page is split.  This
 -- also creates coverage for nbtree FSM page recycling.
 --
--- The vacuum above should/* REPLACED */''ve turned the leaf page into a fast root. We just
+-- The vacuum above should/* REPLACED */ ''ve turned the leaf page into a fast root. We just
 -- need to insert some rows to cause the fast root page to split.
 INSERT INTO delete_test_table SELECT i, 1, 2, 3 FROM generate_series(1,1000) i;
 

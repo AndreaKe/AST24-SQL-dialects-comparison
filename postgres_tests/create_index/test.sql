@@ -70,8 +70,8 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/rect.data'
-COPY slow_emp4000 FROM /* REPLACED */PG_ABS_SRCDIR '/data/rect.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/rect.data'
+COPY slow_emp4000 FROM /* REPLACED */ PG_ABS_SRCDIR '/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
 
@@ -268,8 +268,8 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/array.data'
-COPY array_index_op_test FROM /* REPLACED */PG_ABS_SRCDIR '/data/array.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/array.data'
+COPY array_index_op_test FROM /* REPLACED */ PG_ABS_SRCDIR '/data/array.data';
 ANALYZE array_index_op_test;
 
 SELECT * FROM array_index_op_test WHERE i = '{NULL}' ORDER BY seqno;
@@ -350,7 +350,7 @@ SELECT COUNT(*) FROM array_gin_test WHERE a @> '{2}';
 DROP TABLE array_gin_test;
 
 --
--- Test GIN index/* REPLACED */''s reloptions
+-- Test GIN index/* REPLACED */ ''s reloptions
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
@@ -363,7 +363,7 @@ CREATE UNLOGGED TABLE unlogged_hash_table (id int4);
 CREATE INDEX unlogged_hash_index ON unlogged_hash_table USING hash (id int4_ops);
 DROP TABLE unlogged_hash_table;
 
--- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops) /* REPLACED */,
+-- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops) /* REPLACED */ ,
 
 -- Test hash index build tuplesorting.  Force hash tuplesort using low
 -- maintenance_work_mem setting and fillfactor:
@@ -424,10 +424,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn/* REPLACED */''t:
+-- but this shouldn/* REPLACED */ ''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we/* REPLACED */''re here, see that the metadata looks sane
+-- while we/* REPLACED */ ''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -444,10 +444,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn/* REPLACED */''t:
+-- but this shouldn/* REPLACED */ ''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we/* REPLACED */''re here, see that the metadata looks sane
+-- while we/* REPLACED */ ''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -465,7 +465,7 @@ INSERT INTO covering_index_heap VALUES(1,1,'AAA');
 INSERT INTO covering_index_heap VALUES(1,2,'AAA');
 -- this should fail because of unique index on f1,f2:
 INSERT INTO covering_index_heap VALUES(1,2,'BBB');
--- and this shouldn/* REPLACED */''t:
+-- and this shouldn/* REPLACED */ ''t:
 INSERT INTO covering_index_heap VALUES(1,4,'AAA');
 -- Try to build index on table that already contains data
 CREATE UNIQUE INDEX covering_pkey on covering_index_heap (f1,f2) INCLUDE(f3);
@@ -498,7 +498,7 @@ CREATE INDEX CONCURRENTLY concur_index4 on concur_heap(f2) WHERE f1='a';
 CREATE INDEX CONCURRENTLY concur_index5 on concur_heap(f2) WHERE f1='x';
 -- here we also check that you can default the index name
 CREATE INDEX CONCURRENTLY on concur_heap((f2||f1));
--- You can/* REPLACED */''t do a concurrent index build in a transaction
+-- You can/* REPLACED */ ''t do a concurrent index build in a transaction
 BEGIN;
 CREATE INDEX CONCURRENTLY concur_index7 ON concur_heap(f1);
 COMMIT;
@@ -601,7 +601,7 @@ ALTER TABLE cwi_test DROP CONSTRAINT cwi_uniq_idx,
 -- \d cwi_test
 -- \d cwi_replaced_pkey
 
-DROP INDEX cwi_replaced_pkey;	-- Should fail /* REPLACED */, a constraint depends on it
+DROP INDEX cwi_replaced_pkey;	-- Should fail /* REPLACED */ , a constraint depends on it
 
 -- Check that non-default index options are rejected
 CREATE UNIQUE INDEX cwi_uniq3_idx ON cwi_test(a desc);

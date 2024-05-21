@@ -28,7 +28,7 @@ INSERT INTO CHAR_TBL (f1) VALUES ('3');
 -- zero-length char
 INSERT INTO CHAR_TBL (f1) VALUES ('');
 
--- try char/* REPLACED */''s of greater than 1 length
+-- try char/* REPLACED */ ''s of greater than 1 length
 INSERT INTO CHAR_TBL (f1) VALUES ('cd');
 INSERT INTO CHAR_TBL (f1) VALUES ('c     ');
 
@@ -78,7 +78,7 @@ SELECT pg_input_is_valid('abcde', 'char(4)');
 SELECT * FROM pg_input_error_info('abcde', 'char(4)');
 
 --
--- Also test /* REPLACED */''char/* REPLACED */'', which is an ad-hoc one-byte type.  It can only
+-- Also test /* REPLACED */ ''char/* REPLACED */ '', which is an ad-hoc one-byte type.  It can only
 -- really store ASCII characters, but we allow high-bit-set characters
 -- to be accessed via bytea-like escapes.
 --

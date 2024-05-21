@@ -82,7 +82,7 @@ explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on con
 explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Cawesh';
 -- With EXCLUDED.* expression in scan node:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do update set fruit = excluded.fruit where excluded.fruit != 'Elderberry';
--- Does the same, but JSON format shows /* REPLACED */''Conflict Arbiter Index/* REPLACED */'' as JSON array:
+-- Does the same, but JSON format shows /* REPLACED */ ''Conflict Arbiter Index/* REPLACED */ '' as JSON array:
 explain (costs off, format json) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Lime' returning *;
 
 -- Fails (no unique index inference specification, required for do update variant):
@@ -181,7 +181,7 @@ create unique index tricky_expr_comp_key_index on insertconflicttest(key, lower(
 -- inference succeeds:
 insert into insertconflicttest values (24, 'Plum') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
 insert into insertconflicttest values (25, 'Peach') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
--- Should not infer /* REPLACED */''tricky_expr_comp_key_index/* REPLACED */'' index:
+-- Should not infer /* REPLACED */ ''tricky_expr_comp_key_index/* REPLACED */ '' index:
 explain (costs off) insert into insertconflicttest values (26, 'Fig') on conflict (lower(fruit), key, lower(fruit), key) do update set fruit = excluded.fruit;
 
 -- inference fails:
@@ -198,13 +198,13 @@ drop index tricky_expr_comp_key_index;
 create unique index key_index on insertconflicttest(key);
 create unique index fruit_index on insertconflicttest(fruit);
 
--- succeeds, since UPDATE happens to update /* REPLACED */''fruit/* REPLACED */'' to existing value:
+-- succeeds, since UPDATE happens to update /* REPLACED */ ''fruit/* REPLACED */ '' to existing value:
 insert into insertconflicttest values (26, 'Fig') on conflict (key) do update set fruit = excluded.fruit;
--- fails, since UPDATE is to row with key value 26, and we/* REPLACED */''re updating /* REPLACED */''fruit/* REPLACED */''
--- to a value that happens to exist in another row (/* REPLACED */''peach/* REPLACED */''):
+-- fails, since UPDATE is to row with key value 26, and we/* REPLACED */ ''re updating /* REPLACED */ ''fruit/* REPLACED */ ''
+-- to a value that happens to exist in another row (/* REPLACED */ ''peach/* REPLACED */ ''):
 insert into insertconflicttest values (26, 'Peach') on conflict (key) do update set fruit = excluded.fruit;
--- succeeds, since /* REPLACED */''key/* REPLACED */'' isn/* REPLACED */''t repeated/referenced in UPDATE, and /* REPLACED */''fruit/* REPLACED */''
--- arbitrates that statement updates existing /* REPLACED */''Fig/* REPLACED */'' row:
+-- succeeds, since /* REPLACED */ ''key/* REPLACED */ '' isn/* REPLACED */ ''t repeated/referenced in UPDATE, and /* REPLACED */ ''fruit/* REPLACED */ ''
+-- arbitrates that statement updates existing /* REPLACED */ ''Fig/* REPLACED */ '' row:
 insert into insertconflicttest values (25, 'Fig') on conflict (fruit) do update set fruit = excluded.fruit;
 
 drop index key_index;
@@ -227,7 +227,7 @@ insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) whe
 drop index partial_key_index;
 
 --
--- Test that wholerow references to ON CONFLICT/* REPLACED */''s EXCLUDED work
+-- Test that wholerow references to ON CONFLICT/* REPLACED */ ''s EXCLUDED work
 --
 create unique index plain on insertconflicttest(key);
 
@@ -255,8 +255,8 @@ drop table insertconflicttest;
 
 --
 -- Verify that EXCLUDED does not allow system column references. These
--- do not make sense because EXCLUDED isn/* REPLACED */''t an already stored tuple
--- (and thus doesn/* REPLACED */''t have a ctid etc).
+-- do not make sense because EXCLUDED isn/* REPLACED */ ''t an already stored tuple
+-- (and thus doesn/* REPLACED */ ''t have a ctid etc).
 --
 create table syscolconflicttest(key int4, data text);
 insert into syscolconflicttest values (1);
@@ -339,7 +339,7 @@ select * from capitals;
 -- Succeeds:
 insert into cities values ('Las Vegas', 2.583E+5, 2174) on conflict do nothing;
 insert into capitals values ('Sacramento', 4664.E+5, 30, 'CA') on conflict (name) do update set population = excluded.population;
--- Wrong /* REPLACED */''Sacramento/* REPLACED */'', so do nothing:
+-- Wrong /* REPLACED */ ''Sacramento/* REPLACED */ '', so do nothing:
 insert into capitals values ('Sacramento', 50, 2267, 'NE') on conflict (name) do nothing;
 select * from capitals;
 insert into cities values ('Las Vegas', 5.83E+5, 2001) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
@@ -347,10 +347,10 @@ select tableoid::regclass, * from cities;
 insert into capitals values ('Las Vegas', 5.83E+5, 2222, 'NV') on conflict (name) do update set population = excluded.population;
 -- Capitals will contain new capital, Las Vegas:
 select * from capitals;
--- Cities contains two instances of /* REPLACED */''Las Vegas/* REPLACED */'', since unique constraints don/* REPLACED */''t
+-- Cities contains two instances of /* REPLACED */ ''Las Vegas/* REPLACED */ '', since unique constraints don/* REPLACED */ ''t
 -- work across inheritance:
 select tableoid::regclass, * from cities;
--- This only affects /* REPLACED */''cities/* REPLACED */'' version of /* REPLACED */''Las Vegas/* REPLACED */'':
+-- This only affects /* REPLACED */ ''cities/* REPLACED */ '' version of /* REPLACED */ ''Las Vegas/* REPLACED */ '':
 insert into cities values ('Las Vegas', 5.86E+5, 2223) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
 select tableoid::regclass, * from cities;
 
@@ -368,7 +368,7 @@ insert into excluded values(1, '2') on conflict (key) do update set data = exclu
 insert into excluded AS target values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
 -- ok, aliased
 insert into excluded AS target values(1, '2') on conflict (key) do update set data = target.data RETURNING *;
--- make sure excluded isn/* REPLACED */''t a problem in returning clause
+-- make sure excluded isn/* REPLACED */ ''t a problem in returning clause
 insert into excluded values(1, '2') on conflict (key) do update set data = 3 RETURNING excluded.*;
 
 -- clean up
@@ -467,13 +467,13 @@ insert into parted_conflict_test values (1, 'a') on conflict (a) do update set b
 insert into parted_conflict_test_1 values (1, 'a') on conflict (a) do nothing;
 insert into parted_conflict_test_1 values (1, 'b') on conflict (a) do update set b = excluded.b;
 
--- index on b required, which doesn/* REPLACED */''t exist in parent
+-- index on b required, which doesn/* REPLACED */ ''t exist in parent
 insert into parted_conflict_test values (2, 'b') on conflict (b) do update set a = excluded.a;
 
 -- targeting partition directly will work
 insert into parted_conflict_test_1 values (2, 'b') on conflict (b) do update set a = excluded.a;
 
--- should see (2, /* REPLACED */''b/* REPLACED */'')
+-- should see (2, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 
 -- now check that DO UPDATE works correctly for target partition with
@@ -484,17 +484,17 @@ truncate parted_conflict_test;
 insert into parted_conflict_test values (3, 'a') on conflict (a) do update set b = excluded.b;
 insert into parted_conflict_test values (3, 'b') on conflict (a) do update set b = excluded.b;
 
--- should see (3, /* REPLACED */''b/* REPLACED */'')
+-- should see (3, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 
--- case where parent will have a dropped column, but the partition won/* REPLACED */''t
+-- case where parent will have a dropped column, but the partition won/* REPLACED */ ''t
 alter table parted_conflict_test drop b, add b char;
 create table parted_conflict_test_3 partition of parted_conflict_test for values in (4);
 truncate parted_conflict_test;
 insert into parted_conflict_test (a, b) values (4, 'a') on conflict (a) do update set b = excluded.b;
 insert into parted_conflict_test (a, b) values (4, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
 
--- should see (4, /* REPLACED */''b/* REPLACED */'')
+-- should see (4, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 
 -- case with multi-level partitioning
@@ -504,7 +504,7 @@ truncate parted_conflict_test;
 insert into parted_conflict_test (a, b) values (5, 'a') on conflict (a) do update set b = excluded.b;
 insert into parted_conflict_test (a, b) values (5, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
 
--- should see (5, /* REPLACED */''b/* REPLACED */'')
+-- should see (5, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 
 -- test with multiple rows
@@ -512,7 +512,7 @@ truncate parted_conflict_test;
 insert into parted_conflict_test (a, b) values (1, 'a'), (2, 'a'), (4, 'a') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
 insert into parted_conflict_test (a, b) values (1, 'b'), (2, 'c'), (4, 'b') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
 
--- should see (1, /* REPLACED */''b/* REPLACED */''), (2, /* REPLACED */''a/* REPLACED */''), (4, /* REPLACED */''b/* REPLACED */'')
+-- should see (1, /* REPLACED */ ''b/* REPLACED */ ''), (2, /* REPLACED */ ''a/* REPLACED */ ''), (4, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 
 drop table parted_conflict_test;
@@ -527,7 +527,7 @@ insert into parted_conflict_1 values (40, 'cuarenta')
   on conflict (a) do update set b = excluded.b;
 drop table parted_conflict;
 
--- same thing, but this time try to use an index that/* REPLACED */''s created not in the
+-- same thing, but this time try to use an index that/* REPLACED */ ''s created not in the
 -- partition
 create table parted_conflict (a int, b text) partition by range (a);
 create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
@@ -553,7 +553,7 @@ insert into parted_conflict values (50, 'cincuenta', 2)
   where parted_conflict = (50, text 'cincuenta', 1) and
         excluded = (50, text 'cincuenta', 2);
 
--- should see (50, /* REPLACED */''cincuenta/* REPLACED */'', 2)
+-- should see (50, /* REPLACED */ ''cincuenta/* REPLACED */ '', 2)
 select * from parted_conflict order by a;
 
 -- test with statement level triggers

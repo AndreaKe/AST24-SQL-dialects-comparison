@@ -146,7 +146,7 @@ SELECT pg_get_object_address('subscription', '{one}', '{}');
 SELECT pg_get_object_address('subscription', '{one,two}', '{}');
 
 -- Make sure that NULL handling is correct.
--- \pset null /* REPLACED */''NULL/* REPLACED */''
+-- \pset null /* REPLACED */ ''NULL/* REPLACED */ ''
 
 -- Temporarily disable fancy output, so as future additions never create
 -- a large amount of diffs.
@@ -292,6 +292,3 @@ SELECT ROW(pg_identify_object(objects.classid, objects.objid, objects.objsubid))
          AS descr
 FROM objects
 ORDER BY objects.classid, objects.objid, objects.objsubid;
-
--- restore normal output mode
--- \a\t

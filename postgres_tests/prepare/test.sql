@@ -78,7 +78,7 @@ PREPARE q8 AS
 SELECT name, statement, parameter_types, result_types FROM pg_prepared_statements
     ORDER BY name;
 
--- test DEALLOCATE ALL /* REPLACED */,
+-- test DEALLOCATE ALL /* REPLACED */ ,
 DEALLOCATE ALL;
 SELECT name, statement, parameter_types FROM pg_prepared_statements
     ORDER BY name;

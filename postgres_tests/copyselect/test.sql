@@ -73,7 +73,7 @@ copy (select t from test1 where id = 1) to stdout csv header force quote t;
 --
 -- Test \copy (select ...)
 --
--- \copy (select /* REPLACED */''id/* REPLACED */'',/* REPLACED */''id/* REPLACED */'',/* REPLACED */''id/* REPLACED */''/* REPLACED */''/* REPLACED */''||t,(id + 1)*id,t,/* REPLACED */''test1/* REPLACED */''./* REPLACED */''t/* REPLACED */'' from test1 where id=3) to stdout
+-- \copy (select /* REPLACED */ ''id/* REPLACED */ '',/* REPLACED */ ''id/* REPLACED */ '',/* REPLACED */ ''id/* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''||t,(id + 1)*id,t,/* REPLACED */ ''test1/* REPLACED */ ''./* REPLACED */ ''t/* REPLACED */ '' from test1 where id=3) to stdout
 --
 -- Drop everything
 --

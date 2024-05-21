@@ -1,0 +1,3001 @@
+
+-----------
+QUERY:
+--
+-- CONSTRAINTS
+-- Constraints can be specified with:
+--  - DEFAULT clause
+--  - CHECK clauses
+--  - PRIMARY KEY clauses
+--  - UNIQUE clauses
+--  - EXCLUDE clauses
+--
+
+-- directory paths are passed to us in environment variables
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+
+--
+-- DEFAULT syntax
+--
+
+CREATE TABLE DEFAULT_TBL (i int DEFAULT 100,
+	x text DEFAULT 'vadim', f float8 DEFAULT 123.456);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO DEFAULT_TBL VALUES (1, 'thomas', 57.0613);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULT_TBL VALUES (1, 'bruce');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULT_TBL (i, f) VALUES (2, 987.654);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULT_TBL (x) VALUES ('marc');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULT_TBL VALUES (3, null, 1.0);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM DEFAULT_TBL;
+RESULT:
+	[(1, 'thomas', 57.0613), (1, 'bruce', 123.456), (2, 'vadim', 987.654), (100, 'marc', 123.456), (3, None, 1.0)]
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE DEFAULT_SEQ;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE DEFAULTEXPR_TBL (i1 int DEFAULT 100 + (200-199) * 2,
+	i2 int DEFAULT nextval('default_seq'));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO DEFAULTEXPR_TBL VALUES (-1, -2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULTEXPR_TBL (i1) VALUES (-3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULTEXPR_TBL (i2) VALUES (-4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO DEFAULTEXPR_TBL (i2) VALUES (NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM DEFAULTEXPR_TBL;
+RESULT:
+	[(-1, -2), (-3, 1), (102, -4), (102, None)]
+
+-----------
+QUERY:
+
+
+-- syntax errors
+--  test for extraneous comma
+CREATE TABLE error_tbl (i int DEFAULT (100, ));
+RESULT:
+	ERROR - syntax error at or near ")"
+LINE 5: CREATE TABLE error_tbl (i int DEFAULT (100, ));
+                                                    ^
+
+
+-----------
+QUERY:
+
+--  this will fail because gram.y uses b_expr not a_expr for defaults,
+--  to avoid a shift/reduce conflict that arises from NOT NULL being
+--  part of the column definition syntax:
+CREATE TABLE error_tbl (b1 bool DEFAULT 1 IN (1, 2));
+RESULT:
+	ERROR - syntax error at or near "IN"
+LINE 5: CREATE TABLE error_tbl (b1 bool DEFAULT 1 IN (1, 2));
+                                                  ^
+
+
+-----------
+QUERY:
+
+--  this should work, however:
+CREATE TABLE error_tbl (b1 bool DEFAULT (1 IN (1, 2)));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE error_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- CHECK syntax
+--
+
+CREATE TABLE CHECK_TBL (x int,
+	CONSTRAINT CHECK_CON CHECK (x > 3));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHECK_TBL VALUES (5);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO CHECK_TBL VALUES (4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO CHECK_TBL VALUES (3);
+RESULT:
+	ERROR - new row for relation "check_tbl" violates check constraint "check_con"
+DETAIL:  Failing row contains (3).
+
+
+-----------
+QUERY:
+
+INSERT INTO CHECK_TBL VALUES (2);
+RESULT:
+	ERROR - new row for relation "check_tbl" violates check constraint "check_con"
+DETAIL:  Failing row contains (2).
+
+
+-----------
+QUERY:
+
+INSERT INTO CHECK_TBL VALUES (6);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO CHECK_TBL VALUES (1);
+RESULT:
+	ERROR - new row for relation "check_tbl" violates check constraint "check_con"
+DETAIL:  Failing row contains (1).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM CHECK_TBL;
+RESULT:
+	[(5,), (4,), (6,)]
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE CHECK_SEQ;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE CHECK2_TBL (x int, y text, z int,
+	CONSTRAINT SEQUENCE_CON
+	CHECK (x > 3 and y <> 'check failed' and z < 8));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO CHECK2_TBL VALUES (4, 'check ok', -2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO CHECK2_TBL VALUES (1, 'x check failed', -2);
+RESULT:
+	ERROR - new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (1, x check failed, -2).
+
+
+-----------
+QUERY:
+
+INSERT INTO CHECK2_TBL VALUES (5, 'z check failed', 10);
+RESULT:
+	ERROR - new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (5, z check failed, 10).
+
+
+-----------
+QUERY:
+
+INSERT INTO CHECK2_TBL VALUES (0, 'check failed', -2);
+RESULT:
+	ERROR - new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (0, check failed, -2).
+
+
+-----------
+QUERY:
+
+INSERT INTO CHECK2_TBL VALUES (6, 'check failed', 11);
+RESULT:
+	ERROR - new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (6, check failed, 11).
+
+
+-----------
+QUERY:
+
+INSERT INTO CHECK2_TBL VALUES (7, 'check ok', 7);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * from CHECK2_TBL;
+RESULT:
+	[(4, 'check ok', -2), (7, 'check ok', 7)]
+
+-----------
+QUERY:
+
+
+--
+-- Check constraints on INSERT
+--
+
+CREATE SEQUENCE INSERT_SEQ;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE INSERT_TBL (x INT DEFAULT nextval('insert_seq'),
+	y TEXT DEFAULT '-NULL-',
+	z INT DEFAULT -1 * currval('insert_seq'),
+	CONSTRAINT INSERT_TBL_CON CHECK (x >= 3 AND y <> 'check failed' AND x < 8),
+	CHECK (x + z = 0));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO INSERT_TBL(x,z) VALUES (2, -2);
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (2, -NULL-, -2).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT 'one' AS one, nextval('insert_seq');
+RESULT:
+	[('one', 1)]
+
+-----------
+QUERY:
+
+
+INSERT INTO INSERT_TBL(y) VALUES ('Y');
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (2, Y, -2).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(y) VALUES ('Y');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(x,z) VALUES (1, -2);
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (1, -NULL-, -2).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(z,x) VALUES (-7,  7);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL VALUES (5, 'check failed', -5);
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (5, check failed, -5).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL VALUES (7, '!check failed', -7);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(y) VALUES ('-!NULL-');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[(3, 'Y', -3), (7, '-NULL-', -7), (7, '!check failed', -7), (4, '-!NULL-', -4)]
+
+-----------
+QUERY:
+
+
+INSERT INTO INSERT_TBL(y,z) VALUES ('check failed', 4);
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (5, check failed, 4).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(x,y) VALUES (5, 'check failed');
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (5, check failed, -5).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(x,y) VALUES (5, '!check failed');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(y) VALUES ('-!NULL-');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[(3, 'Y', -3), (7, '-NULL-', -7), (7, '!check failed', -7), (4, '-!NULL-', -4), (5, '!check failed', -5), (6, '-!NULL-', -6)]
+
+-----------
+QUERY:
+
+
+SELECT 'seven' AS one, nextval('insert_seq');
+RESULT:
+	[('seven', 7)]
+
+-----------
+QUERY:
+
+
+INSERT INTO INSERT_TBL(y) VALUES ('Y');
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (8, Y, -8).
+
+
+-----------
+QUERY:
+
+
+SELECT 'eight' AS one, currval('insert_seq');
+RESULT:
+	[('eight', 8)]
+
+-----------
+QUERY:
+
+
+-- According to SQL, it is OK to insert a record that gives rise to NULL
+-- constraint-condition results.  Postgres used to reject this, but it
+-- was wrong:
+INSERT INTO INSERT_TBL VALUES (null, null, null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[(3, 'Y', -3), (7, '-NULL-', -7), (7, '!check failed', -7), (4, '-!NULL-', -4), (5, '!check failed', -5), (6, '-!NULL-', -6), (None, None, None)]
+
+-----------
+QUERY:
+
+
+--
+-- Check constraints on system columns
+--
+
+CREATE TABLE SYS_COL_CHECK_TBL (city text, state text, is_capital bool,
+                  altitude int,
+                  CHECK (NOT (is_capital AND tableoid::regclass::text = 'sys_col_check_tbl')));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO SYS_COL_CHECK_TBL VALUES ('Seattle', 'Washington', false, 100);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO SYS_COL_CHECK_TBL VALUES ('Olympia', 'Washington', true, 100);
+RESULT:
+	ERROR - new row for relation "sys_col_check_tbl" violates check constraint "sys_col_check_tbl_check"
+DETAIL:  Failing row contains (Olympia, Washington, t, 100).
+
+
+-----------
+QUERY:
+
+
+SELECT *, tableoid::regclass::text FROM SYS_COL_CHECK_TBL;
+RESULT:
+	[('Seattle', 'Washington', False, 100, 'sys_col_check_tbl')]
+
+-----------
+QUERY:
+
+
+DROP TABLE SYS_COL_CHECK_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Check constraints on system columns other then TableOid should return error
+--
+CREATE TABLE SYS_COL_CHECK_TBL (city text, state text, is_capital bool,
+                  altitude int,
+				  CHECK (NOT (is_capital AND ctid::text = 'sys_col_check_tbl')));
+RESULT:
+	ERROR - system column "ctid" reference in check constraint is invalid
+LINE 8:       CHECK (NOT (is_capital AND ctid::text = 'sys_col_check...
+                                         ^
+
+
+-----------
+QUERY:
+
+
+--
+-- Check inheritance of defaults and constraints
+--
+
+CREATE TABLE INSERT_CHILD (cx INT default 42,
+	cy INT CHECK (cy > x))
+	INHERITS (INSERT_TBL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO INSERT_CHILD(x,z,cy) VALUES (7,-7,11);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_CHILD(x,z,cy) VALUES (7,-7,6);
+RESULT:
+	ERROR - new row for relation "insert_child" violates check constraint "insert_child_check"
+DETAIL:  Failing row contains (7, -NULL-, -7, 42, 6).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_CHILD(x,z,cy) VALUES (6,-7,7);
+RESULT:
+	ERROR - new row for relation "insert_child" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (6, -NULL-, -7, 42, 7).
+
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_CHILD(x,y,z,cy) VALUES (6,'check failed',-6,7);
+RESULT:
+	ERROR - new row for relation "insert_child" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (6, check failed, -6, 42, 7).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_CHILD;
+RESULT:
+	[(7, '-NULL-', -7, 42, 11)]
+
+-----------
+QUERY:
+
+
+DROP TABLE INSERT_CHILD;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Check NO INHERIT type of constraints and inheritance
+--
+
+CREATE TABLE ATACC1 (TEST INT
+	CHECK (TEST > 0) NO INHERIT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE ATACC2 (TEST2 INT) INHERITS (ATACC1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- check constraint is not there on child
+INSERT INTO ATACC2 (TEST) VALUES (-3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- check constraint is there on parent
+INSERT INTO ATACC1 (TEST) VALUES (-3);
+RESULT:
+	ERROR - new row for relation "atacc1" violates check constraint "atacc1_test_check"
+DETAIL:  Failing row contains (-3).
+
+
+-----------
+QUERY:
+
+DROP TABLE ATACC1 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE ATACC1 (TEST INT, TEST2 INT
+	CHECK (TEST > 0), CHECK (TEST2 > 10) NO INHERIT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE ATACC2 () INHERITS (ATACC1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- check constraint is there on child
+INSERT INTO ATACC2 (TEST) VALUES (-3);
+RESULT:
+	ERROR - new row for relation "atacc2" violates check constraint "atacc1_test_check"
+DETAIL:  Failing row contains (-3, null).
+
+
+-----------
+QUERY:
+
+-- check constraint is there on parent
+INSERT INTO ATACC1 (TEST) VALUES (-3);
+RESULT:
+	ERROR - new row for relation "atacc1" violates check constraint "atacc1_test_check"
+DETAIL:  Failing row contains (-3, null).
+
+
+-----------
+QUERY:
+
+-- check constraint is not there on child
+INSERT INTO ATACC2 (TEST2) VALUES (3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- check constraint is there on parent
+INSERT INTO ATACC1 (TEST2) VALUES (3);
+RESULT:
+	ERROR - new row for relation "atacc1" violates check constraint "atacc1_test2_check"
+DETAIL:  Failing row contains (null, 3).
+
+
+-----------
+QUERY:
+
+DROP TABLE ATACC1 CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- NOT NULL NO INHERIT
+CREATE TABLE ATACC1 (a int, not null a no inherit);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ATACC2 () INHERITS (ATACC1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ ATACC2
+DROP TABLE ATACC1, ATACC2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ATACC1 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ATACC1 ADD NOT NULL a NO INHERIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ATACC2 () INHERITS (ATACC1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ ATACC2
+DROP TABLE ATACC1, ATACC2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ATACC1 (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE ATACC2 () INHERITS (ATACC1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ATACC1 ADD NOT NULL a NO INHERIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ ATACC2
+DROP TABLE ATACC1, ATACC2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Check constraints on INSERT INTO
+--
+
+DELETE FROM INSERT_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER SEQUENCE INSERT_SEQ RESTART WITH 4;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TEMP TABLE tmp (xd INT, yd TEXT, zd INT);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO tmp VALUES (null, 'Y', null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO tmp VALUES (5, '!check failed', null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO tmp VALUES (null, 'try again', null);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(y) select yd from tmp;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[(4, 'Y', -4), (5, '!check failed', -5), (6, 'try again', -6)]
+
+-----------
+QUERY:
+
+
+INSERT INTO INSERT_TBL SELECT * FROM tmp WHERE yd = 'try again';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(y,z) SELECT yd, -7 FROM tmp WHERE yd = 'try again';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO INSERT_TBL(y,z) SELECT yd, -8 FROM tmp WHERE yd = 'try again';
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (8, try again, -8).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[(4, 'Y', -4), (5, '!check failed', -5), (6, 'try again', -6), (None, 'try again', None), (7, 'try again', -7)]
+
+-----------
+QUERY:
+
+
+DROP TABLE tmp;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Check constraints on UPDATE
+--
+
+UPDATE INSERT_TBL SET x = NULL WHERE x = 5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE INSERT_TBL SET x = 6 WHERE x = 6;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE INSERT_TBL SET x = -z, z = -x;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE INSERT_TBL SET x = z, z = x;
+RESULT:
+	ERROR - new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (-4, Y, 4).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM INSERT_TBL;
+RESULT:
+	[(4, 'Y', -4), (None, 'try again', None), (7, 'try again', -7), (5, '!check failed', None), (6, 'try again', -6)]
+
+-----------
+QUERY:
+
+
+-- DROP TABLE INSERT_TBL /* REPLACED */ ,
+
+--
+-- Check constraints on COPY FROM
+--
+
+CREATE TABLE COPY_TBL (x INT, y TEXT, z INT,
+	CONSTRAINT COPY_CON
+	CHECK (x > 3 AND y <> 'check failed' AND x < 7 ));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/constro.data'
+COPY COPY_TBL FROM /* REPLACED */ PG_ABS_SRCDIR '/data/constro.data';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM COPY_TBL;
+RESULT:
+	[(4, '!check failed', 5), (6, 'OK', 4)]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/constrf.data'
+COPY COPY_TBL FROM /* REPLACED */ PG_ABS_SRCDIR '/data/constrf.data';
+RESULT:
+	ERROR - new row for relation "copy_tbl" violates check constraint "copy_con"
+DETAIL:  Failing row contains (7, check failed, 6).
+CONTEXT:  COPY copy_tbl, line 2: "7	check failed	6"
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM COPY_TBL;
+RESULT:
+	[(4, '!check failed', 5), (6, 'OK', 4)]
+
+-----------
+QUERY:
+
+
+--
+-- Primary keys
+--
+
+CREATE TABLE PRIMARY_TBL (i int PRIMARY KEY, t text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO PRIMARY_TBL VALUES (1, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (2, 'two');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (1, 'three');
+RESULT:
+	ERROR - duplicate key value violates unique constraint "primary_tbl_pkey"
+DETAIL:  Key (i)=(1) already exists.
+
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (4, 'three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (5, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL (t) VALUES ('six');
+RESULT:
+	ERROR - null value in column "i" of relation "primary_tbl" violates not-null constraint
+DETAIL:  Failing row contains (null, six).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM PRIMARY_TBL;
+RESULT:
+	[(1, 'one'), (2, 'two'), (4, 'three'), (5, 'one')]
+
+-----------
+QUERY:
+
+
+DROP TABLE PRIMARY_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE PRIMARY_TBL (i int, t text,
+	PRIMARY KEY(i,t));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO PRIMARY_TBL VALUES (1, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (2, 'two');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (1, 'three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (4, 'three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL VALUES (5, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO PRIMARY_TBL (t) VALUES ('six');
+RESULT:
+	ERROR - null value in column "i" of relation "primary_tbl" violates not-null constraint
+DETAIL:  Failing row contains (null, six).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM PRIMARY_TBL;
+RESULT:
+	[(1, 'one'), (2, 'two'), (1, 'three'), (4, 'three'), (5, 'one')]
+
+-----------
+QUERY:
+
+
+DROP TABLE PRIMARY_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Unique keys
+--
+
+CREATE TABLE UNIQUE_TBL (i int UNIQUE, t text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (2, 'two');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'three');
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(1) already exists.
+
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (4, 'four');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (5, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL (t) VALUES ('six');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL (t) VALUES ('seven');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO UNIQUE_TBL VALUES (5, 'five-upsert-insert') ON CONFLICT (i) DO UPDATE SET t = 'five-upsert-update';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (6, 'six-upsert-insert') ON CONFLICT (i) DO UPDATE SET t = 'six-upsert-update';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- should fail
+INSERT INTO UNIQUE_TBL VALUES (1, 'a'), (2, 'b'), (2, 'b') ON CONFLICT (i) DO UPDATE SET t = 'fails';
+RESULT:
+	ERROR - ON CONFLICT DO UPDATE command cannot affect row a second time
+HINT:  Ensure that no rows proposed for insertion within the same command have duplicate constrained values.
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM UNIQUE_TBL;
+RESULT:
+	[(1, 'one'), (2, 'two'), (4, 'four'), (None, 'six'), (None, 'seven'), (5, 'five-upsert-update'), (6, 'six-upsert-insert')]
+
+-----------
+QUERY:
+
+
+DROP TABLE UNIQUE_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE UNIQUE_TBL (i int UNIQUE NULLS NOT DISTINCT, t text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (2, 'two');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'three');
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(1) already exists.
+
+
+-----------
+QUERY:
+  -- fail
+INSERT INTO UNIQUE_TBL VALUES (4, 'four');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (5, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL (t) VALUES ('six');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL (t) VALUES ('seven');
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(null) already exists.
+
+
+-----------
+QUERY:
+  -- fail
+INSERT INTO UNIQUE_TBL (t) VALUES ('eight') ON CONFLICT DO NOTHING;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- no-op
+
+SELECT * FROM UNIQUE_TBL;
+RESULT:
+	[(1, 'one'), (2, 'two'), (4, 'four'), (5, 'one'), (None, 'six')]
+
+-----------
+QUERY:
+
+
+DROP TABLE UNIQUE_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE UNIQUE_TBL (i int, t text,
+	UNIQUE(i,t));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (2, 'two');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (1, 'one');
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_t_key"
+DETAIL:  Key (i, t)=(1, one) already exists.
+
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL VALUES (5, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO UNIQUE_TBL (t) VALUES ('six');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM UNIQUE_TBL;
+RESULT:
+	[(1, 'one'), (2, 'two'), (1, 'three'), (5, 'one'), (None, 'six')]
+
+-----------
+QUERY:
+
+
+DROP TABLE UNIQUE_TBL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Deferrable unique constraints
+--
+
+CREATE TABLE unique_tbl (i int UNIQUE DEFERRABLE, t text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES (0, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO unique_tbl VALUES (1, 'two');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO unique_tbl VALUES (2, 'tree');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO unique_tbl VALUES (3, 'four');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO unique_tbl VALUES (4, 'five');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- default is immediate so this should fail right away
+UPDATE unique_tbl SET i = 1 WHERE i = 0;
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(1) already exists.
+
+
+-----------
+QUERY:
+
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- check is done at end of statement, so this should succeed
+UPDATE unique_tbl SET i = i+1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM unique_tbl;
+RESULT:
+	[(1, 'one'), (2, 'two'), (3, 'tree'), (4, 'four'), (5, 'five')]
+
+-----------
+QUERY:
+
+
+-- explicitly defer the constraint
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SET CONSTRAINTS unique_tbl_i_key DEFERRED;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES (3, 'three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DELETE FROM unique_tbl WHERE t = 'tree';
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- makes constraint valid again
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- should succeed
+
+SELECT * FROM unique_tbl;
+RESULT:
+	[(1, 'one'), (2, 'two'), (4, 'four'), (5, 'five'), (3, 'three')]
+
+-----------
+QUERY:
+
+
+-- try adding an initially deferred constraint
+ALTER TABLE unique_tbl DROP CONSTRAINT unique_tbl_i_key;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE unique_tbl ADD CONSTRAINT unique_tbl_i_key
+	UNIQUE (i) DEFERRABLE INITIALLY DEFERRED;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES (1, 'five');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO unique_tbl VALUES (5, 'one');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE unique_tbl SET i = 4 WHERE i = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+UPDATE unique_tbl SET i = 2 WHERE i = 4 AND t = 'four';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DELETE FROM unique_tbl WHERE i = 1 AND t = 'one';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DELETE FROM unique_tbl WHERE i = 5 AND t = 'five';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM unique_tbl;
+RESULT:
+	[(3, 'three'), (1, 'five'), (5, 'one'), (4, 'two'), (2, 'four')]
+
+-----------
+QUERY:
+
+
+-- should fail at commit-time
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO unique_tbl VALUES (3, 'Three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- should succeed for now
+COMMIT;
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(3) already exists.
+
+
+-----------
+QUERY:
+ -- should fail
+
+-- make constraint check immediate
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SET CONSTRAINTS ALL IMMEDIATE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES (3, 'Three');
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(3) already exists.
+
+
+-----------
+QUERY:
+ -- should fail
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- forced check when SET CONSTRAINTS is called
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SET CONSTRAINTS ALL DEFERRED;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES (3, 'Three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- should succeed for now
+
+SET CONSTRAINTS ALL IMMEDIATE;
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(3) already exists.
+
+
+-----------
+QUERY:
+ -- should fail
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test deferrable UNIQUE with a partitioned table
+CREATE TABLE parted_uniq_tbl (i int UNIQUE DEFERRABLE) partition by range (i);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE parted_uniq_tbl_1 PARTITION OF parted_uniq_tbl FOR VALUES FROM (0) TO (10);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE parted_uniq_tbl_2 PARTITION OF parted_uniq_tbl FOR VALUES FROM (20) TO (30);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT conname, conrelid::regclass FROM pg_constraint
+  WHERE conname LIKE 'parted_uniq%' ORDER BY conname;
+RESULT:
+	[('parted_uniq_tbl_1_i_key', 'parted_uniq_tbl_1'), ('parted_uniq_tbl_2_i_key', 'parted_uniq_tbl_2'), ('parted_uniq_tbl_i_key', 'parted_uniq_tbl')]
+
+-----------
+QUERY:
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO parted_uniq_tbl VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SAVEPOINT f;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO parted_uniq_tbl VALUES (1);
+RESULT:
+	ERROR - duplicate key value violates unique constraint "parted_uniq_tbl_1_i_key"
+DETAIL:  Key (i)=(1) already exists.
+
+
+-----------
+QUERY:
+	-- unique violation
+ROLLBACK TO f;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET CONSTRAINTS parted_uniq_tbl_i_key DEFERRED;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO parted_uniq_tbl VALUES (1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+	-- OK now, fail at commit
+COMMIT;
+RESULT:
+	ERROR - duplicate key value violates unique constraint "parted_uniq_tbl_1_i_key"
+DETAIL:  Key (i)=(1) already exists.
+
+
+-----------
+QUERY:
+
+DROP TABLE parted_uniq_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test naming a constraint in a partition when a conflict exists
+CREATE TABLE parted_fk_naming (
+    id bigint NOT NULL default 1,
+    id_abc bigint,
+    CONSTRAINT dummy_constr FOREIGN KEY (id_abc)
+        REFERENCES parted_fk_naming (id),
+    PRIMARY KEY (id)
+)
+PARTITION BY LIST (id);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE parted_fk_naming_1 (
+    id bigint NOT NULL default 1,
+    id_abc bigint,
+    PRIMARY KEY (id),
+    CONSTRAINT dummy_constr CHECK (true)
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE parted_fk_naming ATTACH PARTITION parted_fk_naming_1 FOR VALUES IN ('1');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT conname FROM pg_constraint WHERE conrelid = 'parted_fk_naming_1'::regclass AND contype = 'f';
+RESULT:
+	[('parted_fk_naming_1_id_abc_fkey',)]
+
+-----------
+QUERY:
+
+DROP TABLE parted_fk_naming;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- test a HOT update that invalidates the conflicting tuple.
+-- the trigger should still fire and catch the violation
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES (3, 'Three');
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- should succeed for now
+UPDATE unique_tbl SET t = 'THREE' WHERE i = 3 AND t = 'Three';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COMMIT;
+RESULT:
+	ERROR - duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(3) already exists.
+
+
+-----------
+QUERY:
+ -- should fail
+
+SELECT * FROM unique_tbl;
+RESULT:
+	[(3, 'three'), (1, 'five'), (5, 'one'), (4, 'two'), (2, 'four')]
+
+-----------
+QUERY:
+
+
+-- test a HOT update that modifies the newly inserted tuple,
+-- but should succeed because we then remove the other conflicting tuple.
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO unique_tbl VALUES(3, 'tree');
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- should succeed for now
+UPDATE unique_tbl SET t = 'threex' WHERE t = 'tree';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DELETE FROM unique_tbl WHERE t = 'three';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM unique_tbl;
+RESULT:
+	[(1, 'five'), (5, 'one'), (4, 'two'), (2, 'four'), (3, 'threex')]
+
+-----------
+QUERY:
+
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT * FROM unique_tbl;
+RESULT:
+	[(1, 'five'), (5, 'one'), (4, 'two'), (2, 'four'), (3, 'threex')]
+
+-----------
+QUERY:
+
+
+DROP TABLE unique_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- EXCLUDE constraints
+--
+
+CREATE TABLE circles (
+  c1 CIRCLE,
+  c2 TEXT,
+  EXCLUDE USING gist
+    (c1 WITH &&, (c2::circle) WITH &&)
+    WHERE (circle_center(c1) <> '(0,0)')
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- these should succeed because they don/* REPLACED */ ''t match the index predicate
+INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 5>');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO circles VALUES('<(0,0), 5>', '<(0,0), 4>');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- succeed
+INSERT INTO circles VALUES('<(10,10), 10>', '<(0,0), 5>');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- fail, overlaps
+INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 4>');
+RESULT:
+	ERROR - conflicting key value violates exclusion constraint "circles_c1_c2_excl"
+DETAIL:  Key (c1, (c2::circle))=(<(20,20),10>, <(0,0),4>) conflicts with existing key (c1, (c2::circle))=(<(10,10),10>, <(0,0),5>).
+
+
+-----------
+QUERY:
+
+-- succeed, because violation is ignored
+INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 4>')
+  ON CONFLICT ON CONSTRAINT circles_c1_c2_excl DO NOTHING;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- fail, because DO UPDATE variant requires unique index
+INSERT INTO circles VALUES('<(20,20), 10>', '<(0,0), 4>')
+  ON CONFLICT ON CONSTRAINT circles_c1_c2_excl DO UPDATE SET c2 = EXCLUDED.c2;
+RESULT:
+	ERROR - ON CONFLICT DO UPDATE not supported with exclusion constraints
+
+
+-----------
+QUERY:
+
+-- succeed because c1 doesn/* REPLACED */ ''t overlap
+INSERT INTO circles VALUES('<(20,20), 1>', '<(0,0), 5>');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- succeed because c2 doesn/* REPLACED */ ''t overlap
+INSERT INTO circles VALUES('<(20,20), 10>', '<(10,10), 5>');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- should fail on existing data without the WHERE clause
+ALTER TABLE circles ADD EXCLUDE USING gist
+  (c1 WITH &&, (c2::circle) WITH &&);
+RESULT:
+	ERROR - could not create exclusion constraint "circles_c1_c2_excl1"
+DETAIL:  Key (c1, (c2::circle))=(<(0,0),5>, <(0,0),5>) conflicts with key (c1, (c2::circle))=(<(0,0),5>, <(0,0),4>).
+
+
+-----------
+QUERY:
+
+
+-- try reindexing an existing constraint
+REINDEX INDEX circles_c1_c2_excl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE circles;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Check deferred exclusion constraint
+
+CREATE TABLE deferred_excl (
+  f1 int,
+  f2 int,
+  CONSTRAINT deferred_excl_con EXCLUDE (f1 WITH =) INITIALLY DEFERRED
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO deferred_excl VALUES(1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO deferred_excl VALUES(2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO deferred_excl VALUES(1);
+RESULT:
+	ERROR - conflicting key value violates exclusion constraint "deferred_excl_con"
+DETAIL:  Key (f1)=(1) conflicts with existing key (f1)=(1).
+
+
+-----------
+QUERY:
+ -- fail
+INSERT INTO deferred_excl VALUES(1) ON CONFLICT ON CONSTRAINT deferred_excl_con DO NOTHING;
+RESULT:
+	ERROR - ON CONFLICT does not support deferrable unique constraints/exclusion constraints as arbiters
+
+
+-----------
+QUERY:
+ -- fail
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO deferred_excl VALUES(2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- no fail here
+COMMIT;
+RESULT:
+	ERROR - conflicting key value violates exclusion constraint "deferred_excl_con"
+DETAIL:  Key (f1)=(2) conflicts with existing key (f1)=(2).
+
+
+-----------
+QUERY:
+ -- should fail here
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO deferred_excl VALUES(3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO deferred_excl VALUES(3);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- no fail here
+COMMIT;
+RESULT:
+	ERROR - conflicting key value violates exclusion constraint "deferred_excl_con"
+DETAIL:  Key (f1)=(3) conflicts with existing key (f1)=(3).
+
+
+-----------
+QUERY:
+ -- should fail here
+
+-- bug #13148: deferred constraint versus HOT update
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO deferred_excl VALUES(2, 1);
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- no fail here
+DELETE FROM deferred_excl WHERE f1 = 2 AND f2 IS NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- remove old row
+UPDATE deferred_excl SET f2 = 2 WHERE f1 = 2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+ -- should not fail
+
+SELECT * FROM deferred_excl;
+RESULT:
+	[(1, None), (2, 2)]
+
+-----------
+QUERY:
+
+
+ALTER TABLE deferred_excl DROP CONSTRAINT deferred_excl_con;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- This should fail, but worth testing because of HOT updates
+UPDATE deferred_excl SET f1 = 3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER TABLE deferred_excl ADD EXCLUDE (f1 WITH =);
+RESULT:
+	ERROR - could not create exclusion constraint "deferred_excl_f1_excl"
+DETAIL:  Key (f1)=(3) conflicts with key (f1)=(3).
+
+
+-----------
+QUERY:
+
+
+DROP TABLE deferred_excl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- verify constraints created for NOT NULL clauses
+CREATE TABLE notnull_tbl1 (a INTEGER NOT NULL NOT NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ notnull_tbl1
+select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
+RESULT:
+	[('notnull_tbl1_a_not_null', 'n', [1])]
+
+-----------
+QUERY:
+
+-- no-op
+ALTER TABLE notnull_tbl1 ADD CONSTRAINT nn NOT NULL a;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ notnull_tbl1
+-- duplicate name
+ALTER TABLE notnull_tbl1 ADD COLUMN b INT CONSTRAINT notnull_tbl1_a_not_null NOT NULL;
+RESULT:
+	ERROR - constraint "notnull_tbl1_a_not_null" for relation "notnull_tbl1" already exists
+
+
+-----------
+QUERY:
+
+-- DROP NOT NULL gets rid of both the attnotnull flag and the constraint itself
+ALTER TABLE notnull_tbl1 ALTER a DROP NOT NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d notnull_tbl1
+select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- SET NOT NULL puts both back
+ALTER TABLE notnull_tbl1 ALTER a SET NOT NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d notnull_tbl1
+select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
+RESULT:
+	[('notnull_tbl1_a_not_null', 'n', [1])]
+
+-----------
+QUERY:
+
+-- Doing it twice doesn/* REPLACED */ ''t create a redundant constraint
+ALTER TABLE notnull_tbl1 ALTER a SET NOT NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
+RESULT:
+	[('notnull_tbl1_a_not_null', 'n', [1])]
+
+-----------
+QUERY:
+
+-- Using the /* REPLACED */ ''table constraint/* REPLACED */ '' syntax also works
+ALTER TABLE notnull_tbl1 ALTER a DROP NOT NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE notnull_tbl1 ADD CONSTRAINT foobar NOT NULL a;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d notnull_tbl1
+select conname, contype, conkey from pg_constraint where conrelid = 'notnull_tbl1'::regclass;
+RESULT:
+	[('foobar', 'n', [1])]
+
+-----------
+QUERY:
+
+DROP TABLE notnull_tbl1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- nope
+CREATE TABLE notnull_tbl2 (a INTEGER CONSTRAINT blah NOT NULL, b INTEGER CONSTRAINT blah NOT NULL);
+RESULT:
+	ERROR - constraint "blah" for relation "notnull_tbl2" already exists
+
+
+-----------
+QUERY:
+
+
+CREATE TABLE notnull_tbl2 (a INTEGER PRIMARY KEY);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE notnull_tbl2 ALTER a DROP NOT NULL;
+RESULT:
+	ERROR - column "a" is in a primary key
+
+
+-----------
+QUERY:
+
+
+CREATE TABLE notnull_tbl3 (a INTEGER NOT NULL, CHECK (a IS NOT NULL));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE notnull_tbl3 ALTER A DROP NOT NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE notnull_tbl3 ADD b int, ADD CONSTRAINT pk PRIMARY KEY (a, b);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d notnull_tbl3
+ALTER TABLE notnull_tbl3 DROP CONSTRAINT pk;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d notnull_tbl3
+
+-- Primary keys in parent table cause NOT NULL constraint to spawn on their
+-- children.  Verify that they work correctly.
+CREATE TABLE cnn_parent (a int, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_child () INHERITS (cnn_parent);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_grandchild (NOT NULL b) INHERITS (cnn_child);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_child2 (NOT NULL a NO INHERIT) INHERITS (cnn_parent);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_grandchild2 () INHERITS (cnn_grandchild, cnn_child2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER TABLE cnn_parent ADD PRIMARY KEY (b);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ cnn_grandchild
+-- \d+ cnn_grandchild2
+ALTER TABLE cnn_parent DROP CONSTRAINT cnn_parent_pkey;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \set VERBOSITY terse
+DROP TABLE cnn_parent CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \set VERBOSITY default
+
+-- As above, but create the primary key ahead of time
+CREATE TABLE cnn_parent (a int, b int PRIMARY KEY);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_child () INHERITS (cnn_parent);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_grandchild (NOT NULL b) INHERITS (cnn_child);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_child2 (NOT NULL a NO INHERIT) INHERITS (cnn_parent);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_grandchild2 () INHERITS (cnn_grandchild, cnn_child2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER TABLE cnn_parent ADD PRIMARY KEY (b);
+RESULT:
+	ERROR - multiple primary keys for table "cnn_parent" are not allowed
+
+
+-----------
+QUERY:
+
+-- \d+ cnn_grandchild
+-- \d+ cnn_grandchild2
+ALTER TABLE cnn_parent DROP CONSTRAINT cnn_parent_pkey;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \set VERBOSITY terse
+DROP TABLE cnn_parent CASCADE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \set VERBOSITY default
+
+-- As above, but create the primary key using a UNIQUE index
+CREATE TABLE cnn_parent (a int, b int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_child () INHERITS (cnn_parent);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_grandchild (NOT NULL b) INHERITS (cnn_child);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_child2 (NOT NULL a NO INHERIT) INHERITS (cnn_parent);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE cnn_grandchild2 () INHERITS (cnn_grandchild, cnn_child2);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE UNIQUE INDEX b_uq ON cnn_parent (b);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE cnn_parent ADD PRIMARY KEY USING INDEX b_uq;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ cnn_grandchild
+-- \d+ cnn_grandchild2
+ALTER TABLE cnn_parent DROP CONSTRAINT cnn_parent_pkey;
+RESULT:
+	ERROR - constraint "cnn_parent_pkey" of relation "cnn_parent" does not exist
+
+
+-----------
+QUERY:
+
+-- keeps these tables around, for pg_upgrade testing
+
+-- ensure columns in partitions are marked not-null
+create table cnn2_parted(a int primary key) partition by list (a);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create table cnn2_part1(a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table cnn2_parted attach partition cnn2_part1 for values in (1);
+RESULT:
+	ERROR - primary key column "a" is not marked NOT NULL
+
+
+-----------
+QUERY:
+
+drop table cnn2_parted, cnn2_part1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+create table cnn2_parted(a int not null) partition by list (a);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create table cnn2_part1(a int primary key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table cnn2_parted attach partition cnn2_part1 for values in (1);
+RESULT:
+	ERROR - column "a" in child table must be marked NOT NULL
+
+
+-----------
+QUERY:
+
+drop table cnn2_parted, cnn2_part1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- columns in regular and LIKE inheritance should be marked not-nullable
+-- for primary keys, even if those are deferred
+CREATE TABLE notnull_tbl4 (a INTEGER PRIMARY KEY INITIALLY DEFERRED);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE notnull_tbl4_lk (LIKE notnull_tbl4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE notnull_tbl4_lk2 (LIKE notnull_tbl4 INCLUDING INDEXES);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE notnull_tbl4_lk3 (LIKE notnull_tbl4 INCLUDING INDEXES, CONSTRAINT a_nn NOT NULL a);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE notnull_tbl4_cld () INHERITS (notnull_tbl4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE notnull_tbl4_cld2 (PRIMARY KEY (a) DEFERRABLE) INHERITS (notnull_tbl4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE notnull_tbl4_cld3 (PRIMARY KEY (a) DEFERRABLE, CONSTRAINT a_nn NOT NULL a) INHERITS (notnull_tbl4);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ notnull_tbl4
+-- \d+ notnull_tbl4_lk
+-- \d+ notnull_tbl4_lk2
+-- \d+ notnull_tbl4_lk3
+-- \d+ notnull_tbl4_cld
+-- \d+ notnull_tbl4_cld2
+-- \d+ notnull_tbl4_cld3
+-- leave these tables around for pg_upgrade testing
+
+-- also, if a NOT NULL is dropped underneath a deferrable PK, the column
+-- should still be nullable afterwards.  This mimics what pg_dump does.
+CREATE TABLE notnull_tbl5 (a INTEGER CONSTRAINT a_nn NOT NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE notnull_tbl5 ADD PRIMARY KEY (a) DEFERRABLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE notnull_tbl5 DROP CONSTRAINT a_nn;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d+ notnull_tbl5
+DROP TABLE notnull_tbl5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Comments
+-- Setup a low-level role to enforce non-superuser checks.
+CREATE ROLE regress_constraint_comments;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_constraint_comments;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE constraint_comments_tbl (a int CONSTRAINT the_constraint CHECK (a > 0));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE DOMAIN constraint_comments_dom AS int CONSTRAINT the_constraint CHECK (value > 0);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+COMMENT ON CONSTRAINT the_constraint ON constraint_comments_tbl IS 'yes, the comment';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT the_constraint ON DOMAIN constraint_comments_dom IS 'yes, another comment';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- no such constraint
+COMMENT ON CONSTRAINT no_constraint ON constraint_comments_tbl IS 'yes, the comment';
+RESULT:
+	ERROR - constraint "no_constraint" for table "constraint_comments_tbl" does not exist
+
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT no_constraint ON DOMAIN constraint_comments_dom IS 'yes, another comment';
+RESULT:
+	ERROR - constraint "no_constraint" for domain constraint_comments_dom does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such table/domain
+COMMENT ON CONSTRAINT the_constraint ON no_comments_tbl IS 'bad comment';
+RESULT:
+	ERROR - relation "no_comments_tbl" does not exist
+
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT the_constraint ON DOMAIN no_comments_dom IS 'another bad comment';
+RESULT:
+	ERROR - type "no_comments_dom" does not exist
+
+
+-----------
+QUERY:
+
+
+COMMENT ON CONSTRAINT the_constraint ON constraint_comments_tbl IS NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT the_constraint ON DOMAIN constraint_comments_dom IS NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- unauthorized user
+RESET SESSION AUTHORIZATION;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_constraint_comments_noaccess;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_constraint_comments_noaccess;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT the_constraint ON constraint_comments_tbl IS 'no, the comment';
+RESULT:
+	ERROR - must be owner of relation constraint_comments_tbl
+
+
+-----------
+QUERY:
+
+COMMENT ON CONSTRAINT the_constraint ON DOMAIN constraint_comments_dom IS 'no, another comment';
+RESULT:
+	ERROR - must be owner of type constraint_comments_dom
+
+
+-----------
+QUERY:
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE constraint_comments_tbl;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP DOMAIN constraint_comments_dom;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP ROLE regress_constraint_comments;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP ROLE regress_constraint_comments_noaccess;
+RESULT:
+	[]

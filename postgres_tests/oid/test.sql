@@ -35,7 +35,7 @@ SELECT * FROM pg_input_error_info('01XYZ', 'oid');
 SELECT pg_input_is_valid('9999999999', 'oid');
 SELECT * FROM pg_input_error_info('9999999999', 'oid');
 
--- While we/* REPLACED */''re here, check oidvector as well
+-- While we/* REPLACED */ ''re here, check oidvector as well
 SELECT pg_input_is_valid(' 1 2  4 ', 'oidvector');
 SELECT pg_input_is_valid('01 01XYZ', 'oidvector');
 SELECT * FROM pg_input_error_info('01 01XYZ', 'oidvector');

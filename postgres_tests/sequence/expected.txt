@@ -1,0 +1,2031 @@
+
+-----------
+QUERY:
+--
+-- CREATE SEQUENCE
+--
+
+-- various error cases
+CREATE SEQUENCE sequence_testx INCREMENT BY 0;
+RESULT:
+	ERROR - INCREMENT must not be zero
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx INCREMENT BY -1 MINVALUE 20;
+RESULT:
+	ERROR - MINVALUE (20) must be less than MAXVALUE (-1)
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx INCREMENT BY 1 MAXVALUE -20;
+RESULT:
+	ERROR - MINVALUE (1) must be less than MAXVALUE (-20)
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx INCREMENT BY -1 START 10;
+RESULT:
+	ERROR - START value (10) cannot be greater than MAXVALUE (-1)
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx INCREMENT BY 1 START -10;
+RESULT:
+	ERROR - START value (-10) cannot be less than MINVALUE (1)
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx CACHE 0;
+RESULT:
+	ERROR - CACHE (0) must be greater than zero
+
+
+-----------
+QUERY:
+
+
+-- OWNED BY errors
+CREATE SEQUENCE sequence_testx OWNED BY nobody;
+RESULT:
+	ERROR - invalid OWNED BY option
+HINT:  Specify OWNED BY table.column or OWNED BY NONE.
+
+
+-----------
+QUERY:
+  -- nonsense word
+CREATE SEQUENCE sequence_testx OWNED BY pg_class_oid_index.oid;
+RESULT:
+	ERROR - sequence cannot be owned by relation "pg_class_oid_index"
+DETAIL:  This operation is not supported for indexes.
+
+
+-----------
+QUERY:
+  -- not a table
+CREATE SEQUENCE sequence_testx OWNED BY pg_class.relname;
+RESULT:
+	ERROR - sequence must be in same schema as table it is linked to
+
+
+-----------
+QUERY:
+  -- not same schema
+CREATE TABLE sequence_test_table (a int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx OWNED BY sequence_test_table.b;
+RESULT:
+	ERROR - column "b" of relation "sequence_test_table" does not exist
+
+
+-----------
+QUERY:
+  -- wrong column
+DROP TABLE sequence_test_table;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- sequence data types
+CREATE SEQUENCE sequence_test5 AS integer;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test6 AS smallint;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test7 AS bigint;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test8 AS integer MAXVALUE 100000;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test9 AS integer INCREMENT BY -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test10 AS integer MINVALUE -100000 START 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test11 AS smallint;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test12 AS smallint INCREMENT -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test13 AS smallint MINVALUE -32768;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test14 AS smallint MAXVALUE 32767 INCREMENT -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx AS text;
+RESULT:
+	ERROR - sequence type must be smallint, integer, or bigint
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx AS nosuchtype;
+RESULT:
+	ERROR - type "nosuchtype" does not exist
+LINE 2: CREATE SEQUENCE sequence_testx AS nosuchtype;
+                                          ^
+
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE sequence_testx AS smallint MAXVALUE 100000;
+RESULT:
+	ERROR - MAXVALUE (100000) is out of range for sequence data type smallint
+
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_testx AS smallint MINVALUE -100000;
+RESULT:
+	ERROR - MINVALUE (-100000) is out of range for sequence data type smallint
+
+
+-----------
+QUERY:
+
+
+ALTER SEQUENCE sequence_test5 AS smallint;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- success, max will be adjusted
+ALTER SEQUENCE sequence_test8 AS smallint;
+RESULT:
+	ERROR - MAXVALUE (100000) is out of range for sequence data type smallint
+
+
+-----------
+QUERY:
+  -- fail, max has to be adjusted
+ALTER SEQUENCE sequence_test8 AS smallint MAXVALUE 20000;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- ok now
+ALTER SEQUENCE sequence_test9 AS smallint;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- success, min will be adjusted
+ALTER SEQUENCE sequence_test10 AS smallint;
+RESULT:
+	ERROR - MINVALUE (-100000) is out of range for sequence data type smallint
+
+
+-----------
+QUERY:
+  -- fail, min has to be adjusted
+ALTER SEQUENCE sequence_test10 AS smallint MINVALUE -20000;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- ok now
+
+ALTER SEQUENCE sequence_test11 AS int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- max will be adjusted
+ALTER SEQUENCE sequence_test12 AS int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- min will be adjusted
+ALTER SEQUENCE sequence_test13 AS int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- min and max will be adjusted
+ALTER SEQUENCE sequence_test14 AS int;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- min and max will be adjusted
+
+---
+--- test creation of SERIAL column
+---
+
+CREATE TABLE serialTest1 (f1 text, f2 serial);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest1 VALUES ('foo');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO serialTest1 VALUES ('bar');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO serialTest1 VALUES ('force', 100);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO serialTest1 VALUES ('wrong', NULL);
+RESULT:
+	ERROR - null value in column "f2" of relation "serialtest1" violates not-null constraint
+DETAIL:  Failing row contains (wrong, null).
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM serialTest1;
+RESULT:
+	[('foo', 1), ('bar', 2), ('force', 100)]
+
+-----------
+QUERY:
+
+
+SELECT pg_get_serial_sequence('serialTest1', 'f2');
+RESULT:
+	[('public.serialtest1_f2_seq',)]
+
+-----------
+QUERY:
+
+
+-- test smallserial / bigserial
+CREATE TABLE serialTest2 (f1 text, f2 serial, f3 smallserial, f4 serial2,
+  f5 bigserial, f6 serial8);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1)
+  VALUES ('test_defaults');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f2, f3, f4, f5, f6)
+  VALUES ('test_max_vals', 2147483647, 32767, 32767, 9223372036854775807,
+          9223372036854775807),
+         ('test_min_vals', -2147483648, -32768, -32768, -9223372036854775808,
+          -9223372036854775808);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- All these INSERTs should fail:
+INSERT INTO serialTest2 (f1, f3)
+  VALUES ('bogus', -32769);
+RESULT:
+	ERROR - smallint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f4)
+  VALUES ('bogus', -32769);
+RESULT:
+	ERROR - smallint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f3)
+  VALUES ('bogus', 32768);
+RESULT:
+	ERROR - smallint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f4)
+  VALUES ('bogus', 32768);
+RESULT:
+	ERROR - smallint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f5)
+  VALUES ('bogus', -9223372036854775809);
+RESULT:
+	ERROR - bigint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f6)
+  VALUES ('bogus', -9223372036854775809);
+RESULT:
+	ERROR - bigint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f5)
+  VALUES ('bogus', 9223372036854775808);
+RESULT:
+	ERROR - bigint out of range
+
+
+-----------
+QUERY:
+
+
+INSERT INTO serialTest2 (f1, f6)
+  VALUES ('bogus', 9223372036854775808);
+RESULT:
+	ERROR - bigint out of range
+
+
+-----------
+QUERY:
+
+
+SELECT * FROM serialTest2 ORDER BY f2 ASC;
+RESULT:
+	[('test_min_vals', -2147483648, -32768, -32768, -9223372036854775808, -9223372036854775808), ('test_defaults', 1, 1, 1, 1, 1), ('test_max_vals', 2147483647, 32767, 32767, 9223372036854775807, 9223372036854775807)]
+
+-----------
+QUERY:
+
+
+SELECT nextval('serialTest2_f2_seq');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT nextval('serialTest2_f3_seq');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT nextval('serialTest2_f4_seq');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT nextval('serialTest2_f5_seq');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT nextval('serialTest2_f6_seq');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+
+-- basic sequence operations using both text and oid references
+CREATE SEQUENCE sequence_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE IF NOT EXISTS sequence_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT nextval('sequence_test'::text);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test'::regclass);
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT currval('sequence_test'::text);
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT currval('sequence_test'::regclass);
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT setval('sequence_test'::text, 32);
+RESULT:
+	[(32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test'::regclass);
+RESULT:
+	[(33,)]
+
+-----------
+QUERY:
+
+SELECT setval('sequence_test'::text, 99, false);
+RESULT:
+	[(99,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test'::regclass);
+RESULT:
+	[(99,)]
+
+-----------
+QUERY:
+
+SELECT setval('sequence_test'::regclass, 32);
+RESULT:
+	[(32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test'::text);
+RESULT:
+	[(33,)]
+
+-----------
+QUERY:
+
+SELECT setval('sequence_test'::regclass, 99, false);
+RESULT:
+	[(99,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test'::text);
+RESULT:
+	[(99,)]
+
+-----------
+QUERY:
+
+DISCARD SEQUENCES;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT currval('sequence_test'::regclass);
+RESULT:
+	ERROR - currval of sequence "sequence_test" is not yet defined in this session
+
+
+-----------
+QUERY:
+
+
+DROP SEQUENCE sequence_test;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- renaming sequences
+CREATE SEQUENCE foo_seq;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE foo_seq RENAME TO foo_seq_new;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM foo_seq_new;
+RESULT:
+	[(1, 0, False)]
+
+-----------
+QUERY:
+
+SELECT nextval('foo_seq_new');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT nextval('foo_seq_new');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+-- log_cnt can be higher if there is a checkpoint just at the right
+-- time, so just test for the expected range
+SELECT last_value, log_cnt IN (31, 32) AS log_cnt_ok, is_called FROM foo_seq_new;
+RESULT:
+	[(2, True, True)]
+
+-----------
+QUERY:
+
+DROP SEQUENCE foo_seq_new;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- renaming serial sequences
+ALTER TABLE serialtest1_f2_seq RENAME TO serialtest1_f2_foo;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO serialTest1 VALUES ('more');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT * FROM serialTest1;
+RESULT:
+	[('foo', 1), ('bar', 2), ('force', 100), ('more', 3)]
+
+-----------
+QUERY:
+
+
+--
+-- Check dependencies of serial and ordinary sequences
+--
+CREATE TEMP SEQUENCE myseq2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TEMP SEQUENCE myseq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE t1 (
+  f1 serial,
+  f2 int DEFAULT nextval('myseq2'),
+  f3 int DEFAULT nextval('myseq3'::text)
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Both drops should fail, but with different error messages:
+DROP SEQUENCE t1_f1_seq;
+RESULT:
+	ERROR - cannot drop sequence t1_f1_seq because other objects depend on it
+DETAIL:  default value for column f1 of table t1 depends on sequence t1_f1_seq
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+
+
+-----------
+QUERY:
+
+DROP SEQUENCE myseq2;
+RESULT:
+	ERROR - cannot drop sequence myseq2 because other objects depend on it
+DETAIL:  default value for column f2 of table t1 depends on sequence myseq2
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+
+
+-----------
+QUERY:
+
+-- This however will work:
+DROP SEQUENCE myseq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE t1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Fails because no longer existent:
+DROP SEQUENCE t1_f1_seq;
+RESULT:
+	ERROR - sequence "t1_f1_seq" does not exist
+
+
+-----------
+QUERY:
+
+-- Now OK:
+DROP SEQUENCE myseq2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Alter sequence
+--
+
+ALTER SEQUENCE IF EXISTS sequence_test2 RESTART WITH 24
+  INCREMENT BY 4 MAXVALUE 36 MINVALUE 5 CYCLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER SEQUENCE serialTest1 CYCLE;
+RESULT:
+	ERROR - cannot open relation "serialtest1"
+DETAIL:  This operation is not supported for tables.
+
+
+-----------
+QUERY:
+  -- error, not a sequence
+
+CREATE SEQUENCE sequence_test2 START WITH 32;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE sequence_test4 INCREMENT BY -1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test4');
+RESULT:
+	[(-1,)]
+
+-----------
+QUERY:
+
+
+ALTER SEQUENCE sequence_test2 RESTART;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(32,)]
+
+-----------
+QUERY:
+
+
+ALTER SEQUENCE sequence_test2 RESTART WITH 0;
+RESULT:
+	ERROR - RESTART value (0) cannot be less than MINVALUE (1)
+
+
+-----------
+QUERY:
+  -- error
+ALTER SEQUENCE sequence_test4 RESTART WITH 40;
+RESULT:
+	ERROR - RESTART value (40) cannot be greater than MAXVALUE (-1)
+
+
+-----------
+QUERY:
+  -- error
+
+-- test CYCLE and NO CYCLE
+ALTER SEQUENCE sequence_test2 RESTART WITH 24
+  INCREMENT BY 4 MAXVALUE 36 MINVALUE 5 CYCLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(24,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(28,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(36,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(5,)]
+
+-----------
+QUERY:
+  -- cycled
+
+ALTER SEQUENCE sequence_test2 RESTART WITH 24
+  NO CYCLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(24,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(28,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(36,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	ERROR - nextval: reached maximum value of sequence "sequence_test2" (36)
+
+
+-----------
+QUERY:
+  -- error
+
+ALTER SEQUENCE sequence_test2 RESTART WITH -24 START WITH -24
+  INCREMENT BY -4 MINVALUE -36 MAXVALUE -5 CYCLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-24,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-28,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-36,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-5,)]
+
+-----------
+QUERY:
+  -- cycled
+
+ALTER SEQUENCE sequence_test2 RESTART WITH -24
+  NO CYCLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-24,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-28,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-32,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	[(-36,)]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test2');
+RESULT:
+	ERROR - nextval: reached minimum value of sequence "sequence_test2" (-36)
+
+
+-----------
+QUERY:
+  -- error
+
+-- reset
+ALTER SEQUENCE IF EXISTS sequence_test2 RESTART WITH 32 START WITH 32
+  INCREMENT BY 4 MAXVALUE 36 MINVALUE 5 CYCLE;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+SELECT setval('sequence_test2', -100);
+RESULT:
+	ERROR - setval: value -100 is out of bounds for sequence "sequence_test2" (5..36)
+
+
+-----------
+QUERY:
+  -- error
+SELECT setval('sequence_test2', 100);
+RESULT:
+	ERROR - setval: value 100 is out of bounds for sequence "sequence_test2" (5..36)
+
+
+-----------
+QUERY:
+  -- error
+SELECT setval('sequence_test2', 5);
+RESULT:
+	[(5,)]
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE sequence_test3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+  -- not read from, to test is_called
+
+
+-- Information schema
+SELECT * FROM information_schema.sequences
+  WHERE sequence_name ~ ANY(ARRAY['sequence_test', 'serialtest'])
+  ORDER BY sequence_name ASC;
+RESULT:
+	[('regression', 'public', 'sequence_test10', 'smallint', 16, 2, 0, '1', '-20000', '32767', '1', 'NO'), ('regression', 'public', 'sequence_test11', 'integer', 32, 2, 0, '1', '1', '2147483647', '1', 'NO'), ('regression', 'public', 'sequence_test12', 'integer', 32, 2, 0, '-1', '-2147483648', '-1', '-1', 'NO'), ('regression', 'public', 'sequence_test13', 'integer', 32, 2, 0, '-32768', '-2147483648', '2147483647', '1', 'NO'), ('regression', 'public', 'sequence_test14', 'integer', 32, 2, 0, '32767', '-2147483648', '2147483647', '-1', 'NO'), ('regression', 'public', 'sequence_test2', 'bigint', 64, 2, 0, '32', '5', '36', '4', 'YES'), ('regression', 'public', 'sequence_test3', 'bigint', 64, 2, 0, '1', '1', '9223372036854775807', '1', 'NO'), ('regression', 'public', 'sequence_test4', 'bigint', 64, 2, 0, '-1', '-9223372036854775808', '-1', '-1', 'NO'), ('regression', 'public', 'sequence_test5', 'smallint', 16, 2, 0, '1', '1', '32767', '1', 'NO'), ('regression', 'public', 'sequence_test6', 'smallint', 16, 2, 0, '1', '1', '32767', '1', 'NO'), ('regression', 'public', 'sequence_test7', 'bigint', 64, 2, 0, '1', '1', '9223372036854775807', '1', 'NO'), ('regression', 'public', 'sequence_test8', 'smallint', 16, 2, 0, '1', '1', '20000', '1', 'NO'), ('regression', 'public', 'sequence_test9', 'smallint', 16, 2, 0, '-1', '-32768', '-1', '-1', 'NO'), ('regression', 'public', 'serialtest1_f2_foo', 'integer', 32, 2, 0, '1', '1', '2147483647', '1', 'NO'), ('regression', 'public', 'serialtest2_f2_seq', 'integer', 32, 2, 0, '1', '1', '2147483647', '1', 'NO'), ('regression', 'public', 'serialtest2_f3_seq', 'smallint', 16, 2, 0, '1', '1', '32767', '1', 'NO'), ('regression', 'public', 'serialtest2_f4_seq', 'smallint', 16, 2, 0, '1', '1', '32767', '1', 'NO'), ('regression', 'public', 'serialtest2_f5_seq', 'bigint', 64, 2, 0, '1', '1', '9223372036854775807', '1', 'NO'), ('regression', 'public', 'serialtest2_f6_seq', 'bigint', 64, 2, 0, '1', '1', '9223372036854775807', '1', 'NO')]
+
+-----------
+QUERY:
+
+
+SELECT schemaname, sequencename, start_value, min_value, max_value, increment_by, cycle, cache_size, last_value
+FROM pg_sequences
+WHERE sequencename ~ ANY(ARRAY['sequence_test', 'serialtest'])
+  ORDER BY sequencename ASC;
+RESULT:
+	[('public', 'sequence_test10', 1, -20000, 32767, 1, False, 1, None), ('public', 'sequence_test11', 1, 1, 2147483647, 1, False, 1, None), ('public', 'sequence_test12', -1, -2147483648, -1, -1, False, 1, None), ('public', 'sequence_test13', -32768, -2147483648, 2147483647, 1, False, 1, None), ('public', 'sequence_test14', 32767, -2147483648, 2147483647, -1, False, 1, None), ('public', 'sequence_test2', 32, 5, 36, 4, True, 1, 5), ('public', 'sequence_test3', 1, 1, 9223372036854775807, 1, False, 1, None), ('public', 'sequence_test4', -1, -9223372036854775808, -1, -1, False, 1, -1), ('public', 'sequence_test5', 1, 1, 32767, 1, False, 1, None), ('public', 'sequence_test6', 1, 1, 32767, 1, False, 1, None), ('public', 'sequence_test7', 1, 1, 9223372036854775807, 1, False, 1, None), ('public', 'sequence_test8', 1, 1, 20000, 1, False, 1, None), ('public', 'sequence_test9', -1, -32768, -1, -1, False, 1, None), ('public', 'serialtest1_f2_foo', 1, 1, 2147483647, 1, False, 1, 3), ('public', 'serialtest2_f2_seq', 1, 1, 2147483647, 1, False, 1, 2), ('public', 'serialtest2_f3_seq', 1, 1, 32767, 1, False, 1, 2), ('public', 'serialtest2_f4_seq', 1, 1, 32767, 1, False, 1, 2), ('public', 'serialtest2_f5_seq', 1, 1, 9223372036854775807, 1, False, 1, 2), ('public', 'serialtest2_f6_seq', 1, 1, 9223372036854775807, 1, False, 1, 2)]
+
+-----------
+QUERY:
+
+
+
+SELECT * FROM pg_sequence_parameters('sequence_test4'::regclass);
+RESULT:
+	[(-1, -9223372036854775808, -1, -1, False, 1, 20)]
+
+-----------
+QUERY:
+
+
+
+-- \d sequence_test4
+-- \d serialtest2_f2_seq
+
+
+-- Test comments
+COMMENT ON SEQUENCE asdf IS 'won''t work';
+RESULT:
+	ERROR - relation "asdf" does not exist
+
+
+-----------
+QUERY:
+
+COMMENT ON SEQUENCE sequence_test2 IS 'will work';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+COMMENT ON SEQUENCE sequence_test2 IS NULL;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test lastval()
+CREATE SEQUENCE seq;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT setval('seq', 99);
+RESULT:
+	[(99,)]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	[(99,)]
+
+-----------
+QUERY:
+
+DISCARD SEQUENCES;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	ERROR - lastval is not yet defined in this session
+
+
+-----------
+QUERY:
+
+
+CREATE SEQUENCE seq2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq2');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+
+DROP SEQUENCE seq2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- should fail
+SELECT lastval();
+RESULT:
+	ERROR - lastval is not yet defined in this session
+
+
+-----------
+QUERY:
+
+
+-- unlogged sequences
+-- (more tests in src/test/recovery/)
+CREATE UNLOGGED SEQUENCE sequence_test_unlogged;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER SEQUENCE sequence_test_unlogged SET LOGGED;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d sequence_test_unlogged
+ALTER SEQUENCE sequence_test_unlogged SET UNLOGGED;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- \d sequence_test_unlogged
+DROP SEQUENCE sequence_test_unlogged;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test sequences in read-only transactions
+CREATE TEMPORARY SEQUENCE sequence_test_temp1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('sequence_test_temp1');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+  -- ok
+SELECT nextval('sequence_test2');
+RESULT:
+	ERROR - cannot execute nextval() in a read-only transaction
+
+
+-----------
+QUERY:
+  -- error
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+START TRANSACTION READ ONLY;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT setval('sequence_test_temp1', 1);
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+  -- ok
+SELECT setval('sequence_test2', 1);
+RESULT:
+	ERROR - cannot execute setval() in a read-only transaction
+
+
+-----------
+QUERY:
+  -- error
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- privileges tests
+
+CREATE USER regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- nextval
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT SELECT ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	ERROR - permission denied for sequence seq3
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT UPDATE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT USAGE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- currval
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT SELECT ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT currval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT UPDATE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT currval('seq3');
+RESULT:
+	ERROR - permission denied for sequence seq3
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT USAGE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT currval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- lastval
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT SELECT ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT UPDATE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	ERROR - permission denied for sequence seq3
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT USAGE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT lastval();
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- setval
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SEQUENCE seq3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+REVOKE ALL ON seq3 FROM regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SAVEPOINT save;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT setval('seq3', 5);
+RESULT:
+	ERROR - permission denied for sequence seq3
+
+
+-----------
+QUERY:
+
+ROLLBACK TO save;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+GRANT UPDATE ON seq3 TO regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT setval('seq3', 5);
+RESULT:
+	[(5,)]
+
+-----------
+QUERY:
+
+SELECT nextval('seq3');
+RESULT:
+	[(6,)]
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- ALTER SEQUENCE
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SET LOCAL SESSION AUTHORIZATION regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER SEQUENCE sequence_test2 START WITH 1;
+RESULT:
+	ERROR - must be owner of sequence sequence_test2
+
+
+-----------
+QUERY:
+
+ROLLBACK;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Sequences should get wiped out as well:
+DROP TABLE serialTest1, serialTest2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Make sure sequences are gone:
+SELECT * FROM information_schema.sequences WHERE sequence_name IN
+  ('sequence_test2', 'serialtest2_f2_seq', 'serialtest2_f3_seq',
+   'serialtest2_f4_seq', 'serialtest2_f5_seq', 'serialtest2_f6_seq')
+  ORDER BY sequence_name ASC;
+RESULT:
+	[('regression', 'public', 'sequence_test2', 'bigint', 64, 2, 0, '32', '5', '36', '4', 'YES')]
+
+-----------
+QUERY:
+
+
+DROP USER regress_seq_user;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP SEQUENCE seq;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- cache tests
+CREATE SEQUENCE test_seq1 CACHE 10;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+SELECT nextval('test_seq1');
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+SELECT nextval('test_seq1');
+RESULT:
+	[(2,)]
+
+-----------
+QUERY:
+
+SELECT nextval('test_seq1');
+RESULT:
+	[(3,)]
+
+-----------
+QUERY:
+
+
+DROP SEQUENCE test_seq1;
+RESULT:
+	[]

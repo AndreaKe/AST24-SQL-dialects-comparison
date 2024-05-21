@@ -1068,7 +1068,7 @@ from t1 where f1 = f2;
 -- ordering by a non-integer constant is allowed
 SELECT rank() OVER (ORDER BY length('abc'));
 
--- can/* REPLACED */''t order by another window function
+-- can/* REPLACED */ ''t order by another window function
 SELECT rank() OVER (ORDER BY rank() OVER (ORDER BY random()));
 
 -- some other errors
@@ -1105,7 +1105,7 @@ SELECT sum(salary), row_number() OVER (ORDER BY depname), sum(
 FROM empsalary GROUP BY depname;
 
 --
--- Test SupportRequestOptimizeWindowClause/* REPLACED */''s ability to de-duplicate
+-- Test SupportRequestOptimizeWindowClause/* REPLACED */ ''s ability to de-duplicate
 -- WindowClauses
 --
 
@@ -1128,7 +1128,7 @@ SELECT
                       CURRENT ROW AND UNBOUNDED FOLLOWING) cd
 FROM empsalary;
 
--- Ensure WindowFuncs which cannot support their WindowClause/* REPLACED */''s frameOptions
+-- Ensure WindowFuncs which cannot support their WindowClause/* REPLACED */ ''s frameOptions
 -- being changed are untouched
 EXPLAIN (COSTS OFF, VERBOSE)
 SELECT
@@ -1163,7 +1163,7 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE depname = 'sales';
 
--- pushdown is unsafe because there/* REPLACED */''s a PARTITION BY clause without depname:
+-- pushdown is unsafe because there/* REPLACED */ ''s a PARTITION BY clause without depname:
 EXPLAIN (COSTS OFF)
 SELECT * FROM
   (SELECT depname,
@@ -1288,7 +1288,7 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE dr = 1;
 
--- Ensure we get a run condition when there/* REPLACED */''s a PARTITION BY clause
+-- Ensure we get a run condition when there/* REPLACED */ ''s a PARTITION BY clause
 EXPLAIN (COSTS OFF)
 SELECT * FROM
   (SELECT empno,
@@ -1305,7 +1305,7 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE rn < 3;
 
--- ensure that /* REPLACED */''unused/* REPLACED */'' subquery columns are not removed when the column only
+-- ensure that /* REPLACED */ ''unused/* REPLACED */ '' subquery columns are not removed when the column only
 -- exists in the run condition
 EXPLAIN (COSTS OFF)
 SELECT empno, depname FROM
@@ -1377,10 +1377,10 @@ SELECT 1 FROM
    WHERE e1.empno = e2.empno) s
 WHERE s.c = 1;
 
--- Tests to ensure we don/* REPLACED */''t push down the run condition when it/* REPLACED */''s not valid to
+-- Tests to ensure we don/* REPLACED */ ''t push down the run condition when it/* REPLACED */ ''s not valid to
 -- do so.
 
--- Ensure we don/* REPLACED */''t push down when the frame options show that the window
+-- Ensure we don/* REPLACED */ ''t push down when the frame options show that the window
 -- function is not monotonically increasing
 EXPLAIN (COSTS OFF)
 SELECT * FROM
@@ -1390,8 +1390,8 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE c <= 3;
 
--- Ensure we don/* REPLACED */''t push down when the window function/* REPLACED */''s monotonic properties
--- don/* REPLACED */''t match that of the clauses.
+-- Ensure we don/* REPLACED */ ''t push down when the window function/* REPLACED */ ''s monotonic properties
+-- don/* REPLACED */ ''t match that of the clauses.
 EXPLAIN (COSTS OFF)
 SELECT * FROM
   (SELECT empno,
@@ -1400,7 +1400,7 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE 3 <= c;
 
--- Ensure we don/* REPLACED */''t use a run condition when there/* REPLACED */''s a volatile function in the
+-- Ensure we don/* REPLACED */ ''t use a run condition when there/* REPLACED */ ''s a volatile function in the
 -- WindowFunc
 EXPLAIN (COSTS OFF)
 SELECT * FROM
@@ -1410,7 +1410,7 @@ SELECT * FROM
    FROM empsalary) emp
 WHERE c = 1;
 
--- Ensure we don/* REPLACED */''t use a run condition when the WindowFunc contains subplans
+-- Ensure we don/* REPLACED */ ''t use a run condition when the WindowFunc contains subplans
 EXPLAIN (COSTS OFF)
 SELECT * FROM
   (SELECT empno,
@@ -1429,7 +1429,7 @@ SELECT * FROM
 WHERE depname = 'sales';
 
 -- Ensure that the evaluation order of the WindowAggs results in the WindowAgg
--- with the same sort order that/* REPLACED */''s required by the ORDER BY is evaluated last.
+-- with the same sort order that/* REPLACED */ ''s required by the ORDER BY is evaluated last.
 EXPLAIN (COSTS OFF)
 SELECT empno,
        enroll_date,
@@ -1439,7 +1439,7 @@ SELECT empno,
 FROM empsalary
 ORDER BY depname, empno;
 
--- As above, but with an adjusted ORDER BY to ensure the above plan didn/* REPLACED */''t
+-- As above, but with an adjusted ORDER BY to ensure the above plan didn/* REPLACED */ ''t
 -- perform only 2 sorts by accident.
 EXPLAIN (COSTS OFF)
 SELECT empno,
@@ -1452,7 +1452,7 @@ ORDER BY depname, enroll_date;
 
 SET enable_hashagg TO off;
 
--- Ensure we don/* REPLACED */''t get a sort for both DISTINCT and ORDER BY.  We expect the
+-- Ensure we don/* REPLACED */ ''t get a sort for both DISTINCT and ORDER BY.  We expect the
 -- sort for the DISTINCT to provide presorted input for the ORDER BY.
 EXPLAIN (COSTS OFF)
 SELECT DISTINCT
@@ -1465,7 +1465,7 @@ FROM empsalary
 ORDER BY depname, enroll_date;
 
 -- As above but adjust the ORDER BY clause to help ensure the plan with the
--- minimum amount of sorting wasn/* REPLACED */''t a fluke.
+-- minimum amount of sorting wasn/* REPLACED */ ''t a fluke.
 EXPLAIN (COSTS OFF)
 SELECT DISTINCT
        empno,
@@ -1663,7 +1663,7 @@ FROM (VALUES
 WINDOW wnd AS (ORDER BY i ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
 ORDER BY i;
 
--- test that non-overlapping windows don/* REPLACED */''t use inverse transitions
+-- test that non-overlapping windows don/* REPLACED */ ''t use inverse transitions
 SELECT
 	logging_agg_strict(v::text) OVER wnd
 FROM (VALUES
@@ -1677,7 +1677,7 @@ ORDER BY i;
 -- test that returning NULL from the inverse transition functions
 -- restarts the aggregation from scratch. The second aggregate is supposed
 -- to test cases where only some aggregates restart, the third one checks
--- that one aggregate restarting doesn/* REPLACED */''t cause others to restart.
+-- that one aggregate restarting doesn/* REPLACED */ ''t cause others to restart.
 
 CREATE FUNCTION sum_int_randrestart_minvfunc(int4, int4) RETURNS int4 AS
 $$ SELECT CASE WHEN random() < 0.2 THEN NULL ELSE $1 - $2 END $$
@@ -1904,7 +1904,7 @@ LIMIT 1;
 
 -- Ensure we get a cheap total plan.  Lack of ORDER BY in the WindowClause
 -- means that all rows must be read from the join, so a cheap startup plan
--- isn/* REPLACED */''t a good choice.
+-- isn/* REPLACED */ ''t a good choice.
 EXPLAIN (COSTS OFF)
 SELECT COUNT(*) OVER ()
 FROM tenk1 t1 INNER JOIN tenk1 t2 ON t1.unique1 = t2.tenthous

@@ -224,7 +224,7 @@ explain (costs off)
 select x from (values (row('10'::varbit)), (row('11'::varbit))) _(x) union select x from (values (row('10'::varbit)), (row('01'::varbit))) _(x);
 select x from (values (row('10'::varbit)), (row('11'::varbit))) _(x) union select x from (values (row('10'::varbit)), (row('01'::varbit))) _(x);
 
--- With a defined row type, the typcache can inspect the type/* REPLACED */''s fields
+-- With a defined row type, the typcache can inspect the type/* REPLACED */ ''s fields
 -- for hashability.
 create type ct1 as (f1 varbit);
 explain (costs off)
@@ -278,7 +278,7 @@ SELECT q1 FROM int8_tbl UNION ALL (((SELECT q2 FROM int8_tbl EXCEPT SELECT q1 FR
 SELECT q1,q2 FROM int8_tbl EXCEPT SELECT q2,q1 FROM int8_tbl
 ORDER BY q2,q1;
 
--- This should fail, because q2 isn/* REPLACED */''t a name of an EXCEPT output column
+-- This should fail, because q2 isn/* REPLACED */ ''t a name of an EXCEPT output column
 SELECT q1 FROM int8_tbl EXCEPT SELECT q2 FROM int8_tbl ORDER BY q2 LIMIT 1;
 
 -- But this should work:
@@ -334,9 +334,9 @@ reset enable_hashagg;
 reset enable_sort;
 
 --
--- Check handling of a case with unknown constants.  We don/* REPLACED */''t guarantee
+-- Check handling of a case with unknown constants.  We don/* REPLACED */ ''t guarantee
 -- an undecorated constant will work in all cases, but historically this
--- usage has worked, so test we don/* REPLACED */''t break it.
+-- usage has worked, so test we don/* REPLACED */ ''t break it.
 --
 
 SELECT a.f1 FROM (SELECT 'test' AS f1 FROM varchar_tbl) a
@@ -433,7 +433,7 @@ explain (costs off)
    SELECT 2 AS t, * FROM tenk1 b) c
  WHERE t = 2;
 
--- Test that we push quals into UNION sub-selects only when it/* REPLACED */''s safe
+-- Test that we push quals into UNION sub-selects only when it/* REPLACED */ ''s safe
 explain (costs off)
 SELECT * FROM
   (SELECT 1 AS t, 2 AS x
@@ -542,7 +542,7 @@ select * from
 where (x = 0) or (q1 >= q2 and q1 <= q2);
 
 --
--- Test the planner/* REPLACED */''s ability to produce cheap startup plans with Append nodes
+-- Test the planner/* REPLACED */ ''s ability to produce cheap startup plans with Append nodes
 --
 
 -- Ensure we get a Nested Loop join between tenk1 and tenk2

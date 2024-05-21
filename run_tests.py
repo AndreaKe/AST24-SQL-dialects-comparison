@@ -12,8 +12,8 @@ import math
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
 PG_ABS_SRCDIR = os.environ.get('PG_ABS_SRCDIR')
-PG_LIBDIR = "'" + os.environ.get('PG_LIBDIR') + "'"
-PG_DLSUFFIX = "'" + os.environ.get('PG_DLSUFFIX', '.so') + "'"
+PG_LIBDIR = os.environ.get('PG_LIBDIR')
+PG_DLSUFFIX = os.environ.get('PG_DLSUFFIX', '.so')
 PG_ABS_BUILDDIR = os.environ.get('PG_ABS_BUILDDIR')
 
 logging.debug("PG_ABS_SRCDIR={}".format(PG_ABS_SRCDIR))
@@ -646,10 +646,15 @@ def get_query_string(query_iter):
 
 def transform_to_executable_query(query: str) -> str:
     if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
-                query = query.replace('PG_ABS_SRCDIR', PG_ABS_SRCDIR)
-                query = query.replace('PG_LIBDIR', PG_LIBDIR)
-                query = query.replace('PG_DLSUFFIX', PG_DLSUFFIX)
-                query = query.replace('PG_ABS_BUILDDIR', PG_ABS_BUILDDIR)
+                vars = ['PG_ABS_SRCDIR', 'PG_LIBDIR', 'PG_DLSUFFIX', 'PG_ABS_BUILDDIR']
+                for v in vars:
+                    query = re.sub(r'\'\s+{}'.format(re.escape(v)), f'\' || {v}', query)
+                    query = re.sub(r'{}\s+\''.format(re.escape(v)), f'{v} || \'', query)
+                query = query.replace('PG_ABS_SRCDIR', " '" + PG_ABS_SRCDIR + "'")
+                query = query.replace('PG_LIBDIR', " '" + PG_LIBDIR + "'")
+                query = query.replace('PG_DLSUFFIX', " '" + PG_DLSUFFIX + "'")
+                query = query.replace('PG_ABS_BUILDDIR', " '" + PG_ABS_BUILDDIR + "'")
+                query = re.sub(r'\'\s+{}\s+\''.format(re.escape('||')), '', query)
     return query
 
 def execute_single_test(test_folder, result_folder):

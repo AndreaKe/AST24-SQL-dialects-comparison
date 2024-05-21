@@ -25,19 +25,19 @@ CREATE TABLE hash_f8_heap (
 	random 		float8
 );
 
--- \set filename /* REPLACED */PG_ABS_SRCDIR '/data/hash.data'
-COPY hash_i4_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
-COPY hash_name_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
-COPY hash_txt_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
-COPY hash_f8_heap FROM /* REPLACED */PG_ABS_SRCDIR '/data/hash.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data'
+COPY hash_i4_heap FROM /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data';
+COPY hash_name_heap FROM /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data';
+COPY hash_txt_heap FROM /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data';
+COPY hash_f8_heap FROM /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data';
 
 -- the data in this file has a lot of duplicates in the index key
 -- fields, leading to long bucket chains and lots of table expansion.
 -- this is therefore a stress test of the bucket overflow code (unlike
 -- the data in hash.data, which has unique index keys).
 --
--- \set filename /* REPLACED */PG_ABS_SRCDIR /* REPLACED */''/data/hashovfl.data/* REPLACED */''
--- COPY hash_ovfl_heap FROM :/* REPLACED */''filename/* REPLACED */'' /* REPLACED */,
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR /* REPLACED */ ''/data/hashovfl.data/* REPLACED */ ''
+-- COPY hash_ovfl_heap FROM :/* REPLACED */ ''filename/* REPLACED */ '' /* REPLACED */ ,
 
 ANALYZE hash_i4_heap;
 ANALYZE hash_name_heap;
@@ -119,17 +119,17 @@ SELECT * FROM hash_f8_heap
 
 --
 -- hash index
--- grep /* REPLACED */''^90[^0-9]/* REPLACED */'' hashovfl.data
+-- grep /* REPLACED */ ''^90[^0-9]/* REPLACED */ '' hashovfl.data
 --
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
---    WHERE x = 90 /* REPLACED */,
+--    WHERE x = 90 /* REPLACED */ ,
 
 --
 -- hash index
--- grep /* REPLACED */''^1000[^0-9]/* REPLACED */'' hashovfl.data
+-- grep /* REPLACED */ ''^1000[^0-9]/* REPLACED */ '' hashovfl.data
 --
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
---    WHERE x = 1000 /* REPLACED */,
+--    WHERE x = 1000 /* REPLACED */ ,
 
 --
 -- HASH
@@ -163,7 +163,7 @@ UPDATE hash_name_heap
    WHERE hash_name_heap.random = '76652222'::name;
 
 --
--- this is the row we just replaced /* REPLACED */, index scan should return zero rows
+-- this is the row we just replaced /* REPLACED */ , index scan should return zero rows
 --
 SELECT h.seqno AS emptyset
    FROM hash_name_heap h
@@ -203,16 +203,16 @@ SELECT h.seqno AS f20000
 
 -- UPDATE hash_ovfl_heap
 --    SET x = 1000
---   WHERE x = 90 /* REPLACED */,
+--   WHERE x = 90 /* REPLACED */ ,
 
 -- this vacuums the index as well
--- VACUUM hash_ovfl_heap /* REPLACED */,
+-- VACUUM hash_ovfl_heap /* REPLACED */ ,
 
 -- SELECT count(*) AS i0 FROM hash_ovfl_heap
---   WHERE x = 90 /* REPLACED */,
+--   WHERE x = 90 /* REPLACED */ ,
 
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
---  WHERE x = 1000 /* REPLACED */,
+--  WHERE x = 1000 /* REPLACED */ ,
 
 --
 -- Cause some overflow insert and splits.
@@ -222,7 +222,7 @@ INSERT INTO hash_split_heap SELECT 1 FROM generate_series(1, 500) a;
 CREATE INDEX hash_split_index on hash_split_heap USING HASH (keycol);
 INSERT INTO hash_split_heap SELECT 1 FROM generate_series(1, 5000) a;
 
--- Let/* REPLACED */''s do a backward scan.
+-- Let/* REPLACED */ ''s do a backward scan.
 BEGIN;
 SET enable_seqscan = OFF;
 SET enable_bitmapscan = OFF;
@@ -254,7 +254,7 @@ CREATE INDEX hash_cleanup_index on hash_cleanup_heap USING HASH (keycol);
 -- Insert tuples to both the primary bucket page and overflow pages.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 500) as i;
 
--- Fill overflow pages by /* REPLACED */''dead/* REPLACED */'' tuples.
+-- Fill overflow pages by /* REPLACED */ ''dead/* REPLACED */ '' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1000) as i;
 ROLLBACK;
@@ -268,11 +268,11 @@ VACUUM hash_cleanup_heap;
 
 TRUNCATE hash_cleanup_heap;
 
--- Insert a few tuples so that the primary bucket page doesn/* REPLACED */''t get full and
+-- Insert a few tuples so that the primary bucket page doesn/* REPLACED */ ''t get full and
 -- tuples can be moved to it.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 50) as i;
 
--- Fill overflow pages by /* REPLACED */''dead/* REPLACED */'' tuples.
+-- Fill overflow pages by /* REPLACED */ ''dead/* REPLACED */ '' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1500) as i;
 ROLLBACK;
@@ -288,14 +288,14 @@ TRUNCATE hash_cleanup_heap;
 
 -- Insert tuples to both the primary bucket page and overflow pages.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 500) as i;
--- Fill overflow pages by /* REPLACED */''dead/* REPLACED */'' tuples.
+-- Fill overflow pages by /* REPLACED */ ''dead/* REPLACED */ '' tuples.
 BEGIN;
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 1500) as i;
 ROLLBACK;
 -- And insert some tuples again. During squeeze operation, these will be moved
 -- to other overflow pages and also allow overflow pages filled by dead tuples
 -- to be freed. Note the main purpose of this test is to test the case where
--- we don/* REPLACED */''t need to move any tuple from the overflow page being freed.
+-- we don/* REPLACED */ ''t need to move any tuple from the overflow page being freed.
 INSERT INTO hash_cleanup_heap SELECT 1 FROM generate_series(1, 50) as i;
 
 CHECKPOINT;

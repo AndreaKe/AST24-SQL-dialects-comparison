@@ -6,11 +6,11 @@
 -- \getenv libdir PG_LIBDIR
 -- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION test_opclass_options_func(internal)
     RETURNS void
-    AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_opclass_options_func'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_opclass_options_func'
     LANGUAGE C;
 
 -- Clean up in case a prior regression run failed
@@ -99,7 +99,7 @@ SELECT n.nspname, proname, prorettype::regtype, prokind, a.rolname
   ORDER BY nspname, proname;
 
 --
--- We would test collations here, but it/* REPLACED */''s not possible because the error
+-- We would test collations here, but it/* REPLACED */ ''s not possible because the error
 -- messages tend to be nonportable.
 --
 
@@ -196,8 +196,8 @@ CREATE OPERATOR @-@ ( leftarg = int4, rightarg = int4, procedure = int4mi );
 ALTER OPERATOR @+@(int4, int4) OWNER TO regress_alter_generic_user2;  -- failed (not owner)
 ALTER OPERATOR @-@(int4, int4) OWNER TO regress_alter_generic_user3;  -- failed (no role membership)
 ALTER OPERATOR @+@(int4, int4) SET SCHEMA alt_nsp2;   -- failed (not owner)
--- can/* REPLACED */''t test this: the error message includes the raw oid of namespace
--- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 /* REPLACED */,   -- failed (name conflict)
+-- can/* REPLACED */ ''t test this: the error message includes the raw oid of namespace
+-- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 /* REPLACED */ ,   -- failed (name conflict)
 
 RESET SESSION AUTHORIZATION;
 

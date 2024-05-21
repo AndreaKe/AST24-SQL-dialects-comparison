@@ -8,16 +8,16 @@
 -- \getenv libdir PG_LIBDIR
 -- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */PG_LIBDIR '/regress' /* REPLACED */PG_DLSUFFIX
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION overpaid(emp)
    RETURNS bool
-   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
+   AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT;
 
 CREATE FUNCTION reverse_name(name)
    RETURNS name
-   AS /* REPLACED */PG_LIBDIR '/regress' PG_DLSUFFIX
+   AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT;
 
 --
@@ -33,10 +33,10 @@ UPDATE onek
 -- BTREE partial
 --
 -- UPDATE onek2
---   SET unique1 = onek2.unique1 + 1 /* REPLACED */,
+--   SET unique1 = onek2.unique1 + 1 /* REPLACED */ ,
 
 --UPDATE onek2
---   SET unique1 = onek2.unique1 - 1 /* REPLACED */,
+--   SET unique1 = onek2.unique1 - 1 /* REPLACED */ ,
 
 --
 -- BTREE shutting out non-functional updates
@@ -64,32 +64,32 @@ UPDATE tmp
 DROP TABLE tmp;
 
 --UPDATE person*
---   SET age = age + 1 /* REPLACED */,
+--   SET age = age + 1 /* REPLACED */ ,
 
 --UPDATE person*
 --   SET age = age + 3
---   WHERE name = /* REPLACED */''linda/* REPLACED */'' /* REPLACED */,
+--   WHERE name = /* REPLACED */ ''linda/* REPLACED */ '' /* REPLACED */ ,
 
 --
 -- copy
 --
--- \set filename /* REPLACED */PG_ABS_BUILDDIR '/results/onek.data'
-COPY onek TO /* REPLACED */PG_ABS_BUILDDIR '/results/onek.data';
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/onek.data'
+COPY onek TO /* REPLACED */ PG_ABS_BUILDDIR '/results/onek.data';
 
 CREATE TEMP TABLE onek_copy (LIKE onek);
 
-COPY onek_copy FROM /* REPLACED */PG_ABS_BUILDDIR '/results/onek.data';
+COPY onek_copy FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/onek.data';
 
 SELECT * FROM onek EXCEPT ALL SELECT * FROM onek_copy;
 
 SELECT * FROM onek_copy EXCEPT ALL SELECT * FROM onek;
 
--- \set filename /* REPLACED */PG_ABS_BUILDDIR '/results/stud_emp.data'
-COPY BINARY stud_emp TO /* REPLACED */PG_ABS_BUILDDIR '/results/stud_emp.data';
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/stud_emp.data'
+COPY BINARY stud_emp TO /* REPLACED */ PG_ABS_BUILDDIR '/results/stud_emp.data';
 
 CREATE TEMP TABLE stud_emp_copy (LIKE stud_emp);
 
-COPY BINARY stud_emp_copy FROM /* REPLACED */PG_ABS_BUILDDIR '/results/stud_emp.data';
+COPY BINARY stud_emp_copy FROM /* REPLACED */ PG_ABS_BUILDDIR '/results/stud_emp.data';
 
 SELECT * FROM stud_emp_copy;
 
@@ -200,7 +200,7 @@ SELECT p.name, name(p.hobbies) FROM person* p;
 
 --
 -- the next two queries demonstrate how functions generate bogus duplicates.
--- this is a /* REPLACED */''feature/* REPLACED */'' ..
+-- this is a /* REPLACED */ ''feature/* REPLACED */ '' ..
 --
 SELECT DISTINCT hobbies_r.name, name(hobbies_r.equipment) FROM hobbies_r
   ORDER BY 1,2;
@@ -208,14 +208,14 @@ SELECT DISTINCT hobbies_r.name, name(hobbies_r.equipment) FROM hobbies_r
 SELECT hobbies_r.name, (hobbies_r.equipment).name FROM hobbies_r;
 
 --
--- mike needs advil and peet/* REPLACED */''s coffee,
+-- mike needs advil and peet/* REPLACED */ ''s coffee,
 -- joe and sally need hightops, and
 -- everyone else is fine.
 --
 SELECT p.name, name(p.hobbies), name(equipment(p.hobbies)) FROM ONLY person p;
 
 --
--- as above, but jeff needs advil and peet/* REPLACED */''s coffee as well.
+-- as above, but jeff needs advil and peet/* REPLACED */ ''s coffee as well.
 --
 SELECT p.name, name(p.hobbies), name(equipment(p.hobbies)) FROM person* p;
 
@@ -261,15 +261,3 @@ SELECT name(equipment(ROW('skywalking', 'mer')));
 SELECT *, name(equipment(h.*)) FROM hobbies_r h;
 
 SELECT *, (equipment(CAST((h.*) AS hobbies_r))).name FROM hobbies_r h;
-
---
--- functional joins
---
-
---
--- instance rules
---
-
---
--- rewrite rules
---

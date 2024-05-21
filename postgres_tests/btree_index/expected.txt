@@ -1,0 +1,813 @@
+
+-----------
+QUERY:
+--
+-- BTREE_INDEX
+--
+
+-- directory paths are passed to us in environment variables
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+
+CREATE TABLE bt_i4_heap (
+	seqno 		int4,
+	random 		int4
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE bt_name_heap (
+	seqno 		name,
+	random 		int4
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE bt_txt_heap (
+	seqno 		text,
+	random 		int4
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE TABLE bt_f8_heap (
+	seqno 		float8,
+	random 		int4
+);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/desc.data'
+COPY bt_i4_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/desc.data';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data'
+COPY bt_name_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/hash.data';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/desc.data'
+COPY bt_txt_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/desc.data';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/hash.data'
+COPY bt_f8_heap FROM /* REPLACED */ PG_ABS_SRCDIR || '/data/hash.data';
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ANALYZE bt_i4_heap;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ANALYZE bt_name_heap;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ANALYZE bt_txt_heap;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ANALYZE bt_f8_heap;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- BTREE ascending/descending cases
+--
+-- we load int4/text from pure descending data (each key is a new
+-- low key) and name/f8 from pure ascending data (each key is a new
+-- high key).  we had a bug where new low keys would sometimes be
+-- /* REPLACED */ ''lost/* REPLACED */ ''.
+--
+CREATE INDEX bt_i4_index ON bt_i4_heap USING btree (seqno int4_ops);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE INDEX bt_name_index ON bt_name_heap USING btree (seqno name_ops);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE INDEX bt_txt_index ON bt_txt_heap USING btree (seqno text_ops);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE INDEX bt_f8_index ON bt_f8_heap USING btree (seqno float8_ops);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- test retrieval of min/max keys for each index
+--
+
+SELECT b.*
+   FROM bt_i4_heap b
+   WHERE b.seqno < 1;
+RESULT:
+	[(0, 1935401906)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_i4_heap b
+   WHERE b.seqno >= 9999;
+RESULT:
+	[(9999, 1227676208)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_i4_heap b
+   WHERE b.seqno = 4500;
+RESULT:
+	[(4500, 2080851358)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_name_heap b
+   WHERE b.seqno < '1'::name;
+RESULT:
+	[('0', 1935401906)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_name_heap b
+   WHERE b.seqno >= '9999'::name;
+RESULT:
+	[('9999', 1227676208)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_name_heap b
+   WHERE b.seqno = '4500'::name;
+RESULT:
+	[('4500', 2080851358)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_txt_heap b
+   WHERE b.seqno < '1'::text;
+RESULT:
+	[('0', 1935401906)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_txt_heap b
+   WHERE b.seqno >= '9999'::text;
+RESULT:
+	[('9999', 1227676208)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_txt_heap b
+   WHERE b.seqno = '4500'::text;
+RESULT:
+	[('4500', 2080851358)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_f8_heap b
+   WHERE b.seqno < '1'::float8;
+RESULT:
+	[(0.0, 1935401906)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_f8_heap b
+   WHERE b.seqno >= '9999'::float8;
+RESULT:
+	[(9999.0, 1227676208)]
+
+-----------
+QUERY:
+
+
+SELECT b.*
+   FROM bt_f8_heap b
+   WHERE b.seqno = '4500'::float8;
+RESULT:
+	[(4500.0, 2080851358)]
+
+-----------
+QUERY:
+
+
+--
+-- Add coverage for optimization of backwards scan index descents
+--
+-- Here we expect _bt_search to descend straight to a leaf page containing a
+-- non-pivot tuple with the value /* REPLACED */ ''47/* REPLACED */ '', which comes last (after 11 similar
+-- non-pivot tuples).  Query execution should only need to visit a single
+-- leaf page here.
+--
+-- Test case relies on tenk1_hundred index having a leaf page whose high key
+-- is /* REPLACED */ ''(48, -inf)/* REPLACED */ ''.  We use a low cardinality index to make our test case less
+-- sensitive to implementation details that may change in the future.
+set enable_seqscan to false;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_indexscan to true;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_bitmapscan to false;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+explain (costs off)
+select hundred, twenty from tenk1 where hundred < 48 order by hundred desc limit 1;
+RESULT:
+	[('Limit',), ('  ->  Index Scan Backward using tenk1_hundred on tenk1',), ('        Index Cond: (hundred < 48)',)]
+
+-----------
+QUERY:
+
+select hundred, twenty from tenk1 where hundred < 48 order by hundred desc limit 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- This variant of the query need only return a single tuple located to the immediate
+-- right of the /* REPLACED */ ''(48, -inf)/* REPLACED */ '' high key.  It also only needs to scan one single
+-- leaf page (the right sibling of the page scanned by the last test case):
+explain (costs off)
+select hundred, twenty from tenk1 where hundred <= 48 order by hundred desc limit 1;
+RESULT:
+	[('Limit',), ('  ->  Index Scan Backward using tenk1_hundred on tenk1',), ('        Index Cond: (hundred <= 48)',)]
+
+-----------
+QUERY:
+
+select hundred, twenty from tenk1 where hundred <= 48 order by hundred desc limit 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Check correct optimization of LIKE (special index operator support)
+-- for both indexscan and bitmapscan cases
+--
+
+set enable_seqscan to false;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_indexscan to true;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_bitmapscan to false;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+explain (costs off)
+select proname from pg_proc where proname like E'RI\\_FKey%del' order by 1;
+RESULT:
+	[('Index Only Scan using pg_proc_proname_args_nsp_index on pg_proc',), ("  Index Cond: ((proname >= 'RI_FKey'::text) AND (proname < 'RI_FKez'::text))",), ("  Filter: (proname ~~ 'RI\\_FKey%del'::text)",)]
+
+-----------
+QUERY:
+
+select proname from pg_proc where proname like E'RI\\_FKey%del' order by 1;
+RESULT:
+	[('RI_FKey_cascade_del',), ('RI_FKey_noaction_del',), ('RI_FKey_restrict_del',), ('RI_FKey_setdefault_del',), ('RI_FKey_setnull_del',)]
+
+-----------
+QUERY:
+
+explain (costs off)
+select proname from pg_proc where proname ilike '00%foo' order by 1;
+RESULT:
+	[('Index Only Scan using pg_proc_proname_args_nsp_index on pg_proc',), ("  Index Cond: ((proname >= '00'::text) AND (proname < '01'::text))",), ("  Filter: (proname ~~* '00%foo'::text)",)]
+
+-----------
+QUERY:
+
+select proname from pg_proc where proname ilike '00%foo' order by 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+explain (costs off)
+select proname from pg_proc where proname ilike 'ri%foo' order by 1;
+RESULT:
+	[('Index Only Scan using pg_proc_proname_args_nsp_index on pg_proc',), ("  Filter: (proname ~~* 'ri%foo'::text)",)]
+
+-----------
+QUERY:
+
+
+set enable_indexscan to false;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+set enable_bitmapscan to true;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+explain (costs off)
+select proname from pg_proc where proname like E'RI\\_FKey%del' order by 1;
+RESULT:
+	[('Sort',), ('  Sort Key: proname',), ('  ->  Bitmap Heap Scan on pg_proc',), ("        Filter: (proname ~~ 'RI\\_FKey%del'::text)",), ('        ->  Bitmap Index Scan on pg_proc_proname_args_nsp_index',), ("              Index Cond: ((proname >= 'RI_FKey'::text) AND (proname < 'RI_FKez'::text))",)]
+
+-----------
+QUERY:
+
+select proname from pg_proc where proname like E'RI\\_FKey%del' order by 1;
+RESULT:
+	[('RI_FKey_cascade_del',), ('RI_FKey_noaction_del',), ('RI_FKey_restrict_del',), ('RI_FKey_setdefault_del',), ('RI_FKey_setnull_del',)]
+
+-----------
+QUERY:
+
+explain (costs off)
+select proname from pg_proc where proname ilike '00%foo' order by 1;
+RESULT:
+	[('Sort',), ('  Sort Key: proname',), ('  ->  Bitmap Heap Scan on pg_proc',), ("        Filter: (proname ~~* '00%foo'::text)",), ('        ->  Bitmap Index Scan on pg_proc_proname_args_nsp_index',), ("              Index Cond: ((proname >= '00'::text) AND (proname < '01'::text))",)]
+
+-----------
+QUERY:
+
+select proname from pg_proc where proname ilike '00%foo' order by 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+explain (costs off)
+select proname from pg_proc where proname ilike 'ri%foo' order by 1;
+RESULT:
+	[('Index Only Scan using pg_proc_proname_args_nsp_index on pg_proc',), ("  Filter: (proname ~~* 'ri%foo'::text)",)]
+
+-----------
+QUERY:
+
+
+reset enable_seqscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+reset enable_indexscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+reset enable_bitmapscan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Also check LIKE optimization with binary-compatible cases
+
+create temp table btree_bpchar (f1 text collate "C");
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create index on btree_bpchar(f1 bpchar_ops) WITH (deduplicate_items=on);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into btree_bpchar values ('foo'), ('fool'), ('bar'), ('quux');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- doesn/* REPLACED */ ''t match index:
+explain (costs off)
+select * from btree_bpchar where f1 like 'foo';
+RESULT:
+	[('Seq Scan on btree_bpchar',), ("  Filter: (f1 ~~ 'foo'::text)",)]
+
+-----------
+QUERY:
+
+select * from btree_bpchar where f1 like 'foo';
+RESULT:
+	[('foo',)]
+
+-----------
+QUERY:
+
+explain (costs off)
+select * from btree_bpchar where f1 like 'foo%';
+RESULT:
+	[('Seq Scan on btree_bpchar',), ("  Filter: (f1 ~~ 'foo%'::text)",)]
+
+-----------
+QUERY:
+
+select * from btree_bpchar where f1 like 'foo%';
+RESULT:
+	[('foo',), ('fool',)]
+
+-----------
+QUERY:
+
+-- these do match the index:
+explain (costs off)
+select * from btree_bpchar where f1::bpchar like 'foo';
+RESULT:
+	[('Bitmap Heap Scan on btree_bpchar',), ("  Filter: ((f1)::bpchar ~~ 'foo'::text)",), ('  ->  Bitmap Index Scan on btree_bpchar_f1_idx',), ("        Index Cond: ((f1)::bpchar = 'foo'::bpchar)",)]
+
+-----------
+QUERY:
+
+select * from btree_bpchar where f1::bpchar like 'foo';
+RESULT:
+	[('foo',)]
+
+-----------
+QUERY:
+
+explain (costs off)
+select * from btree_bpchar where f1::bpchar like 'foo%';
+RESULT:
+	[('Bitmap Heap Scan on btree_bpchar',), ("  Filter: ((f1)::bpchar ~~ 'foo%'::text)",), ('  ->  Bitmap Index Scan on btree_bpchar_f1_idx',), ("        Index Cond: (((f1)::bpchar >= 'foo'::bpchar) AND ((f1)::bpchar < 'fop'::bpchar))",)]
+
+-----------
+QUERY:
+
+select * from btree_bpchar where f1::bpchar like 'foo%';
+RESULT:
+	[('foo',), ('fool',)]
+
+-----------
+QUERY:
+
+
+-- get test coverage for /* REPLACED */ ''single value/* REPLACED */ '' deduplication strategy:
+insert into btree_bpchar select 'foo' from generate_series(1,1500);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Perform unique checking, with and without the use of deduplication
+--
+CREATE TABLE dedup_unique_test_table (a int) WITH (autovacuum_enabled=false);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX dedup_unique ON dedup_unique_test_table (a) WITH (deduplicate_items=on);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX plain_unique ON dedup_unique_test_table (a) WITH (deduplicate_items=off);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Generate enough garbage tuples in index to ensure that even the unique index
+-- with deduplication enabled has to check multiple leaf pages during unique
+-- checking (at least with a BLCKSZ of 8192 or less)
+DO $$
+BEGIN
+    FOR r IN 1..1350 LOOP
+        DELETE FROM dedup_unique_test_table;
+        INSERT INTO dedup_unique_test_table SELECT 1;
+    END LOOP;
+END$$;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Exercise the LP_DEAD-bit-set tuple deletion code with a posting list tuple.
+-- The implementation prefers deleting existing items to merging any duplicate
+-- tuples into a posting list, so we need an explicit test to make sure we get
+-- coverage (note that this test also assumes BLCKSZ is 8192 or less):
+DROP INDEX plain_unique;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DELETE FROM dedup_unique_test_table WHERE a = 1;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO dedup_unique_test_table SELECT i FROM generate_series(0,450) i;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Test B-tree fast path (cache rightmost leaf page) optimization.
+--
+
+-- First create a tree that/* REPLACED */ ''s at least three levels deep (i.e. has one level
+-- between the root and leaf levels). The text inserted is long.  It won/* REPLACED */ ''t be
+-- TOAST compressed because we use plain storage in the table.  Only a few
+-- index tuples fit on each internal page, allowing us to get a tall tree with
+-- few pages.  (A tall tree is required to trigger caching.)
+--
+-- The text column must be the leading column in the index, since suffix
+-- truncation would otherwise truncate tuples on internal pages, leaving us
+-- with a short tree.
+create table btree_tall_tbl(id int4, t text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+alter table btree_tall_tbl alter COLUMN t set storage plain;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create index btree_tall_idx on btree_tall_tbl (t, id) with (fillfactor = 10);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+insert into btree_tall_tbl select g, repeat('x', 250)
+from generate_series(1, 130) g;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Test for multilevel page deletion
+--
+CREATE TABLE delete_test_table (a bigint, b bigint, c bigint, d bigint);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO delete_test_table SELECT i, 1, 2, 3 FROM generate_series(1,80000) i;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE delete_test_table ADD PRIMARY KEY (a,b,c,d);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Delete most entries, and vacuum, deleting internal pages and creating /* REPLACED */ ''fast
+-- root/* REPLACED */ ''
+DELETE FROM delete_test_table WHERE a < 79990;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+VACUUM delete_test_table;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- Test B-tree insertion with a metapage update (XLOG_BTREE_INSERT_META
+-- WAL record type). This happens when a /* REPLACED */ ''fast root/* REPLACED */ '' page is split.  This
+-- also creates coverage for nbtree FSM page recycling.
+--
+-- The vacuum above should/* REPLACED */ ''ve turned the leaf page into a fast root. We just
+-- need to insert some rows to cause the fast root page to split.
+INSERT INTO delete_test_table SELECT i, 1, 2, 3 FROM generate_series(1,1000) i;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Test unsupported btree opclass parameters
+create index on btree_tall_tbl (id int4_ops(foo=1));
+RESULT:
+	ERROR - operator class int4_ops has no options
+
+
+-----------
+QUERY:
+
+
+-- Test case of ALTER INDEX with abuse of column names for indexes.
+-- This grammar is not officially supported, but the parser allows it.
+CREATE INDEX btree_tall_idx2 ON btree_tall_tbl (id);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER INDEX btree_tall_idx2 ALTER COLUMN id SET (n_distinct=100);
+RESULT:
+	ERROR - ALTER action ALTER COLUMN ... SET cannot be performed on relation "btree_tall_idx2"
+DETAIL:  This operation is not supported for indexes.
+
+
+-----------
+QUERY:
+
+DROP INDEX btree_tall_idx2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- Partitioned index
+CREATE TABLE btree_part (id int4) PARTITION BY RANGE (id);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE INDEX btree_part_idx ON btree_part(id);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER INDEX btree_part_idx ALTER COLUMN id SET (n_distinct=100);
+RESULT:
+	ERROR - ALTER action ALTER COLUMN ... SET cannot be performed on relation "btree_part_idx"
+DETAIL:  This operation is not supported for partitioned indexes.
+
+
+-----------
+QUERY:
+
+DROP TABLE btree_part;
+RESULT:
+	[]

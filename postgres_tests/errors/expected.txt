@@ -1,0 +1,1065 @@
+
+-----------
+QUERY:
+--
+-- ERRORS
+--
+
+-- bad in postquel, but ok in PostgreSQL
+select 1;
+RESULT:
+	[(1,)]
+
+-----------
+QUERY:
+
+
+
+--
+-- UNSUPPORTED STUFF
+
+-- doesn/* REPLACED */ ''t work
+-- notify pg_class
+--
+
+--
+-- SELECT
+
+-- this used to be a syntax error, but now we allow an empty target list
+select;
+RESULT:
+	[()]
+
+-----------
+QUERY:
+
+
+-- no such relation
+select * from nonesuch;
+RESULT:
+	ERROR - relation "nonesuch" does not exist
+LINE 4: select * from nonesuch;
+                      ^
+
+
+-----------
+QUERY:
+
+
+-- bad name in target list
+select nonesuch from pg_database;
+RESULT:
+	ERROR - column "nonesuch" does not exist
+LINE 4: select nonesuch from pg_database;
+               ^
+
+
+-----------
+QUERY:
+
+
+-- empty distinct list isn/* REPLACED */ ''t OK
+select distinct from pg_database;
+RESULT:
+	ERROR - syntax error at or near "from"
+LINE 4: select distinct from pg_database;
+                        ^
+
+
+-----------
+QUERY:
+
+
+-- bad attribute name on lhs of operator
+select * from pg_database where nonesuch = pg_database.datname;
+RESULT:
+	ERROR - column "nonesuch" does not exist
+LINE 4: select * from pg_database where nonesuch = pg_database.datna...
+                                        ^
+
+
+-----------
+QUERY:
+
+
+-- bad attribute name on rhs of operator
+select * from pg_database where pg_database.datname = nonesuch;
+RESULT:
+	ERROR - column "nonesuch" does not exist
+LINE 4: ...ect * from pg_database where pg_database.datname = nonesuch;
+                                                              ^
+
+
+-----------
+QUERY:
+
+
+-- bad attribute name in select distinct on
+select distinct on (foobar) * from pg_database;
+RESULT:
+	ERROR - column "foobar" does not exist
+LINE 4: select distinct on (foobar) * from pg_database;
+                            ^
+
+
+-----------
+QUERY:
+
+
+-- grouping with FOR UPDATE
+select null from pg_database group by datname for update;
+RESULT:
+	ERROR - FOR UPDATE is not allowed with GROUP BY clause
+
+
+-----------
+QUERY:
+
+select null from pg_database group by grouping sets (()) for update;
+RESULT:
+	ERROR - FOR UPDATE is not allowed with GROUP BY clause
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DELETE
+
+-- missing relation name (this had better not wildcard!)
+delete from;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: delete from;
+                   ^
+
+
+-----------
+QUERY:
+
+
+-- no such relation
+delete from nonesuch;
+RESULT:
+	ERROR - relation "nonesuch" does not exist
+LINE 4: delete from nonesuch;
+                    ^
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP
+
+-- missing relation name (this had better not wildcard!)
+drop table;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: drop table;
+                  ^
+
+
+-----------
+QUERY:
+
+
+-- no such relation
+drop table nonesuch;
+RESULT:
+	ERROR - table "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+
+--
+-- ALTER TABLE
+
+-- relation renaming
+
+-- missing relation name
+alter table rename;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 10: alter table rename;
+                           ^
+
+
+-----------
+QUERY:
+
+
+-- no such relation
+alter table nonesuch rename to newnonesuch;
+RESULT:
+	ERROR - relation "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such relation
+alter table nonesuch rename to stud_emp;
+RESULT:
+	ERROR - relation "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table stud_emp rename to student;
+RESULT:
+	ERROR - relation "student" already exists
+
+
+-----------
+QUERY:
+
+
+-- self-conflict
+alter table stud_emp rename to stud_emp;
+RESULT:
+	ERROR - relation "stud_emp" already exists
+
+
+-----------
+QUERY:
+
+
+
+-- attribute renaming
+
+-- no such relation
+alter table nonesuchrel rename column nonesuchatt to newnonesuchatt;
+RESULT:
+	ERROR - relation "nonesuchrel" does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such attribute
+alter table emp rename column nonesuchatt to newnonesuchatt;
+RESULT:
+	ERROR - column "nonesuchatt" does not exist
+
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table emp rename column salary to manager;
+RESULT:
+	ERROR - column "manager" of relation "stud_emp" already exists
+
+
+-----------
+QUERY:
+
+
+-- conflict
+alter table emp rename column salary to ctid;
+RESULT:
+	ERROR - column name "ctid" conflicts with a system column name
+
+
+-----------
+QUERY:
+
+
+
+--
+-- TRANSACTION STUFF
+
+-- not in a xact
+abort;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- not in a xact
+end;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+
+--
+-- CREATE AGGREGATE
+
+-- sfunc/finalfunc type disagreement
+create aggregate newavg2 (sfunc = int4pl,
+			  basetype = int4,
+			  stype = int4,
+			  finalfunc = int2um,
+			  initcond = '0');
+RESULT:
+	ERROR - function int2um(integer) does not exist
+
+
+-----------
+QUERY:
+
+
+-- left out basetype
+create aggregate newcnt1 (sfunc = int4inc,
+			  stype = int4,
+			  initcond = '0');
+RESULT:
+	ERROR - aggregate input type must be specified
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP INDEX
+
+-- missing index name
+drop index;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: drop index;
+                  ^
+
+
+-----------
+QUERY:
+
+
+-- bad index name
+drop index 314159;
+RESULT:
+	ERROR - syntax error at or near "314159"
+LINE 4: drop index 314159;
+                   ^
+
+
+-----------
+QUERY:
+
+
+-- no such index
+drop index nonesuch;
+RESULT:
+	ERROR - index "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP AGGREGATE
+
+-- missing aggregate name
+drop aggregate;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: drop aggregate;
+                      ^
+
+
+-----------
+QUERY:
+
+
+-- missing aggregate type
+drop aggregate newcnt1;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 4: drop aggregate newcnt1;
+                              ^
+
+
+-----------
+QUERY:
+
+
+-- bad aggregate name
+drop aggregate 314159 (int);
+RESULT:
+	ERROR - syntax error at or near "314159"
+LINE 4: drop aggregate 314159 (int);
+                       ^
+
+
+-----------
+QUERY:
+
+
+-- bad aggregate type
+drop aggregate newcnt (nonesuch);
+RESULT:
+	ERROR - type "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such aggregate
+drop aggregate nonesuch (int4);
+RESULT:
+	ERROR - aggregate nonesuch(integer) does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such aggregate for type
+drop aggregate newcnt (float4);
+RESULT:
+	ERROR - aggregate newcnt(real) does not exist
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP FUNCTION
+
+-- missing function name
+drop function ();
+RESULT:
+	ERROR - syntax error at or near "("
+LINE 8: drop function ();
+                      ^
+
+
+-----------
+QUERY:
+
+
+-- bad function name
+drop function 314159();
+RESULT:
+	ERROR - syntax error at or near "314159"
+LINE 4: drop function 314159();
+                      ^
+
+
+-----------
+QUERY:
+
+
+-- no such function
+drop function nonesuch();
+RESULT:
+	ERROR - function nonesuch() does not exist
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP TYPE
+
+-- missing type name
+drop type;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: drop type;
+                 ^
+
+
+-----------
+QUERY:
+
+
+-- bad type name
+drop type 314159;
+RESULT:
+	ERROR - syntax error at or near "314159"
+LINE 4: drop type 314159;
+                  ^
+
+
+-----------
+QUERY:
+
+
+-- no such type
+drop type nonesuch;
+RESULT:
+	ERROR - type "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP OPERATOR
+
+-- missing everything
+drop operator;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: drop operator;
+                     ^
+
+
+-----------
+QUERY:
+
+
+-- bad operator name
+drop operator equals;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 4: drop operator equals;
+                            ^
+
+
+-----------
+QUERY:
+
+
+-- missing type list
+drop operator ===;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 4: drop operator ===;
+                         ^
+
+
+-----------
+QUERY:
+
+
+-- missing parentheses
+drop operator int4, int4;
+RESULT:
+	ERROR - syntax error at or near ","
+LINE 4: drop operator int4, int4;
+                          ^
+
+
+-----------
+QUERY:
+
+
+-- missing operator name
+drop operator (int4, int4);
+RESULT:
+	ERROR - syntax error at or near "("
+LINE 4: drop operator (int4, int4);
+                      ^
+
+
+-----------
+QUERY:
+
+
+-- missing type list contents
+drop operator === ();
+RESULT:
+	ERROR - syntax error at or near ")"
+LINE 4: drop operator === ();
+                           ^
+
+
+-----------
+QUERY:
+
+
+-- no such operator
+drop operator === (int4);
+RESULT:
+	ERROR - missing argument
+LINE 4: drop operator === (int4);
+                               ^
+HINT:  Use NONE to denote the missing argument of a unary operator.
+
+
+-----------
+QUERY:
+
+
+-- no such operator by that name
+drop operator === (int4, int4);
+RESULT:
+	ERROR - operator does not exist: integer === integer
+
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = (nonesuch);
+RESULT:
+	ERROR - missing argument
+LINE 4: drop operator = (nonesuch);
+                                 ^
+HINT:  Use NONE to denote the missing argument of a unary operator.
+
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = ( , int4);
+RESULT:
+	ERROR - syntax error at or near ","
+LINE 4: drop operator = ( , int4);
+                          ^
+
+
+-----------
+QUERY:
+
+
+-- no such type1
+drop operator = (nonesuch, int4);
+RESULT:
+	ERROR - type "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such type2
+drop operator = (int4, nonesuch);
+RESULT:
+	ERROR - type "nonesuch" does not exist
+
+
+-----------
+QUERY:
+
+
+-- no such type2
+drop operator = (int4, );
+RESULT:
+	ERROR - syntax error at or near ")"
+LINE 4: drop operator = (int4, );
+                               ^
+
+
+-----------
+QUERY:
+
+
+
+--
+-- DROP RULE
+
+-- missing rule name
+drop rule;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 8: drop rule;
+                 ^
+
+
+-----------
+QUERY:
+
+
+-- bad rule name
+drop rule 314159;
+RESULT:
+	ERROR - syntax error at or near "314159"
+LINE 4: drop rule 314159;
+                  ^
+
+
+-----------
+QUERY:
+
+
+-- no such rule
+drop rule nonesuch on noplace;
+RESULT:
+	ERROR - relation "noplace" does not exist
+
+
+-----------
+QUERY:
+
+
+-- these postquel variants are no longer supported
+drop tuple rule nonesuch;
+RESULT:
+	ERROR - syntax error at or near "tuple"
+LINE 4: drop tuple rule nonesuch;
+             ^
+
+
+-----------
+QUERY:
+
+drop instance rule nonesuch on noplace;
+RESULT:
+	ERROR - syntax error at or near "instance"
+LINE 2: drop instance rule nonesuch on noplace;
+             ^
+
+
+-----------
+QUERY:
+
+drop rewrite rule nonesuch;
+RESULT:
+	ERROR - syntax error at or near "rewrite"
+LINE 2: drop rewrite rule nonesuch;
+             ^
+
+
+-----------
+QUERY:
+
+
+--
+-- Check that division-by-zero is properly caught.
+--
+
+select 1/0;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1::int8/0;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1/0::int8;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1::int2/0;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1/0::int2;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1::numeric/0;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1/0::numeric;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1::float8/0;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1/0::float8;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1::float4/0;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+select 1/0::float4;
+RESULT:
+	ERROR - division by zero
+
+
+-----------
+QUERY:
+
+
+
+--
+-- Test psql/* REPLACED */ ''s reporting of syntax error location
+--
+
+xxx;
+RESULT:
+	ERROR - syntax error at or near "xxx"
+LINE 8: xxx;
+        ^
+
+
+-----------
+QUERY:
+
+
+CREATE foo;
+RESULT:
+	ERROR - syntax error at or near "foo"
+LINE 3: CREATE foo;
+               ^
+
+
+-----------
+QUERY:
+
+
+CREATE TABLE ;
+RESULT:
+	ERROR - syntax error at or near ";"
+LINE 3: CREATE TABLE ;
+                     ^
+
+
+-----------
+QUERY:
+
+
+CREATE TABLE
+-- \g
+
+INSERT INTO foo VALUES(123) foo;
+RESULT:
+	ERROR - syntax error at or near "INTO"
+LINE 6: INSERT INTO foo VALUES(123) foo;
+               ^
+
+
+-----------
+QUERY:
+
+
+INSERT INTO 123
+VALUES(123);
+RESULT:
+	ERROR - syntax error at or near "123"
+LINE 3: INSERT INTO 123
+                    ^
+
+
+-----------
+QUERY:
+
+
+INSERT INTO foo
+VALUES(123) 123
+;
+RESULT:
+	ERROR - syntax error at or near "123"
+LINE 4: VALUES(123) 123
+                    ^
+
+
+-----------
+QUERY:
+
+
+-- with a tab
+CREATE TABLE foo
+  (id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY,
+	id3 INTEGER NOT NUL,
+   id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 6:  id3 INTEGER NOT NUL,
+                         ^
+
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the left
+CREATE TABLE foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 4: ...OT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+                                                                   ^
+
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the right
+CREATE TABLE foo(
+id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY);
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 5: id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQ...
+                        ^
+
+
+-----------
+QUERY:
+
+
+-- long line to be truncated both ways
+CREATE TABLE foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL);
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 4: ...L, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 I...
+                                                             ^
+
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the left, many lines
+CREATE
+TEMPORARY
+TABLE
+foo(id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+id4 INT4
+UNIQUE
+NOT
+NULL,
+id5 TEXT
+UNIQUE
+NOT
+NULL)
+;
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 7: ...OT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL,
+                                                                   ^
+
+
+-----------
+QUERY:
+
+
+-- long line to be truncated on the right, many lines
+CREATE
+TEMPORARY
+TABLE
+foo(
+id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL, id INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY)
+;
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 8: id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQ...
+                        ^
+
+
+-----------
+QUERY:
+
+
+-- long line to be truncated both ways, many lines
+CREATE
+TEMPORARY
+TABLE
+foo
+(id
+INT4
+UNIQUE NOT NULL, idx INT4 UNIQUE NOT NULL, idy INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,
+idz INT4 UNIQUE NOT NULL,
+idv INT4 UNIQUE NOT NULL);
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 10: ...L, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 I...
+                                                              ^
+
+
+-----------
+QUERY:
+
+
+-- more than 10 lines...
+CREATE
+TEMPORARY
+TABLE
+foo
+(id
+INT4
+UNIQUE
+NOT
+NULL
+,
+idm
+INT4
+UNIQUE
+NOT
+NULL,
+idx INT4 UNIQUE NOT NULL, idy INT4 UNIQUE NOT NULL, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 INT4 UNIQUE NOT NULL, id5 TEXT UNIQUE NOT NULL,
+idz INT4 UNIQUE NOT NULL,
+idv
+INT4
+UNIQUE
+NOT
+NULL);
+RESULT:
+	ERROR - syntax error at or near "NUL"
+LINE 19: ...L, id2 TEXT NOT NULL PRIMARY KEY, id3 INTEGER NOT NUL, id4 I...
+                                                              ^
+

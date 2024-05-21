@@ -14,7 +14,7 @@ SELECT * FROM TEXT_TBL;
 
 select length(42);
 
--- But as a special exception for usability/* REPLACED */''s sake, we still allow implicit
+-- But as a special exception for usability/* REPLACED */ ''s sake, we still allow implicit
 -- casting to text in concatenations, so long as the other input is text or
 -- an unknown literal.  So these work:
 

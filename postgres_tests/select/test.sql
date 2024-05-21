@@ -3,28 +3,28 @@
 --
 
 -- btree index
--- awk /* REPLACED */''{if($1<10){print /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data | sort +0n -1
+-- awk /* REPLACED */ ''{if($1<10){print /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data | sort +0n -1
 --
 SELECT * FROM onek
    WHERE onek.unique1 < 10
    ORDER BY onek.unique1;
 
 --
--- awk /* REPLACED */''{if($1<20){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data | sort +0nr -1
+-- awk /* REPLACED */ ''{if($1<20){print $1,$14 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data | sort +0nr -1
 --
 SELECT onek.unique1, onek.stringu1 FROM onek
    WHERE onek.unique1 < 20
    ORDER BY unique1 using >;
 
 --
--- awk /* REPLACED */''{if($1>980){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data | sort +1d -2
+-- awk /* REPLACED */ ''{if($1>980){print $1,$14 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data | sort +1d -2
 --
 SELECT onek.unique1, onek.stringu1 FROM onek
    WHERE onek.unique1 > 980
    ORDER BY stringu1 using <;
 
 --
--- awk /* REPLACED */''{if($1>980){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data |
+-- awk /* REPLACED */ ''{if($1>980){print $1,$16 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data |
 -- sort +1d -2 +0nr -1
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -32,7 +32,7 @@ SELECT onek.unique1, onek.string4 FROM onek
    ORDER BY string4 using <, unique1 using >;
 
 --
--- awk /* REPLACED */''{if($1>980){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data |
+-- awk /* REPLACED */ ''{if($1>980){print $1,$16 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data |
 -- sort +1dr -2 +0n -1
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -40,7 +40,7 @@ SELECT onek.unique1, onek.string4 FROM onek
    ORDER BY string4 using >, unique1 using <;
 
 --
--- awk /* REPLACED */''{if($1<20){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data |
+-- awk /* REPLACED */ ''{if($1<20){print $1,$16 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data |
 -- sort +0nr -1 +1d -2
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -48,7 +48,7 @@ SELECT onek.unique1, onek.string4 FROM onek
    ORDER BY unique1 using >, string4 using <;
 
 --
--- awk /* REPLACED */''{if($1<20){print $1,$16 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data |
+-- awk /* REPLACED */ ''{if($1<20){print $1,$16 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data |
 -- sort +0n -1 +1dr -2
 --
 SELECT onek.unique1, onek.string4 FROM onek
@@ -58,7 +58,7 @@ SELECT onek.unique1, onek.string4 FROM onek
 --
 -- test partial btree indexes
 --
--- As of 7.2, planner probably won/* REPLACED */''t pick an indexscan without stats,
+-- As of 7.2, planner probably won/* REPLACED */ ''t pick an indexscan without stats,
 -- so ANALYZE first.  Also, we want to prevent it from picking a bitmapscan
 -- followed by sort, because that could hide index ordering problems.
 --
@@ -69,19 +69,19 @@ SET enable_bitmapscan TO off;
 SET enable_sort TO off;
 
 --
--- awk /* REPLACED */''{if($1<10){print $0 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data | sort +0n -1
+-- awk /* REPLACED */ ''{if($1<10){print $0 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data | sort +0n -1
 --
 SELECT onek2.* FROM onek2 WHERE onek2.unique1 < 10;
 
 --
--- awk /* REPLACED */''{if($1<20){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data | sort +0nr -1
+-- awk /* REPLACED */ ''{if($1<20){print $1,$14 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data | sort +0nr -1
 --
 SELECT onek2.unique1, onek2.stringu1 FROM onek2
     WHERE onek2.unique1 < 20
     ORDER BY unique1 using >;
 
 --
--- awk /* REPLACED */''{if($1>980){print $1,$14 /* REPLACED */,}else{next /* REPLACED */,}}/* REPLACED */'' onek.data | sort +1d -2
+-- awk /* REPLACED */ ''{if($1>980){print $1,$14 /* REPLACED */ ,}else{next /* REPLACED */ ,}}/* REPLACED */ '' onek.data | sort +1d -2
 --
 SELECT onek2.unique1, onek2.stringu1 FROM onek2
    WHERE onek2.unique1 > 980;
@@ -91,19 +91,19 @@ RESET enable_bitmapscan;
 RESET enable_sort;
 
 --
--- awk /* REPLACED */''{print $1,$2 /* REPLACED */,}/* REPLACED */'' person.data |
--- awk /* REPLACED */''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - emp.data |
--- awk /* REPLACED */''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - student.data |
--- awk /* REPLACED */''BEGIN{FS=/* REPLACED */''      /* REPLACED */'' /* REPLACED */,}{if(NF!=2){print $4,$5 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - stud_emp.data
+-- awk /* REPLACED */ ''{print $1,$2 /* REPLACED */ ,}/* REPLACED */ '' person.data |
+-- awk /* REPLACED */ ''{if(NF!=2){print $3,$2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - emp.data |
+-- awk /* REPLACED */ ''{if(NF!=2){print $3,$2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - student.data |
+-- awk /* REPLACED */ ''BEGIN{FS=/* REPLACED */ ''      /* REPLACED */ '' /* REPLACED */ ,}{if(NF!=2){print $4,$5 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - stud_emp.data
 --
--- SELECT name, age FROM person* /* REPLACED */, ??? check if different
+-- SELECT name, age FROM person* /* REPLACED */ , ??? check if different
 SELECT p.name, p.age FROM person* p;
 
 --
--- awk /* REPLACED */''{print $1,$2 /* REPLACED */,}/* REPLACED */'' person.data |
--- awk /* REPLACED */''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - emp.data |
--- awk /* REPLACED */''{if(NF!=2){print $3,$2 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - student.data |
--- awk /* REPLACED */''BEGIN{FS=/* REPLACED */''      /* REPLACED */'' /* REPLACED */,}{if(NF!=1){print $4,$5 /* REPLACED */,}else{print /* REPLACED */,}}/* REPLACED */'' - stud_emp.data |
+-- awk /* REPLACED */ ''{print $1,$2 /* REPLACED */ ,}/* REPLACED */ '' person.data |
+-- awk /* REPLACED */ ''{if(NF!=2){print $3,$2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - emp.data |
+-- awk /* REPLACED */ ''{if(NF!=2){print $3,$2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - student.data |
+-- awk /* REPLACED */ ''BEGIN{FS=/* REPLACED */ ''      /* REPLACED */ '' /* REPLACED */ ,}{if(NF!=1){print $4,$5 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - stud_emp.data |
 -- sort +1nr -2
 --
 SELECT p.name, p.age FROM person* p ORDER BY age using >, name;
@@ -122,7 +122,7 @@ select * from onek, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE onek.unique1 = v.i and onek.stringu1 = v.j;
 
 -- a more complex case
--- looks like we/* REPLACED */''re coding lisp :-)
+-- looks like we/* REPLACED */ ''re coding lisp :-)
 select * from onek,
   (values ((select i from
     (values(10000), (2), (389), (1000), (2000), ((select 10029))) as foo(i)
@@ -208,7 +208,7 @@ select * from onek2 where unique2 = 11 and stringu1 < 'B';
 explain (costs off)
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B';
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B';
--- but if it/* REPLACED */''s an update target, must retest anyway
+-- but if it/* REPLACED */ ''s an update target, must retest anyway
 explain (costs off)
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B' for update;
 select unique2 from onek2 where unique2 = 11 and stringu1 < 'B' for update;
@@ -238,7 +238,7 @@ select unique1, unique2 from onek2
 -- Test some corner cases that have been known to confuse the planner
 --
 
--- ORDER BY on a constant doesn/* REPLACED */''t really need any sorting
+-- ORDER BY on a constant doesn/* REPLACED */ ''t really need any sorting
 SELECT 1 AS x ORDER BY x;
 
 -- But ORDER BY on a set-valued expression does
@@ -250,7 +250,7 @@ select sillysrf(-1) order by 1;
 
 drop function sillysrf(int);
 
--- X = X isn/* REPLACED */''t a no-op, it/* REPLACED */''s effectively X IS NOT NULL assuming = is strict
+-- X = X isn/* REPLACED */ ''t a no-op, it/* REPLACED */ ''s effectively X IS NOT NULL assuming = is strict
 -- (see bug #5084)
 select * from (values (2),(null),(1)) v(k) where k = k order by k;
 select * from (values (2),(null),(1)) v(k) where k = k;

@@ -10,7 +10,7 @@ BEGIN
 END
 $$ language plpgsql;
 
--- should fail, can/* REPLACED */''t call it as a plain function
+-- should fail, can/* REPLACED */ ''t call it as a plain function
 SELECT test_event_trigger();
 
 -- should fail, event triggers cannot have declared arguments
@@ -48,32 +48,32 @@ create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('create table', 'create skunkcabbage')
    execute procedure test_event_trigger();
 
--- should fail, can/* REPLACED */''t have event triggers on event triggers
+-- should fail, can/* REPLACED */ ''t have event triggers on event triggers
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('DROP EVENT TRIGGER')
    execute procedure test_event_trigger();
 
--- should fail, can/* REPLACED */''t have event triggers on global objects
+-- should fail, can/* REPLACED */ ''t have event triggers on global objects
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('CREATE ROLE')
    execute procedure test_event_trigger();
 
--- should fail, can/* REPLACED */''t have event triggers on global objects
+-- should fail, can/* REPLACED */ ''t have event triggers on global objects
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('CREATE DATABASE')
    execute procedure test_event_trigger();
 
--- should fail, can/* REPLACED */''t have event triggers on global objects
+-- should fail, can/* REPLACED */ ''t have event triggers on global objects
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('CREATE TABLESPACE')
    execute procedure test_event_trigger();
 
--- should fail, can/* REPLACED */''t have same filter variable twice
+-- should fail, can/* REPLACED */ ''t have same filter variable twice
 create event trigger regress_event_trigger2 on ddl_command_start
    when tag in ('create table') and tag in ('CREATE FUNCTION')
    execute procedure test_event_trigger();
 
--- should fail, can/* REPLACED */''t have arguments
+-- should fail, can/* REPLACED */ ''t have arguments
 create event trigger regress_event_trigger2 on ddl_command_start
    execute procedure test_event_trigger('argument not allowed');
 
@@ -156,14 +156,14 @@ alter event trigger regress_event_trigger rename to regress_event_trigger2;
 -- OK
 alter event trigger regress_event_trigger rename to regress_event_trigger3;
 
--- should fail, doesn/* REPLACED */''t exist any more
+-- should fail, doesn/* REPLACED */ ''t exist any more
 drop event trigger regress_event_trigger;
 
 -- should fail, regress_evt_user owns some objects
 drop role regress_evt_user;
 
 -- cleanup before next test
--- these are all OK /* REPLACED */, the second one should emit a NOTICE
+-- these are all OK /* REPLACED */ , the second one should emit a NOTICE
 drop event trigger if exists regress_event_trigger2;
 drop event trigger if exists regress_event_trigger2;
 drop event trigger regress_event_trigger3;
@@ -207,7 +207,7 @@ CREATE TABLE dropped_objects (
 	object text
 );
 
--- This tests errors raised within event triggers /* REPLACED */, the one in audit_tbls
+-- This tests errors raised within event triggers /* REPLACED */ , the one in audit_tbls
 -- uses 2nd-level recursive invocation via test_evtrig_dropped_objects().
 CREATE OR REPLACE FUNCTION undroppable() RETURNS event_trigger
 LANGUAGE plpgsql AS $$
@@ -384,7 +384,7 @@ CREATE MATERIALIZED VIEW heapmv USING heap AS SELECT 1 AS a;
 ALTER MATERIALIZED VIEW heapmv SET ACCESS METHOD heap2;
 DROP MATERIALIZED VIEW heapmv;
 
--- shouldn/* REPLACED */''t trigger a table_rewrite event
+-- shouldn/* REPLACED */ ''t trigger a table_rewrite event
 alter table rewriteme alter column foo type numeric(12,4);
 begin;
 set timezone to 'UTC';
@@ -395,7 +395,7 @@ set timezone to 'Europe/London';
 alter table rewriteme alter column bar type timestamp; -- does rewrite
 rollback;
 
--- typed tables are rewritten when their type changes.  Don/* REPLACED */''t emit table
+-- typed tables are rewritten when their type changes.  Don/* REPLACED */ ''t emit table
 -- name, because firing order is not stable.
 CREATE OR REPLACE FUNCTION test_evtrig_no_rewrite() RETURNS event_trigger
 LANGUAGE plpgsql AS $$
@@ -410,7 +410,7 @@ create table rewritemetoo1 of rewritetype;
 create table rewritemetoo2 of rewritetype;
 alter type rewritetype alter attribute a type text cascade;
 
--- but this doesn/* REPLACED */''t work
+-- but this doesn/* REPLACED */ ''t work
 create table rewritemetoo3 (a rewritetype);
 alter type rewritetype alter attribute a type varchar cascade;
 

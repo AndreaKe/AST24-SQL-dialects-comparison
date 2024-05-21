@@ -54,7 +54,7 @@ SELECT pg_size_bytes('1 AB A    ');
 SELECT pg_size_bytes('9223372036854775807.9');
 SELECT pg_size_bytes('1e100');
 SELECT pg_size_bytes('1e1000000000000000000');
-SELECT pg_size_bytes('1 byte');  -- the singular /* REPLACED */''byte/* REPLACED */'' is not supported
+SELECT pg_size_bytes('1 byte');  -- the singular /* REPLACED */ ''byte/* REPLACED */ '' is not supported
 SELECT pg_size_bytes('');
 
 SELECT pg_size_bytes('kb');

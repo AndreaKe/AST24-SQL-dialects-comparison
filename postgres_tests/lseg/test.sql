@@ -3,7 +3,7 @@
 -- Line segments
 --
 
---DROP TABLE LSEG_TBL /* REPLACED */,
+--DROP TABLE LSEG_TBL /* REPLACED */ ,
 CREATE TABLE LSEG_TBL (s lseg);
 
 INSERT INTO LSEG_TBL VALUES ('[(1,2),(3,4)]');
