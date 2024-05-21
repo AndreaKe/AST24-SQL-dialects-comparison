@@ -9,7 +9,7 @@ select 1;
 --
 -- UNSUPPORTED STUFF
 
--- doesn/* REPLACED */''t work
+-- doesn/* REPLACED */ ''t work
 -- notify pg_class
 --
 
@@ -25,7 +25,7 @@ select * from nonesuch;
 -- bad name in target list
 select nonesuch from pg_database;
 
--- empty distinct list isn/* REPLACED */''t OK
+-- empty distinct list isn/* REPLACED */ ''t OK
 select distinct from pg_database;
 
 -- bad attribute name on lhs of operator
@@ -273,7 +273,7 @@ select 1/0::float4;
 
 
 --
--- Test psql/* REPLACED */''s reporting of syntax error location
+-- Test psql/* REPLACED */ ''s reporting of syntax error location
 --
 
 xxx;
@@ -283,7 +283,7 @@ CREATE foo;
 CREATE TABLE ;
 
 CREATE TABLE
-\g
+-- \g
 
 INSERT INTO foo VALUES(123) foo;
 

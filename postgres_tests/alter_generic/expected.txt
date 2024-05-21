@@ -6,17 +6,17 @@ QUERY:
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION test_opclass_options_func(internal)
     RETURNS void
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_opclass_options_func'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_opclass_options_func'
     LANGUAGE C;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -25,7 +25,7 @@ QUERY:
 -- Clean up in case a prior regression run failed
 SET client_min_messages TO 'warning';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -33,21 +33,21 @@ QUERY:
 
 DROP ROLE IF EXISTS regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE IF EXISTS regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE IF EXISTS regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -55,7 +55,7 @@ QUERY:
 
 RESET client_min_messages;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -63,21 +63,21 @@ QUERY:
 
 CREATE USER regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER regress_alter_generic_user1 IN ROLE regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -85,14 +85,14 @@ QUERY:
 
 CREATE SCHEMA alt_nsp1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -100,7 +100,7 @@ QUERY:
 
 GRANT ALL ON SCHEMA alt_nsp1, alt_nsp2 TO public;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -108,7 +108,7 @@ QUERY:
 
 SET search_path = alt_nsp1, public;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -119,7 +119,7 @@ QUERY:
 --
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -127,7 +127,7 @@ QUERY:
 CREATE FUNCTION alt_func1(int) RETURNS int LANGUAGE sql
   AS 'SELECT $1 + 1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -135,7 +135,7 @@ QUERY:
 CREATE FUNCTION alt_func2(int) RETURNS int LANGUAGE sql
   AS 'SELECT $1 - 1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -144,7 +144,7 @@ CREATE AGGREGATE alt_agg1 (
   sfunc1 = int4pl, basetype = int4, stype1 = int4, initcond = 0
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -153,14 +153,14 @@ CREATE AGGREGATE alt_agg2 (
   sfunc1 = int4mi, basetype = int4, stype1 = int4, initcond = 0
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER AGGREGATE alt_func1(int) RENAME TO alt_func3;
 RESULT:
-	postgres: function alt_func1(integer) is not an aggregate
+	ERROR - function alt_func1(integer) is not an aggregate
 
 
 -----------
@@ -168,7 +168,7 @@ QUERY:
   -- failed (not aggregate)
 ALTER AGGREGATE alt_func1(int) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: function alt_func1(integer) is not an aggregate
+	ERROR - function alt_func1(integer) is not an aggregate
 
 
 -----------
@@ -176,7 +176,7 @@ QUERY:
   -- failed (not aggregate)
 ALTER AGGREGATE alt_func1(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: function alt_func1(integer) is not an aggregate
+	ERROR - function alt_func1(integer) is not an aggregate
 
 
 -----------
@@ -185,7 +185,7 @@ QUERY:
 
 ALTER FUNCTION alt_func1(int) RENAME TO alt_func2;
 RESULT:
-	postgres: function alt_func2(integer) already exists in schema "alt_nsp1"
+	ERROR - function alt_func2(integer) already exists in schema "alt_nsp1"
 
 
 -----------
@@ -193,14 +193,14 @@ QUERY:
   -- failed (name conflict)
 ALTER FUNCTION alt_func1(int) RENAME TO alt_func3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER FUNCTION alt_func2(int) OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -208,21 +208,21 @@ QUERY:
   -- failed (no role membership)
 ALTER FUNCTION alt_func2(int) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER FUNCTION alt_func2(int) SET SCHEMA alt_nsp1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK, already there
 ALTER FUNCTION alt_func2(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -230,7 +230,7 @@ QUERY:
 
 ALTER AGGREGATE alt_agg1(int) RENAME TO alt_agg2;
 RESULT:
-	postgres: function alt_agg2(integer) already exists in schema "alt_nsp1"
+	ERROR - function alt_agg2(integer) already exists in schema "alt_nsp1"
 
 
 -----------
@@ -238,14 +238,14 @@ QUERY:
    -- failed (name conflict)
 ALTER AGGREGATE alt_agg1(int) RENAME TO alt_agg3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
    -- OK
 ALTER AGGREGATE alt_agg2(int) OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -253,14 +253,14 @@ QUERY:
   -- failed (no role membership)
 ALTER AGGREGATE alt_agg2(int) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER AGGREGATE alt_agg2(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -268,7 +268,7 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -276,7 +276,7 @@ QUERY:
 CREATE FUNCTION alt_func1(int) RETURNS int LANGUAGE sql
   AS 'SELECT $1 + 2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -284,7 +284,7 @@ QUERY:
 CREATE FUNCTION alt_func2(int) RETURNS int LANGUAGE sql
   AS 'SELECT $1 - 2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -293,7 +293,7 @@ CREATE AGGREGATE alt_agg1 (
   sfunc1 = int4pl, basetype = int4, stype1 = int4, initcond = 100
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -302,7 +302,7 @@ CREATE AGGREGATE alt_agg2 (
   sfunc1 = int4mi, basetype = int4, stype1 = int4, initcond = -100
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -310,7 +310,7 @@ QUERY:
 
 ALTER FUNCTION alt_func3(int) RENAME TO alt_func4;
 RESULT:
-	postgres: must be owner of function alt_func3
+	ERROR - must be owner of function alt_func3
 
 
 -----------
@@ -318,14 +318,14 @@ QUERY:
 	-- failed (not owner)
 ALTER FUNCTION alt_func1(int) RENAME TO alt_func4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 	-- OK
 ALTER FUNCTION alt_func3(int) OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of function alt_func3
+	ERROR - must be owner of function alt_func3
 
 
 -----------
@@ -333,7 +333,7 @@ QUERY:
 	-- failed (not owner)
 ALTER FUNCTION alt_func2(int) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -341,7 +341,7 @@ QUERY:
 	-- failed (no role membership)
 ALTER FUNCTION alt_func3(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of function alt_func3
+	ERROR - must be owner of function alt_func3
 
 
 -----------
@@ -349,7 +349,7 @@ QUERY:
       -- failed (not owner)
 ALTER FUNCTION alt_func2(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: function alt_func2(integer) already exists in schema "alt_nsp2"
+	ERROR - function alt_func2(integer) already exists in schema "alt_nsp2"
 
 
 -----------
@@ -358,7 +358,7 @@ QUERY:
 
 ALTER AGGREGATE alt_agg3(int) RENAME TO alt_agg4;
 RESULT:
-	postgres: must be owner of function alt_agg3
+	ERROR - must be owner of function alt_agg3
 
 
 -----------
@@ -366,14 +366,14 @@ QUERY:
    -- failed (not owner)
 ALTER AGGREGATE alt_agg1(int) RENAME TO alt_agg4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
    -- OK
 ALTER AGGREGATE alt_agg3(int) OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of function alt_agg3
+	ERROR - must be owner of function alt_agg3
 
 
 -----------
@@ -381,7 +381,7 @@ QUERY:
   -- failed (not owner)
 ALTER AGGREGATE alt_agg2(int) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -389,7 +389,7 @@ QUERY:
   -- failed (no role membership)
 ALTER AGGREGATE alt_agg3(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of function alt_agg3
+	ERROR - must be owner of function alt_agg3
 
 
 -----------
@@ -397,7 +397,7 @@ QUERY:
   -- failed (not owner)
 ALTER AGGREGATE alt_agg2(int) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: function alt_agg2(integer) already exists in schema "alt_nsp2"
+	ERROR - function alt_agg2(integer) already exists in schema "alt_nsp2"
 
 
 -----------
@@ -406,7 +406,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -418,14 +418,14 @@ SELECT n.nspname, proname, prorettype::regtype, prokind, a.rolname
     AND n.nspname IN ('alt_nsp1', 'alt_nsp2')
   ORDER BY nspname, proname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_agg2', 'integer', 'a', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_agg3', 'integer', 'a', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_agg4', 'integer', 'a', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_func2', 'integer', 'f', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_func3', 'integer', 'f', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_func4', 'integer', 'f', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_agg2', 'integer', 'a', 'regress_alter_generic_user3'), ('alt_nsp2', 'alt_func2', 'integer', 'f', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_agg2', 'integer', 'a', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_agg3', 'integer', 'a', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_agg4', 'integer', 'a', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_func2', 'integer', 'f', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_func3', 'integer', 'f', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_func4', 'integer', 'f', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_agg2', 'integer', 'a', 'regress_alter_generic_user3'), ('alt_nsp2', 'alt_func2', 'integer', 'f', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
 
 
 --
--- We would test collations here, but it/* REPLACED */''s not possible because the error
+-- We would test collations here, but it/* REPLACED */ ''s not possible because the error
 -- messages tend to be nonportable.
 --
 
@@ -434,21 +434,21 @@ QUERY:
 --
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE CONVERSION alt_conv1 FOR 'LATIN1' TO 'UTF8' FROM iso8859_1_to_utf8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE CONVERSION alt_conv2 FOR 'LATIN1' TO 'UTF8' FROM iso8859_1_to_utf8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -456,7 +456,7 @@ QUERY:
 
 ALTER CONVERSION alt_conv1 RENAME TO alt_conv2;
 RESULT:
-	postgres: conversion "alt_conv2" already exists in schema "alt_nsp1"
+	ERROR - conversion "alt_conv2" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -464,14 +464,14 @@ QUERY:
   -- failed (name conflict)
 ALTER CONVERSION alt_conv1 RENAME TO alt_conv3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER CONVERSION alt_conv2 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -479,14 +479,14 @@ QUERY:
   -- failed (no role membership)
 ALTER CONVERSION alt_conv2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER CONVERSION alt_conv2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -494,21 +494,21 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE CONVERSION alt_conv1 FOR 'LATIN1' TO 'UTF8' FROM iso8859_1_to_utf8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE CONVERSION alt_conv2 FOR 'LATIN1' TO 'UTF8' FROM iso8859_1_to_utf8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -516,7 +516,7 @@ QUERY:
 
 ALTER CONVERSION alt_conv3 RENAME TO alt_conv4;
 RESULT:
-	postgres: must be owner of conversion alt_conv3
+	ERROR - must be owner of conversion alt_conv3
 
 
 -----------
@@ -524,14 +524,14 @@ QUERY:
   -- failed (not owner)
 ALTER CONVERSION alt_conv1 RENAME TO alt_conv4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER CONVERSION alt_conv3 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of conversion alt_conv3
+	ERROR - must be owner of conversion alt_conv3
 
 
 -----------
@@ -539,7 +539,7 @@ QUERY:
   -- failed (not owner)
 ALTER CONVERSION alt_conv2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -547,7 +547,7 @@ QUERY:
   -- failed (no role membership)
 ALTER CONVERSION alt_conv3 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of conversion alt_conv3
+	ERROR - must be owner of conversion alt_conv3
 
 
 -----------
@@ -555,7 +555,7 @@ QUERY:
   -- failed (not owner)
 ALTER CONVERSION alt_conv2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: conversion "alt_conv2" already exists in schema "alt_nsp2"
+	ERROR - conversion "alt_conv2" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -564,7 +564,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -576,7 +576,7 @@ SELECT n.nspname, c.conname, a.rolname
     AND n.nspname IN ('alt_nsp1', 'alt_nsp2')
   ORDER BY nspname, conname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_conv2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_conv3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_conv4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_conv2', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_conv2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_conv3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_conv4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_conv2', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -587,14 +587,14 @@ QUERY:
 --
 CREATE FOREIGN DATA WRAPPER alt_fdw1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER alt_fdw2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -602,14 +602,14 @@ QUERY:
 
 CREATE SERVER alt_fserv1 FOREIGN DATA WRAPPER alt_fdw1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER alt_fserv2 FOREIGN DATA WRAPPER alt_fdw2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -617,7 +617,7 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER alt_fdw1 RENAME TO alt_fdw2;
 RESULT:
-	postgres: foreign-data wrapper "alt_fdw2" already exists
+	ERROR - foreign-data wrapper "alt_fdw2" already exists
 
 
 -----------
@@ -625,7 +625,7 @@ QUERY:
   -- failed (name conflict)
 ALTER FOREIGN DATA WRAPPER alt_fdw1 RENAME TO alt_fdw3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -633,7 +633,7 @@ QUERY:
 
 ALTER SERVER alt_fserv1 RENAME TO alt_fserv2;
 RESULT:
-	postgres: server "alt_fserv2" already exists
+	ERROR - server "alt_fserv2" already exists
 
 
 -----------
@@ -641,7 +641,7 @@ QUERY:
    -- failed (name conflict)
 ALTER SERVER alt_fserv1 RENAME TO alt_fserv3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -649,14 +649,14 @@ QUERY:
 
 SELECT fdwname FROM pg_foreign_data_wrapper WHERE fdwname like 'alt_fdw%';
 RESULT:
-	postgres: [('alt_fdw2',), ('alt_fdw3',)]
+	[('alt_fdw2',), ('alt_fdw3',)]
 
 -----------
 QUERY:
 
 SELECT srvname FROM pg_foreign_server WHERE srvname like 'alt_fserv%';
 RESULT:
-	postgres: [('alt_fserv2',), ('alt_fserv3',)]
+	[('alt_fserv2',), ('alt_fserv3',)]
 
 -----------
 QUERY:
@@ -667,14 +667,14 @@ QUERY:
 --
 CREATE LANGUAGE alt_lang1 HANDLER plpgsql_call_handler;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE LANGUAGE alt_lang2 HANDLER plpgsql_call_handler;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -682,14 +682,14 @@ QUERY:
 
 ALTER LANGUAGE alt_lang1 OWNER TO regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER LANGUAGE alt_lang2 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -697,14 +697,14 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER LANGUAGE alt_lang1 RENAME TO alt_lang2;
 RESULT:
-	postgres: language "alt_lang2" already exists
+	ERROR - language "alt_lang2" already exists
 
 
 -----------
@@ -712,7 +712,7 @@ QUERY:
    -- failed (name conflict)
 ALTER LANGUAGE alt_lang2 RENAME TO alt_lang3;
 RESULT:
-	postgres: must be owner of language alt_lang2
+	ERROR - must be owner of language alt_lang2
 
 
 -----------
@@ -720,7 +720,7 @@ QUERY:
    -- failed (not owner)
 ALTER LANGUAGE alt_lang1 RENAME TO alt_lang3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -728,7 +728,7 @@ QUERY:
 
 ALTER LANGUAGE alt_lang2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be owner of language alt_lang2
+	ERROR - must be owner of language alt_lang2
 
 
 -----------
@@ -736,7 +736,7 @@ QUERY:
   -- failed (not owner)
 ALTER LANGUAGE alt_lang3 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -744,7 +744,7 @@ QUERY:
   -- failed (no role membership)
 ALTER LANGUAGE alt_lang3 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -752,7 +752,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -762,7 +762,7 @@ SELECT lanname, a.rolname
   WHERE l.lanowner = a.oid AND l.lanname like 'alt_lang%'
   ORDER BY lanname;
 RESULT:
-	postgres: [('alt_lang2', 'regress_alter_generic_user2'), ('alt_lang3', 'regress_alter_generic_user3')]
+	[('alt_lang2', 'regress_alter_generic_user2'), ('alt_lang3', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -773,7 +773,7 @@ QUERY:
 --
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -781,14 +781,14 @@ QUERY:
 
 CREATE OPERATOR @-@ ( leftarg = int4, rightarg = int4, procedure = int4mi );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR @+@ ( leftarg = int4, rightarg = int4, procedure = int4pl );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -796,7 +796,7 @@ QUERY:
 
 ALTER OPERATOR @+@(int4, int4) OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -804,14 +804,14 @@ QUERY:
   -- failed (no role membership)
 ALTER OPERATOR @+@(int4, int4) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -819,7 +819,7 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -827,7 +827,7 @@ QUERY:
 
 CREATE OPERATOR @-@ ( leftarg = int4, rightarg = int4, procedure = int4mi );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -835,7 +835,7 @@ QUERY:
 
 ALTER OPERATOR @+@(int4, int4) OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of operator @+@
+	ERROR - must be owner of operator @+@
 
 
 -----------
@@ -843,7 +843,7 @@ QUERY:
   -- failed (not owner)
 ALTER OPERATOR @-@(int4, int4) OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -851,18 +851,18 @@ QUERY:
   -- failed (no role membership)
 ALTER OPERATOR @+@(int4, int4) SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of operator @+@
+	ERROR - must be owner of operator @+@
 
 
 -----------
 QUERY:
    -- failed (not owner)
--- can/* REPLACED */''t test this: the error message includes the raw oid of namespace
--- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 /* REPLACED */,   -- failed (name conflict)
+-- can/* REPLACED */ ''t test this: the error message includes the raw oid of namespace
+-- ALTER OPERATOR @-@(int4, int4) SET SCHEMA alt_nsp2 /* REPLACED */ ,   -- failed (name conflict)
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -875,7 +875,7 @@ SELECT n.nspname, oprname, a.rolname,
     AND n.nspname IN ('alt_nsp1', 'alt_nsp2')
   ORDER BY nspname, oprname;
 RESULT:
-	postgres: [('alt_nsp1', '@+@', 'regress_alter_generic_user3', 'integer', 'integer', 'int4pl'), ('alt_nsp1', '@-@', 'regress_alter_generic_user2', 'integer', 'integer', 'int4mi'), ('alt_nsp2', '@-@', 'regress_alter_generic_user1', 'integer', 'integer', 'int4mi')]
+	[('alt_nsp1', '@+@', 'regress_alter_generic_user3', 'integer', 'integer', 'int4pl'), ('alt_nsp1', '@-@', 'regress_alter_generic_user2', 'integer', 'integer', 'int4mi'), ('alt_nsp2', '@-@', 'regress_alter_generic_user1', 'integer', 'integer', 'int4mi')]
 
 -----------
 QUERY:
@@ -886,28 +886,28 @@ QUERY:
 --
 CREATE OPERATOR FAMILY alt_opf1 USING hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf2 USING hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf1 USING hash OWNER TO regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf2 USING hash OWNER TO regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -915,28 +915,28 @@ QUERY:
 
 CREATE OPERATOR CLASS alt_opc1 FOR TYPE uuid USING hash AS STORAGE uuid;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR CLASS alt_opc2 FOR TYPE uuid USING hash AS STORAGE uuid;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR CLASS alt_opc1 USING hash OWNER TO regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR CLASS alt_opc2 USING hash OWNER TO regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -944,7 +944,7 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -952,7 +952,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf1 USING hash RENAME TO alt_opf2;
 RESULT:
-	postgres: operator family "alt_opf2" for access method "hash" already exists in schema "alt_nsp1"
+	ERROR - operator family "alt_opf2" for access method "hash" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -960,14 +960,14 @@ QUERY:
   -- failed (name conflict)
 ALTER OPERATOR FAMILY alt_opf1 USING hash RENAME TO alt_opf3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR FAMILY alt_opf2 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -975,14 +975,14 @@ QUERY:
   -- failed (no role membership)
 ALTER OPERATOR FAMILY alt_opf2 USING hash OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR FAMILY alt_opf2 USING hash SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -990,7 +990,7 @@ QUERY:
 
 ALTER OPERATOR CLASS alt_opc1 USING hash RENAME TO alt_opc2;
 RESULT:
-	postgres: operator class "alt_opc2" for access method "hash" already exists in schema "alt_nsp1"
+	ERROR - operator class "alt_opc2" for access method "hash" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -998,14 +998,14 @@ QUERY:
   -- failed (name conflict)
 ALTER OPERATOR CLASS alt_opc1 USING hash RENAME TO alt_opc3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR CLASS alt_opc2 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -1013,14 +1013,14 @@ QUERY:
   -- failed (no role membership)
 ALTER OPERATOR CLASS alt_opc2 USING hash OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR CLASS alt_opc2 USING hash SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1028,7 +1028,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1036,28 +1036,28 @@ QUERY:
 
 CREATE OPERATOR FAMILY alt_opf1 USING hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf2 USING hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf1 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf2 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1065,28 +1065,28 @@ QUERY:
 
 CREATE OPERATOR CLASS alt_opc1 FOR TYPE macaddr USING hash AS STORAGE macaddr;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR CLASS alt_opc2 FOR TYPE macaddr USING hash AS STORAGE macaddr;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR CLASS alt_opc1 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR CLASS alt_opc2 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1094,7 +1094,7 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1102,7 +1102,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf3 USING hash RENAME TO alt_opf4;
 RESULT:
-	postgres: must be owner of operator family alt_opf3
+	ERROR - must be owner of operator family alt_opf3
 
 
 -----------
@@ -1110,14 +1110,14 @@ QUERY:
 	-- failed (not owner)
 ALTER OPERATOR FAMILY alt_opf1 USING hash RENAME TO alt_opf4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR FAMILY alt_opf3 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of operator family alt_opf3
+	ERROR - must be owner of operator family alt_opf3
 
 
 -----------
@@ -1125,7 +1125,7 @@ QUERY:
   -- failed (not owner)
 ALTER OPERATOR FAMILY alt_opf2 USING hash OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -1133,7 +1133,7 @@ QUERY:
   -- failed (no role membership)
 ALTER OPERATOR FAMILY alt_opf3 USING hash SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of operator family alt_opf3
+	ERROR - must be owner of operator family alt_opf3
 
 
 -----------
@@ -1141,7 +1141,7 @@ QUERY:
   -- failed (not owner)
 ALTER OPERATOR FAMILY alt_opf2 USING hash SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: operator family "alt_opf2" for access method "hash" already exists in schema "alt_nsp2"
+	ERROR - operator family "alt_opf2" for access method "hash" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -1150,7 +1150,7 @@ QUERY:
 
 ALTER OPERATOR CLASS alt_opc3 USING hash RENAME TO alt_opc4;
 RESULT:
-	postgres: must be owner of operator class alt_opc3
+	ERROR - must be owner of operator class alt_opc3
 
 
 -----------
@@ -1158,14 +1158,14 @@ QUERY:
 	-- failed (not owner)
 ALTER OPERATOR CLASS alt_opc1 USING hash RENAME TO alt_opc4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER OPERATOR CLASS alt_opc3 USING hash OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of operator class alt_opc3
+	ERROR - must be owner of operator class alt_opc3
 
 
 -----------
@@ -1173,7 +1173,7 @@ QUERY:
   -- failed (not owner)
 ALTER OPERATOR CLASS alt_opc2 USING hash OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -1181,7 +1181,7 @@ QUERY:
   -- failed (no role membership)
 ALTER OPERATOR CLASS alt_opc3 USING hash SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of operator class alt_opc3
+	ERROR - must be owner of operator class alt_opc3
 
 
 -----------
@@ -1189,7 +1189,7 @@ QUERY:
   -- failed (not owner)
 ALTER OPERATOR CLASS alt_opc2 USING hash SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: operator class "alt_opc2" for access method "hash" already exists in schema "alt_nsp2"
+	ERROR - operator class "alt_opc2" for access method "hash" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -1198,7 +1198,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1211,7 +1211,7 @@ SELECT nspname, opfname, amname, rolname
 	AND NOT opfname LIKE 'alt_opc%'
   ORDER BY nspname, opfname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_opf2', 'hash', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_opf3', 'hash', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_opf4', 'hash', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_opf2', 'hash', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_opf2', 'hash', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_opf3', 'hash', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_opf4', 'hash', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_opf2', 'hash', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -1223,7 +1223,7 @@ SELECT nspname, opcname, amname, rolname
     AND n.nspname IN ('alt_nsp1', 'alt_nsp2')
   ORDER BY nspname, opcname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_opc2', 'hash', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_opc3', 'hash', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_opc4', 'hash', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_opc2', 'hash', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_opc2', 'hash', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_opc3', 'hash', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_opc4', 'hash', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_opc2', 'hash', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -1234,14 +1234,14 @@ QUERY:
 -- Should work. Textbook case of CREATE / ALTER ADD / ALTER DROP / DROP
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf4 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1255,7 +1255,7 @@ ALTER OPERATOR FAMILY alt_opf4 USING btree ADD
   OPERATOR 5 > (int4, int2) ,
   FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1270,21 +1270,21 @@ ALTER OPERATOR FAMILY alt_opf4 USING btree DROP
   OPERATOR 5 (int4, int2) ,
   FUNCTION 1 (int4, int2) ;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP OPERATOR FAMILY alt_opf4 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1293,14 +1293,14 @@ QUERY:
 -- Should fail. Invalid values for ALTER OPERATOR FAMILY .. ADD / DROP
 CREATE OPERATOR FAMILY alt_opf4 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf4 USING invalid_index_method ADD  OPERATOR 1 < (int4, int2);
 RESULT:
-	postgres: access method "invalid_index_method" does not exist
+	ERROR - access method "invalid_index_method" does not exist
 
 
 -----------
@@ -1308,7 +1308,7 @@ QUERY:
  -- invalid indexing_method
 ALTER OPERATOR FAMILY alt_opf4 USING btree ADD OPERATOR 6 < (int4, int2);
 RESULT:
-	postgres: invalid operator number 6, must be between 1 and 5
+	ERROR - invalid operator number 6, must be between 1 and 5
 
 
 -----------
@@ -1316,7 +1316,7 @@ QUERY:
  -- operator number should be between 1 and 5
 ALTER OPERATOR FAMILY alt_opf4 USING btree ADD OPERATOR 0 < (int4, int2);
 RESULT:
-	postgres: invalid operator number 0, must be between 1 and 5
+	ERROR - invalid operator number 0, must be between 1 and 5
 
 
 -----------
@@ -1324,7 +1324,7 @@ QUERY:
  -- operator number should be between 1 and 5
 ALTER OPERATOR FAMILY alt_opf4 USING btree ADD OPERATOR 1 < ;
 RESULT:
-	postgres: operator argument types must be specified in ALTER OPERATOR FAMILY
+	ERROR - operator argument types must be specified in ALTER OPERATOR FAMILY
 
 
 -----------
@@ -1332,7 +1332,7 @@ QUERY:
  -- operator without argument types
 ALTER OPERATOR FAMILY alt_opf4 USING btree ADD FUNCTION 0 btint42cmp(int4, int2);
 RESULT:
-	postgres: invalid function number 0, must be between 1 and 5
+	ERROR - invalid function number 0, must be between 1 and 5
 
 
 -----------
@@ -1340,7 +1340,7 @@ QUERY:
  -- invalid options parsing function
 ALTER OPERATOR FAMILY alt_opf4 USING btree ADD FUNCTION 6 btint42cmp(int4, int2);
 RESULT:
-	postgres: invalid function number 6, must be between 1 and 5
+	ERROR - invalid function number 6, must be between 1 and 5
 
 
 -----------
@@ -1348,7 +1348,7 @@ QUERY:
  -- function number should be between 1 and 5
 ALTER OPERATOR FAMILY alt_opf4 USING btree ADD STORAGE invalid_storage;
 RESULT:
-	postgres: STORAGE cannot be specified in ALTER OPERATOR FAMILY
+	ERROR - STORAGE cannot be specified in ALTER OPERATOR FAMILY
 
 
 -----------
@@ -1356,7 +1356,7 @@ QUERY:
  -- Ensure STORAGE is not a part of ALTER OPERATOR FAMILY
 DROP OPERATOR FAMILY alt_opf4 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1365,35 +1365,35 @@ QUERY:
 -- Should fail. Need to be SUPERUSER to do ALTER OPERATOR FAMILY .. ADD / DROP
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_alter_generic_user5 NOSUPERUSER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf5 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_alter_generic_user5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf5 USING btree ADD OPERATOR 1 < (int4, int2), FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: must be superuser to alter an operator family
+	ERROR - must be superuser to alter an operator family
 
 
 -----------
@@ -1401,7 +1401,7 @@ QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1409,7 +1409,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf5 USING btree;
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1417,7 +1417,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1426,49 +1426,49 @@ QUERY:
 -- Should fail. Need rights to namespace for ALTER OPERATOR FAMILY .. ADD / DROP
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_alter_generic_user6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SCHEMA alt_nsp6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 REVOKE ALL ON SCHEMA alt_nsp6 FROM regress_alter_generic_user6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_nsp6.alt_opf6 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_alter_generic_user6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_nsp6.alt_opf6 USING btree ADD OPERATOR 1 < (int4, int2);
 RESULT:
-	postgres: permission denied for schema alt_nsp6
+	ERROR - permission denied for schema alt_nsp6
 
 
 -----------
@@ -1476,7 +1476,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1485,21 +1485,21 @@ QUERY:
 -- Should fail. Only two arguments required for ALTER OPERATOR FAMILY ... DROP OPERATOR
 CREATE OPERATOR FAMILY alt_opf7 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf7 USING btree ADD OPERATOR 1 < (int4, int2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf7 USING btree DROP OPERATOR 1 (int4, int2, int8);
 RESULT:
-	postgres: one or two argument types must be specified
+	ERROR - one or two argument types must be specified
 
 
 -----------
@@ -1507,7 +1507,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf7 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1517,21 +1517,21 @@ QUERY:
 -- when left type is the same as right type, a DROP with only one argument type should work
 CREATE OPERATOR FAMILY alt_opf8 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf8 USING btree ADD OPERATOR 1 < (int4, int4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP OPERATOR FAMILY alt_opf8 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1540,21 +1540,21 @@ QUERY:
 -- Should work. Textbook case of ALTER OPERATOR FAMILY ... ADD OPERATOR with FOR ORDER BY
 CREATE OPERATOR FAMILY alt_opf9 USING gist;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf9 USING gist ADD OPERATOR 1 < (int4, int4) FOR ORDER BY float_ops;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP OPERATOR FAMILY alt_opf9 USING gist;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1563,14 +1563,14 @@ QUERY:
 -- Should fail. Ensure correct ordering methods in ALTER OPERATOR FAMILY ... ADD OPERATOR .. FOR ORDER BY
 CREATE OPERATOR FAMILY alt_opf10 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf10 USING btree ADD OPERATOR 1 < (int4, int4) FOR ORDER BY float_ops;
 RESULT:
-	postgres: access method "btree" does not support ordering operators
+	ERROR - access method "btree" does not support ordering operators
 
 
 -----------
@@ -1578,7 +1578,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf10 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1587,28 +1587,28 @@ QUERY:
 -- Should work. Textbook case of ALTER OPERATOR FAMILY ... ADD OPERATOR with FOR ORDER BY
 CREATE OPERATOR FAMILY alt_opf11 USING gist;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf11 USING gist ADD OPERATOR 1 < (int4, int4) FOR ORDER BY float_ops;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf11 USING gist DROP OPERATOR 1 (int4, int4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP OPERATOR FAMILY alt_opf11 USING gist;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1617,21 +1617,21 @@ QUERY:
 -- Should fail. btree comparison functions should return INTEGER in ALTER OPERATOR FAMILY ... ADD FUNCTION
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf12 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FUNCTION fn_opf12  (int4, int2) RETURNS BIGINT AS 'SELECT NULL::BIGINT;
 RESULT:
-	postgres: unterminated quoted string at or near "'SELECT NULL::BIGINT;"
+	ERROR - unterminated quoted string at or near "'SELECT NULL::BIGINT;"
 LINE 2: ...FUNCTION fn_opf12  (int4, int2) RETURNS BIGINT AS 'SELECT NU...
                                                              ^
 
@@ -1640,7 +1640,7 @@ LINE 2: ...FUNCTION fn_opf12  (int4, int2) RETURNS BIGINT AS 'SELECT NU...
 QUERY:
 ' LANGUAGE SQL;
 RESULT:
-	postgres: unterminated quoted string at or near "' LANGUAGE SQL;"
+	ERROR - unterminated quoted string at or near "' LANGUAGE SQL;"
 LINE 1: ' LANGUAGE SQL;
         ^
 
@@ -1650,7 +1650,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf12 USING btree ADD FUNCTION 1 fn_opf12(int4, int2);
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1658,7 +1658,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf12 USING btree;
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1666,7 +1666,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1675,21 +1675,21 @@ QUERY:
 -- Should fail. hash comparison functions should return INTEGER in ALTER OPERATOR FAMILY ... ADD FUNCTION
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf13 USING hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FUNCTION fn_opf13  (int4) RETURNS BIGINT AS 'SELECT NULL::BIGINT;
 RESULT:
-	postgres: unterminated quoted string at or near "'SELECT NULL::BIGINT;"
+	ERROR - unterminated quoted string at or near "'SELECT NULL::BIGINT;"
 LINE 2: ...REATE FUNCTION fn_opf13  (int4) RETURNS BIGINT AS 'SELECT NU...
                                                              ^
 
@@ -1698,7 +1698,7 @@ LINE 2: ...REATE FUNCTION fn_opf13  (int4) RETURNS BIGINT AS 'SELECT NU...
 QUERY:
 ' LANGUAGE SQL;
 RESULT:
-	postgres: unterminated quoted string at or near "' LANGUAGE SQL;"
+	ERROR - unterminated quoted string at or near "' LANGUAGE SQL;"
 LINE 1: ' LANGUAGE SQL;
         ^
 
@@ -1708,7 +1708,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf13 USING hash ADD FUNCTION 1 fn_opf13(int4);
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1716,7 +1716,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf13 USING hash;
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1724,7 +1724,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1733,21 +1733,21 @@ QUERY:
 -- Should fail. btree comparison functions should have two arguments in ALTER OPERATOR FAMILY ... ADD FUNCTION
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf14 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FUNCTION fn_opf14 (int4) RETURNS BIGINT AS 'SELECT NULL::BIGINT;
 RESULT:
-	postgres: unterminated quoted string at or near "'SELECT NULL::BIGINT;"
+	ERROR - unterminated quoted string at or near "'SELECT NULL::BIGINT;"
 LINE 2: CREATE FUNCTION fn_opf14 (int4) RETURNS BIGINT AS 'SELECT NU...
                                                           ^
 
@@ -1756,7 +1756,7 @@ LINE 2: CREATE FUNCTION fn_opf14 (int4) RETURNS BIGINT AS 'SELECT NU...
 QUERY:
 ' LANGUAGE SQL;
 RESULT:
-	postgres: unterminated quoted string at or near "' LANGUAGE SQL;"
+	ERROR - unterminated quoted string at or near "' LANGUAGE SQL;"
 LINE 1: ' LANGUAGE SQL;
         ^
 
@@ -1766,7 +1766,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf14 USING btree ADD FUNCTION 1 fn_opf14(int4);
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1774,7 +1774,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf14 USING btree;
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1782,7 +1782,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1791,21 +1791,21 @@ QUERY:
 -- Should fail. hash comparison functions should have one argument in ALTER OPERATOR FAMILY ... ADD FUNCTION
 BEGIN TRANSACTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE OPERATOR FAMILY alt_opf15 USING hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FUNCTION fn_opf15 (int4, int2) RETURNS BIGINT AS 'SELECT NULL::BIGINT;
 RESULT:
-	postgres: unterminated quoted string at or near "'SELECT NULL::BIGINT;"
+	ERROR - unterminated quoted string at or near "'SELECT NULL::BIGINT;"
 LINE 2: ... FUNCTION fn_opf15 (int4, int2) RETURNS BIGINT AS 'SELECT NU...
                                                              ^
 
@@ -1814,7 +1814,7 @@ LINE 2: ... FUNCTION fn_opf15 (int4, int2) RETURNS BIGINT AS 'SELECT NU...
 QUERY:
 ' LANGUAGE SQL;
 RESULT:
-	postgres: unterminated quoted string at or near "' LANGUAGE SQL;"
+	ERROR - unterminated quoted string at or near "' LANGUAGE SQL;"
 LINE 1: ' LANGUAGE SQL;
         ^
 
@@ -1824,7 +1824,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf15 USING hash ADD FUNCTION 1 fn_opf15(int4, int2);
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1832,7 +1832,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf15 USING hash;
 RESULT:
-	postgres: current transaction is aborted, commands ignored until end of transaction block
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
 
 
 -----------
@@ -1840,7 +1840,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1850,14 +1850,14 @@ QUERY:
 -- without defining left / right type in ALTER OPERATOR FAMILY ... ADD FUNCTION
 CREATE OPERATOR FAMILY alt_opf16 USING gist;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf16 USING gist ADD FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: associated data types must be specified for index support function
+	ERROR - associated data types must be specified for index support function
 
 
 -----------
@@ -1865,7 +1865,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf16 USING gist;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1874,14 +1874,14 @@ QUERY:
 -- Should fail. duplicate operator number / function number in ALTER OPERATOR FAMILY ... ADD FUNCTION
 CREATE OPERATOR FAMILY alt_opf17 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf17 USING btree ADD OPERATOR 1 < (int4, int4), OPERATOR 1 < (int4, int4);
 RESULT:
-	postgres: operator number 1 for (integer,integer) appears more than once
+	ERROR - operator number 1 for (integer,integer) appears more than once
 
 
 -----------
@@ -1889,14 +1889,14 @@ QUERY:
  -- operator # appears twice in same statement
 ALTER OPERATOR FAMILY alt_opf17 USING btree ADD OPERATOR 1 < (int4, int4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- operator 1 requested first-time
 ALTER OPERATOR FAMILY alt_opf17 USING btree ADD OPERATOR 1 < (int4, int4);
 RESULT:
-	postgres: operator 1(integer,integer) already exists in operator family "alt_opf17"
+	ERROR - operator 1(integer,integer) already exists in operator family "alt_opf17"
 
 
 -----------
@@ -1911,7 +1911,7 @@ ALTER OPERATOR FAMILY alt_opf17 USING btree ADD
   FUNCTION 1 btint42cmp(int4, int2) ,
   FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: function number 1 for (integer,smallint) appears more than once
+	ERROR - function number 1 for (integer,smallint) appears more than once
 
 
 -----------
@@ -1925,7 +1925,7 @@ ALTER OPERATOR FAMILY alt_opf17 USING btree ADD
   OPERATOR 5 > (int4, int2) ,
   FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1938,7 +1938,7 @@ ALTER OPERATOR FAMILY alt_opf17 USING btree ADD
   OPERATOR 5 > (int4, int2) ,
   FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: operator 1(integer,smallint) already exists in operator family "alt_opf17"
+	ERROR - operator 1(integer,smallint) already exists in operator family "alt_opf17"
 
 
 -----------
@@ -1946,7 +1946,7 @@ QUERY:
     -- procedure 1 requested again in separate statement
 DROP OPERATOR FAMILY alt_opf17 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1957,14 +1957,14 @@ QUERY:
 -- return appropriate message in ALTER OPERATOR FAMILY ... DROP OPERATOR / FUNCTION
 CREATE OPERATOR FAMILY alt_opf18 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf18 USING btree DROP OPERATOR 1 (int4, int4);
 RESULT:
-	postgres: operator 1(integer,integer) does not exist in operator family "alt_opf18"
+	ERROR - operator 1(integer,integer) does not exist in operator family "alt_opf18"
 
 
 -----------
@@ -1978,7 +1978,7 @@ ALTER OPERATOR FAMILY alt_opf18 USING btree ADD
   OPERATOR 5 > (int4, int2) ,
   FUNCTION 1 btint42cmp(int4, int2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1987,7 +1987,7 @@ QUERY:
 ALTER OPERATOR FAMILY alt_opf18 USING btree
   ADD FUNCTION 4 (int4, int2) btequalimage(oid);
 RESULT:
-	postgres: btree equal image functions must not be cross-type
+	ERROR - btree equal image functions must not be cross-type
 
 
 -----------
@@ -1995,7 +1995,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf18 USING btree DROP FUNCTION 2 (int4, int4);
 RESULT:
-	postgres: function 2(integer,integer) does not exist in operator family "alt_opf18"
+	ERROR - function 2(integer,integer) does not exist in operator family "alt_opf18"
 
 
 -----------
@@ -2003,7 +2003,7 @@ QUERY:
 
 DROP OPERATOR FAMILY alt_opf18 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2012,14 +2012,14 @@ QUERY:
 -- Should fail. Invalid opclass options function (#5) specifications.
 CREATE OPERATOR FAMILY alt_opf19 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER OPERATOR FAMILY alt_opf19 USING btree ADD FUNCTION 5 test_opclass_options_func(internal, text[], bool);
 RESULT:
-	postgres: function test_opclass_options_func(internal, text[], boolean) does not exist
+	ERROR - function test_opclass_options_func(internal, text[], boolean) does not exist
 
 
 -----------
@@ -2027,7 +2027,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf19 USING btree ADD FUNCTION 5 (int4) btint42cmp(int4, int2);
 RESULT:
-	postgres: invalid operator class options parsing function
+	ERROR - invalid operator class options parsing function
 HINT:  Valid signature of operator class options parsing function is (internal) RETURNS void.
 
 
@@ -2036,7 +2036,7 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf19 USING btree ADD FUNCTION 5 (int4, int2) btint42cmp(int4, int2);
 RESULT:
-	postgres: left and right associated data types for operator class options parsing functions must match
+	ERROR - left and right associated data types for operator class options parsing functions must match
 
 
 -----------
@@ -2044,21 +2044,21 @@ QUERY:
 
 ALTER OPERATOR FAMILY alt_opf19 USING btree ADD FUNCTION 5 (int4) test_opclass_options_func(internal);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- Ok
 ALTER OPERATOR FAMILY alt_opf19 USING btree DROP FUNCTION 5 (int4, int4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP OPERATOR FAMILY alt_opf19 USING btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2069,28 +2069,28 @@ QUERY:
 --
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE alt_regress_1 (a INTEGER, b INTEGER);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS alt_stat1 ON a, b FROM alt_regress_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS alt_stat2 ON a, b FROM alt_regress_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2098,7 +2098,7 @@ QUERY:
 
 ALTER STATISTICS alt_stat1 RENAME TO alt_stat2;
 RESULT:
-	postgres: statistics object "alt_stat2" already exists in schema "alt_nsp1"
+	ERROR - statistics object "alt_stat2" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -2106,14 +2106,14 @@ QUERY:
    -- failed (name conflict)
 ALTER STATISTICS alt_stat1 RENAME TO alt_stat3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
    -- OK
 ALTER STATISTICS alt_stat2 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -2121,14 +2121,14 @@ QUERY:
   -- failed (no role membership)
 ALTER STATISTICS alt_stat2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER STATISTICS alt_stat2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2136,28 +2136,28 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE alt_regress_2 (a INTEGER, b INTEGER);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS alt_stat1 ON a, b FROM alt_regress_2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS alt_stat2 ON a, b FROM alt_regress_2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2165,7 +2165,7 @@ QUERY:
 
 ALTER STATISTICS alt_stat3 RENAME TO alt_stat4;
 RESULT:
-	postgres: must be owner of statistics object alt_stat3
+	ERROR - must be owner of statistics object alt_stat3
 
 
 -----------
@@ -2173,14 +2173,14 @@ QUERY:
     -- failed (not owner)
 ALTER STATISTICS alt_stat1 RENAME TO alt_stat4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
     -- OK
 ALTER STATISTICS alt_stat3 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of statistics object alt_stat3
+	ERROR - must be owner of statistics object alt_stat3
 
 
 -----------
@@ -2188,7 +2188,7 @@ QUERY:
  -- failed (not owner)
 ALTER STATISTICS alt_stat2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -2196,7 +2196,7 @@ QUERY:
  -- failed (no role membership)
 ALTER STATISTICS alt_stat3 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of statistics object alt_stat3
+	ERROR - must be owner of statistics object alt_stat3
 
 
 -----------
@@ -2204,7 +2204,7 @@ QUERY:
 		-- failed (not owner)
 ALTER STATISTICS alt_stat2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: statistics object "alt_stat2" already exists in schema "alt_nsp2"
+	ERROR - statistics object "alt_stat2" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -2213,7 +2213,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2224,7 +2224,7 @@ SELECT nspname, stxname, rolname
    AND n.nspname in ('alt_nsp1', 'alt_nsp2')
  ORDER BY nspname, stxname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_stat2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_stat3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_stat4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_stat2', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_stat2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_stat3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_stat4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_stat2', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -2235,21 +2235,21 @@ QUERY:
 --
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH DICTIONARY alt_ts_dict1 (template=simple);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH DICTIONARY alt_ts_dict2 (template=simple);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2257,7 +2257,7 @@ QUERY:
 
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict1 RENAME TO alt_ts_dict2;
 RESULT:
-	postgres: text search dictionary "alt_ts_dict2" already exists in schema "alt_nsp1"
+	ERROR - text search dictionary "alt_ts_dict2" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -2265,14 +2265,14 @@ QUERY:
   -- failed (name conflict)
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict1 RENAME TO alt_ts_dict3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict2 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -2280,14 +2280,14 @@ QUERY:
   -- failed (no role membership)
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2295,21 +2295,21 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH DICTIONARY alt_ts_dict1 (template=simple);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH DICTIONARY alt_ts_dict2 (template=simple);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2317,7 +2317,7 @@ QUERY:
 
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict3 RENAME TO alt_ts_dict4;
 RESULT:
-	postgres: must be owner of text search dictionary alt_ts_dict3
+	ERROR - must be owner of text search dictionary alt_ts_dict3
 
 
 -----------
@@ -2325,14 +2325,14 @@ QUERY:
   -- failed (not owner)
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict1 RENAME TO alt_ts_dict4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict3 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of text search dictionary alt_ts_dict3
+	ERROR - must be owner of text search dictionary alt_ts_dict3
 
 
 -----------
@@ -2340,7 +2340,7 @@ QUERY:
   -- failed (not owner)
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -2348,7 +2348,7 @@ QUERY:
   -- failed (no role membership)
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict3 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of text search dictionary alt_ts_dict3
+	ERROR - must be owner of text search dictionary alt_ts_dict3
 
 
 -----------
@@ -2356,7 +2356,7 @@ QUERY:
   -- failed (not owner)
 ALTER TEXT SEARCH DICTIONARY alt_ts_dict2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: text search dictionary "alt_ts_dict2" already exists in schema "alt_nsp2"
+	ERROR - text search dictionary "alt_ts_dict2" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -2365,7 +2365,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2377,7 +2377,7 @@ SELECT nspname, dictname, rolname
     AND n.nspname in ('alt_nsp1', 'alt_nsp2')
   ORDER BY nspname, dictname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_ts_dict2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_ts_dict3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_ts_dict4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_ts_dict2', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_ts_dict2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_ts_dict3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_ts_dict4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_ts_dict2', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -2388,21 +2388,21 @@ QUERY:
 --
 SET SESSION AUTHORIZATION regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH CONFIGURATION alt_ts_conf1 (copy=english);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH CONFIGURATION alt_ts_conf2 (copy=english);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2410,7 +2410,7 @@ QUERY:
 
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf1 RENAME TO alt_ts_conf2;
 RESULT:
-	postgres: text search configuration "alt_ts_conf2" already exists in schema "alt_nsp1"
+	ERROR - text search configuration "alt_ts_conf2" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -2418,14 +2418,14 @@ QUERY:
   -- failed (name conflict)
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf1 RENAME TO alt_ts_conf3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf2 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user2"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user2"
 
 
 -----------
@@ -2433,14 +2433,14 @@ QUERY:
   -- failed (no role membership)
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2448,21 +2448,21 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH CONFIGURATION alt_ts_conf1 (copy=english);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH CONFIGURATION alt_ts_conf2 (copy=english);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2470,7 +2470,7 @@ QUERY:
 
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf3 RENAME TO alt_ts_conf4;
 RESULT:
-	postgres: must be owner of text search configuration alt_ts_conf3
+	ERROR - must be owner of text search configuration alt_ts_conf3
 
 
 -----------
@@ -2478,14 +2478,14 @@ QUERY:
   -- failed (not owner)
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf1 RENAME TO alt_ts_conf4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- OK
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf3 OWNER TO regress_alter_generic_user2;
 RESULT:
-	postgres: must be owner of text search configuration alt_ts_conf3
+	ERROR - must be owner of text search configuration alt_ts_conf3
 
 
 -----------
@@ -2493,7 +2493,7 @@ QUERY:
   -- failed (not owner)
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf2 OWNER TO regress_alter_generic_user3;
 RESULT:
-	postgres: must be able to SET ROLE "regress_alter_generic_user3"
+	ERROR - must be able to SET ROLE "regress_alter_generic_user3"
 
 
 -----------
@@ -2501,7 +2501,7 @@ QUERY:
   -- failed (no role membership)
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf3 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: must be owner of text search configuration alt_ts_conf3
+	ERROR - must be owner of text search configuration alt_ts_conf3
 
 
 -----------
@@ -2509,7 +2509,7 @@ QUERY:
   -- failed (not owner)
 ALTER TEXT SEARCH CONFIGURATION alt_ts_conf2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: text search configuration "alt_ts_conf2" already exists in schema "alt_nsp2"
+	ERROR - text search configuration "alt_ts_conf2" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -2518,7 +2518,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2530,7 +2530,7 @@ SELECT nspname, cfgname, rolname
     AND n.nspname in ('alt_nsp1', 'alt_nsp2')
   ORDER BY nspname, cfgname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_ts_conf2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_ts_conf3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_ts_conf4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_ts_conf2', 'regress_alter_generic_user3')]
+	[('alt_nsp1', 'alt_ts_conf2', 'regress_alter_generic_user2'), ('alt_nsp1', 'alt_ts_conf3', 'regress_alter_generic_user1'), ('alt_nsp1', 'alt_ts_conf4', 'regress_alter_generic_user2'), ('alt_nsp2', 'alt_ts_conf2', 'regress_alter_generic_user3')]
 
 -----------
 QUERY:
@@ -2541,14 +2541,14 @@ QUERY:
 --
 CREATE TEXT SEARCH TEMPLATE alt_ts_temp1 (lexize=dsimple_lexize);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TEXT SEARCH TEMPLATE alt_ts_temp2 (lexize=dsimple_lexize);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2556,7 +2556,7 @@ QUERY:
 
 ALTER TEXT SEARCH TEMPLATE alt_ts_temp1 RENAME TO alt_ts_temp2;
 RESULT:
-	postgres: text search template "alt_ts_temp2" already exists in schema "alt_nsp1"
+	ERROR - text search template "alt_ts_temp2" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -2564,14 +2564,14 @@ QUERY:
  -- failed (name conflict)
 ALTER TEXT SEARCH TEMPLATE alt_ts_temp1 RENAME TO alt_ts_temp3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- OK
 ALTER TEXT SEARCH TEMPLATE alt_ts_temp2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2579,14 +2579,14 @@ QUERY:
 
 CREATE TEXT SEARCH TEMPLATE alt_ts_temp2 (lexize=dsimple_lexize);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TEXT SEARCH TEMPLATE alt_ts_temp2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: text search template "alt_ts_temp2" already exists in schema "alt_nsp2"
+	ERROR - text search template "alt_ts_temp2" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -2596,7 +2596,7 @@ QUERY:
 -- invalid: non-lowercase quoted identifiers
 CREATE TEXT SEARCH TEMPLATE tstemp_case ("Init" = init_function);
 RESULT:
-	postgres: text search template parameter "Init" not recognized
+	ERROR - text search template parameter "Init" not recognized
 
 
 -----------
@@ -2608,7 +2608,7 @@ SELECT nspname, tmplname
   WHERE t.tmplnamespace = n.oid AND nspname like 'alt_nsp%'
   ORDER BY nspname, tmplname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_ts_temp2'), ('alt_nsp1', 'alt_ts_temp3'), ('alt_nsp2', 'alt_ts_temp2')]
+	[('alt_nsp1', 'alt_ts_temp2'), ('alt_nsp1', 'alt_ts_temp3'), ('alt_nsp2', 'alt_ts_temp2')]
 
 -----------
 QUERY:
@@ -2621,7 +2621,7 @@ QUERY:
 CREATE TEXT SEARCH PARSER alt_ts_prs1
     (start = prsd_start, gettoken = prsd_nexttoken, end = prsd_end, lextypes = prsd_lextype);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2629,7 +2629,7 @@ QUERY:
 CREATE TEXT SEARCH PARSER alt_ts_prs2
     (start = prsd_start, gettoken = prsd_nexttoken, end = prsd_end, lextypes = prsd_lextype);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2637,7 +2637,7 @@ QUERY:
 
 ALTER TEXT SEARCH PARSER alt_ts_prs1 RENAME TO alt_ts_prs2;
 RESULT:
-	postgres: text search parser "alt_ts_prs2" already exists in schema "alt_nsp1"
+	ERROR - text search parser "alt_ts_prs2" already exists in schema "alt_nsp1"
 
 
 -----------
@@ -2645,14 +2645,14 @@ QUERY:
  -- failed (name conflict)
 ALTER TEXT SEARCH PARSER alt_ts_prs1 RENAME TO alt_ts_prs3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- OK
 ALTER TEXT SEARCH PARSER alt_ts_prs2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2661,14 +2661,14 @@ QUERY:
 CREATE TEXT SEARCH PARSER alt_ts_prs2
     (start = prsd_start, gettoken = prsd_nexttoken, end = prsd_end, lextypes = prsd_lextype);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TEXT SEARCH PARSER alt_ts_prs2 SET SCHEMA alt_nsp2;
 RESULT:
-	postgres: text search parser "alt_ts_prs2" already exists in schema "alt_nsp2"
+	ERROR - text search parser "alt_ts_prs2" already exists in schema "alt_nsp2"
 
 
 -----------
@@ -2678,7 +2678,7 @@ QUERY:
 -- invalid: non-lowercase quoted identifiers
 CREATE TEXT SEARCH PARSER tspars_case ("Start" = start_function);
 RESULT:
-	postgres: text search parser parameter "Start" not recognized
+	ERROR - text search parser parameter "Start" not recognized
 
 
 -----------
@@ -2690,7 +2690,7 @@ SELECT nspname, prsname
   WHERE t.prsnamespace = n.oid AND nspname like 'alt_nsp%'
   ORDER BY nspname, prsname;
 RESULT:
-	postgres: [('alt_nsp1', 'alt_ts_prs2'), ('alt_nsp1', 'alt_ts_prs3'), ('alt_nsp2', 'alt_ts_prs2')]
+	[('alt_nsp1', 'alt_ts_prs2'), ('alt_nsp1', 'alt_ts_prs3'), ('alt_nsp2', 'alt_ts_prs2')]
 
 -----------
 QUERY:
@@ -2701,14 +2701,14 @@ QUERY:
 ---
 DROP FOREIGN DATA WRAPPER alt_fdw2 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER alt_fdw3 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2716,14 +2716,14 @@ QUERY:
 
 DROP LANGUAGE alt_lang2 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP LANGUAGE alt_lang3 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2731,14 +2731,14 @@ QUERY:
 
 DROP SCHEMA alt_nsp1 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SCHEMA alt_nsp2 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2746,18 +2746,18 @@ QUERY:
 
 DROP USER regress_alter_generic_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER regress_alter_generic_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER regress_alter_generic_user3;
 RESULT:
-	postgres: None
+	[]

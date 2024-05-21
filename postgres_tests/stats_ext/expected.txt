@@ -5,8 +5,8 @@ QUERY:
 
 --
 -- Note: tables for which we check estimated row counts should be created
--- with autovacuum_enabled = off, so that we don/* REPLACED */''t have unstable results
--- from auto-analyze happening when we didn/* REPLACED */''t expect it.
+-- with autovacuum_enabled = off, so that we don/* REPLACED */ ''t have unstable results
+-- from auto-analyze happening when we didn/* REPLACED */ ''t expect it.
 --
 
 -- check the number of estimated/actual rows in the top node
@@ -30,7 +30,7 @@ begin
 end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -39,14 +39,14 @@ QUERY:
 -- Verify failures
 CREATE TABLE ext_stats_test (x text, y int, z int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS tst;
 RESULT:
-	postgres: syntax error at or near ";"
+	ERROR - syntax error at or near ";"
 LINE 2: CREATE STATISTICS tst;
                              ^
 
@@ -56,7 +56,7 @@ QUERY:
 
 CREATE STATISTICS tst ON a, b;
 RESULT:
-	postgres: syntax error at or near ";"
+	ERROR - syntax error at or near ";"
 LINE 2: CREATE STATISTICS tst ON a, b;
                                      ^
 
@@ -66,7 +66,7 @@ QUERY:
 
 CREATE STATISTICS tst FROM sometab;
 RESULT:
-	postgres: syntax error at or near "FROM"
+	ERROR - syntax error at or near "FROM"
 LINE 2: CREATE STATISTICS tst FROM sometab;
                               ^
 
@@ -76,7 +76,7 @@ QUERY:
 
 CREATE STATISTICS tst ON a, b FROM nonexistent;
 RESULT:
-	postgres: relation "nonexistent" does not exist
+	ERROR - relation "nonexistent" does not exist
 
 
 -----------
@@ -84,7 +84,7 @@ QUERY:
 
 CREATE STATISTICS tst ON a, b FROM ext_stats_test;
 RESULT:
-	postgres: column "a" does not exist
+	ERROR - column "a" does not exist
 
 
 -----------
@@ -92,7 +92,7 @@ QUERY:
 
 CREATE STATISTICS tst ON x, x, y FROM ext_stats_test;
 RESULT:
-	postgres: duplicate column name in statistics definition
+	ERROR - duplicate column name in statistics definition
 
 
 -----------
@@ -100,7 +100,7 @@ QUERY:
 
 CREATE STATISTICS tst ON x, x, y, x, x, y, x, x, y FROM ext_stats_test;
 RESULT:
-	postgres: cannot have more than 8 columns in statistics
+	ERROR - cannot have more than 8 columns in statistics
 
 
 -----------
@@ -108,7 +108,7 @@ QUERY:
 
 CREATE STATISTICS tst ON x, x, y, x, x, (x || 'x'), (y + 1), (x || 'x'), (x || 'x'), (y + 1) FROM ext_stats_test;
 RESULT:
-	postgres: cannot have more than 8 columns in statistics
+	ERROR - cannot have more than 8 columns in statistics
 
 
 -----------
@@ -116,7 +116,7 @@ QUERY:
 
 CREATE STATISTICS tst ON (x || 'x'), (x || 'x'), (y + 1), (x || 'x'), (x || 'x'), (y + 1), (x || 'x'), (x || 'x'), (y + 1) FROM ext_stats_test;
 RESULT:
-	postgres: cannot have more than 8 columns in statistics
+	ERROR - cannot have more than 8 columns in statistics
 
 
 -----------
@@ -124,7 +124,7 @@ QUERY:
 
 CREATE STATISTICS tst ON (x || 'x'), (x || 'x'), y FROM ext_stats_test;
 RESULT:
-	postgres: duplicate expression in statistics definition
+	ERROR - duplicate expression in statistics definition
 
 
 -----------
@@ -132,7 +132,7 @@ QUERY:
 
 CREATE STATISTICS tst (unrecognized) ON x, y FROM ext_stats_test;
 RESULT:
-	postgres: unrecognized statistics kind "unrecognized"
+	ERROR - unrecognized statistics kind "unrecognized"
 
 
 -----------
@@ -141,7 +141,7 @@ QUERY:
 -- incorrect expressions
 CREATE STATISTICS tst ON (y) FROM ext_stats_test;
 RESULT:
-	postgres: extended statistics require at least 2 columns
+	ERROR - extended statistics require at least 2 columns
 
 
 -----------
@@ -149,7 +149,7 @@ QUERY:
  -- single column reference
 CREATE STATISTICS tst ON y + z FROM ext_stats_test;
 RESULT:
-	postgres: syntax error at or near "+"
+	ERROR - syntax error at or near "+"
 LINE 2: CREATE STATISTICS tst ON y + z FROM ext_stats_test;
                                    ^
 
@@ -159,7 +159,7 @@ QUERY:
  -- missing parentheses
 CREATE STATISTICS tst ON (x, y) FROM ext_stats_test;
 RESULT:
-	postgres: syntax error at or near ","
+	ERROR - syntax error at or near ","
 LINE 2: CREATE STATISTICS tst ON (x, y) FROM ext_stats_test;
                                    ^
 
@@ -169,7 +169,7 @@ QUERY:
  -- tuple expression
 DROP TABLE ext_stats_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -178,42 +178,42 @@ QUERY:
 -- Ensure stats are dropped sanely, and test IF NOT EXISTS while at it
 CREATE TABLE ab1 (a INTEGER, b INTEGER, c INTEGER);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS IF NOT EXISTS ab1_a_b_stats ON a, b FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON STATISTICS ab1_a_b_stats IS 'new comment';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_stats_ext;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_stats_ext;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON STATISTICS ab1_a_b_stats IS 'changed comment';
 RESULT:
-	postgres: must be owner of statistics object ab1_a_b_stats
+	ERROR - must be owner of statistics object ab1_a_b_stats
 
 
 -----------
@@ -221,7 +221,7 @@ QUERY:
 
 DROP STATISTICS ab1_a_b_stats;
 RESULT:
-	postgres: must be owner of statistics object ab1_a_b_stats
+	ERROR - must be owner of statistics object ab1_a_b_stats
 
 
 -----------
@@ -229,7 +229,7 @@ QUERY:
 
 ALTER STATISTICS ab1_a_b_stats RENAME TO ab1_a_b_stats_new;
 RESULT:
-	postgres: must be owner of statistics object ab1_a_b_stats
+	ERROR - must be owner of statistics object ab1_a_b_stats
 
 
 -----------
@@ -237,14 +237,14 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_stats_ext;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -252,14 +252,14 @@ QUERY:
 
 CREATE STATISTICS IF NOT EXISTS ab1_a_b_stats ON a, b FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS ab1_a_b_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -267,23 +267,23 @@ QUERY:
 
 CREATE SCHEMA regress_schema_2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS regress_schema_2.ab1_a_b_stats ON a, b FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- Let/* REPLACED */''s also verify the pg_get_statisticsobjdef output looks sane.
+-- Let/* REPLACED */ ''s also verify the pg_get_statisticsobjdef output looks sane.
 SELECT pg_get_statisticsobjdef(oid) FROM pg_statistic_ext WHERE stxname = 'ab1_a_b_stats';
 RESULT:
-	postgres: [('CREATE STATISTICS regress_schema_2.ab1_a_b_stats ON a, b FROM ab1',)]
+	[('CREATE STATISTICS regress_schema_2.ab1_a_b_stats ON a, b FROM ab1',)]
 
 -----------
 QUERY:
@@ -291,7 +291,7 @@ QUERY:
 
 DROP STATISTICS regress_schema_2.ab1_a_b_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -300,28 +300,28 @@ QUERY:
 -- Ensure statistics are dropped when columns are
 CREATE STATISTICS ab1_b_c_stats ON b, c FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS ab1_a_b_c_stats ON a, b, c FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS ab1_b_a_stats ON b, a FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE ab1 DROP COLUMN a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -330,21 +330,21 @@ QUERY:
 -- Ensure statistics are dropped when table is
 SELECT stxname FROM pg_statistic_ext WHERE stxname LIKE 'ab1%';
 RESULT:
-	postgres: [('ab1_b_c_stats',)]
+	[('ab1_b_c_stats',)]
 
 -----------
 QUERY:
 
 DROP TABLE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT stxname FROM pg_statistic_ext WHERE stxname LIKE 'ab1%';
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -353,42 +353,42 @@ QUERY:
 -- Ensure things work sanely with SET STATISTICS 0
 CREATE TABLE ab1 (a INTEGER, b INTEGER);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE ab1 ALTER a SET STATISTICS 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO ab1 SELECT a, a%23 FROM generate_series(1, 1000) a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS ab1_a_b_stats ON a, b FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE ab1 ALTER a SET STATISTICS -1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -396,7 +396,7 @@ QUERY:
 -- setting statistics target 0 skips the statistics, without printing any message, so check catalog
 ALTER STATISTICS ab1_a_b_stats SET STATISTICS 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -404,7 +404,7 @@ QUERY:
 -- \d ab1
 ANALYZE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -413,44 +413,44 @@ SELECT stxname, stxdndistinct, stxddependencies, stxdmcv, stxdinherit
   FROM pg_statistic_ext s LEFT JOIN pg_statistic_ext_data d ON (d.stxoid = s.oid)
  WHERE s.stxname = 'ab1_a_b_stats';
 RESULT:
-	postgres: [('ab1_a_b_stats', None, None, None, None)]
+	[('ab1_a_b_stats', None, None, None, None)]
 
 -----------
 QUERY:
 
 ALTER STATISTICS ab1_a_b_stats SET STATISTICS -1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 -- \d+ ab1
--- partial analyze doesn/* REPLACED */''t build stats either
+-- partial analyze doesn/* REPLACED */ ''t build stats either
 ANALYZE ab1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER STATISTICS ab1_a_b_stats SET STATISTICS 0;
 RESULT:
-	postgres: statistics object "ab1_a_b_stats" does not exist
+	ERROR - statistics object "ab1_a_b_stats" does not exist
 
 
 -----------
@@ -458,7 +458,7 @@ QUERY:
 
 ALTER STATISTICS IF EXISTS ab1_a_b_stats SET STATISTICS 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -467,42 +467,42 @@ QUERY:
 -- Ensure we can build statistics for tables with inheritance.
 CREATE TABLE ab1 (a INTEGER, b INTEGER);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE ab1c () INHERITS (ab1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO ab1 VALUES (1,1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS ab1_a_b_stats ON a, b FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE ab1 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -511,49 +511,49 @@ QUERY:
 -- Tests for stats with inheritance
 CREATE TABLE stxdinh(a int, b int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE stxdinh1() INHERITS(stxdinh);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE stxdinh2() INHERITS(stxdinh);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO stxdinh SELECT mod(a,50), mod(a,100) FROM generate_series(0, 1999) a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO stxdinh1 SELECT mod(a,100), mod(a,100) FROM generate_series(0, 999) a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO stxdinh2 SELECT mod(a,100), mod(a,100) FROM generate_series(0, 999) a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 VACUUM ANALYZE stxdinh, stxdinh1, stxdinh2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -562,28 +562,28 @@ QUERY:
 -- Without stats object, it looks like this
 SELECT * FROM check_estimated_rows('SELECT a, b FROM stxdinh* GROUP BY 1, 2');
 RESULT:
-	postgres: [(400, 150)]
+	[(400, 150)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT a, b FROM stxdinh* WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(3, 40)]
+	[(3, 40)]
 
 -----------
 QUERY:
 
 CREATE STATISTICS stxdinh ON a, b FROM stxdinh;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 VACUUM ANALYZE stxdinh, stxdinh1, stxdinh2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -591,7 +591,7 @@ QUERY:
 -- See if the extended stats affect the estimates
 SELECT * FROM check_estimated_rows('SELECT a, b FROM stxdinh* GROUP BY 1, 2');
 RESULT:
-	postgres: [(150, 150)]
+	[(150, 150)]
 
 -----------
 QUERY:
@@ -600,7 +600,7 @@ QUERY:
 -- this estimate changes a bit because we improve estimates for the parent
 SELECT * FROM check_estimated_rows('SELECT a, b FROM stxdinh* WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(22, 40)]
+	[(22, 40)]
 
 -----------
 QUERY:
@@ -608,21 +608,21 @@ QUERY:
 -- Ensure correct (non-inherited) stats are applied to inherited query
 SELECT * FROM check_estimated_rows('SELECT a, b FROM ONLY stxdinh GROUP BY 1, 2');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT a, b FROM ONLY stxdinh WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(20, 20)]
+	[(20, 20)]
 
 -----------
 QUERY:
 
 DROP TABLE stxdinh, stxdinh1, stxdinh2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -631,63 +631,63 @@ QUERY:
 -- Ensure inherited stats ARE applied to inherited query in partitioned table
 CREATE TABLE stxdinp(i int, a int, b int) PARTITION BY RANGE (i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE stxdinp1 PARTITION OF stxdinp FOR VALUES FROM (1) TO (100);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO stxdinp SELECT 1, a/100, a/100 FROM generate_series(1, 999) a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS stxdinp ON (a + 1), a, b FROM stxdinp;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 VACUUM ANALYZE stxdinp;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- partitions are processed recursively
 SELECT 1 FROM pg_statistic_ext WHERE stxrelid = 'stxdinp'::regclass;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT a, b FROM stxdinp GROUP BY 1, 2');
 RESULT:
-	postgres: [(10, 10)]
+	[(10, 10)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT a + 1, b FROM ONLY stxdinp GROUP BY 1, 2');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
 
 DROP TABLE stxdinp;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -696,7 +696,7 @@ QUERY:
 -- basic test for statistics on expressions
 CREATE TABLE ab1 (a INTEGER, b INTEGER, c TIMESTAMP, d TIMESTAMPTZ);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -705,7 +705,7 @@ QUERY:
 -- expression stats may be built on a single expression column
 CREATE STATISTICS ab1_exprstat_1 ON (a+b) FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -714,14 +714,14 @@ QUERY:
 -- with a single expression, we only enable expression statistics
 CREATE STATISTICS ab1_exprstat_2 ON (a+b) FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT stxkind FROM pg_statistic_ext WHERE stxname = 'ab1_exprstat_2';
 RESULT:
-	postgres: [(['e'],)]
+	[(['e'],)]
 
 -----------
 QUERY:
@@ -730,14 +730,14 @@ QUERY:
 -- adding anything to the expression builds all statistics kinds
 CREATE STATISTICS ab1_exprstat_3 ON (a+b), a FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT stxkind FROM pg_statistic_ext WHERE stxname = 'ab1_exprstat_3';
 RESULT:
-	postgres: [(['d', 'f', 'm', 'e'],)]
+	[(['d', 'f', 'm', 'e'],)]
 
 -----------
 QUERY:
@@ -746,7 +746,7 @@ QUERY:
 -- date_trunc on timestamptz is not immutable, but that should not matter
 CREATE STATISTICS ab1_exprstat_4 ON date_trunc('day', d) FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -755,7 +755,7 @@ QUERY:
 -- date_trunc on timestamp is immutable
 CREATE STATISTICS ab1_exprstat_5 ON date_trunc('day', c) FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -765,7 +765,7 @@ QUERY:
 CREATE STATISTICS ab1_exprstat_6 ON
   (case a when 1 then true else false end), b FROM ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -778,14 +778,14 @@ SELECT x / 10, x / 3,
     '2020-10-01'::timestamptz + x * interval '1 day'
 FROM generate_series(1, 100) x;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -794,7 +794,7 @@ QUERY:
 -- apply some stats
 SELECT * FROM check_estimated_rows('SELECT * FROM ab1 WHERE (case a when 1 then true else false end) AND b=2');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -802,7 +802,7 @@ QUERY:
 
 DROP TABLE ab1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -811,7 +811,7 @@ QUERY:
 -- Verify supported object types for extended statistics
 CREATE schema tststats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -819,77 +819,77 @@ QUERY:
 
 CREATE TABLE tststats.t (a int, b int, c text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX ti ON tststats.t (a, b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SEQUENCE tststats.s;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE VIEW tststats.v AS SELECT * FROM tststats.t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW tststats.mv AS SELECT * FROM tststats.t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TYPE tststats.ty AS (a int, b int, c text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER extstats_dummy_fdw;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER extstats_dummy_srv FOREIGN DATA WRAPPER extstats_dummy_fdw;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN TABLE tststats.f (a int, b int, c text) SERVER extstats_dummy_srv;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE tststats.pt (a int, b int, c text) PARTITION BY RANGE (a, b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE tststats.pt1 PARTITION OF tststats.pt FOR VALUES FROM (-10, -10) TO (10, 10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -897,14 +897,14 @@ QUERY:
 
 CREATE STATISTICS tststats.s1 ON a, b FROM tststats.t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS tststats.s2 ON a, b FROM tststats.ti;
 RESULT:
-	postgres: cannot define statistics for relation "ti"
+	ERROR - cannot define statistics for relation "ti"
 DETAIL:  This operation is not supported for indexes.
 
 
@@ -913,7 +913,7 @@ QUERY:
 
 CREATE STATISTICS tststats.s3 ON a, b FROM tststats.s;
 RESULT:
-	postgres: cannot define statistics for relation "s"
+	ERROR - cannot define statistics for relation "s"
 DETAIL:  This operation is not supported for sequences.
 
 
@@ -922,7 +922,7 @@ QUERY:
 
 CREATE STATISTICS tststats.s4 ON a, b FROM tststats.v;
 RESULT:
-	postgres: cannot define statistics for relation "v"
+	ERROR - cannot define statistics for relation "v"
 DETAIL:  This operation is not supported for views.
 
 
@@ -931,14 +931,14 @@ QUERY:
 
 CREATE STATISTICS tststats.s5 ON a, b FROM tststats.mv;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS tststats.s6 ON a, b FROM tststats.ty;
 RESULT:
-	postgres: cannot define statistics for relation "ty"
+	ERROR - cannot define statistics for relation "ty"
 DETAIL:  This operation is not supported for composite types.
 
 
@@ -947,21 +947,21 @@ QUERY:
 
 CREATE STATISTICS tststats.s7 ON a, b FROM tststats.f;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS tststats.s8 ON a, b FROM tststats.pt;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS tststats.s9 ON a, b FROM tststats.pt1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -976,7 +976,7 @@ EXCEPTION WHEN wrong_object_type THEN
 END;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -984,14 +984,14 @@ QUERY:
 
 DROP SCHEMA tststats CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER extstats_dummy_fdw CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1009,7 +1009,7 @@ CREATE TABLE ndistinct (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1020,7 +1020,7 @@ INSERT INTO ndistinct (a, b, c, filler1)
      SELECT i/100, i/100, i/100, (i/100) || ' dollars and zero cents'
        FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1028,7 +1028,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1037,7 +1037,7 @@ QUERY:
 -- Group Aggregate, due to over-estimate of the number of groups
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1045,7 +1045,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1053,7 +1053,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1061,7 +1061,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c, d');
 RESULT:
-	postgres: [(200, 11)]
+	[(200, 11)]
 
 -----------
 QUERY:
@@ -1069,7 +1069,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c, d');
 RESULT:
-	postgres: [(200, 11)]
+	[(200, 11)]
 
 -----------
 QUERY:
@@ -1077,7 +1077,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (a+1)');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1085,7 +1085,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100)');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1093,7 +1093,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100), (2*c)');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1101,7 +1101,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 RESULT:
-	postgres: [(100, 11)]
+	[(100, 11)]
 
 -----------
 QUERY:
@@ -1110,7 +1110,7 @@ QUERY:
 -- correct command
 CREATE STATISTICS s10 ON a, b, c FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1118,7 +1118,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1129,7 +1129,7 @@ SELECT s.stxkind, d.stxdndistinct
  WHERE s.stxrelid = 'ndistinct'::regclass
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(['d', 'f', 'm'], '{"3, 4": 11, "3, 6": 11, "4, 6": 11, "3, 4, 6": 11}')]
+	[(['d', 'f', 'm'], '{"3, 4": 11, "3, 6": 11, "4, 6": 11, "3, 4, 6": 11}')]
 
 -----------
 QUERY:
@@ -1138,7 +1138,7 @@ QUERY:
 -- minor improvement, make sure the ctid does not break the matching
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY ctid, a, b');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
@@ -1147,7 +1147,7 @@ QUERY:
 -- Hash Aggregate, thanks to estimates improved by the statistic
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
@@ -1155,7 +1155,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
@@ -1163,7 +1163,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
@@ -1172,7 +1172,7 @@ QUERY:
 -- partial improvement (match on attributes)
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (a+1)');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
@@ -1181,7 +1181,7 @@ QUERY:
 -- expressions - no improvement
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100)');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
@@ -1189,7 +1189,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100), (2*c)');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
@@ -1197,17 +1197,17 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 RESULT:
-	postgres: [(11, 11)]
+	[(11, 11)]
 
 -----------
 QUERY:
 
 
--- last two plans keep using Group Aggregate, because /* REPLACED */''d/* REPLACED */'' is not covered
--- by the statistic and while it/* REPLACED */''s NULL-only we assume 200 values for it
+-- last two plans keep using Group Aggregate, because /* REPLACED */ ''d/* REPLACED */ '' is not covered
+-- by the statistic and while it/* REPLACED */ ''s NULL-only we assume 200 values for it
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c, d');
 RESULT:
-	postgres: [(200, 11)]
+	[(200, 11)]
 
 -----------
 QUERY:
@@ -1215,7 +1215,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c, d');
 RESULT:
-	postgres: [(200, 11)]
+	[(200, 11)]
 
 -----------
 QUERY:
@@ -1223,7 +1223,7 @@ QUERY:
 
 TRUNCATE TABLE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1235,7 +1235,7 @@ INSERT INTO ndistinct (a, b, c, filler1)
             mod(i,23) || ' dollars and zero cents'
        FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1243,7 +1243,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1254,7 +1254,7 @@ SELECT s.stxkind, d.stxdndistinct
  WHERE s.stxrelid = 'ndistinct'::regclass
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(['d', 'f', 'm'], '{"3, 4": 221, "3, 6": 247, "4, 6": 323, "3, 4, 6": 1000}')]
+	[(['d', 'f', 'm'], '{"3, 4": 221, "3, 6": 247, "4, 6": 323, "3, 4, 6": 1000}')]
 
 -----------
 QUERY:
@@ -1263,7 +1263,7 @@ QUERY:
 -- correct estimates
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1271,7 +1271,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
@@ -1279,7 +1279,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c, d');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
@@ -1287,7 +1287,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c, d');
 RESULT:
-	postgres: [(323, 323)]
+	[(323, 323)]
 
 -----------
 QUERY:
@@ -1295,7 +1295,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, d');
 RESULT:
-	postgres: [(200, 13)]
+	[(200, 13)]
 
 -----------
 QUERY:
@@ -1303,7 +1303,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (a+1)');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1311,7 +1311,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100)');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1319,7 +1319,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100), (2*c)');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
@@ -1327,7 +1327,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1335,7 +1335,7 @@ QUERY:
 
 DROP STATISTICS s10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1346,7 +1346,7 @@ SELECT s.stxkind, d.stxdndistinct
  WHERE s.stxrelid = 'ndistinct'::regclass
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -1355,7 +1355,7 @@ QUERY:
 -- dropping the statistics results in under-estimates
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1363,7 +1363,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c');
 RESULT:
-	postgres: [(100, 1000)]
+	[(100, 1000)]
 
 -----------
 QUERY:
@@ -1371,7 +1371,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, c, d');
 RESULT:
-	postgres: [(200, 1000)]
+	[(200, 1000)]
 
 -----------
 QUERY:
@@ -1379,7 +1379,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY b, c, d');
 RESULT:
-	postgres: [(200, 323)]
+	[(200, 323)]
 
 -----------
 QUERY:
@@ -1387,7 +1387,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, d');
 RESULT:
-	postgres: [(200, 13)]
+	[(200, 13)]
 
 -----------
 QUERY:
@@ -1395,7 +1395,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (a+1)');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1403,7 +1403,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100)');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1411,7 +1411,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100), (2*c)');
 RESULT:
-	postgres: [(100, 1000)]
+	[(100, 1000)]
 
 -----------
 QUERY:
@@ -1419,7 +1419,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1428,7 +1428,7 @@ QUERY:
 -- ndistinct estimates with statistics on expressions
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100)');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1436,7 +1436,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100), (2*c)');
 RESULT:
-	postgres: [(100, 1000)]
+	[(100, 1000)]
 
 -----------
 QUERY:
@@ -1444,7 +1444,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1452,7 +1452,7 @@ QUERY:
 
 CREATE STATISTICS s10 (ndistinct) ON (a+1), (b+100), (2*c) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1460,7 +1460,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1471,7 +1471,7 @@ SELECT s.stxkind, d.stxdndistinct
  WHERE s.stxrelid = 'ndistinct'::regclass
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(['d', 'e'], '{"-1, -2": 221, "-1, -3": 247, "-2, -3": 323, "-1, -2, -3": 1000}')]
+	[(['d', 'e'], '{"-1, -2": 221, "-1, -3": 247, "-2, -3": 323, "-1, -2, -3": 1000}')]
 
 -----------
 QUERY:
@@ -1479,7 +1479,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100)');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1487,7 +1487,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a+1), (b+100), (2*c)');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
@@ -1495,7 +1495,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (a+1), (b+100)');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1503,7 +1503,7 @@ QUERY:
 
 DROP STATISTICS s10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1512,7 +1512,7 @@ QUERY:
 -- a mix of attributes and expressions
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(100, 221)]
+	[(100, 221)]
 
 -----------
 QUERY:
@@ -1520,7 +1520,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (2*c)');
 RESULT:
-	postgres: [(100, 247)]
+	[(100, 247)]
 
 -----------
 QUERY:
@@ -1528,7 +1528,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (2*c)');
 RESULT:
-	postgres: [(100, 1000)]
+	[(100, 1000)]
 
 -----------
 QUERY:
@@ -1536,7 +1536,7 @@ QUERY:
 
 CREATE STATISTICS s10 (ndistinct) ON a, b, (2*c) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1544,7 +1544,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1555,7 +1555,7 @@ SELECT s.stxkind, d.stxdndistinct
  WHERE s.stxrelid = 'ndistinct'::regclass
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(['d', 'e'], '{"3, 4": 221, "3, -1": 247, "4, -1": 323, "3, 4, -1": 1000}')]
+	[(['d', 'e'], '{"3, 4": 221, "3, -1": 247, "4, -1": 323, "3, 4, -1": 1000}')]
 
 -----------
 QUERY:
@@ -1563,7 +1563,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(221, 221)]
+	[(221, 221)]
 
 -----------
 QUERY:
@@ -1571,7 +1571,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (2*c)');
 RESULT:
-	postgres: [(247, 247)]
+	[(247, 247)]
 
 -----------
 QUERY:
@@ -1579,7 +1579,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (2*c)');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
@@ -1587,7 +1587,7 @@ QUERY:
 
 DROP STATISTICS s10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1596,7 +1596,7 @@ QUERY:
 -- combination of multiple ndistinct statistics, with/without expressions
 TRUNCATE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1607,7 +1607,7 @@ INSERT INTO ndistinct (a, b, c, d)
      SELECT mod(i,3), mod(i,9), mod(i,5), mod(i,20)
        FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1615,7 +1615,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1623,7 +1623,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(27, 9)]
+	[(27, 9)]
 
 -----------
 QUERY:
@@ -1631,7 +1631,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1)');
 RESULT:
-	postgres: [(27, 9)]
+	[(27, 9)]
 
 -----------
 QUERY:
@@ -1639,7 +1639,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), b');
 RESULT:
-	postgres: [(27, 9)]
+	[(27, 9)]
 
 -----------
 QUERY:
@@ -1647,7 +1647,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1)');
 RESULT:
-	postgres: [(27, 9)]
+	[(27, 9)]
 
 -----------
 QUERY:
@@ -1655,7 +1655,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1), c');
 RESULT:
-	postgres: [(100, 45)]
+	[(100, 45)]
 
 -----------
 QUERY:
@@ -1663,7 +1663,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (c*10)');
 RESULT:
-	postgres: [(100, 45)]
+	[(100, 45)]
 
 -----------
 QUERY:
@@ -1671,7 +1671,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1), c, (d - 1)');
 RESULT:
-	postgres: [(100, 180)]
+	[(100, 180)]
 
 -----------
 QUERY:
@@ -1680,7 +1680,7 @@ QUERY:
 -- basic statistics on both attributes (no expressions)
 CREATE STATISTICS s11 (ndistinct) ON a, b FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1688,7 +1688,7 @@ QUERY:
 
 CREATE STATISTICS s12 (ndistinct) ON c, d FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1696,7 +1696,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1704,7 +1704,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1712,7 +1712,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1720,7 +1720,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1728,7 +1728,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1736,7 +1736,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1), c');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1744,7 +1744,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (c*10)');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1752,7 +1752,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1), c, (d - 1)');
 RESULT:
-	postgres: [(100, 180)]
+	[(100, 180)]
 
 -----------
 QUERY:
@@ -1763,7 +1763,7 @@ QUERY:
 
 DROP STATISTICS s12;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1771,7 +1771,7 @@ QUERY:
 
 CREATE STATISTICS s12 (ndistinct) ON (c * 10), (d - 1) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1779,7 +1779,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1787,7 +1787,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1795,7 +1795,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1803,7 +1803,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1811,7 +1811,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1819,7 +1819,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1), c');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1827,7 +1827,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (c*10)');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1835,7 +1835,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1), c, (d - 1)');
 RESULT:
-	postgres: [(100, 180)]
+	[(100, 180)]
 
 -----------
 QUERY:
@@ -1846,7 +1846,7 @@ QUERY:
 
 DROP STATISTICS s12;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1854,7 +1854,7 @@ QUERY:
 
 CREATE STATISTICS s12 (ndistinct) ON c, d, (c * 10), (d - 1) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1862,7 +1862,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1870,7 +1870,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1878,7 +1878,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1886,7 +1886,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1894,7 +1894,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1902,7 +1902,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1), c');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1910,7 +1910,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (c*10)');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1918,7 +1918,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1), c, (d - 1)');
 RESULT:
-	postgres: [(100, 180)]
+	[(100, 180)]
 
 -----------
 QUERY:
@@ -1929,7 +1929,7 @@ QUERY:
 
 DROP STATISTICS s11;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1937,7 +1937,7 @@ QUERY:
 
 CREATE STATISTICS s11 (ndistinct) ON a, b, (a*5), (b+1) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1945,7 +1945,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1953,7 +1953,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1961,7 +1961,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1969,7 +1969,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1977,7 +1977,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -1985,7 +1985,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1), c');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -1993,7 +1993,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (c*10)');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -2001,7 +2001,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1), c, (d - 1)');
 RESULT:
-	postgres: [(100, 180)]
+	[(100, 180)]
 
 -----------
 QUERY:
@@ -2009,19 +2009,19 @@ QUERY:
 
 
 -- replace statistics by somewhat overlapping ones (this expected to get worse estimate
--- because the first statistics shall be applied to 3 columns, and the second one can/* REPLACED */''t
+-- because the first statistics shall be applied to 3 columns, and the second one can/* REPLACED */ ''t
 -- be really applied)
 
 DROP STATISTICS s11;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS s12;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2029,14 +2029,14 @@ QUERY:
 
 CREATE STATISTICS s11 (ndistinct) ON a, b, (a*5), (b+1) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS s12 (ndistinct) ON a, (b+1), (c * 10) FROM ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2044,7 +2044,7 @@ QUERY:
 
 ANALYZE ndistinct;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2052,7 +2052,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -2060,7 +2060,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -2068,7 +2068,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), b');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -2076,7 +2076,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1)');
 RESULT:
-	postgres: [(9, 9)]
+	[(9, 9)]
 
 -----------
 QUERY:
@@ -2084,7 +2084,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY (a*5), (b+1), c');
 RESULT:
-	postgres: [(45, 45)]
+	[(45, 45)]
 
 -----------
 QUERY:
@@ -2092,7 +2092,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, b, (c*10)');
 RESULT:
-	postgres: [(100, 45)]
+	[(100, 45)]
 
 -----------
 QUERY:
@@ -2100,7 +2100,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT COUNT(*) FROM ndistinct GROUP BY a, (b+1), c, (d - 1)');
 RESULT:
-	postgres: [(100, 180)]
+	[(100, 180)]
 
 -----------
 QUERY:
@@ -2108,14 +2108,14 @@ QUERY:
 
 DROP STATISTICS s11;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS s12;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2133,7 +2133,7 @@ CREATE TABLE functional_dependencies (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2141,14 +2141,14 @@ QUERY:
 
 CREATE INDEX fdeps_ab_idx ON functional_dependencies (a, b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX fdeps_abc_idx ON functional_dependencies (a, b, c);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2158,7 +2158,7 @@ QUERY:
 INSERT INTO functional_dependencies (a, b, c, filler1)
      SELECT mod(i, 5), mod(i, 7), mod(i, 11), i FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2166,7 +2166,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2174,7 +2174,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(29, 29)]
+	[(29, 29)]
 
 -----------
 QUERY:
@@ -2182,7 +2182,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(3, 3)]
+	[(3, 3)]
 
 -----------
 QUERY:
@@ -2191,7 +2191,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS func_deps_stat (dependencies) ON a, b, c FROM functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2199,7 +2199,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2207,7 +2207,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(29, 29)]
+	[(29, 29)]
 
 -----------
 QUERY:
@@ -2215,7 +2215,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(3, 3)]
+	[(3, 3)]
 
 -----------
 QUERY:
@@ -2224,14 +2224,14 @@ QUERY:
 -- a => b, a => c, b => c
 TRUNCATE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS func_deps_stat;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2241,7 +2241,7 @@ QUERY:
 INSERT INTO functional_dependencies (a, b, c, filler1)
      SELECT i, i, i, i FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2249,7 +2249,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2257,7 +2257,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE mod(a, 11) = 1 AND mod(b::int, 13) = 1');
 RESULT:
-	postgres: [(1, 35)]
+	[(1, 35)]
 
 -----------
 QUERY:
@@ -2265,7 +2265,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE mod(a, 11) = 1 AND mod(b::int, 13) = 1 AND mod(c, 7) = 1');
 RESULT:
-	postgres: [(1, 5)]
+	[(1, 5)]
 
 -----------
 QUERY:
@@ -2274,7 +2274,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS func_deps_stat (dependencies) ON (mod(a,11)), (mod(b::int, 13)), (mod(c, 7)) FROM functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2282,7 +2282,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2290,7 +2290,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE mod(a, 11) = 1 AND mod(b::int, 13) = 1');
 RESULT:
-	postgres: [(35, 35)]
+	[(35, 35)]
 
 -----------
 QUERY:
@@ -2298,7 +2298,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE mod(a, 11) = 1 AND mod(b::int, 13) = 1 AND mod(c, 7) = 1');
 RESULT:
-	postgres: [(5, 5)]
+	[(5, 5)]
 
 -----------
 QUERY:
@@ -2307,14 +2307,14 @@ QUERY:
 -- a => b, a => c, b => c
 TRUNCATE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS func_deps_stat;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2323,7 +2323,7 @@ QUERY:
 INSERT INTO functional_dependencies (a, b, c, filler1)
      SELECT mod(i,100), mod(i,50), mod(i,25), i FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2331,7 +2331,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2339,7 +2339,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -2347,7 +2347,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -2356,7 +2356,7 @@ QUERY:
 -- IN
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b = ''1''');
 RESULT:
-	postgres: [(2, 100)]
+	[(2, 100)]
 
 -----------
 QUERY:
@@ -2364,7 +2364,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b IN (''1'', ''2'')');
 RESULT:
-	postgres: [(4, 100)]
+	[(4, 100)]
 
 -----------
 QUERY:
@@ -2372,7 +2372,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 51, 52) AND b IN (''1'', ''2'')');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -2380,7 +2380,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 51, 52) AND b = ''1''');
 RESULT:
-	postgres: [(4, 100)]
+	[(4, 100)]
 
 -----------
 QUERY:
@@ -2388,7 +2388,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 26, 51, 76) AND b IN (''1'', ''26'') AND c = 1');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2396,7 +2396,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 26, 51, 76) AND b IN (''1'', ''26'') AND c IN (1)');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2404,7 +2404,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 26, 27, 51, 52, 76, 77) AND b IN (''1'', ''2'', ''26'', ''27'') AND c IN (1, 2)');
 RESULT:
-	postgres: [(3, 400)]
+	[(3, 400)]
 
 -----------
 QUERY:
@@ -2413,7 +2413,7 @@ QUERY:
 -- OR clauses referencing the same attribute
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR a = 51) AND b = ''1''');
 RESULT:
-	postgres: [(2, 100)]
+	[(2, 100)]
 
 -----------
 QUERY:
@@ -2421,7 +2421,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR a = 51) AND (b = ''1'' OR b = ''2'')');
 RESULT:
-	postgres: [(4, 100)]
+	[(4, 100)]
 
 -----------
 QUERY:
@@ -2429,7 +2429,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR a = 2 OR a = 51 OR a = 52) AND (b = ''1'' OR b = ''2'')');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -2438,7 +2438,7 @@ QUERY:
 -- OR clauses referencing different attributes
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR b = ''1'') AND b = ''1''');
 RESULT:
-	postgres: [(3, 100)]
+	[(3, 100)]
 
 -----------
 QUERY:
@@ -2447,7 +2447,7 @@ QUERY:
 -- ANY
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 51]) AND b = ''1''');
 RESULT:
-	postgres: [(2, 100)]
+	[(2, 100)]
 
 -----------
 QUERY:
@@ -2455,7 +2455,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 51]) AND b = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(4, 100)]
+	[(4, 100)]
 
 -----------
 QUERY:
@@ -2463,7 +2463,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 2, 51, 52]) AND b = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -2471,7 +2471,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 26, 51, 76]) AND b = ANY (ARRAY[''1'', ''26'']) AND c = 1');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2479,7 +2479,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 26, 51, 76]) AND b = ANY (ARRAY[''1'', ''26'']) AND c = ANY (ARRAY[1])');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2487,7 +2487,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 2, 26, 27, 51, 52, 76, 77]) AND b = ANY (ARRAY[''1'', ''2'', ''26'', ''27'']) AND c = ANY (ARRAY[1, 2])');
 RESULT:
-	postgres: [(3, 400)]
+	[(3, 400)]
 
 -----------
 QUERY:
@@ -2496,7 +2496,7 @@ QUERY:
 -- ANY with inequalities should not benefit from functional dependencies
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a < ANY (ARRAY[1, 51]) AND b > ''1''');
 RESULT:
-	postgres: [(2472, 2400)]
+	[(2472, 2400)]
 
 -----------
 QUERY:
@@ -2504,7 +2504,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a >= ANY (ARRAY[1, 51]) AND b <= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1441, 1250)]
+	[(1441, 1250)]
 
 -----------
 QUERY:
@@ -2512,7 +2512,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a <= ANY (ARRAY[1, 2, 51, 52]) AND b >= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(3909, 2550)]
+	[(3909, 2550)]
 
 -----------
 QUERY:
@@ -2521,7 +2521,7 @@ QUERY:
 -- ALL (should not benefit from functional dependencies)
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b = ALL (ARRAY[''1''])');
 RESULT:
-	postgres: [(2, 100)]
+	[(2, 100)]
 
 -----------
 QUERY:
@@ -2529,7 +2529,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -2537,7 +2537,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 51, 52) AND b = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -2546,7 +2546,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS func_deps_stat (dependencies) ON a, b, c FROM functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2554,7 +2554,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2563,7 +2563,7 @@ QUERY:
 -- print the detected dependencies
 SELECT dependencies FROM pg_stats_ext WHERE statistics_name = 'func_deps_stat';
 RESULT:
-	postgres: [('{"3 => 4": 1.000000, "3 => 6": 1.000000, "4 => 6": 1.000000, "3, 4 => 6": 1.000000, "3, 6 => 4": 1.000000}',)]
+	[('{"3 => 4": 1.000000, "3 => 6": 1.000000, "4 => 6": 1.000000, "3, 4 => 6": 1.000000, "3, 6 => 4": 1.000000}',)]
 
 -----------
 QUERY:
@@ -2571,7 +2571,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -2579,7 +2579,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -2588,7 +2588,7 @@ QUERY:
 -- IN
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b = ''1''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -2596,7 +2596,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b IN (''1'', ''2'')');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -2604,7 +2604,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 51, 52) AND b IN (''1'', ''2'')');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -2612,7 +2612,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 51, 52) AND b = ''1''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -2620,7 +2620,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 26, 51, 76) AND b IN (''1'', ''26'') AND c = 1');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -2628,7 +2628,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 26, 51, 76) AND b IN (''1'', ''26'') AND c IN (1)');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -2636,7 +2636,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 26, 27, 51, 52, 76, 77) AND b IN (''1'', ''2'', ''26'', ''27'') AND c IN (1, 2)');
 RESULT:
-	postgres: [(400, 400)]
+	[(400, 400)]
 
 -----------
 QUERY:
@@ -2645,7 +2645,7 @@ QUERY:
 -- OR clauses referencing the same attribute
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR a = 51) AND b = ''1''');
 RESULT:
-	postgres: [(99, 100)]
+	[(99, 100)]
 
 -----------
 QUERY:
@@ -2653,7 +2653,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR a = 51) AND (b = ''1'' OR b = ''2'')');
 RESULT:
-	postgres: [(99, 100)]
+	[(99, 100)]
 
 -----------
 QUERY:
@@ -2661,7 +2661,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR a = 2 OR a = 51 OR a = 52) AND (b = ''1'' OR b = ''2'')');
 RESULT:
-	postgres: [(197, 200)]
+	[(197, 200)]
 
 -----------
 QUERY:
@@ -2670,7 +2670,7 @@ QUERY:
 -- OR clauses referencing different attributes are incompatible
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a = 1 OR b = ''1'') AND b = ''1''');
 RESULT:
-	postgres: [(3, 100)]
+	[(3, 100)]
 
 -----------
 QUERY:
@@ -2679,7 +2679,7 @@ QUERY:
 -- ANY
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 51]) AND b = ''1''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -2687,7 +2687,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 51]) AND b = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -2695,7 +2695,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 2, 51, 52]) AND b = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -2703,7 +2703,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 26, 51, 76]) AND b = ANY (ARRAY[''1'', ''26'']) AND c = 1');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -2711,7 +2711,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 26, 51, 76]) AND b = ANY (ARRAY[''1'', ''26'']) AND c = ANY (ARRAY[1])');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -2719,7 +2719,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = ANY (ARRAY[1, 2, 26, 27, 51, 52, 76, 77]) AND b = ANY (ARRAY[''1'', ''2'', ''26'', ''27'']) AND c = ANY (ARRAY[1, 2])');
 RESULT:
-	postgres: [(400, 400)]
+	[(400, 400)]
 
 -----------
 QUERY:
@@ -2728,7 +2728,7 @@ QUERY:
 -- ANY with inequalities should not benefit from functional dependencies
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a < ANY (ARRAY[1, 51]) AND b > ''1''');
 RESULT:
-	postgres: [(2472, 2400)]
+	[(2472, 2400)]
 
 -----------
 QUERY:
@@ -2736,7 +2736,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a >= ANY (ARRAY[1, 51]) AND b <= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1441, 1250)]
+	[(1441, 1250)]
 
 -----------
 QUERY:
@@ -2744,7 +2744,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a <= ANY (ARRAY[1, 2, 51, 52]) AND b >= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(3909, 2550)]
+	[(3909, 2550)]
 
 -----------
 QUERY:
@@ -2753,7 +2753,7 @@ QUERY:
 -- ALL (should not benefit from functional dependencies)
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b = ALL (ARRAY[''1''])');
 RESULT:
-	postgres: [(2, 100)]
+	[(2, 100)]
 
 -----------
 QUERY:
@@ -2761,7 +2761,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 51) AND b = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -2769,7 +2769,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a IN (1, 2, 51, 52) AND b = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -2780,7 +2780,7 @@ QUERY:
 -- condition
 ALTER TABLE functional_dependencies ALTER COLUMN c TYPE numeric;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2788,7 +2788,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -2796,7 +2796,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2804,7 +2804,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -2812,7 +2812,7 @@ QUERY:
 
 DROP STATISTICS func_deps_stat;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2822,7 +2822,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = 2 AND upper(b) = ''1''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -2830,7 +2830,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = 2 AND upper(b) = ''1'' AND (c + 1) = 2');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -2839,7 +2839,7 @@ QUERY:
 -- IN
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2847,7 +2847,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) IN (''1'', ''2'')');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2855,7 +2855,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 102, 104) AND upper(b) IN (''1'', ''2'')');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2863,7 +2863,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 102, 104) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2871,7 +2871,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 52, 102, 152) AND upper(b) IN (''1'', ''26'') AND (c + 1) = 2');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2879,7 +2879,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 52, 102, 152) AND upper(b) IN (''1'', ''26'') AND (c + 1) IN (2)');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2887,7 +2887,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 52, 54, 102, 104, 152, 154) AND upper(b) IN (''1'', ''2'', ''26'', ''27'') AND (c + 1) IN (2, 3)');
 RESULT:
-	postgres: [(1, 400)]
+	[(1, 400)]
 
 -----------
 QUERY:
@@ -2896,7 +2896,7 @@ QUERY:
 -- OR clauses referencing the same attribute
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR (a * 2) = 102) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2904,7 +2904,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR (a * 2) = 102) AND (upper(b) = ''1'' OR upper(b) = ''2'')');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2912,7 +2912,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR (a * 2) = 4 OR (a * 2) = 102 OR (a * 2) = 104) AND (upper(b) = ''1'' OR upper(b) = ''2'')');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2921,7 +2921,7 @@ QUERY:
 -- OR clauses referencing different attributes
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR upper(b) = ''1'') AND upper(b) = ''1''');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2930,7 +2930,7 @@ QUERY:
 -- ANY
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 102]) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2938,7 +2938,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 102]) AND upper(b) = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -2946,7 +2946,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 4, 102, 104]) AND upper(b) = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2954,7 +2954,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 52, 102, 152]) AND upper(b) = ANY (ARRAY[''1'', ''26'']) AND (c + 1) = 2');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2962,7 +2962,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 52, 102, 152]) AND upper(b) = ANY (ARRAY[''1'', ''26'']) AND (c + 1) = ANY (ARRAY[2])');
 RESULT:
-	postgres: [(1, 200)]
+	[(1, 200)]
 
 -----------
 QUERY:
@@ -2970,7 +2970,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 4, 52, 54, 102, 104, 152, 154]) AND upper(b) = ANY (ARRAY[''1'', ''2'', ''26'', ''27'']) AND (c + 1) = ANY (ARRAY[2, 3])');
 RESULT:
-	postgres: [(1, 400)]
+	[(1, 400)]
 
 -----------
 QUERY:
@@ -2980,7 +2980,7 @@ QUERY:
 -- the estimates however improve thanks to having expression statistics
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) < ANY (ARRAY[2, 102]) AND upper(b) > ''1''');
 RESULT:
-	postgres: [(926, 2400)]
+	[(926, 2400)]
 
 -----------
 QUERY:
@@ -2988,7 +2988,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) >= ANY (ARRAY[2, 102]) AND upper(b) <= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1543, 1250)]
+	[(1543, 1250)]
 
 -----------
 QUERY:
@@ -2996,7 +2996,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) <= ANY (ARRAY[2, 4, 102, 104]) AND upper(b) >= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(2229, 2550)]
+	[(2229, 2550)]
 
 -----------
 QUERY:
@@ -3005,7 +3005,7 @@ QUERY:
 -- ALL (should not benefit from functional dependencies)
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) = ALL (ARRAY[''1''])');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -3013,7 +3013,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -3021,7 +3021,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 102, 104) AND upper(b) = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -3030,7 +3030,7 @@ QUERY:
 -- create statistics on expressions
 CREATE STATISTICS func_deps_stat (dependencies) ON (a * 2), upper(b), (c + 1) FROM functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3038,7 +3038,7 @@ QUERY:
 
 ANALYZE functional_dependencies;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3047,7 +3047,7 @@ QUERY:
 -- print the detected dependencies
 SELECT dependencies FROM pg_stats_ext WHERE statistics_name = 'func_deps_stat';
 RESULT:
-	postgres: [('{"-1 => -2": 1.000000, "-1 => -3": 1.000000, "-2 => -3": 1.000000, "-1, -2 => -3": 1.000000, "-1, -3 => -2": 1.000000}',)]
+	[('{"-1 => -2": 1.000000, "-1 => -3": 1.000000, "-2 => -3": 1.000000, "-1, -2 => -3": 1.000000, "-1, -3 => -2": 1.000000}',)]
 
 -----------
 QUERY:
@@ -3055,7 +3055,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = 2 AND upper(b) = ''1''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3063,7 +3063,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = 2 AND upper(b) = ''1'' AND (c + 1) = 2');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3072,7 +3072,7 @@ QUERY:
 -- IN
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3080,7 +3080,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) IN (''1'', ''2'')');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3088,7 +3088,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 102, 104) AND upper(b) IN (''1'', ''2'')');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3096,7 +3096,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 102, 104) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3104,7 +3104,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 52, 102, 152) AND upper(b) IN (''1'', ''26'') AND (c + 1) = 2');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3112,7 +3112,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 52, 102, 152) AND upper(b) IN (''1'', ''26'') AND (c + 1) IN (2)');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3120,7 +3120,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 52, 54, 102, 104, 152, 154) AND upper(b) IN (''1'', ''2'', ''26'', ''27'') AND (c + 1) IN (2, 3)');
 RESULT:
-	postgres: [(400, 400)]
+	[(400, 400)]
 
 -----------
 QUERY:
@@ -3129,7 +3129,7 @@ QUERY:
 -- OR clauses referencing the same attribute
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR (a * 2) = 102) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(99, 100)]
+	[(99, 100)]
 
 -----------
 QUERY:
@@ -3137,7 +3137,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR (a * 2) = 102) AND (upper(b) = ''1'' OR upper(b) = ''2'')');
 RESULT:
-	postgres: [(99, 100)]
+	[(99, 100)]
 
 -----------
 QUERY:
@@ -3145,7 +3145,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR (a * 2) = 4 OR (a * 2) = 102 OR (a * 2) = 104) AND (upper(b) = ''1'' OR upper(b) = ''2'')');
 RESULT:
-	postgres: [(197, 200)]
+	[(197, 200)]
 
 -----------
 QUERY:
@@ -3154,7 +3154,7 @@ QUERY:
 -- OR clauses referencing different attributes
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE ((a * 2) = 2 OR upper(b) = ''1'') AND upper(b) = ''1''');
 RESULT:
-	postgres: [(3, 100)]
+	[(3, 100)]
 
 -----------
 QUERY:
@@ -3163,7 +3163,7 @@ QUERY:
 -- ANY
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 102]) AND upper(b) = ''1''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3171,7 +3171,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 102]) AND upper(b) = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3179,7 +3179,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 4, 102, 104]) AND upper(b) = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3187,7 +3187,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 52, 102, 152]) AND upper(b) = ANY (ARRAY[''1'', ''26'']) AND (c + 1) = 2');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3195,7 +3195,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 52, 102, 152]) AND upper(b) = ANY (ARRAY[''1'', ''26'']) AND (c + 1) = ANY (ARRAY[2])');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3203,7 +3203,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) = ANY (ARRAY[2, 4, 52, 54, 102, 104, 152, 154]) AND upper(b) = ANY (ARRAY[''1'', ''2'', ''26'', ''27'']) AND (c + 1) = ANY (ARRAY[2, 3])');
 RESULT:
-	postgres: [(400, 400)]
+	[(400, 400)]
 
 -----------
 QUERY:
@@ -3213,7 +3213,7 @@ QUERY:
 -- the estimates however improve thanks to having expression statistics
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) < ANY (ARRAY[2, 102]) AND upper(b) > ''1''');
 RESULT:
-	postgres: [(2472, 2400)]
+	[(2472, 2400)]
 
 -----------
 QUERY:
@@ -3221,7 +3221,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) >= ANY (ARRAY[2, 102]) AND upper(b) <= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1441, 1250)]
+	[(1441, 1250)]
 
 -----------
 QUERY:
@@ -3229,7 +3229,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) <= ANY (ARRAY[2, 4, 102, 104]) AND upper(b) >= ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(3909, 2550)]
+	[(3909, 2550)]
 
 -----------
 QUERY:
@@ -3238,7 +3238,7 @@ QUERY:
 -- ALL (should not benefit from functional dependencies)
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) = ALL (ARRAY[''1''])');
 RESULT:
-	postgres: [(2, 100)]
+	[(2, 100)]
 
 -----------
 QUERY:
@@ -3246,7 +3246,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 102) AND upper(b) = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -3254,7 +3254,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies WHERE (a * 2) IN (2, 4, 102, 104) AND upper(b) = ALL (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -3269,7 +3269,7 @@ CREATE TABLE functional_dependencies_multi (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3283,7 +3283,7 @@ INSERT INTO functional_dependencies_multi (a, b, c, d)
          mod(i,11)
     FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3291,7 +3291,7 @@ QUERY:
 
 ANALYZE functional_dependencies_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3300,35 +3300,35 @@ QUERY:
 -- estimates without any functional dependencies
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(102, 714)]
+	[(102, 714)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE 0 = a AND 0 = b');
 RESULT:
-	postgres: [(102, 714)]
+	[(102, 714)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE c = 0 AND d = 0');
 RESULT:
-	postgres: [(41, 454)]
+	[(41, 454)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE a = 0 AND b = 0 AND c = 0 AND d = 0');
 RESULT:
-	postgres: [(1, 64)]
+	[(1, 64)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE 0 = a AND b = 0 AND 0 = c AND d = 0');
 RESULT:
-	postgres: [(1, 64)]
+	[(1, 64)]
 
 -----------
 QUERY:
@@ -3337,14 +3337,14 @@ QUERY:
 -- create separate functional dependencies
 CREATE STATISTICS functional_dependencies_multi_1 (dependencies) ON a, b FROM functional_dependencies_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS functional_dependencies_multi_2 (dependencies) ON c, d FROM functional_dependencies_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3352,7 +3352,7 @@ QUERY:
 
 ANALYZE functional_dependencies_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3360,35 +3360,35 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(714, 714)]
+	[(714, 714)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE 0 = a AND 0 = b');
 RESULT:
-	postgres: [(714, 714)]
+	[(714, 714)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE c = 0 AND d = 0');
 RESULT:
-	postgres: [(454, 454)]
+	[(454, 454)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE a = 0 AND b = 0 AND c = 0 AND d = 0');
 RESULT:
-	postgres: [(65, 64)]
+	[(65, 64)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM functional_dependencies_multi WHERE 0 = a AND b = 0 AND 0 = c AND d = 0');
 RESULT:
-	postgres: [(65, 64)]
+	[(65, 64)]
 
 -----------
 QUERY:
@@ -3396,7 +3396,7 @@ QUERY:
 
 DROP TABLE functional_dependencies_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3415,7 +3415,7 @@ CREATE TABLE mcv_lists (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3425,7 +3425,7 @@ QUERY:
 INSERT INTO mcv_lists (a, b, c, filler1)
      SELECT mod(i,37), mod(i,41), mod(i,43), mod(i,47) FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3433,7 +3433,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3441,7 +3441,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(3, 4)]
+	[(3, 4)]
 
 -----------
 QUERY:
@@ -3449,7 +3449,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(1, 1)]
+	[(1, 1)]
 
 -----------
 QUERY:
@@ -3458,7 +3458,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS mcv_lists_stats (mcv) ON a, b, c FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3466,7 +3466,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3474,7 +3474,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(3, 4)]
+	[(3, 4)]
 
 -----------
 QUERY:
@@ -3482,7 +3482,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(1, 1)]
+	[(1, 1)]
 
 -----------
 QUERY:
@@ -3490,14 +3490,14 @@ QUERY:
 
 TRUNCATE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3507,7 +3507,7 @@ QUERY:
 INSERT INTO mcv_lists (a, b, c, filler1)
      SELECT i, i, i, i FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3515,7 +3515,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3523,7 +3523,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,7) = 1 AND mod(b::int,11) = 1');
 RESULT:
-	postgres: [(1, 13)]
+	[(1, 13)]
 
 -----------
 QUERY:
@@ -3531,7 +3531,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,7) = 1 AND mod(b::int,11) = 1 AND mod(c,13) = 1');
 RESULT:
-	postgres: [(1, 1)]
+	[(1, 1)]
 
 -----------
 QUERY:
@@ -3540,7 +3540,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS mcv_lists_stats (mcv) ON (mod(a,7)), (mod(b::int,11)), (mod(c,13)) FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3548,7 +3548,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3556,7 +3556,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,7) = 1 AND mod(b::int,11) = 1');
 RESULT:
-	postgres: [(13, 13)]
+	[(13, 13)]
 
 -----------
 QUERY:
@@ -3564,7 +3564,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,7) = 1 AND mod(b::int,11) = 1 AND mod(c,13) = 1');
 RESULT:
-	postgres: [(1, 1)]
+	[(1, 1)]
 
 -----------
 QUERY:
@@ -3573,14 +3573,14 @@ QUERY:
 -- 100 distinct combinations, all in the MCV list
 TRUNCATE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3590,7 +3590,7 @@ INSERT INTO mcv_lists (a, b, c, ia, filler1)
      SELECT mod(i,100), mod(i,50), mod(i,25), array[mod(i,25)], i
        FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3598,7 +3598,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3606,7 +3606,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3614,7 +3614,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 = a AND ''1'' = b');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3622,7 +3622,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < 1 AND b < ''1''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3630,7 +3630,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 > a AND ''1'' > b');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3638,7 +3638,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= 0 AND b <= ''0''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3646,7 +3646,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 0 >= a AND ''0'' >= b');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3654,7 +3654,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3662,7 +3662,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < 5 AND b < ''1'' AND c < 5');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3670,7 +3670,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < 5 AND ''1'' > b AND 5 > c');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3678,7 +3678,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= 4 AND b <= ''0'' AND c <= 4');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3686,7 +3686,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 4 >= a AND ''0'' >= b AND 4 >= c');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -3694,7 +3694,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''1'' OR c = 1');
 RESULT:
-	postgres: [(343, 200)]
+	[(343, 200)]
 
 -----------
 QUERY:
@@ -3702,7 +3702,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''1'' OR c = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(343, 200)]
+	[(343, 200)]
 
 -----------
 QUERY:
@@ -3710,7 +3710,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IN (1, 2, 51, 52) AND b IN ( ''1'', ''2'')');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -3718,7 +3718,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IN (1, 2, 51, 52, NULL) AND b IN ( ''1'', ''2'', NULL)');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -3726,7 +3726,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = ANY (ARRAY[1, 2, 51, 52]) AND b = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -3734,7 +3734,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = ANY (ARRAY[NULL, 1, 2, 51, 52]) AND b = ANY (ARRAY[''1'', ''2'', NULL])');
 RESULT:
-	postgres: [(8, 200)]
+	[(8, 200)]
 
 -----------
 QUERY:
@@ -3742,7 +3742,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= ANY (ARRAY[1, 2, 3]) AND b IN (''1'', ''2'', ''3'')');
 RESULT:
-	postgres: [(26, 150)]
+	[(26, 150)]
 
 -----------
 QUERY:
@@ -3750,7 +3750,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= ANY (ARRAY[1, NULL, 2, 3]) AND b IN (''1'', ''2'', NULL, ''3'')');
 RESULT:
-	postgres: [(26, 150)]
+	[(26, 150)]
 
 -----------
 QUERY:
@@ -3758,7 +3758,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND c > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(10, 100)]
+	[(10, 100)]
 
 -----------
 QUERY:
@@ -3766,7 +3766,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND c > ANY (ARRAY[1, 2, 3, NULL])');
 RESULT:
-	postgres: [(10, 100)]
+	[(10, 100)]
 
 -----------
 QUERY:
@@ -3774,7 +3774,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND b IN (''1'', ''2'', ''3'') AND c > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -3782,7 +3782,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND b IN (''1'', ''2'', NULL, ''3'') AND c > ANY (ARRAY[1, 2, NULL, 3])');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -3790,7 +3790,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = ANY (ARRAY[4,5]) AND 4 = ANY(ia)');
 RESULT:
-	postgres: [(4, 50)]
+	[(4, 50)]
 
 -----------
 QUERY:
@@ -3799,7 +3799,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS mcv_lists_stats (mcv) ON a, b, c, ia FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3807,7 +3807,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3815,7 +3815,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3823,7 +3823,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 = a AND ''1'' = b');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3831,7 +3831,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < 1 AND b < ''1''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3839,7 +3839,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 > a AND ''1'' > b');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3847,7 +3847,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= 0 AND b <= ''0''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3855,7 +3855,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 0 >= a AND ''0'' >= b');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3863,7 +3863,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1'' AND c = 1');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3871,7 +3871,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < 5 AND b < ''1'' AND c < 5');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3879,7 +3879,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < 5 AND ''1'' > b AND 5 > c');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3887,7 +3887,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= 4 AND b <= ''0'' AND c <= 4');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3895,7 +3895,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 4 >= a AND ''0'' >= b AND 4 >= c');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -3903,7 +3903,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''1'' OR c = 1');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3911,7 +3911,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''1'' OR c = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3919,7 +3919,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''1'' OR c = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3927,7 +3927,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IN (1, 2, 51, 52) AND b IN ( ''1'', ''2'')');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3935,7 +3935,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IN (1, 2, 51, 52, NULL) AND b IN ( ''1'', ''2'', NULL)');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3943,7 +3943,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = ANY (ARRAY[1, 2, 51, 52]) AND b = ANY (ARRAY[''1'', ''2''])');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3951,7 +3951,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = ANY (ARRAY[NULL, 1, 2, 51, 52]) AND b = ANY (ARRAY[''1'', ''2'', NULL])');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -3959,7 +3959,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= ANY (ARRAY[1, 2, 3]) AND b IN (''1'', ''2'', ''3'')');
 RESULT:
-	postgres: [(150, 150)]
+	[(150, 150)]
 
 -----------
 QUERY:
@@ -3967,7 +3967,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a <= ANY (ARRAY[1, NULL, 2, 3]) AND b IN (''1'', ''2'', NULL, ''3'')');
 RESULT:
-	postgres: [(150, 150)]
+	[(150, 150)]
 
 -----------
 QUERY:
@@ -3975,7 +3975,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND c > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3983,7 +3983,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND c > ANY (ARRAY[1, 2, 3, NULL])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3991,7 +3991,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND b IN (''1'', ''2'', ''3'') AND c > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -3999,7 +3999,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a < ALL (ARRAY[4, 5]) AND b IN (''1'', ''2'', NULL, ''3'') AND c > ANY (ARRAY[1, 2, NULL, 3])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -4007,7 +4007,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = ANY (ARRAY[4,5]) AND 4 = ANY(ia)');
 RESULT:
-	postgres: [(4, 50)]
+	[(4, 50)]
 
 -----------
 QUERY:
@@ -4016,7 +4016,7 @@ QUERY:
 -- check change of unrelated column type does not reset the MCV statistics
 ALTER TABLE mcv_lists ALTER COLUMN d TYPE VARCHAR(64);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4027,7 +4027,7 @@ SELECT d.stxdmcv IS NOT NULL
  WHERE s.stxname = 'mcv_lists_stats'
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -4036,7 +4036,7 @@ QUERY:
 -- check change of column type resets the MCV statistics
 ALTER TABLE mcv_lists ALTER COLUMN c TYPE numeric;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4044,7 +4044,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4052,7 +4052,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4060,7 +4060,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 AND b = ''1''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4070,14 +4070,14 @@ QUERY:
 -- 100 distinct combinations, all in the MCV list, but with expressions
 TRUNCATE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4086,7 +4086,7 @@ QUERY:
 INSERT INTO mcv_lists (a, b, c, filler1)
      SELECT i, i, i, i FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4094,7 +4094,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4105,7 +4105,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 AND mod(b::int,10) = 1');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4113,7 +4113,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 = mod(a,20) AND 1 = mod(b::int,10)');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4121,7 +4121,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < 1 AND mod(b::int,10) < 1');
 RESULT:
-	postgres: [(111, 50)]
+	[(111, 50)]
 
 -----------
 QUERY:
@@ -4129,7 +4129,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 > mod(a,20) AND 1 > mod(b::int,10)');
 RESULT:
-	postgres: [(111, 50)]
+	[(111, 50)]
 
 -----------
 QUERY:
@@ -4137,7 +4137,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 AND mod(b::int,10) = 1 AND mod(c,5) = 1');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4145,7 +4145,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 OR mod(b::int,10) = 1 OR mod(c,25) = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(15, 120)]
+	[(15, 120)]
 
 -----------
 QUERY:
@@ -4153,7 +4153,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) IN (1, 2, 51, 52, NULL) AND mod(b::int,10) IN ( 1, 2, NULL)');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -4161,7 +4161,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = ANY (ARRAY[1, 2, 51, 52]) AND mod(b::int,10) = ANY (ARRAY[1, 2])');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -4169,7 +4169,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) <= ANY (ARRAY[1, NULL, 2, 3]) AND mod(b::int,10) IN (1, 2, NULL, 3)');
 RESULT:
-	postgres: [(11, 150)]
+	[(11, 150)]
 
 -----------
 QUERY:
@@ -4177,7 +4177,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < ALL (ARRAY[4, 5]) AND mod(b::int,10) IN (1, 2, 3) AND mod(c,5) > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -4186,21 +4186,21 @@ QUERY:
 -- create statistics with expressions only (we create three separate stats, in order not to build more complex extended stats)
 CREATE STATISTICS mcv_lists_stats_1 ON (mod(a,20)) FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS mcv_lists_stats_2 ON (mod(b::int,10)) FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS mcv_lists_stats_3 ON (mod(c,5)) FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4208,7 +4208,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4216,7 +4216,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 AND mod(b::int,10) = 1');
 RESULT:
-	postgres: [(5, 50)]
+	[(5, 50)]
 
 -----------
 QUERY:
@@ -4224,7 +4224,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 = mod(a,20) AND 1 = mod(b::int,10)');
 RESULT:
-	postgres: [(5, 50)]
+	[(5, 50)]
 
 -----------
 QUERY:
@@ -4232,7 +4232,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < 1 AND mod(b::int,10) < 1');
 RESULT:
-	postgres: [(5, 50)]
+	[(5, 50)]
 
 -----------
 QUERY:
@@ -4240,7 +4240,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 > mod(a,20) AND 1 > mod(b::int,10)');
 RESULT:
-	postgres: [(5, 50)]
+	[(5, 50)]
 
 -----------
 QUERY:
@@ -4248,7 +4248,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 AND mod(b::int,10) = 1 AND mod(c,5) = 1');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4256,7 +4256,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 OR mod(b::int,10) = 1 OR mod(c,25) = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(149, 120)]
+	[(149, 120)]
 
 -----------
 QUERY:
@@ -4264,7 +4264,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) IN (1, 2, 51, 52, NULL) AND mod(b::int,10) IN ( 1, 2, NULL)');
 RESULT:
-	postgres: [(20, 100)]
+	[(20, 100)]
 
 -----------
 QUERY:
@@ -4272,7 +4272,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = ANY (ARRAY[1, 2, 51, 52]) AND mod(b::int,10) = ANY (ARRAY[1, 2])');
 RESULT:
-	postgres: [(20, 100)]
+	[(20, 100)]
 
 -----------
 QUERY:
@@ -4280,7 +4280,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) <= ANY (ARRAY[1, NULL, 2, 3]) AND mod(b::int,10) IN (1, 2, NULL, 3)');
 RESULT:
-	postgres: [(116, 150)]
+	[(116, 150)]
 
 -----------
 QUERY:
@@ -4288,7 +4288,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < ALL (ARRAY[4, 5]) AND mod(b::int,10) IN (1, 2, 3) AND mod(c,5) > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(12, 100)]
+	[(12, 100)]
 
 -----------
 QUERY:
@@ -4296,21 +4296,21 @@ QUERY:
 
 DROP STATISTICS mcv_lists_stats_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats_2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats_3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4319,7 +4319,7 @@ QUERY:
 -- create statistics with both MCV and expressions
 CREATE STATISTICS mcv_lists_stats (mcv) ON (mod(a,20)), (mod(b::int,10)), (mod(c,5)) FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4327,7 +4327,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4335,7 +4335,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 AND mod(b::int,10) = 1');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4343,7 +4343,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 = mod(a,20) AND 1 = mod(b::int,10)');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4351,7 +4351,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < 1 AND mod(b::int,10) < 1');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4359,7 +4359,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE 1 > mod(a,20) AND 1 > mod(b::int,10)');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4367,7 +4367,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 AND mod(b::int,10) = 1 AND mod(c,5) = 1');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4375,7 +4375,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 OR mod(b::int,10) = 1 OR mod(c,25) = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(105, 120)]
+	[(105, 120)]
 
 -----------
 QUERY:
@@ -4383,7 +4383,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) IN (1, 2, 51, 52, NULL) AND mod(b::int,10) IN ( 1, 2, NULL)');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -4391,7 +4391,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = ANY (ARRAY[1, 2, 51, 52]) AND mod(b::int,10) = ANY (ARRAY[1, 2])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -4399,7 +4399,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) <= ANY (ARRAY[1, NULL, 2, 3]) AND mod(b::int,10) IN (1, 2, NULL, 3)');
 RESULT:
-	postgres: [(150, 150)]
+	[(150, 150)]
 
 -----------
 QUERY:
@@ -4407,16 +4407,16 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) < ALL (ARRAY[4, 5]) AND mod(b::int,10) IN (1, 2, 3) AND mod(c,5) > ANY (ARRAY[1, 2, 3])');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
 
 
--- we can/* REPLACED */''t use the statistic for OR clauses that are not fully covered (missing /* REPLACED */''d/* REPLACED */'' attribute)
+-- we can/* REPLACED */ ''t use the statistic for OR clauses that are not fully covered (missing /* REPLACED */ ''d/* REPLACED */ '' attribute)
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE mod(a,20) = 1 OR mod(b::int,10) = 1 OR mod(c,5) = 1 OR d IS NOT NULL');
 RESULT:
-	postgres: [(200, 200)]
+	[(200, 200)]
 
 -----------
 QUERY:
@@ -4425,14 +4425,14 @@ QUERY:
 -- 100 distinct combinations with NULL values, all in the MCV list
 TRUNCATE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4446,7 +4446,7 @@ INSERT INTO mcv_lists (a, b, c, filler1)
          i
      FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4454,7 +4454,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4462,7 +4462,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND b IS NULL');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4470,7 +4470,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND b IS NULL AND c IS NULL');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4478,7 +4478,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND b IS NOT NULL');
 RESULT:
-	postgres: [(49, 0)]
+	[(49, 0)]
 
 -----------
 QUERY:
@@ -4486,7 +4486,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NOT NULL AND b IS NULL AND c IS NOT NULL');
 RESULT:
-	postgres: [(95, 0)]
+	[(95, 0)]
 
 -----------
 QUERY:
@@ -4494,7 +4494,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IN (0, 1) AND b IN (''0'', ''1'')');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4503,7 +4503,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS mcv_lists_stats (mcv) ON a, b, c FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4511,7 +4511,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4519,7 +4519,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND b IS NULL');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4527,7 +4527,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND b IS NULL AND c IS NULL');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4535,7 +4535,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND b IS NOT NULL');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -4543,7 +4543,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NOT NULL AND b IS NULL AND c IS NOT NULL');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -4551,7 +4551,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IN (0, 1) AND b IN (''0'', ''1'')');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4560,21 +4560,21 @@ QUERY:
 -- test pg_mcv_list_items with a very simple (single item) MCV list
 TRUNCATE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO mcv_lists (a, b, c) SELECT 1, 2, 3 FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4586,7 +4586,7 @@ SELECT m.*
  WHERE s.stxname = 'mcv_lists_stats'
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(0, ['1', '2', '3'], [False, False, False], 1.0, 1.0)]
+	[(0, ['1', '2', '3'], [False, False, False], 1.0, 1.0)]
 
 -----------
 QUERY:
@@ -4595,14 +4595,14 @@ QUERY:
 -- 2 distinct combinations with NULL values, all in the MCV list
 TRUNCATE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP STATISTICS mcv_lists_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4616,7 +4616,7 @@ INSERT INTO mcv_lists (a, b, c, d)
          (CASE WHEN mod(i,2) = 0 THEN NULL ELSE 'x' END)
      FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4624,7 +4624,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4632,7 +4632,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE b = ''x'' OR d = ''x''');
 RESULT:
-	postgres: [(3750, 2500)]
+	[(3750, 2500)]
 
 -----------
 QUERY:
@@ -4640,7 +4640,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''x'' OR d = ''x''');
 RESULT:
-	postgres: [(3750, 2500)]
+	[(3750, 2500)]
 
 -----------
 QUERY:
@@ -4648,7 +4648,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND (b = ''x'' OR d = ''x'')');
 RESULT:
-	postgres: [(3750, 2500)]
+	[(3750, 2500)]
 
 -----------
 QUERY:
@@ -4657,7 +4657,7 @@ QUERY:
 -- create statistics
 CREATE STATISTICS mcv_lists_stats (mcv) ON a, b, d FROM mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4665,7 +4665,7 @@ QUERY:
 
 ANALYZE mcv_lists;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4678,7 +4678,7 @@ SELECT m.*
  WHERE s.stxname = 'mcv_lists_stats'
    AND d.stxoid = s.oid;
 RESULT:
-	postgres: [(0, [None, 'x', 'x'], [True, False, False], 0.5, 0.25), (1, [None, None, None], [True, True, True], 0.5, 0.25)]
+	[(0, [None, 'x', 'x'], [True, False, False], 0.5, 0.25), (1, [None, None, None], [True, True, True], 0.5, 0.25)]
 
 -----------
 QUERY:
@@ -4686,7 +4686,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE b = ''x'' OR d = ''x''');
 RESULT:
-	postgres: [(2500, 2500)]
+	[(2500, 2500)]
 
 -----------
 QUERY:
@@ -4694,7 +4694,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a = 1 OR b = ''x'' OR d = ''x''');
 RESULT:
-	postgres: [(2500, 2500)]
+	[(2500, 2500)]
 
 -----------
 QUERY:
@@ -4702,7 +4702,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists WHERE a IS NULL AND (b = ''x'' OR d = ''x'')');
 RESULT:
-	postgres: [(2500, 2500)]
+	[(2500, 2500)]
 
 -----------
 QUERY:
@@ -4716,7 +4716,7 @@ CREATE TABLE mcv_lists_uuid (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4729,7 +4729,7 @@ INSERT INTO mcv_lists_uuid (a, b, c)
          fipshash(mod(i,25)::text)::uuid
      FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4737,7 +4737,7 @@ QUERY:
 
 ANALYZE mcv_lists_uuid;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4745,7 +4745,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_uuid WHERE a = ''e7f6c011-776e-8db7-cd33-0b54174fd76f'' AND b = ''e7f6c011-776e-8db7-cd33-0b54174fd76f''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4753,7 +4753,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_uuid WHERE a = ''e7f6c011-776e-8db7-cd33-0b54174fd76f'' AND b = ''e7f6c011-776e-8db7-cd33-0b54174fd76f'' AND c = ''e7f6c011-776e-8db7-cd33-0b54174fd76f''');
 RESULT:
-	postgres: [(1, 50)]
+	[(1, 50)]
 
 -----------
 QUERY:
@@ -4762,7 +4762,7 @@ QUERY:
 CREATE STATISTICS mcv_lists_uuid_stats (mcv) ON a, b, c
   FROM mcv_lists_uuid;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4770,7 +4770,7 @@ QUERY:
 
 ANALYZE mcv_lists_uuid;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4778,7 +4778,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_uuid WHERE a = ''e7f6c011-776e-8db7-cd33-0b54174fd76f'' AND b = ''e7f6c011-776e-8db7-cd33-0b54174fd76f''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4786,7 +4786,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_uuid WHERE a = ''e7f6c011-776e-8db7-cd33-0b54174fd76f'' AND b = ''e7f6c011-776e-8db7-cd33-0b54174fd76f'' AND c = ''e7f6c011-776e-8db7-cd33-0b54174fd76f''');
 RESULT:
-	postgres: [(50, 50)]
+	[(50, 50)]
 
 -----------
 QUERY:
@@ -4794,7 +4794,7 @@ QUERY:
 
 DROP TABLE mcv_lists_uuid;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4808,7 +4808,7 @@ CREATE TABLE mcv_lists_arrays (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4821,7 +4821,7 @@ INSERT INTO mcv_lists_arrays (a, b, c)
          ARRAY[(i/100-1), i/100, (i/100+1)]
      FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4830,7 +4830,7 @@ QUERY:
 CREATE STATISTICS mcv_lists_arrays_stats (mcv) ON a, b, c
   FROM mcv_lists_arrays;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4838,7 +4838,7 @@ QUERY:
 
 ANALYZE mcv_lists_arrays;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4852,7 +4852,7 @@ CREATE TABLE mcv_lists_bool (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4863,7 +4863,7 @@ INSERT INTO mcv_lists_bool (a, b, c)
          (mod(i,2) = 0), (mod(i,4) = 0), (mod(i,8) = 0)
      FROM generate_series(1,10000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4871,7 +4871,7 @@ QUERY:
 
 ANALYZE mcv_lists_bool;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4879,7 +4879,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE a AND b AND c');
 RESULT:
-	postgres: [(156, 1250)]
+	[(156, 1250)]
 
 -----------
 QUERY:
@@ -4887,7 +4887,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE NOT a AND b AND c');
 RESULT:
-	postgres: [(156, 0)]
+	[(156, 0)]
 
 -----------
 QUERY:
@@ -4895,7 +4895,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE NOT a AND NOT b AND c');
 RESULT:
-	postgres: [(469, 0)]
+	[(469, 0)]
 
 -----------
 QUERY:
@@ -4903,7 +4903,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE NOT a AND b AND NOT c');
 RESULT:
-	postgres: [(1094, 0)]
+	[(1094, 0)]
 
 -----------
 QUERY:
@@ -4912,7 +4912,7 @@ QUERY:
 CREATE STATISTICS mcv_lists_bool_stats (mcv) ON a, b, c
   FROM mcv_lists_bool;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4920,7 +4920,7 @@ QUERY:
 
 ANALYZE mcv_lists_bool;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4928,7 +4928,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE a AND b AND c');
 RESULT:
-	postgres: [(1250, 1250)]
+	[(1250, 1250)]
 
 -----------
 QUERY:
@@ -4936,7 +4936,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE NOT a AND b AND c');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -4944,7 +4944,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE NOT a AND NOT b AND c');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -4952,7 +4952,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_bool WHERE NOT a AND b AND NOT c');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -4965,7 +4965,7 @@ CREATE TABLE mcv_lists_partial (
     c INT
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4979,7 +4979,7 @@ INSERT INTO mcv_lists_partial (a, b, c)
          mod(i,10)
      FROM generate_series(0,999) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4993,13 +4993,13 @@ INSERT INTO mcv_lists_partial (a, b, c)
          i
      FROM generate_series(0,99) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- 4000 groups in total, most of which won/* REPLACED */''t make it (just a single item)
+-- 4000 groups in total, most of which won/* REPLACED */ ''t make it (just a single item)
 INSERT INTO mcv_lists_partial (a, b, c)
      SELECT
          i,
@@ -5007,7 +5007,7 @@ INSERT INTO mcv_lists_partial (a, b, c)
          i
      FROM generate_series(0,3999) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5015,7 +5015,7 @@ QUERY:
 
 ANALYZE mcv_lists_partial;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5023,7 +5023,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 AND b = 0 AND c = 0');
 RESULT:
-	postgres: [(1, 102)]
+	[(1, 102)]
 
 -----------
 QUERY:
@@ -5031,7 +5031,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 OR b = 0 OR c = 0');
 RESULT:
-	postgres: [(300, 102)]
+	[(300, 102)]
 
 -----------
 QUERY:
@@ -5039,7 +5039,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 10 AND b = 10 AND c = 10');
 RESULT:
-	postgres: [(1, 2)]
+	[(1, 2)]
 
 -----------
 QUERY:
@@ -5047,7 +5047,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 10 OR b = 10 OR c = 10');
 RESULT:
-	postgres: [(6, 2)]
+	[(6, 2)]
 
 -----------
 QUERY:
@@ -5055,7 +5055,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 AND b = 0 AND c = 10');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -5063,7 +5063,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 OR b = 0 OR c = 10');
 RESULT:
-	postgres: [(204, 104)]
+	[(204, 104)]
 
 -----------
 QUERY:
@@ -5071,7 +5071,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE (a = 0 AND b = 0 AND c = 0) OR (a = 1 AND b = 1 AND c = 1) OR (a = 2 AND b = 2 AND c = 2)');
 RESULT:
-	postgres: [(1, 306)]
+	[(1, 306)]
 
 -----------
 QUERY:
@@ -5079,7 +5079,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE (a = 0 AND b = 0) OR (a = 0 AND c = 0) OR (b = 0 AND c = 0)');
 RESULT:
-	postgres: [(6, 102)]
+	[(6, 102)]
 
 -----------
 QUERY:
@@ -5088,7 +5088,7 @@ QUERY:
 CREATE STATISTICS mcv_lists_partial_stats (mcv) ON a, b, c
   FROM mcv_lists_partial;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5096,7 +5096,7 @@ QUERY:
 
 ANALYZE mcv_lists_partial;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5104,7 +5104,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 AND b = 0 AND c = 0');
 RESULT:
-	postgres: [(102, 102)]
+	[(102, 102)]
 
 -----------
 QUERY:
@@ -5112,7 +5112,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 OR b = 0 OR c = 0');
 RESULT:
-	postgres: [(96, 102)]
+	[(96, 102)]
 
 -----------
 QUERY:
@@ -5120,7 +5120,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 10 AND b = 10 AND c = 10');
 RESULT:
-	postgres: [(2, 2)]
+	[(2, 2)]
 
 -----------
 QUERY:
@@ -5128,7 +5128,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 10 OR b = 10 OR c = 10');
 RESULT:
-	postgres: [(2, 2)]
+	[(2, 2)]
 
 -----------
 QUERY:
@@ -5136,7 +5136,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 AND b = 0 AND c = 10');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -5144,7 +5144,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE a = 0 OR b = 0 OR c = 10');
 RESULT:
-	postgres: [(102, 104)]
+	[(102, 104)]
 
 -----------
 QUERY:
@@ -5152,7 +5152,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE (a = 0 AND b = 0 AND c = 0) OR (a = 1 AND b = 1 AND c = 1) OR (a = 2 AND b = 2 AND c = 2)');
 RESULT:
-	postgres: [(306, 306)]
+	[(306, 306)]
 
 -----------
 QUERY:
@@ -5160,7 +5160,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_partial WHERE (a = 0 AND b = 0) OR (a = 0 AND c = 0) OR (b = 0 AND c = 0)');
 RESULT:
-	postgres: [(108, 102)]
+	[(108, 102)]
 
 -----------
 QUERY:
@@ -5168,7 +5168,7 @@ QUERY:
 
 DROP TABLE mcv_lists_partial;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5183,7 +5183,7 @@ CREATE TABLE mcv_lists_multi (
 )
 WITH (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5197,7 +5197,7 @@ INSERT INTO mcv_lists_multi (a, b, c, d)
          mod(i,7)
     FROM generate_series(1,5000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5205,7 +5205,7 @@ QUERY:
 
 ANALYZE mcv_lists_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5214,49 +5214,49 @@ QUERY:
 -- estimates without any mcv statistics
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(200, 1000)]
+	[(200, 1000)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE c = 0 AND d = 0');
 RESULT:
-	postgres: [(102, 714)]
+	[(102, 714)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE b = 0 AND c = 0');
 RESULT:
-	postgres: [(143, 142)]
+	[(143, 142)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE b = 0 OR c = 0');
 RESULT:
-	postgres: [(1571, 1572)]
+	[(1571, 1572)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE a = 0 AND b = 0 AND c = 0 AND d = 0');
 RESULT:
-	postgres: [(4, 142)]
+	[(4, 142)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE (a = 0 AND b = 0) OR (c = 0 AND d = 0)');
 RESULT:
-	postgres: [(298, 1572)]
+	[(298, 1572)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE a = 0 OR b = 0 OR c = 0 OR d = 0');
 RESULT:
-	postgres: [(2649, 1572)]
+	[(2649, 1572)]
 
 -----------
 QUERY:
@@ -5265,14 +5265,14 @@ QUERY:
 -- create separate MCV statistics
 CREATE STATISTICS mcv_lists_multi_1 (mcv) ON a, b FROM mcv_lists_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE STATISTICS mcv_lists_multi_2 (mcv) ON c, d FROM mcv_lists_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5280,7 +5280,7 @@ QUERY:
 
 ANALYZE mcv_lists_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5288,49 +5288,49 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE a = 0 AND b = 0');
 RESULT:
-	postgres: [(1000, 1000)]
+	[(1000, 1000)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE c = 0 AND d = 0');
 RESULT:
-	postgres: [(714, 714)]
+	[(714, 714)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE b = 0 AND c = 0');
 RESULT:
-	postgres: [(143, 142)]
+	[(143, 142)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE b = 0 OR c = 0');
 RESULT:
-	postgres: [(1571, 1572)]
+	[(1571, 1572)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE a = 0 AND b = 0 AND c = 0 AND d = 0');
 RESULT:
-	postgres: [(143, 142)]
+	[(143, 142)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE (a = 0 AND b = 0) OR (c = 0 AND d = 0)');
 RESULT:
-	postgres: [(1571, 1572)]
+	[(1571, 1572)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM mcv_lists_multi WHERE a = 0 OR b = 0 OR c = 0 OR d = 0');
 RESULT:
-	postgres: [(1571, 1572)]
+	[(1571, 1572)]
 
 -----------
 QUERY:
@@ -5338,7 +5338,7 @@ QUERY:
 
 DROP TABLE mcv_lists_multi;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5348,21 +5348,21 @@ QUERY:
 -- statistics on integer expressions
 CREATE TABLE expr_stats (a int, b int, c int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO expr_stats SELECT mod(i,10), mod(i,10), mod(i,10) FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5370,14 +5370,14 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE (2*a) = 0 AND (3*b) = 0');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE (a+b) = 0 AND (a-b) = 0');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
@@ -5385,14 +5385,14 @@ QUERY:
 
 CREATE STATISTICS expr_stats_1 (mcv) ON (a+b), (a-b), (2*a), (3*b) FROM expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5400,14 +5400,14 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE (2*a) = 0 AND (3*b) = 0');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE (a+b) = 0 AND (a-b) = 0');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -5415,14 +5415,14 @@ QUERY:
 
 DROP STATISTICS expr_stats_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5431,21 +5431,21 @@ QUERY:
 -- statistics on a mix columns and expressions
 CREATE TABLE expr_stats (a int, b int, c int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO expr_stats SELECT mod(i,10), mod(i,10), mod(i,10) FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5453,21 +5453,21 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 0 AND (2*a) = 0 AND (3*b) = 0');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 3 AND b = 3 AND (a-b) = 0');
 RESULT:
-	postgres: [(1, 100)]
+	[(1, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 0 AND b = 1 AND (a-b) = 0');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -5475,14 +5475,14 @@ QUERY:
 
 CREATE STATISTICS expr_stats_1 (mcv) ON a, b, (2*a), (3*b), (a+b), (a-b) FROM expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5490,21 +5490,21 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 0 AND (2*a) = 0 AND (3*b) = 0');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 3 AND b = 3 AND (a-b) = 0');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 0 AND b = 1 AND (a-b) = 0');
 RESULT:
-	postgres: [(1, 0)]
+	[(1, 0)]
 
 -----------
 QUERY:
@@ -5512,7 +5512,7 @@ QUERY:
 
 DROP TABLE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5521,21 +5521,21 @@ QUERY:
 -- statistics on expressions with different data types
 CREATE TABLE expr_stats (a int, b name, c text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO expr_stats SELECT mod(i,10), fipshash(mod(i,10)::text), fipshash(mod(i,10)::text) FROM generate_series(1,1000) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5543,7 +5543,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 0 AND (b || c) <= ''z'' AND (c || b) >= ''0''');
 RESULT:
-	postgres: [(11, 100)]
+	[(11, 100)]
 
 -----------
 QUERY:
@@ -5551,14 +5551,14 @@ QUERY:
 
 CREATE STATISTICS expr_stats_1 (mcv) ON a, b, (b || c), (c || b) FROM expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5566,7 +5566,7 @@ QUERY:
 
 SELECT * FROM check_estimated_rows('SELECT * FROM expr_stats WHERE a = 0 AND (b || c) <= ''z'' AND (c || b) >= ''0''');
 RESULT:
-	postgres: [(100, 100)]
+	[(100, 100)]
 
 -----------
 QUERY:
@@ -5574,7 +5574,7 @@ QUERY:
 
 DROP TABLE expr_stats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5586,7 +5586,7 @@ CREATE TABLE expr_stats_incompatible_test (
     c1 boolean NOT NULL
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5594,7 +5594,7 @@ QUERY:
 
 CREATE STATISTICS expr_stat_comp_1 ON c0, c1 FROM expr_stats_incompatible_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5602,14 +5602,14 @@ QUERY:
 
 INSERT INTO expr_stats_incompatible_test VALUES (1234,false), (5678,true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ANALYZE expr_stats_incompatible_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5622,7 +5622,7 @@ SELECT c0 FROM ONLY expr_stats_incompatible_test WHERE
   (c0 IN (0, 1) OR c1)
 );
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -5630,7 +5630,7 @@ QUERY:
 
 DROP TABLE expr_stats_incompatible_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5643,7 +5643,7 @@ QUERY:
 -- Currently this is only relevant for MCV stats.
 CREATE SCHEMA tststats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5654,7 +5654,7 @@ CREATE TABLE tststats.priv_test_tbl (
     b int
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5663,7 +5663,7 @@ QUERY:
 INSERT INTO tststats.priv_test_tbl
      SELECT mod(i,5), mod(i,10) FROM generate_series(1,100) s(i);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5672,7 +5672,7 @@ QUERY:
 CREATE STATISTICS tststats.priv_test_stats (mcv) ON a, b
   FROM tststats.priv_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5680,7 +5680,7 @@ QUERY:
 
 ANALYZE tststats.priv_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5689,28 +5689,28 @@ QUERY:
 -- Check printing info about extended statistics by \dX
 create table stts_t1 (a int, b int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics (ndistinct) on a, b from stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics (ndistinct, dependencies) on a, b from stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics (ndistinct, dependencies, mcv) on a, b from stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5718,14 +5718,14 @@ QUERY:
 
 create table stts_t2 (a int, b int, c int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics on b, c from stts_t2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5733,14 +5733,14 @@ QUERY:
 
 create table stts_t3 (col1 int, col2 int, col3 int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics stts_hoge on col1, col2, col3 from stts_t3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5748,28 +5748,28 @@ QUERY:
 
 create schema stts_s1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create schema stts_s2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics stts_s1.stts_foo on col1, col2 from stts_t3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics stts_s2.stts_yama (dependencies, mcv) on col1, col3 from stts_t3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5777,21 +5777,21 @@ QUERY:
 
 insert into stts_t1 select i,i from generate_series(1,100) i;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 analyze stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set search_path to public, stts_s1, stts_s2, tststats;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5807,21 +5807,21 @@ QUERY:
 
 create statistics (mcv) ON a, b, (a+b), (a-b) FROM stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics (mcv) ON a, b, (a+b), (a-b) FROM stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create statistics (mcv) ON (a+b), (a-b) FROM stts_t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5829,21 +5829,21 @@ QUERY:
 -- \dX stts_t*expr*
 drop statistics stts_t1_a_b_expr_expr_stat;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop statistics stts_t1_a_b_expr_expr_stat1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop statistics stts_t1_expr_expr_stat;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5851,7 +5851,7 @@ QUERY:
 
 set search_path to public, stts_s1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5860,14 +5860,14 @@ QUERY:
 
 create role regress_stats_ext nosuperuser;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set role regress_stats_ext;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5875,7 +5875,7 @@ QUERY:
 -- \dX
 reset role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5883,28 +5883,28 @@ QUERY:
 
 drop table stts_t1, stts_t2, stts_t3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop schema stts_s1, stts_s2 cascade;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop user regress_stats_ext;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 reset search_path;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5913,39 +5913,39 @@ QUERY:
 -- User with no access
 CREATE USER regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON SCHEMA tststats TO regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM tststats.priv_test_tbl;
 RESULT:
-	postgres: permission denied for table priv_test_tbl
+	ERROR - permission denied for table priv_test_tbl
 
 
 -----------
 QUERY:
  -- Permission denied
 
--- Check individual columns if we don/* REPLACED */''t have table privilege
+-- Check individual columns if we don/* REPLACED */ ''t have table privilege
 SELECT * FROM tststats.priv_test_tbl
   WHERE a = 1 and tststats.priv_test_tbl.* > (1, 1) is not null;
 RESULT:
-	postgres: permission denied for table priv_test_tbl
+	ERROR - permission denied for table priv_test_tbl
 
 
 -----------
@@ -5956,7 +5956,7 @@ QUERY:
 CREATE FUNCTION op_leak(int, int) RETURNS bool
     AS 'BEGIN RAISE NOTICE ''op_leak => %, %'', $1, $2;
 RESULT:
-	postgres: unterminated quoted string at or near "'BEGIN RAISE NOTICE ''op_leak => %, %'', $1, $2;"
+	ERROR - unterminated quoted string at or near "'BEGIN RAISE NOTICE ''op_leak => %, %'', $1, $2;"
 LINE 5:     AS 'BEGIN RAISE NOTICE ''op_leak => %, %'', $1, $2;
                ^
 
@@ -5965,7 +5965,7 @@ LINE 5:     AS 'BEGIN RAISE NOTICE ''op_leak => %, %'', $1, $2;
 QUERY:
  RETURN $1 < $2;
 RESULT:
-	postgres: syntax error at or near "RETURN"
+	ERROR - syntax error at or near "RETURN"
 LINE 1:  RETURN $1 < $2;
          ^
 
@@ -5975,7 +5975,7 @@ QUERY:
  END'
     LANGUAGE plpgsql;
 RESULT:
-	postgres: unterminated quoted string at or near "'
+	ERROR - unterminated quoted string at or near "'
     LANGUAGE plpgsql;"
 LINE 1:  END'
             ^
@@ -5987,7 +5987,7 @@ QUERY:
 CREATE OPERATOR <<< (procedure = op_leak, leftarg = int, rightarg = int,
                      restrict = scalarltsel);
 RESULT:
-	postgres: function op_leak(integer, integer) does not exist
+	ERROR - function op_leak(integer, integer) does not exist
 
 
 -----------
@@ -5995,7 +5995,7 @@ QUERY:
 
 SELECT * FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<< 0;
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 LINE 2: SELECT * FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<<...
                                                      ^
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -6006,7 +6006,7 @@ QUERY:
  -- Permission denied
 DELETE FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<< 0;
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 LINE 2: DELETE FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<< 0...
                                                    ^
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -6019,7 +6019,7 @@ QUERY:
 -- Grant access via a security barrier view, but hide all data
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -6027,14 +6027,14 @@ QUERY:
 CREATE VIEW tststats.priv_test_view WITH (security_barrier=true)
     AS SELECT * FROM tststats.priv_test_tbl WHERE false;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT SELECT, DELETE ON tststats.priv_test_view TO regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -6043,14 +6043,14 @@ QUERY:
 -- Should now have access via the view, but see nothing and leak nothing
 SET SESSION AUTHORIZATION regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM tststats.priv_test_view WHERE a <<< 0 AND b <<< 0;
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 LINE 2: SELECT * FROM tststats.priv_test_view WHERE a <<< 0 AND b <<...
                                                       ^
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -6061,7 +6061,7 @@ QUERY:
  -- Should not leak
 DELETE FROM tststats.priv_test_view WHERE a <<< 0 AND b <<< 0;
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 LINE 2: DELETE FROM tststats.priv_test_view WHERE a <<< 0 AND b <<< ...
                                                     ^
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -6074,21 +6074,21 @@ QUERY:
 -- Grant table access, but hide all data with RLS
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE tststats.priv_test_tbl ENABLE ROW LEVEL SECURITY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT SELECT, DELETE ON tststats.priv_test_tbl TO regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -6097,14 +6097,14 @@ QUERY:
 -- Should now have direct table access, but see nothing and leak nothing
 SET SESSION AUTHORIZATION regress_stats_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<< 0;
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 LINE 2: SELECT * FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<<...
                                                      ^
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -6115,7 +6115,7 @@ QUERY:
  -- Should not leak
 DELETE FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<< 0;
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 LINE 2: DELETE FROM tststats.priv_test_tbl WHERE a <<< 0 AND b <<< 0...
                                                    ^
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -6128,7 +6128,7 @@ QUERY:
 -- Tidy up
 DROP OPERATOR <<< (int, int);
 RESULT:
-	postgres: operator does not exist: integer <<< integer
+	ERROR - operator does not exist: integer <<< integer
 
 
 -----------
@@ -6136,7 +6136,7 @@ QUERY:
 
 DROP FUNCTION op_leak(int, int);
 RESULT:
-	postgres: function op_leak(integer, integer) does not exist
+	ERROR - function op_leak(integer, integer) does not exist
 
 
 -----------
@@ -6144,18 +6144,18 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SCHEMA tststats CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER regress_stats_user1;
 RESULT:
-	postgres: None
+	[]

@@ -105,7 +105,7 @@ INSERT INTO BOOLTBL1 (f1) VALUES (bool 'True');
 INSERT INTO BOOLTBL1 (f1) VALUES (bool 'true');
 
 
--- BOOLTBL1 should be full of true/* REPLACED */''s at this point
+-- BOOLTBL1 should be full of true/* REPLACED */ ''s at this point
 SELECT BOOLTBL1.* FROM BOOLTBL1;
 
 
@@ -144,7 +144,7 @@ INSERT INTO BOOLTBL2 (f1) VALUES (bool 'FALSE');
 INSERT INTO BOOLTBL2 (f1)
    VALUES (bool 'XXX');
 
--- BOOLTBL2 should be full of false/* REPLACED */''s at this point
+-- BOOLTBL2 should be full of false/* REPLACED */ ''s at this point
 SELECT BOOLTBL2.* FROM BOOLTBL2;
 
 
@@ -230,9 +230,9 @@ FROM booltbl3 ORDER BY o;
 -- from interfering.
 CREATE TABLE booltbl4(isfalse bool, istrue bool, isnul bool);
 INSERT INTO booltbl4 VALUES (false, true, null);
-\pset null '(null)'
+-- \pset null /* REPLACED */ ''(null)/* REPLACED */ ''
 
--- AND expression need to return null if there/* REPLACED */''s any nulls and not all
+-- AND expression need to return null if there/* REPLACED */ ''s any nulls and not all
 -- of the value are true
 SELECT istrue AND isnul AND istrue FROM booltbl4;
 SELECT istrue AND istrue AND isnul FROM booltbl4;
@@ -241,7 +241,7 @@ SELECT isfalse AND isnul AND istrue FROM booltbl4;
 SELECT istrue AND isfalse AND isnul FROM booltbl4;
 SELECT isnul AND istrue AND isfalse FROM booltbl4;
 
--- OR expression need to return null if there/* REPLACED */''s any nulls and none
+-- OR expression need to return null if there/* REPLACED */ ''s any nulls and none
 -- of the value is true
 SELECT isfalse OR isnul OR isfalse FROM booltbl4;
 SELECT isfalse OR isfalse OR isnul FROM booltbl4;

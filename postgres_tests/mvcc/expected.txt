@@ -7,11 +7,11 @@ QUERY:
 -- kill_prior_tuple optimization
 --
 -- NB: The table size is currently *not* expected to stay the same, we
--- don/* REPLACED */''t have logic to trigger opportunistic pruning in cases like
+-- don/* REPLACED */ ''t have logic to trigger opportunistic pruning in cases like
 -- this.
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -19,45 +19,45 @@ QUERY:
 
 SET LOCAL enable_seqscan = false;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET LOCAL enable_indexonlyscan = false;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET LOCAL enable_bitmapscan = false;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- Can/* REPLACED */''t easily use a unique index, since dead tuples can be found
+-- Can/* REPLACED */ ''t easily use a unique index, since dead tuples can be found
 -- independent of the kill_prior_tuples optimization.
 CREATE TABLE clean_aborted_self(key int, data text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX clean_aborted_self_key ON clean_aborted_self(key);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO clean_aborted_self (key, data) VALUES (-1, 'just to allocate metapage');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -76,13 +76,13 @@ BEGIN
 	        RAISE data_corrupted USING MESSAGE = 'these rows should not exist';
             END IF;
             INSERT INTO clean_aborted_self SELECT g.i, 'rolling back in a sec' FROM generate_series(1, 100) g(i);
-	    -- just some error that/* REPLACED */''s not normally thrown
+	    -- just some error that/* REPLACED */ ''s not normally thrown
 	    RAISE reading_sql_data_not_permitted USING MESSAGE = 'round and round again';
 	EXCEPTION WHEN reading_sql_data_not_permitted THEN END;
     END LOOP;
 END;$$;
 RESULT:
-	postgres: syntax error at or near "\"
+	ERROR - syntax error at or near "\"
 LINE 4: ...an_aborted_self_key') AS clean_aborted_self_key_before \gset
                                                                   ^
 
@@ -95,7 +95,7 @@ QUERY:
 SELECT :clean_aborted_self_key_before AS size_before, pg_relation_size('clean_aborted_self_key') size_after
 WHERE :clean_aborted_self_key_before != pg_relation_size('clean_aborted_self_key');
 RESULT:
-	postgres: syntax error at or near ":"
+	ERROR - syntax error at or near ":"
 LINE 4: SELECT :clean_aborted_self_key_before AS size_before, pg_rel...
                ^
 
@@ -106,4 +106,4 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]

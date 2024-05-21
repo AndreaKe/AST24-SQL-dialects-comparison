@@ -6,7 +6,7 @@ QUERY:
 --
 create table insertconflicttest(key int4, fruit text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -18,28 +18,28 @@ QUERY:
 --
 create unique index op_index_key on insertconflicttest(key, fruit text_pattern_ops);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index collation_index_key on insertconflicttest(key, fruit collate "C");
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index both_index_key on insertconflicttest(key, fruit collate "C" text_pattern_ops);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index both_index_expr_key on insertconflicttest(key, lower(fruit) collate "C" text_pattern_ops);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -48,7 +48,7 @@ QUERY:
 -- fails
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do nothing;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -56,7 +56,7 @@ QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit) do nothing;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -66,21 +66,21 @@ QUERY:
 -- succeeds
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit, key) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit), key, lower(fruit), key) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_expr_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_expr_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -88,7 +88,7 @@ QUERY:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do update set fruit = excluded.fruit
   where exists (select 1 from insertconflicttest ii where ii.key = excluded.key);
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key',), ('  Conflict Filter: EXISTS(SubPlan 1)',), ('  ->  Result',), ('  SubPlan 1',), ('    ->  Index Only Scan using both_index_expr_key on insertconflicttest ii',), ('          Index Cond: (key = excluded.key)',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key',), ('  Conflict Filter: EXISTS(SubPlan 1)',), ('  ->  Result',), ('  SubPlan 1',), ('    ->  Index Only Scan using both_index_expr_key on insertconflicttest ii',), ('          Index Cond: (key = excluded.key)',)]
 
 -----------
 QUERY:
@@ -98,7 +98,7 @@ QUERY:
 -- used for relevant indexes
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit text_pattern_ops) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, both_index_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, both_index_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -107,7 +107,7 @@ QUERY:
 -- does not appear.
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit collate "C") do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: collation_index_key, both_index_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: collation_index_key, both_index_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -116,7 +116,7 @@ QUERY:
 -- specified
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit collate "C" text_pattern_ops, key) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -125,7 +125,7 @@ QUERY:
 -- specified (plus expression variant)
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C", key, key) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_expr_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_expr_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -146,14 +146,14 @@ QUERY:
 -- multiple times, too (which is not tested here).
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit text_pattern_ops, key) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, both_index_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: op_index_key, both_index_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C" text_pattern_ops, key, key) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_expr_key',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: both_index_expr_key',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -161,28 +161,28 @@ QUERY:
 
 drop index op_index_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop index collation_index_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop index both_index_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop index both_index_expr_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -193,7 +193,7 @@ QUERY:
 --
 create unique index cross_match on insertconflicttest(lower(fruit) collate "C", upper(fruit) text_pattern_ops);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -202,7 +202,7 @@ QUERY:
 -- fails:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) text_pattern_ops, upper(fruit) collate "C") do nothing;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -211,7 +211,7 @@ QUERY:
 -- works:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C", upper(fruit) text_pattern_ops) do nothing;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: cross_match',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: NOTHING',), ('  Conflict Arbiter Indexes: cross_match',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -219,7 +219,7 @@ QUERY:
 
 drop index cross_match;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -230,7 +230,7 @@ QUERY:
 --
 create unique index key_index on insertconflicttest(key);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -241,7 +241,7 @@ QUERY:
 --
 explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: key_index',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: key_index',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -249,7 +249,7 @@ QUERY:
 -- Should display qual actually attributable to internal sequential scan:
 explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Cawesh';
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: key_index',), ("  Conflict Filter: (insertconflicttest.fruit <> 'Cawesh'::text)",), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: key_index',), ("  Conflict Filter: (insertconflicttest.fruit <> 'Cawesh'::text)",), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -257,15 +257,15 @@ QUERY:
 -- With EXCLUDED.* expression in scan node:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do update set fruit = excluded.fruit where excluded.fruit != 'Elderberry';
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: key_index',), ("  Conflict Filter: (excluded.fruit <> 'Elderberry'::text)",), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: key_index',), ("  Conflict Filter: (excluded.fruit <> 'Elderberry'::text)",), ('  ->  Result',)]
 
 -----------
 QUERY:
 
--- Does the same, but JSON format shows /* REPLACED */''Conflict Arbiter Index/* REPLACED */'' as JSON array:
+-- Does the same, but JSON format shows /* REPLACED */ ''Conflict Arbiter Index/* REPLACED */ '' as JSON array:
 explain (costs off, format json) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Lime' returning *;
 RESULT:
-	postgres: [([{'Plan': {'Node Type': 'ModifyTable', 'Operation': 'Insert', 'Parallel Aware': False, 'Async Capable': False, 'Relation Name': 'insertconflicttest', 'Alias': 'insertconflicttest', 'Conflict Resolution': 'UPDATE', 'Conflict Arbiter Indexes': ['key_index'], 'Conflict Filter': "(insertconflicttest.fruit <> 'Lime'::text)", 'Plans': [{'Node Type': 'Result', 'Parent Relationship': 'Outer', 'Parallel Aware': False, 'Async Capable': False}]}}],)]
+	[([{'Plan': {'Node Type': 'ModifyTable', 'Operation': 'Insert', 'Parallel Aware': False, 'Async Capable': False, 'Relation Name': 'insertconflicttest', 'Alias': 'insertconflicttest', 'Conflict Resolution': 'UPDATE', 'Conflict Arbiter Indexes': ['key_index'], 'Conflict Filter': "(insertconflicttest.fruit <> 'Lime'::text)", 'Plans': [{'Node Type': 'Result', 'Parent Relationship': 'Outer', 'Parallel Aware': False, 'Async Capable': False}]}}],)]
 
 -----------
 QUERY:
@@ -274,7 +274,7 @@ QUERY:
 -- Fails (no unique index inference specification, required for do update variant):
 insert into insertconflicttest values (1, 'Apple') on conflict do update set fruit = excluded.fruit;
 RESULT:
-	postgres: ON CONFLICT DO UPDATE requires inference specification or constraint name
+	ERROR - ON CONFLICT DO UPDATE requires inference specification or constraint name
 LINE 4: ...nsert into insertconflicttest values (1, 'Apple') on conflic...
                                                              ^
 HINT:  For example, ON CONFLICT (column_name).
@@ -287,14 +287,14 @@ QUERY:
 -- inference succeeds:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (2, 'Orange') on conflict (key, key, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -305,7 +305,7 @@ insert into insertconflicttest
 values (1, 'Apple'), (2, 'Orange')
 on conflict (key) do update set (fruit, key) = (excluded.fruit, excluded.key);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -315,7 +315,7 @@ QUERY:
 -- RETURNING:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruit RETURNING excluded.fruit;
 RESULT:
-	postgres: invalid reference to FROM-clause entry for table "excluded"
+	ERROR - invalid reference to FROM-clause entry for table "excluded"
 LINE 5: ...y) do update set fruit = excluded.fruit RETURNING excluded.f...
                                                              ^
 DETAIL:  There is an entry for table "excluded", but it cannot be referenced from this part of the query.
@@ -328,7 +328,7 @@ QUERY:
 -- Only suggest <table>.* column when inference element misspelled:
 insert into insertconflicttest values (1, 'Apple') on conflict (keyy) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: column "keyy" does not exist
+	ERROR - column "keyy" does not exist
 LINE 4: ...nsertconflicttest values (1, 'Apple') on conflict (keyy) do ...
                                                              ^
 HINT:  Perhaps you meant to reference the column "insertconflicttest.key" or the column "excluded.key".
@@ -341,7 +341,7 @@ QUERY:
 -- Have useful HINT for EXCLUDED.* RTE within UPDATE:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruitt;
 RESULT:
-	postgres: column excluded.fruitt does not exist
+	ERROR - column excluded.fruitt does not exist
 LINE 4: ... 'Apple') on conflict (key) do update set fruit = excluded.f...
                                                              ^
 HINT:  Perhaps you meant to reference the column "excluded.fruit".
@@ -354,7 +354,7 @@ QUERY:
 -- inference fails:
 insert into insertconflicttest values (3, 'Kiwi') on conflict (key, fruit) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -362,7 +362,7 @@ QUERY:
 
 insert into insertconflicttest values (4, 'Mango') on conflict (fruit, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -370,7 +370,7 @@ QUERY:
 
 insert into insertconflicttest values (5, 'Lemon') on conflict (fruit) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -378,7 +378,7 @@ QUERY:
 
 insert into insertconflicttest values (6, 'Passionfruit') on conflict (lower(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -388,21 +388,21 @@ QUERY:
 -- Check the target relation can be aliased
 insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- ok, no reference to target table
 insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = ict.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- ok, alias
 insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = insertconflicttest.fruit;
 RESULT:
-	postgres: invalid reference to FROM-clause entry for table "insertconflicttest"
+	ERROR - invalid reference to FROM-clause entry for table "insertconflicttest"
 LINE 2: ...onfruit') on conflict (key) do update set fruit = insertconf...
                                                              ^
 HINT:  Perhaps you meant to reference the table alias "ict".
@@ -415,7 +415,7 @@ QUERY:
 -- Check helpful hint when qualifying set column with target table
 insert into insertconflicttest values (3, 'Kiwi') on conflict (key, fruit) do update set insertconflicttest.fruit = 'Mango';
 RESULT:
-	postgres: column "insertconflicttest" of relation "insertconflicttest" does not exist
+	ERROR - column "insertconflicttest" of relation "insertconflicttest" does not exist
 LINE 4: ...3, 'Kiwi') on conflict (key, fruit) do update set insertconf...
                                                              ^
 HINT:  SET target columns cannot be qualified with the relation name.
@@ -427,7 +427,7 @@ QUERY:
 
 drop index key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -438,7 +438,7 @@ QUERY:
 --
 create unique index comp_key_index on insertconflicttest(key, fruit);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -447,14 +447,14 @@ QUERY:
 -- inference succeeds:
 insert into insertconflicttest values (7, 'Raspberry') on conflict (key, fruit) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (8, 'Lime') on conflict (fruit, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -463,7 +463,7 @@ QUERY:
 -- inference fails:
 insert into insertconflicttest values (9, 'Banana') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -471,7 +471,7 @@ QUERY:
 
 insert into insertconflicttest values (10, 'Blueberry') on conflict (key, key, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -479,7 +479,7 @@ QUERY:
 
 insert into insertconflicttest values (11, 'Cherry') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -487,7 +487,7 @@ QUERY:
 
 insert into insertconflicttest values (12, 'Date') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -496,7 +496,7 @@ QUERY:
 
 drop index comp_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -507,14 +507,14 @@ QUERY:
 --
 create unique index part_comp_key_index on insertconflicttest(key, fruit) where key < 5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index expr_part_comp_key_index on insertconflicttest(key, lower(fruit)) where key < 5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -523,7 +523,7 @@ QUERY:
 -- inference fails:
 insert into insertconflicttest values (13, 'Grape') on conflict (key, fruit) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -531,7 +531,7 @@ QUERY:
 
 insert into insertconflicttest values (14, 'Raisin') on conflict (fruit, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -539,7 +539,7 @@ QUERY:
 
 insert into insertconflicttest values (15, 'Cranberry') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -547,7 +547,7 @@ QUERY:
 
 insert into insertconflicttest values (16, 'Melon') on conflict (key, key, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -555,7 +555,7 @@ QUERY:
 
 insert into insertconflicttest values (17, 'Mulberry') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -563,7 +563,7 @@ QUERY:
 
 insert into insertconflicttest values (18, 'Pineapple') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -572,14 +572,14 @@ QUERY:
 
 drop index part_comp_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop index expr_part_comp_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -590,7 +590,7 @@ QUERY:
 --
 create unique index expr_key_index on insertconflicttest(lower(fruit));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -599,14 +599,14 @@ QUERY:
 -- inference succeeds:
 insert into insertconflicttest values (20, 'Quince') on conflict (lower(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (21, 'Pomegranate') on conflict (lower(fruit), lower(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -615,7 +615,7 @@ QUERY:
 -- inference fails:
 insert into insertconflicttest values (22, 'Apricot') on conflict (upper(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -623,7 +623,7 @@ QUERY:
 
 insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -632,7 +632,7 @@ QUERY:
 
 drop index expr_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -643,14 +643,14 @@ QUERY:
 --
 create unique index expr_comp_key_index on insertconflicttest(key, lower(fruit));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index tricky_expr_comp_key_index on insertconflicttest(key, lower(fruit), upper(fruit));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -659,22 +659,22 @@ QUERY:
 -- inference succeeds:
 insert into insertconflicttest values (24, 'Plum') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (25, 'Peach') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- Should not infer /* REPLACED */''tricky_expr_comp_key_index/* REPLACED */'' index:
+-- Should not infer /* REPLACED */ ''tricky_expr_comp_key_index/* REPLACED */ '' index:
 explain (costs off) insert into insertconflicttest values (26, 'Fig') on conflict (lower(fruit), key, lower(fruit), key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: [('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: expr_comp_key_index',), ('  ->  Result',)]
+	[('Insert on insertconflicttest',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: expr_comp_key_index',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -683,7 +683,7 @@ QUERY:
 -- inference fails:
 insert into insertconflicttest values (27, 'Prune') on conflict (key, upper(fruit)) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -691,7 +691,7 @@ QUERY:
 
 insert into insertconflicttest values (28, 'Redcurrant') on conflict (fruit, key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -699,7 +699,7 @@ QUERY:
 
 insert into insertconflicttest values (29, 'Nectarine') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -708,14 +708,14 @@ QUERY:
 
 drop index expr_comp_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop index tricky_expr_comp_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -726,43 +726,43 @@ QUERY:
 --
 create unique index key_index on insertconflicttest(key);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index fruit_index on insertconflicttest(fruit);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- succeeds, since UPDATE happens to update /* REPLACED */''fruit/* REPLACED */'' to existing value:
+-- succeeds, since UPDATE happens to update /* REPLACED */ ''fruit/* REPLACED */ '' to existing value:
 insert into insertconflicttest values (26, 'Fig') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- fails, since UPDATE is to row with key value 26, and we/* REPLACED */''re updating /* REPLACED */''fruit/* REPLACED */''
--- to a value that happens to exist in another row (/* REPLACED */''peach/* REPLACED */''):
+-- fails, since UPDATE is to row with key value 26, and we/* REPLACED */ ''re updating /* REPLACED */ ''fruit/* REPLACED */ ''
+-- to a value that happens to exist in another row (/* REPLACED */ ''peach/* REPLACED */ ''):
 insert into insertconflicttest values (26, 'Peach') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: duplicate key value violates unique constraint "fruit_index"
+	ERROR - duplicate key value violates unique constraint "fruit_index"
 DETAIL:  Key (fruit)=(Peach) already exists.
 
 
 -----------
 QUERY:
 
--- succeeds, since /* REPLACED */''key/* REPLACED */'' isn/* REPLACED */''t repeated/referenced in UPDATE, and /* REPLACED */''fruit/* REPLACED */''
--- arbitrates that statement updates existing /* REPLACED */''Fig/* REPLACED */'' row:
+-- succeeds, since /* REPLACED */ ''key/* REPLACED */ '' isn/* REPLACED */ ''t repeated/referenced in UPDATE, and /* REPLACED */ ''fruit/* REPLACED */ ''
+-- arbitrates that statement updates existing /* REPLACED */ ''Fig/* REPLACED */ '' row:
 insert into insertconflicttest values (25, 'Fig') on conflict (fruit) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -770,14 +770,14 @@ QUERY:
 
 drop index key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop index fruit_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -788,7 +788,7 @@ QUERY:
 --
 create unique index partial_key_index on insertconflicttest(key) where fruit like '%berry';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -797,14 +797,14 @@ QUERY:
 -- Succeeds
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' do update set fruit = excluded.fruit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into insertconflicttest as t values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and t.fruit = 'inconsequential' do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -813,7 +813,7 @@ QUERY:
 -- fails
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -821,7 +821,7 @@ QUERY:
 
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' or fruit = 'consequential' do nothing;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -829,7 +829,7 @@ QUERY:
 
 insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) where fruit like '%berry' do update set fruit = excluded.fruit;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -838,18 +838,18 @@ QUERY:
 
 drop index partial_key_index;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 --
--- Test that wholerow references to ON CONFLICT/* REPLACED */''s EXCLUDED work
+-- Test that wholerow references to ON CONFLICT/* REPLACED */ ''s EXCLUDED work
 --
 create unique index plain on insertconflicttest(key);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -859,7 +859,7 @@ QUERY:
 insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
   where i.* != excluded.* returning *;
 RESULT:
-	postgres: [(23, 'Jackfruit')]
+	[(23, 'Jackfruit')]
 
 -----------
 QUERY:
@@ -868,7 +868,7 @@ QUERY:
 insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
   where i.* != excluded.* returning *;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -877,7 +877,7 @@ QUERY:
 insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
   where i.* = excluded.* returning *;
 RESULT:
-	postgres: [(23, 'Jackfruit')]
+	[(23, 'Jackfruit')]
 
 -----------
 QUERY:
@@ -886,7 +886,7 @@ QUERY:
 insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text
   returning *;
 RESULT:
-	postgres: [(23, '(23,Avocado)')]
+	[(23, '(23,Avocado)')]
 
 -----------
 QUERY:
@@ -894,14 +894,14 @@ QUERY:
 -- deparse whole row var in WHERE and SET clauses:
 explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.fruit where excluded.* is null;
 RESULT:
-	postgres: [('Insert on insertconflicttest i',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: plain',), ('  Conflict Filter: (excluded.* IS NULL)',), ('  ->  Result',)]
+	[('Insert on insertconflicttest i',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: plain',), ('  Conflict Filter: (excluded.* IS NULL)',), ('  ->  Result',)]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text;
 RESULT:
-	postgres: [('Insert on insertconflicttest i',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: plain',), ('  ->  Result',)]
+	[('Insert on insertconflicttest i',), ('  Conflict Resolution: UPDATE',), ('  Conflict Arbiter Indexes: plain',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -909,7 +909,7 @@ QUERY:
 
 drop index plain;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -918,7 +918,7 @@ QUERY:
 -- Cleanup
 drop table insertconflicttest;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -927,26 +927,26 @@ QUERY:
 
 --
 -- Verify that EXCLUDED does not allow system column references. These
--- do not make sense because EXCLUDED isn/* REPLACED */''t an already stored tuple
--- (and thus doesn/* REPLACED */''t have a ctid etc).
+-- do not make sense because EXCLUDED isn/* REPLACED */ ''t an already stored tuple
+-- (and thus doesn/* REPLACED */ ''t have a ctid etc).
 --
 create table syscolconflicttest(key int4, data text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into syscolconflicttest values (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into syscolconflicttest values (1) on conflict (key) do update set data = excluded.ctid::text;
 RESULT:
-	postgres: column excluded.ctid does not exist
+	ERROR - column excluded.ctid does not exist
 LINE 2: ...values (1) on conflict (key) do update set data = excluded.c...
                                                              ^
 
@@ -956,7 +956,7 @@ QUERY:
 
 drop table syscolconflicttest;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -968,7 +968,7 @@ QUERY:
 --
 create table insertconflict (a bigint, b bigint);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -976,7 +976,7 @@ QUERY:
 
 create unique index insertconflicti1 on insertconflict(coalesce(a, 0));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -985,7 +985,7 @@ QUERY:
 create unique index insertconflicti2 on insertconflict(b)
   where coalesce(a, 1) > 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -994,7 +994,7 @@ QUERY:
 insert into insertconflict values (1, 2)
 on conflict (coalesce(a, 0)) do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1003,7 +1003,7 @@ QUERY:
 insert into insertconflict values (1, 2)
 on conflict (b) where coalesce(a, 1) > 0 do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1012,7 +1012,7 @@ QUERY:
 insert into insertconflict values (1, 2)
 on conflict (b) where coalesce(a, 1) > 1 do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1020,7 +1020,7 @@ QUERY:
 
 drop table insertconflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1032,7 +1032,7 @@ QUERY:
 
 create table insertconflict (f1 int primary key, f2 text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1040,7 +1040,7 @@ QUERY:
 create view insertconflictv as
   select * from insertconflict with cascaded check option;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1049,14 +1049,14 @@ QUERY:
 insert into insertconflictv values (1,'foo')
   on conflict (f1) do update set f2 = excluded.f2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from insertconflict;
 RESULT:
-	postgres: [(1, 'foo')]
+	[(1, 'foo')]
 
 -----------
 QUERY:
@@ -1064,14 +1064,14 @@ QUERY:
 insert into insertconflictv values (1,'bar')
   on conflict (f1) do update set f2 = excluded.f2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from insertconflict;
 RESULT:
-	postgres: [(1, 'bar')]
+	[(1, 'bar')]
 
 -----------
 QUERY:
@@ -1079,14 +1079,14 @@ QUERY:
 
 drop view insertconflictv;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop table insertconflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1104,7 +1104,7 @@ create table cities (
 	altitude	int		-- (in ft)
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1114,7 +1114,7 @@ create table capitals (
 	state		char(2)
 ) inherits (cities);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1125,14 +1125,14 @@ QUERY:
 -- specification will do the right thing, though.
 create unique index cities_names_unique on cities (name);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index capitals_names_unique on capitals (name);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1141,21 +1141,21 @@ QUERY:
 -- prepopulate the tables.
 insert into cities values ('San Francisco', 7.24E+5, 63);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into cities values ('Las Vegas', 2.583E+5, 2174);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into cities values ('Mariposa', 1200, 1953);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1163,14 +1163,14 @@ QUERY:
 
 insert into capitals values ('Sacramento', 3.694E+5, 30, 'CA');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into capitals values ('Madison', 1.913E+5, 845, 'WI');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1179,7 +1179,7 @@ QUERY:
 -- Tests proper for inheritance:
 select * from capitals;
 RESULT:
-	postgres: [('Sacramento', 369400.0, 30, 'CA'), ('Madison', 191300.0, 845, 'WI')]
+	[('Sacramento', 369400.0, 30, 'CA'), ('Madison', 191300.0, 845, 'WI')]
 
 -----------
 QUERY:
@@ -1188,50 +1188,50 @@ QUERY:
 -- Succeeds:
 insert into cities values ('Las Vegas', 2.583E+5, 2174) on conflict do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into capitals values ('Sacramento', 4664.E+5, 30, 'CA') on conflict (name) do update set population = excluded.population;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- Wrong /* REPLACED */''Sacramento/* REPLACED */'', so do nothing:
+-- Wrong /* REPLACED */ ''Sacramento/* REPLACED */ '', so do nothing:
 insert into capitals values ('Sacramento', 50, 2267, 'NE') on conflict (name) do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from capitals;
 RESULT:
-	postgres: [('Madison', 191300.0, 845, 'WI'), ('Sacramento', 466400000.0, 30, 'CA')]
+	[('Madison', 191300.0, 845, 'WI'), ('Sacramento', 466400000.0, 30, 'CA')]
 
 -----------
 QUERY:
 
 insert into cities values ('Las Vegas', 5.83E+5, 2001) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select tableoid::regclass, * from cities;
 RESULT:
-	postgres: [('cities', 'San Francisco', 724000.0, 63), ('cities', 'Mariposa', 1200.0, 1953), ('cities', 'Las Vegas', 583000.0, 2001), ('capitals', 'Madison', 191300.0, 845), ('capitals', 'Sacramento', 466400000.0, 30)]
+	[('cities', 'San Francisco', 724000.0, 63), ('cities', 'Mariposa', 1200.0, 1953), ('cities', 'Las Vegas', 583000.0, 2001), ('capitals', 'Madison', 191300.0, 845), ('capitals', 'Sacramento', 466400000.0, 30)]
 
 -----------
 QUERY:
 
 insert into capitals values ('Las Vegas', 5.83E+5, 2222, 'NV') on conflict (name) do update set population = excluded.population;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1239,31 +1239,31 @@ QUERY:
 -- Capitals will contain new capital, Las Vegas:
 select * from capitals;
 RESULT:
-	postgres: [('Madison', 191300.0, 845, 'WI'), ('Sacramento', 466400000.0, 30, 'CA'), ('Las Vegas', 583000.0, 2222, 'NV')]
+	[('Madison', 191300.0, 845, 'WI'), ('Sacramento', 466400000.0, 30, 'CA'), ('Las Vegas', 583000.0, 2222, 'NV')]
 
 -----------
 QUERY:
 
--- Cities contains two instances of /* REPLACED */''Las Vegas/* REPLACED */'', since unique constraints don/* REPLACED */''t
+-- Cities contains two instances of /* REPLACED */ ''Las Vegas/* REPLACED */ '', since unique constraints don/* REPLACED */ ''t
 -- work across inheritance:
 select tableoid::regclass, * from cities;
 RESULT:
-	postgres: [('cities', 'San Francisco', 724000.0, 63), ('cities', 'Mariposa', 1200.0, 1953), ('cities', 'Las Vegas', 583000.0, 2001), ('capitals', 'Madison', 191300.0, 845), ('capitals', 'Sacramento', 466400000.0, 30), ('capitals', 'Las Vegas', 583000.0, 2222)]
+	[('cities', 'San Francisco', 724000.0, 63), ('cities', 'Mariposa', 1200.0, 1953), ('cities', 'Las Vegas', 583000.0, 2001), ('capitals', 'Madison', 191300.0, 845), ('capitals', 'Sacramento', 466400000.0, 30), ('capitals', 'Las Vegas', 583000.0, 2222)]
 
 -----------
 QUERY:
 
--- This only affects /* REPLACED */''cities/* REPLACED */'' version of /* REPLACED */''Las Vegas/* REPLACED */'':
+-- This only affects /* REPLACED */ ''cities/* REPLACED */ '' version of /* REPLACED */ ''Las Vegas/* REPLACED */ '':
 insert into cities values ('Las Vegas', 5.86E+5, 2223) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select tableoid::regclass, * from cities;
 RESULT:
-	postgres: [('cities', 'San Francisco', 724000.0, 63), ('cities', 'Mariposa', 1200.0, 1953), ('cities', 'Las Vegas', 586000.0, 2223), ('capitals', 'Madison', 191300.0, 845), ('capitals', 'Sacramento', 466400000.0, 30), ('capitals', 'Las Vegas', 583000.0, 2222)]
+	[('cities', 'San Francisco', 724000.0, 63), ('cities', 'Mariposa', 1200.0, 1953), ('cities', 'Las Vegas', 586000.0, 2223), ('capitals', 'Madison', 191300.0, 845), ('capitals', 'Sacramento', 466400000.0, 30), ('capitals', 'Las Vegas', 583000.0, 2222)]
 
 -----------
 QUERY:
@@ -1272,14 +1272,14 @@ QUERY:
 -- clean up
 drop table capitals;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop table cities;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1289,14 +1289,14 @@ QUERY:
 -- Make sure a table named excluded is handled properly
 create table excluded(key int primary key, data text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into excluded values(1, '1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1304,7 +1304,7 @@ QUERY:
 -- error, ambiguous
 insert into excluded values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
 RESULT:
-	postgres: table reference "excluded" is ambiguous
+	ERROR - table reference "excluded" is ambiguous
 LINE 3: ...es(1, '2') on conflict (key) do update set data = excluded.d...
                                                              ^
 
@@ -1315,7 +1315,7 @@ QUERY:
 -- ok, aliased
 insert into excluded AS target values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
 RESULT:
-	postgres: [(1, '2')]
+	[(1, '2')]
 
 -----------
 QUERY:
@@ -1323,15 +1323,15 @@ QUERY:
 -- ok, aliased
 insert into excluded AS target values(1, '2') on conflict (key) do update set data = target.data RETURNING *;
 RESULT:
-	postgres: [(1, '2')]
+	[(1, '2')]
 
 -----------
 QUERY:
 
--- make sure excluded isn/* REPLACED */''t a problem in returning clause
+-- make sure excluded isn/* REPLACED */ ''t a problem in returning clause
 insert into excluded values(1, '2') on conflict (key) do update set data = 3 RETURNING excluded.*;
 RESULT:
-	postgres: [(1, '3')]
+	[(1, '3')]
 
 -----------
 QUERY:
@@ -1340,7 +1340,7 @@ QUERY:
 -- clean up
 drop table excluded;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1350,14 +1350,14 @@ QUERY:
 -- check that references to columns after dropped columns are handled correctly
 create table dropcol(key int primary key, drop1 int, keep1 text, drop2 numeric, keep2 float);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 1, '1', '1', 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1369,14 +1369,14 @@ insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 2, '2', '2', 2) o
           and dropcol.drop1 is not null and dropcol.keep1 is not null and dropcol.drop2 is not null and dropcol.keep2 is not null
     returning *;
 RESULT:
-	postgres: [(1, 2, '2', Decimal('2'), 2.0)]
+	[(1, 2, '2', Decimal('2'), 2.0)]
 
 -----------
 QUERY:
 
 ;
 RESULT:
-	postgres: can't execute an empty query
+	ERROR - can't execute an empty query
 
 -----------
 QUERY:
@@ -1386,21 +1386,21 @@ insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 3, '3', '3', 3) o
     do update set drop1 = dropcol.drop1, keep1 = dropcol.keep1, drop2 = dropcol.drop2, keep2 = dropcol.keep2
     returning *;
 RESULT:
-	postgres: [(1, 2, '2', Decimal('2'), 2.0)]
+	[(1, 2, '2', Decimal('2'), 2.0)]
 
 -----------
 QUERY:
 
 ;
 RESULT:
-	postgres: can't execute an empty query
+	ERROR - can't execute an empty query
 
 -----------
 QUERY:
 
 alter table dropcol drop column drop1, drop column drop2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1412,14 +1412,14 @@ insert into dropcol(key, keep1, keep2) values(1, '4', 4) on conflict(key)
           and dropcol.keep1 is not null and dropcol.keep2 is not null
     returning *;
 RESULT:
-	postgres: [(1, '4', 4.0)]
+	[(1, '4', 4.0)]
 
 -----------
 QUERY:
 
 ;
 RESULT:
-	postgres: can't execute an empty query
+	ERROR - can't execute an empty query
 
 -----------
 QUERY:
@@ -1429,14 +1429,14 @@ insert into dropcol(key, keep1, keep2) values(1, '5', 5) on conflict(key)
     do update set keep1 = dropcol.keep1, keep2 = dropcol.keep2
     returning *;
 RESULT:
-	postgres: [(1, '4', 4.0)]
+	[(1, '4', 4.0)]
 
 -----------
 QUERY:
 
 ;
 RESULT:
-	postgres: can't execute an empty query
+	ERROR - can't execute an empty query
 
 -----------
 QUERY:
@@ -1444,7 +1444,7 @@ QUERY:
 
 DROP TABLE dropcol;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1455,21 +1455,21 @@ QUERY:
 create table twoconstraints (f1 int unique, f2 box,
                              exclude using gist(f2 with &&));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into twoconstraints values(1, '((0,0),(1,1))');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into twoconstraints values(1, '((2,2),(3,3))');
 RESULT:
-	postgres: duplicate key value violates unique constraint "twoconstraints_f1_key"
+	ERROR - duplicate key value violates unique constraint "twoconstraints_f1_key"
 DETAIL:  Key (f1)=(1) already exists.
 
 
@@ -1478,7 +1478,7 @@ QUERY:
   -- fail on f1
 insert into twoconstraints values(2, '((0,0),(1,2))');
 RESULT:
-	postgres: conflicting key value violates exclusion constraint "twoconstraints_f2_excl"
+	ERROR - conflicting key value violates exclusion constraint "twoconstraints_f2_excl"
 DETAIL:  Key (f2)=((1,2),(0,0)) conflicts with existing key (f2)=((1,1),(0,0)).
 
 
@@ -1488,7 +1488,7 @@ QUERY:
 insert into twoconstraints values(2, '((0,0),(1,2))')
   on conflict on constraint twoconstraints_f1_key do nothing;
 RESULT:
-	postgres: conflicting key value violates exclusion constraint "twoconstraints_f2_excl"
+	ERROR - conflicting key value violates exclusion constraint "twoconstraints_f2_excl"
 DETAIL:  Key (f2)=((1,2),(0,0)) conflicts with existing key (f2)=((1,1),(0,0)).
 
 
@@ -1498,21 +1498,21 @@ QUERY:
 insert into twoconstraints values(2, '((0,0),(1,2))')
   on conflict on constraint twoconstraints_f2_excl do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- do nothing
 select * from twoconstraints;
 RESULT:
-	postgres: [(1, '(1,1),(0,0)')]
+	[(1, '(1,1),(0,0)')]
 
 -----------
 QUERY:
 
 drop table twoconstraints;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1522,7 +1522,7 @@ QUERY:
 
 create table selfconflict (f1 int primary key, f2 int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1530,21 +1530,21 @@ QUERY:
 
 begin transaction isolation level read committed;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into selfconflict values (1,1), (1,2) on conflict do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 commit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1552,21 +1552,21 @@ QUERY:
 
 begin transaction isolation level repeatable read;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into selfconflict values (2,1), (2,2) on conflict do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 commit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1574,21 +1574,21 @@ QUERY:
 
 begin transaction isolation level serializable;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into selfconflict values (3,1), (3,2) on conflict do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 commit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1596,14 +1596,14 @@ QUERY:
 
 begin transaction isolation level read committed;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into selfconflict values (4,1), (4,2) on conflict(f1) do update set f2 = 0;
 RESULT:
-	postgres: ON CONFLICT DO UPDATE command cannot affect row a second time
+	ERROR - ON CONFLICT DO UPDATE command cannot affect row a second time
 HINT:  Ensure that no rows proposed for insertion within the same command have duplicate constrained values.
 
 
@@ -1612,7 +1612,7 @@ QUERY:
 
 commit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1620,14 +1620,14 @@ QUERY:
 
 begin transaction isolation level repeatable read;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into selfconflict values (5,1), (5,2) on conflict(f1) do update set f2 = 0;
 RESULT:
-	postgres: ON CONFLICT DO UPDATE command cannot affect row a second time
+	ERROR - ON CONFLICT DO UPDATE command cannot affect row a second time
 HINT:  Ensure that no rows proposed for insertion within the same command have duplicate constrained values.
 
 
@@ -1636,7 +1636,7 @@ QUERY:
 
 commit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1644,14 +1644,14 @@ QUERY:
 
 begin transaction isolation level serializable;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into selfconflict values (6,1), (6,2) on conflict(f1) do update set f2 = 0;
 RESULT:
-	postgres: ON CONFLICT DO UPDATE command cannot affect row a second time
+	ERROR - ON CONFLICT DO UPDATE command cannot affect row a second time
 HINT:  Ensure that no rows proposed for insertion within the same command have duplicate constrained values.
 
 
@@ -1660,7 +1660,7 @@ QUERY:
 
 commit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1668,7 +1668,7 @@ QUERY:
 
 select * from selfconflict;
 RESULT:
-	postgres: [(1, 1), (2, 1), (3, 1)]
+	[(1, 1), (2, 1), (3, 1)]
 
 -----------
 QUERY:
@@ -1676,7 +1676,7 @@ QUERY:
 
 drop table selfconflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1685,14 +1685,14 @@ QUERY:
 -- check ON CONFLICT handling with partitioned tables
 create table parted_conflict_test (a int unique, b char) partition by list (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_test_1 partition of parted_conflict_test (b unique) for values in (1, 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1701,7 +1701,7 @@ QUERY:
 -- no indexes required here
 insert into parted_conflict_test values (1, 'a') on conflict do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1710,14 +1710,14 @@ QUERY:
 -- index on a required, which does exist in parent
 insert into parted_conflict_test values (1, 'a') on conflict (a) do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test values (1, 'a') on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1726,23 +1726,23 @@ QUERY:
 -- targeting partition directly will work
 insert into parted_conflict_test_1 values (1, 'a') on conflict (a) do nothing;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test_1 values (1, 'b') on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- index on b required, which doesn/* REPLACED */''t exist in parent
+-- index on b required, which doesn/* REPLACED */ ''t exist in parent
 insert into parted_conflict_test values (2, 'b') on conflict (b) do update set a = excluded.a;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -1752,16 +1752,16 @@ QUERY:
 -- targeting partition directly will work
 insert into parted_conflict_test_1 values (2, 'b') on conflict (b) do update set a = excluded.a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- should see (2, /* REPLACED */''b/* REPLACED */'')
+-- should see (2, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 RESULT:
-	postgres: [(2, 'b')]
+	[(2, 'b')]
 
 -----------
 QUERY:
@@ -1771,90 +1771,90 @@ QUERY:
 -- different attribute numbers
 create table parted_conflict_test_2 (b char, a int unique);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table parted_conflict_test attach partition parted_conflict_test_2 for values in (3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 truncate parted_conflict_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test values (3, 'a') on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test values (3, 'b') on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- should see (3, /* REPLACED */''b/* REPLACED */'')
+-- should see (3, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 RESULT:
-	postgres: [(3, 'b')]
+	[(3, 'b')]
 
 -----------
 QUERY:
 
 
--- case where parent will have a dropped column, but the partition won/* REPLACED */''t
+-- case where parent will have a dropped column, but the partition won/* REPLACED */ ''t
 alter table parted_conflict_test drop b, add b char;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_test_3 partition of parted_conflict_test for values in (4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 truncate parted_conflict_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (4, 'a') on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (4, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- should see (4, /* REPLACED */''b/* REPLACED */'')
+-- should see (4, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 RESULT:
-	postgres: [(4, 'b')]
+	[(4, 'b')]
 
 -----------
 QUERY:
@@ -1863,44 +1863,44 @@ QUERY:
 -- case with multi-level partitioning
 create table parted_conflict_test_4 partition of parted_conflict_test for values in (5) partition by list (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_test_4_1 partition of parted_conflict_test_4 for values in (5);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 truncate parted_conflict_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (5, 'a') on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (5, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- should see (5, /* REPLACED */''b/* REPLACED */'')
+-- should see (5, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 RESULT:
-	postgres: [(5, 'b')]
+	[(5, 'b')]
 
 -----------
 QUERY:
@@ -1909,30 +1909,30 @@ QUERY:
 -- test with multiple rows
 truncate parted_conflict_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (1, 'a'), (2, 'a'), (4, 'a') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (1, 'b'), (2, 'c'), (4, 'b') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- should see (1, /* REPLACED */''b/* REPLACED */''), (2, /* REPLACED */''a/* REPLACED */''), (4, /* REPLACED */''b/* REPLACED */'')
+-- should see (1, /* REPLACED */ ''b/* REPLACED */ ''), (2, /* REPLACED */ ''a/* REPLACED */ ''), (4, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
 RESULT:
-	postgres: [(1, 'b'), (2, 'a'), (4, 'b')]
+	[(1, 'b'), (2, 'a'), (4, 'b')]
 
 -----------
 QUERY:
@@ -1940,7 +1940,7 @@ QUERY:
 
 drop table parted_conflict_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1950,28 +1950,28 @@ QUERY:
 -- partitioning level
 create table parted_conflict (a int primary key, b text) partition by range (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_1_1 partition of parted_conflict_1 for values from (0) to (500);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict values (40, 'forty');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1979,66 +1979,66 @@ QUERY:
 insert into parted_conflict_1 values (40, 'cuarenta')
   on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop table parted_conflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- same thing, but this time try to use an index that/* REPLACED */''s created not in the
+-- same thing, but this time try to use an index that/* REPLACED */ ''s created not in the
 -- partition
 create table parted_conflict (a int, b text) partition by range (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_1_1 partition of parted_conflict_1 for values from (0) to (500);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index on only parted_conflict_1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index on only parted_conflict (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter index parted_conflict_a_idx attach partition parted_conflict_1_a_idx;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict values (40, 'forty');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2046,7 +2046,7 @@ QUERY:
 insert into parted_conflict_1 values (40, 'cuarenta')
   on conflict (a) do update set b = excluded.b;
 RESULT:
-	postgres: there is no unique or exclusion constraint matching the ON CONFLICT specification
+	ERROR - there is no unique or exclusion constraint matching the ON CONFLICT specification
 
 
 -----------
@@ -2054,7 +2054,7 @@ QUERY:
 
 drop table parted_conflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2063,49 +2063,49 @@ QUERY:
 -- test whole-row Vars in ON CONFLICT expressions
 create table parted_conflict (a int, b text, c int) partition by range (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table parted_conflict_1 (drp text, c int, a int, b text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table parted_conflict_1 drop column drp;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create unique index on parted_conflict (a, b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table parted_conflict attach partition parted_conflict_1 for values from (0) to (1000);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 truncate parted_conflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into parted_conflict values (50, 'cincuenta', 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2115,16 +2115,16 @@ insert into parted_conflict values (50, 'cincuenta', 2)
   where parted_conflict = (50, text 'cincuenta', 1) and
         excluded = (50, text 'cincuenta', 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- should see (50, /* REPLACED */''cincuenta/* REPLACED */'', 2)
+-- should see (50, /* REPLACED */ ''cincuenta/* REPLACED */ '', 2)
 select * from parted_conflict order by a;
 RESULT:
-	postgres: [(50, 'cincuenta', 2)]
+	[(50, 'cincuenta', 2)]
 
 -----------
 QUERY:
@@ -2142,7 +2142,7 @@ begin
 end;
 $$ language plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2154,7 +2154,7 @@ create trigger parted_conflict_update
     for each statement
     execute procedure parted_conflict_update_func();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2162,7 +2162,7 @@ QUERY:
 
 truncate parted_conflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2170,7 +2170,7 @@ QUERY:
 
 insert into parted_conflict values (0, 'cero', 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2179,7 +2179,7 @@ QUERY:
 insert into parted_conflict values(0, 'cero', 1)
   on conflict (a,b) do update set c = parted_conflict.c + 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2187,11 +2187,11 @@ QUERY:
 
 drop table parted_conflict;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop function parted_conflict_update_func();
 RESULT:
-	postgres: None
+	[]

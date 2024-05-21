@@ -10,7 +10,7 @@ CREATE ACCESS METHOD bogus TYPE INDEX HANDLER int4in;
 CREATE ACCESS METHOD bogus TYPE INDEX HANDLER heap_tableam_handler;
 
 
--- Try to create gist2 index on fast_emp4000: fail because opclass doesn/* REPLACED */''t exist
+-- Try to create gist2 index on fast_emp4000: fail because opclass doesn/* REPLACED */ ''t exist
 CREATE INDEX grect2ind2 ON fast_emp4000 USING gist2 (home_base);
 
 -- Make operator class for boxes using gist2
@@ -30,7 +30,7 @@ CREATE OPERATOR CLASS box_ops DEFAULT
 	OPERATOR 12	|&>,
 	FUNCTION 1	gist_box_consistent(internal, box, smallint, oid, internal),
 	FUNCTION 2	gist_box_union(internal, internal),
-	-- don/* REPLACED */''t need compress, decompress, or fetch functions
+	-- don/* REPLACED */ ''t need compress, decompress, or fetch functions
 	FUNCTION 5	gist_box_penalty(internal, internal, internal),
 	FUNCTION 6	gist_box_picksplit(internal, internal),
 	FUNCTION 7	gist_box_same(box, box, internal);
@@ -38,8 +38,8 @@ CREATE OPERATOR CLASS box_ops DEFAULT
 -- Create gist2 index on fast_emp4000
 CREATE INDEX grect2ind2 ON fast_emp4000 USING gist2 (home_base);
 
--- Now check the results from plain indexscan /* REPLACED */, temporarily drop existing
--- index grect2ind to ensure it doesn/* REPLACED */''t capture the plan
+-- Now check the results from plain indexscan /* REPLACED */ , temporarily drop existing
+-- index grect2ind to ensure it doesn/* REPLACED */ ''t capture the plan
 BEGIN;
 DROP INDEX grect2ind;
 SET enable_seqscan = OFF;
@@ -111,20 +111,20 @@ SELECT f1 FROM tableam_tbl_heap2 ORDER BY f1;
 CREATE TABLE tableam_tblas_heap2 USING heap2 AS SELECT * FROM tableam_tbl_heap2;
 SELECT f1 FROM tableam_tbl_heap2 ORDER BY f1;
 
--- SELECT INTO doesn/* REPLACED */''t support USING
+-- SELECT INTO doesn/* REPLACED */ ''t support USING
 SELECT INTO tableam_tblselectinto_heap2 USING heap2 FROM tableam_tbl_heap2;
 
--- CREATE VIEW doesn/* REPLACED */''t support USING
+-- CREATE VIEW doesn/* REPLACED */ ''t support USING
 CREATE VIEW tableam_view_heap2 USING heap2 AS SELECT * FROM tableam_tbl_heap2;
 
--- CREATE SEQUENCE doesn/* REPLACED */''t support USING
+-- CREATE SEQUENCE doesn/* REPLACED */ ''t support USING
 CREATE SEQUENCE tableam_seq_heap2 USING heap2;
 
 -- CREATE MATERIALIZED VIEW does support USING
 CREATE MATERIALIZED VIEW tableam_tblmv_heap2 USING heap2 AS SELECT * FROM tableam_tbl_heap2;
 SELECT f1 FROM tableam_tblmv_heap2 ORDER BY f1;
 
--- CREATE TABLE ..  PARTITION BY doesn/* REPLACED */''t not support USING
+-- CREATE TABLE ..  PARTITION BY doesn/* REPLACED */ ''t not support USING
 CREATE TABLE tableam_parted_heap2 (a text, b int) PARTITION BY list (a) USING heap2;
 
 CREATE TABLE tableam_parted_heap2 (a text, b int) PARTITION BY list (a);
@@ -153,7 +153,7 @@ WHERE pa.oid = pc.relam
    AND pa.amname = 'heap2'
 ORDER BY 3, 1, 2;
 
--- Show dependencies onto AM - there shouldn/* REPLACED */''t be any for toast
+-- Show dependencies onto AM - there shouldn/* REPLACED */ ''t be any for toast
 SELECT pg_describe_object(classid,objid,objsubid) AS obj
 FROM pg_depend, pg_am
 WHERE pg_depend.refclassid = 'pg_am'::regclass
@@ -234,7 +234,7 @@ CREATE TABLE tableam_parted_1_heapx PARTITION OF tableam_parted_heapx FOR VALUES
 -- but an explicitly set AM overrides it
 CREATE TABLE tableam_parted_2_heapx PARTITION OF tableam_parted_heapx FOR VALUES IN ('c', 'd') USING heap;
 
--- sequences, views and foreign servers shouldn/* REPLACED */''t have an AM
+-- sequences, views and foreign servers shouldn/* REPLACED */ ''t have an AM
 CREATE VIEW tableam_view_heapx AS SELECT * FROM tableam_tbl_heapx;
 CREATE SEQUENCE tableam_seq_heapx;
 CREATE FOREIGN DATA WRAPPER fdw_heap2 VALIDATOR postgresql_fdw_validator;
@@ -255,7 +255,7 @@ FROM pg_class AS pc
 WHERE pc.relname LIKE 'tableam_%_heapx'
 ORDER BY 3, 1, 2;
 
--- don/* REPLACED */''t want to keep those tables, nor the default
+-- don/* REPLACED */ ''t want to keep those tables, nor the default
 ROLLBACK;
 
 -- Third, check that we can neither create a table using a nonexistent
@@ -267,5 +267,3 @@ CREATE TABLE i_am_a_failure() USING "btree";
 
 -- Drop table access method, which fails as objects depends on it
 DROP ACCESS METHOD heap2;
-
--- we intentionally leave the objects created above alive, to verify pg_dump support

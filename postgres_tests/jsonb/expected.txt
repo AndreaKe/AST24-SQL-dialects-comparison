@@ -2,22 +2,22 @@
 -----------
 QUERY:
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 CREATE TABLE testjsonb (
        j jsonb
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/jsonb.data'
-COPY testjsonb FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/jsonb.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/jsonb.data'
+COPY testjsonb FROM /* REPLACED */ PG_ABS_SRCDIR '/data/jsonb.data';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -26,14 +26,14 @@ QUERY:
 -- Strings.
 SELECT '""'::jsonb;
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 				-- OK.
 SELECT $$''$$::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT $$''$$::jsonb;
                ^
 DETAIL:  Token "'" is invalid.
@@ -45,14 +45,14 @@ QUERY:
 			-- ERROR, single quotes are not allowed
 SELECT '"abc"'::jsonb;
 RESULT:
-	postgres: [('abc',)]
+	[('abc',)]
 
 -----------
 QUERY:
 			-- OK
 SELECT '"abc'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '"abc'::jsonb;
                ^
 DETAIL:  Token ""abc" is invalid.
@@ -65,7 +65,7 @@ QUERY:
 SELECT '"abc
 def"'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '"abc
                ^
 DETAIL:  Character with value 0x0a must be escaped.
@@ -77,14 +77,14 @@ QUERY:
 					-- ERROR, unescaped newline in string constant
 SELECT '"\n\"\\"'::jsonb;
 RESULT:
-	postgres: [('\n"\\',)]
+	[('\n"\\',)]
 
 -----------
 QUERY:
 		-- OK, legal escapes
 SELECT '"\v"'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '"\v"'::jsonb;
                ^
 DETAIL:  Escape sequence "\v" is invalid.
@@ -99,21 +99,21 @@ QUERY:
 -- Numbers.
 SELECT '1'::jsonb;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 				-- OK
 SELECT '0'::jsonb;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 				-- OK
 SELECT '01'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '01'::jsonb;
                ^
 DETAIL:  Token "01" is invalid.
@@ -125,35 +125,35 @@ QUERY:
 				-- ERROR, not valid according to JSON spec
 SELECT '0.1'::jsonb;
 RESULT:
-	postgres: [(0.1,)]
+	[(0.1,)]
 
 -----------
 QUERY:
 				-- OK
 SELECT '9223372036854775808'::jsonb;
 RESULT:
-	postgres: [(9223372036854775808,)]
+	[(9223372036854775808,)]
 
 -----------
 QUERY:
-	-- OK, even though it/* REPLACED */''s too large for int8
+	-- OK, even though it/* REPLACED */ ''s too large for int8
 SELECT '1e100'::jsonb;
 RESULT:
-	postgres: [(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
+	[(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
 
 -----------
 QUERY:
 			-- OK
 SELECT '1.3e100'::jsonb;
 RESULT:
-	postgres: [(13000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
+	[(13000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
 
 -----------
 QUERY:
 			-- OK
 SELECT '1f2'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '1f2'::jsonb;
                ^
 DETAIL:  Token "1f2" is invalid.
@@ -165,7 +165,7 @@ QUERY:
 				-- ERROR
 SELECT '0.x1'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '0.x1'::jsonb;
                ^
 DETAIL:  Token "0.x1" is invalid.
@@ -177,7 +177,7 @@ QUERY:
 			-- ERROR
 SELECT '1.3ex100'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '1.3ex100'::jsonb;
                ^
 DETAIL:  Token "1.3ex100" is invalid.
@@ -191,28 +191,28 @@ QUERY:
 -- Arrays.
 SELECT '[]'::jsonb;
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 				-- OK
 SELECT '[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]'::jsonb;
 RESULT:
-	postgres: [([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],)]
+	[([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],)]
 
 -----------
 QUERY:
   -- OK
 SELECT '[1,2]'::jsonb;
 RESULT:
-	postgres: [([1, 2],)]
+	[([1, 2],)]
 
 -----------
 QUERY:
 			-- OK
 SELECT '[1,2,]'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '[1,2,]'::jsonb;
                ^
 DETAIL:  Expected JSON value, but found "]".
@@ -224,7 +224,7 @@ QUERY:
 			-- ERROR, trailing comma
 SELECT '[1,2'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '[1,2'::jsonb;
                ^
 DETAIL:  The input string ended unexpectedly.
@@ -236,7 +236,7 @@ QUERY:
 			-- ERROR, no closing bracket
 SELECT '[1,[2]'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '[1,[2]'::jsonb;
                ^
 DETAIL:  The input string ended unexpectedly.
@@ -250,14 +250,14 @@ QUERY:
 -- Objects.
 SELECT '{}'::jsonb;
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
 				-- OK
 SELECT '{"abc"}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{"abc"}'::jsonb;
                ^
 DETAIL:  Expected ":", but found "}".
@@ -269,14 +269,14 @@ QUERY:
 			-- ERROR, no value
 SELECT '{"abc":1}'::jsonb;
 RESULT:
-	postgres: [({'abc': 1},)]
+	[({'abc': 1},)]
 
 -----------
 QUERY:
 		-- OK
 SELECT '{1:"abc"}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{1:"abc"}'::jsonb;
                ^
 DETAIL:  Expected string or "}", but found "1".
@@ -288,7 +288,7 @@ QUERY:
 		-- ERROR, keys must be strings
 SELECT '{"abc",1}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{"abc",1}'::jsonb;
                ^
 DETAIL:  Expected ":", but found ",".
@@ -300,7 +300,7 @@ QUERY:
 		-- ERROR, wrong separator
 SELECT '{"abc"=1}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{"abc"=1}'::jsonb;
                ^
 DETAIL:  Token "=" is invalid.
@@ -312,7 +312,7 @@ QUERY:
 		-- ERROR, totally wrong separator
 SELECT '{"abc"::1}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{"abc"::1}'::jsonb;
                ^
 DETAIL:  Expected JSON value, but found ":".
@@ -324,14 +324,14 @@ QUERY:
 		-- ERROR, another wrong separator
 SELECT '{"abc":1,"def":2,"ghi":[3,4],"hij":{"klm":5,"nop":[6]}}'::jsonb;
 RESULT:
-	postgres: [({'abc': 1, 'def': 2, 'ghi': [3, 4], 'hij': {'klm': 5, 'nop': [6]}},)]
+	[({'abc': 1, 'def': 2, 'ghi': [3, 4], 'hij': {'klm': 5, 'nop': [6]}},)]
 
 -----------
 QUERY:
  -- OK
 SELECT '{"abc":1:2}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{"abc":1:2}'::jsonb;
                ^
 DETAIL:  Expected "," or "}", but found ":".
@@ -343,7 +343,7 @@ QUERY:
 		-- ERROR, colon in wrong spot
 SELECT '{"abc":1,3}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{"abc":1,3}'::jsonb;
                ^
 DETAIL:  Expected string, but found "3".
@@ -357,14 +357,14 @@ QUERY:
 -- Recursion.
 SET max_stack_depth = '100kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT repeat('[', 10000)::jsonb;
 RESULT:
-	postgres: stack depth limit exceeded
+	ERROR - stack depth limit exceeded
 HINT:  Increase the configuration parameter max_stack_depth (currently 100kB), after ensuring the platform's stack depth limit is adequate.
 
 
@@ -373,7 +373,7 @@ QUERY:
 
 SELECT repeat('{"a":', 10000)::jsonb;
 RESULT:
-	postgres: stack depth limit exceeded
+	ERROR - stack depth limit exceeded
 HINT:  Increase the configuration parameter max_stack_depth (currently 100kB), after ensuring the platform's stack depth limit is adequate.
 
 
@@ -382,7 +382,7 @@ QUERY:
 
 RESET max_stack_depth;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -391,35 +391,35 @@ QUERY:
 -- Miscellaneous stuff.
 SELECT 'true'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 			-- OK
 SELECT 'false'::jsonb;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 			-- OK
 SELECT 'null'::jsonb;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 			-- OK
 SELECT ' true '::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 			-- OK, even with extra whitespace
 SELECT 'true false'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT 'true false'::jsonb;
                ^
 DETAIL:  Expected end of input, but found "false".
@@ -431,7 +431,7 @@ QUERY:
 		-- ERROR, too many values
 SELECT 'true, false'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT 'true, false'::jsonb;
                ^
 DETAIL:  Expected end of input, but found ",".
@@ -443,7 +443,7 @@ QUERY:
 		-- ERROR, too many values
 SELECT 'truf'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT 'truf'::jsonb;
                ^
 DETAIL:  Token "truf" is invalid.
@@ -455,7 +455,7 @@ QUERY:
 			-- ERROR, not a keyword
 SELECT 'trues'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT 'trues'::jsonb;
                ^
 DETAIL:  Token "trues" is invalid.
@@ -467,7 +467,7 @@ QUERY:
 			-- ERROR, not a keyword
 SELECT ''::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT ''::jsonb;
                ^
 DETAIL:  The input string ended unexpectedly.
@@ -479,7 +479,7 @@ QUERY:
 				-- ERROR, no value
 SELECT '    '::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '    '::jsonb;
                ^
 DETAIL:  The input string ended unexpectedly.
@@ -497,18 +497,18 @@ SELECT '{
 		"three":
 		true}'::jsonb;
 RESULT:
-	postgres: [({'one': 1, 'two': 'two', 'three': True},)]
+	[({'one': 1, 'two': 'two', 'three': True},)]
 
 -----------
 QUERY:
  -- OK
 SELECT '{
 		"one": 1,
-		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */''two/* REPLACED */''
+		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */ ''two/* REPLACED */ ''
 		"three":
 		true}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{
                ^
 DETAIL:  Expected JSON value, but found ",".
@@ -523,7 +523,7 @@ SELECT '{
 		"two":"two",
 		"averyveryveryveryveryveryveryveryveryverylongfieldname":}'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: SELECT '{
                ^
 DETAIL:  Expected JSON value, but found "}".
@@ -538,28 +538,28 @@ QUERY:
 -- test non-error-throwing input
 select pg_input_is_valid('{"a":true}', 'jsonb');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select pg_input_is_valid('{"a":true', 'jsonb');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select * from pg_input_error_info('{"a":true', 'jsonb');
 RESULT:
-	postgres: [('invalid input syntax for type json', 'The input string ended unexpectedly.', None, '22P02')]
+	[('invalid input syntax for type json', 'The input string ended unexpectedly.', None, '22P02')]
 
 -----------
 QUERY:
 
 select * from pg_input_error_info('{"a":1e1000000}', 'jsonb');
 RESULT:
-	postgres: [('value overflows numeric format', None, None, '22003')]
+	[('value overflows numeric format', None, None, '22003')]
 
 -----------
 QUERY:
@@ -568,7 +568,7 @@ QUERY:
 -- make sure jsonb is passed through json generators without being escaped
 SELECT array_to_json(ARRAY [jsonb '{"a":1}', jsonb '{"b":[2,3]}']);
 RESULT:
-	postgres: [([{'a': 1}, {'b': [2, 3]}],)]
+	[([{'a': 1}, {'b': [2, 3]}],)]
 
 -----------
 QUERY:
@@ -580,7 +580,7 @@ CREATE TEMP TABLE rows AS
 SELECT x, 'txt' || x as y
 FROM generate_series(1,3) AS x;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -588,7 +588,7 @@ QUERY:
 
 analyze rows;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -600,7 +600,7 @@ where tablename = 'rows' and
       schemaname = pg_my_temp_schema()::regnamespace::text
 order by 1;
 RESULT:
-	postgres: [('x', [1, 2, 3]), ('y', ['txt1', 'txt2', 'txt3'])]
+	[('x', [1, 2, 3]), ('y', ['txt1', 'txt2', 'txt3'])]
 
 -----------
 QUERY:
@@ -610,7 +610,7 @@ QUERY:
 
 select to_jsonb(timestamp '2014-05-28 12:22:35.614298');
 RESULT:
-	postgres: [('2014-05-28T12:22:35.614298',)]
+	[('2014-05-28T12:22:35.614298',)]
 
 -----------
 QUERY:
@@ -618,42 +618,42 @@ QUERY:
 
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET LOCAL TIME ZONE 10.5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select to_jsonb(timestamptz '2014-05-28 12:22:35.614298-04');
 RESULT:
-	postgres: [('2014-05-29T02:52:35.614298+10:30',)]
+	[('2014-05-29T02:52:35.614298+10:30',)]
 
 -----------
 QUERY:
 
 SET LOCAL TIME ZONE -8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select to_jsonb(timestamptz '2014-05-28 12:22:35.614298-04');
 RESULT:
-	postgres: [('2014-05-28T08:22:35.614298-08:00',)]
+	[('2014-05-28T08:22:35.614298-08:00',)]
 
 -----------
 QUERY:
 
 COMMIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -661,7 +661,7 @@ QUERY:
 
 select to_jsonb(date '2014-05-28');
 RESULT:
-	postgres: [('2014-05-28',)]
+	[('2014-05-28',)]
 
 -----------
 QUERY:
@@ -669,42 +669,42 @@ QUERY:
 
 select to_jsonb(date 'Infinity');
 RESULT:
-	postgres: [('infinity',)]
+	[('infinity',)]
 
 -----------
 QUERY:
 
 select to_jsonb(date '-Infinity');
 RESULT:
-	postgres: [('-infinity',)]
+	[('-infinity',)]
 
 -----------
 QUERY:
 
 select to_jsonb(timestamp 'Infinity');
 RESULT:
-	postgres: [('infinity',)]
+	[('infinity',)]
 
 -----------
 QUERY:
 
 select to_jsonb(timestamp '-Infinity');
 RESULT:
-	postgres: [('-infinity',)]
+	[('-infinity',)]
 
 -----------
 QUERY:
 
 select to_jsonb(timestamptz 'Infinity');
 RESULT:
-	postgres: [('infinity',)]
+	[('infinity',)]
 
 -----------
 QUERY:
 
 select to_jsonb(timestamptz '-Infinity');
 RESULT:
-	postgres: [('-infinity',)]
+	[('-infinity',)]
 
 -----------
 QUERY:
@@ -719,7 +719,7 @@ SELECT jsonb_agg(q)
          FROM generate_series(1,2) x,
               generate_series(4,5) y) q;
 RESULT:
-	postgres: [([{'b': 'a1', 'c': 4, 'z': [{'f1': 1, 'f2': [1, 2, 3]}, {'f1': 4, 'f2': [4, 5, 6]}]}, {'b': 'a1', 'c': 5, 'z': [{'f1': 1, 'f2': [1, 2, 3]}, {'f1': 5, 'f2': [4, 5, 6]}]}, {'b': 'a2', 'c': 4, 'z': [{'f1': 2, 'f2': [1, 2, 3]}, {'f1': 4, 'f2': [4, 5, 6]}]}, {'b': 'a2', 'c': 5, 'z': [{'f1': 2, 'f2': [1, 2, 3]}, {'f1': 5, 'f2': [4, 5, 6]}]}],)]
+	[([{'b': 'a1', 'c': 4, 'z': [{'f1': 1, 'f2': [1, 2, 3]}, {'f1': 4, 'f2': [4, 5, 6]}]}, {'b': 'a1', 'c': 5, 'z': [{'f1': 1, 'f2': [1, 2, 3]}, {'f1': 5, 'f2': [4, 5, 6]}]}, {'b': 'a2', 'c': 4, 'z': [{'f1': 2, 'f2': [1, 2, 3]}, {'f1': 4, 'f2': [4, 5, 6]}]}, {'b': 'a2', 'c': 5, 'z': [{'f1': 2, 'f2': [1, 2, 3]}, {'f1': 5, 'f2': [4, 5, 6]}]}],)]
 
 -----------
 QUERY:
@@ -728,7 +728,7 @@ QUERY:
 SELECT jsonb_agg(q ORDER BY x, y)
   FROM rows q;
 RESULT:
-	postgres: [([{'x': 1, 'y': 'txt1'}, {'x': 2, 'y': 'txt2'}, {'x': 3, 'y': 'txt3'}],)]
+	[([{'x': 1, 'y': 'txt1'}, {'x': 2, 'y': 'txt2'}, {'x': 3, 'y': 'txt3'}],)]
 
 -----------
 QUERY:
@@ -736,7 +736,7 @@ QUERY:
 
 UPDATE rows SET x = NULL WHERE x = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -745,7 +745,7 @@ QUERY:
 SELECT jsonb_agg(q ORDER BY x NULLS FIRST, y)
   FROM rows q;
 RESULT:
-	postgres: [([{'x': None, 'y': 'txt1'}, {'x': 2, 'y': 'txt2'}, {'x': 3, 'y': 'txt3'}],)]
+	[([{'x': None, 'y': 'txt1'}, {'x': 2, 'y': 'txt2'}, {'x': 3, 'y': 'txt3'}],)]
 
 -----------
 QUERY:
@@ -757,7 +757,7 @@ CREATE TEMP TABLE test_jsonb (
        test_json jsonb
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -768,7 +768,7 @@ INSERT INTO test_jsonb VALUES
 ('array','["zero", "one","two",null,"four","five", [1,2,3],{"f1":9}]'),
 ('object','{"field1":"val1","field2":"val2","field3":null, "field4": 4, "field5": [1,2,3], "field6": {"f1":9}}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -776,28 +776,28 @@ QUERY:
 
 SELECT test_json -> 'x' FROM test_jsonb WHERE json_type = 'scalar';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json -> 'x' FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json -> 'x' FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json -> 'field2' FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [('val2',)]
+	[('val2',)]
 
 -----------
 QUERY:
@@ -805,21 +805,21 @@ QUERY:
 
 SELECT test_json ->> 'field2' FROM test_jsonb WHERE json_type = 'scalar';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 'field2' FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 'field2' FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [('val2',)]
+	[('val2',)]
 
 -----------
 QUERY:
@@ -827,28 +827,28 @@ QUERY:
 
 SELECT test_json -> 2 FROM test_jsonb WHERE json_type = 'scalar';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json -> 2 FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [('two',)]
+	[('two',)]
 
 -----------
 QUERY:
 
 SELECT test_json -> 9 FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json -> 2 FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -856,14 +856,14 @@ QUERY:
 
 SELECT test_json ->> 6 FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [('[1, 2, 3]',)]
+	[('[1, 2, 3]',)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 7 FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [('{"f1": 9}',)]
+	[('{"f1": 9}',)]
 
 -----------
 QUERY:
@@ -871,21 +871,21 @@ QUERY:
 
 SELECT test_json ->> 'field4' FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [('4',)]
+	[('4',)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 'field5' FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [('[1, 2, 3]',)]
+	[('[1, 2, 3]',)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 'field6' FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [('{"f1": 9}',)]
+	[('{"f1": 9}',)]
 
 -----------
 QUERY:
@@ -893,21 +893,21 @@ QUERY:
 
 SELECT test_json ->> 2 FROM test_jsonb WHERE json_type = 'scalar';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 2 FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [('two',)]
+	[('two',)]
 
 -----------
 QUERY:
 
 SELECT test_json ->> 2 FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -915,7 +915,7 @@ QUERY:
 
 SELECT jsonb_object_keys(test_json) FROM test_jsonb WHERE json_type = 'scalar';
 RESULT:
-	postgres: cannot call jsonb_object_keys on a scalar
+	ERROR - cannot call jsonb_object_keys on a scalar
 
 
 -----------
@@ -923,7 +923,7 @@ QUERY:
 
 SELECT jsonb_object_keys(test_json) FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: cannot call jsonb_object_keys on an array
+	ERROR - cannot call jsonb_object_keys on an array
 
 
 -----------
@@ -931,7 +931,7 @@ QUERY:
 
 SELECT jsonb_object_keys(test_json) FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [('field1',), ('field2',), ('field3',), ('field4',), ('field5',), ('field6',)]
+	[('field1',), ('field2',), ('field3',), ('field4',), ('field5',), ('field6',)]
 
 -----------
 QUERY:
@@ -940,28 +940,28 @@ QUERY:
 -- nulls
 SELECT (test_json->'field3') IS NULL AS expect_false FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT (test_json->>'field3') IS NULL AS expect_true FROM test_jsonb WHERE json_type = 'object';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT (test_json->3) IS NULL AS expect_false FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT (test_json->>3) IS NULL AS expect_true FROM test_jsonb WHERE json_type = 'array';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -970,77 +970,77 @@ QUERY:
 -- corner cases
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb -> null::text;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb -> null::int;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb -> 1;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb -> 'z';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb -> '';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb -> 1;
 RESULT:
-	postgres: [({'b': 'cc'},)]
+	[({'b': 'cc'},)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb -> 3;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb -> 'z';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": "c", "b": null}'::jsonb -> 'b';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb -> 1;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb -> 'z';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -1048,77 +1048,77 @@ QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb ->> null::text;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb ->> null::int;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb ->> 1;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb ->> 'z';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb ->> '';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb ->> 1;
 RESULT:
-	postgres: [('{"b": "cc"}',)]
+	[('{"b": "cc"}',)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb ->> 3;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb ->> 'z';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": "c", "b": null}'::jsonb ->> 'b';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb ->> 1;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb ->> 'z';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -1127,14 +1127,14 @@ QUERY:
 -- equality and inequality
 SELECT '{"x":"y"}'::jsonb = '{"x":"y"}'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"x":"y"}'::jsonb = '{"x":"z"}'::jsonb;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1142,14 +1142,14 @@ QUERY:
 
 SELECT '{"x":"y"}'::jsonb <> '{"x":"y"}'::jsonb;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"x":"y"}'::jsonb <> '{"x":"z"}'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1158,98 +1158,98 @@ QUERY:
 -- containment
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"a":"b"}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"a":"b", "c":null}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"a":"b", "g":null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"g":null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"a":"c"}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"a":"b"}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contains('{"a":"b", "b":1, "c":null}', '{"a":"b", "c":"q"}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"a":"b"}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"a":"b", "c":null}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"a":"b", "g":null}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"g":null}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"a":"c"}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"a":"b"}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "b":1, "c":null}'::jsonb @> '{"a":"b", "c":"q"}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1257,42 +1257,42 @@ QUERY:
 
 SELECT '[1,2]'::jsonb @> '[1,2,2]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '[1,1,2]'::jsonb @> '[1,2,2]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '[[1,2]]'::jsonb @> '[[1,2,2]]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '[1,2,2]'::jsonb <@ '[1,2]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '[1,2,2]'::jsonb <@ '[1,1,2]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '[[1,2,2]]'::jsonb <@ '[[1,2]]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1300,98 +1300,98 @@ QUERY:
 
 SELECT jsonb_contained('{"a":"b"}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contained('{"a":"b", "c":null}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contained('{"a":"b", "g":null}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contained('{"g":null}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contained('{"a":"c"}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contained('{"a":"b"}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_contained('{"a":"b", "c":"q"}', '{"a":"b", "b":1, "c":null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b"}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "c":null}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "g":null}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"g":null}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"c"}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b"}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b", "c":"q"}'::jsonb <@ '{"a":"b", "b":1, "c":null}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1399,21 +1399,21 @@ QUERY:
 -- Raw scalar may contain another raw scalar, array may contain a raw scalar
 SELECT '[5]'::jsonb @> '[5]';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '5'::jsonb @> '5';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '[5]'::jsonb @> '5';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1421,7 +1421,7 @@ QUERY:
 -- But a raw scalar cannot contain an array
 SELECT '5'::jsonb @> '[5]';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1429,14 +1429,14 @@ QUERY:
 -- In general, one thing should always contain itself. Test array containment:
 SELECT '["9", ["7", "3"], 1]'::jsonb @> '["9", ["7", "3"], 1]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '["9", ["7", "3"], ["1"]]'::jsonb @> '["9", ["7", "3"], ["1"]]'::jsonb;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1444,7 +1444,7 @@ QUERY:
 -- array containment string matching confusion bug
 SELECT '{ "name": "Bob", "tags": [ "enim", "qui"]}'::jsonb @> '{"tags":["qu"]}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1453,21 +1453,21 @@ QUERY:
 -- array length
 SELECT jsonb_array_length('[1,2,3,{"f1":1,"f2":[5,6]},4]');
 RESULT:
-	postgres: [(5,)]
+	[(5,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_array_length('[]');
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_array_length('{"f1":1,"f2":[5,6]}');
 RESULT:
-	postgres: cannot get array length of a non-array
+	ERROR - cannot get array length of a non-array
 
 
 -----------
@@ -1475,7 +1475,7 @@ QUERY:
 
 SELECT jsonb_array_length('4');
 RESULT:
-	postgres: cannot get array length of a scalar
+	ERROR - cannot get array length of a scalar
 
 
 -----------
@@ -1485,28 +1485,28 @@ QUERY:
 -- each
 SELECT jsonb_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null}');
 RESULT:
-	postgres: [('(f1,"[1, 2, 3]")',), ('(f2,"{""f3"": 1}")',), ('(f4,null)',)]
+	[('(f1,"[1, 2, 3]")',), ('(f2,"{""f3"": 1}")',), ('(f4,null)',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_each('{"a":{"b":"c","c":"b","1":"first"},"b":[1,2],"c":"cc","1":"first","n":null}'::jsonb) AS q;
 RESULT:
-	postgres: [('(1,"""first""")',), ('(a,"{""1"": ""first"", ""b"": ""c"", ""c"": ""b""}")',), ('(b,"[1, 2]")',), ('(c,"""cc""")',), ('(n,null)',)]
+	[('(1,"""first""")',), ('(a,"{""1"": ""first"", ""b"": ""c"", ""c"": ""b""}")',), ('(b,"[1, 2]")',), ('(c,"""cc""")',), ('(n,null)',)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_each('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q;
 RESULT:
-	postgres: [('f1', [1, 2, 3]), ('f2', {'f3': 1}), ('f4', None), ('f5', 99), ('f6', 'stringy')]
+	[('f1', [1, 2, 3]), ('f2', {'f3': 1}), ('f4', None), ('f5', 99), ('f6', 'stringy')]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_each('{"a":{"b":"c","c":"b","1":"first"},"b":[1,2],"c":"cc","1":"first","n":null}'::jsonb) AS q;
 RESULT:
-	postgres: [('1', 'first'), ('a', {'1': 'first', 'b': 'c', 'c': 'b'}), ('b', [1, 2]), ('c', 'cc'), ('n', None)]
+	[('1', 'first'), ('a', {'1': 'first', 'b': 'c', 'c': 'b'}), ('b', [1, 2]), ('c', 'cc'), ('n', None)]
 
 -----------
 QUERY:
@@ -1514,28 +1514,28 @@ QUERY:
 
 SELECT jsonb_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":"null"}');
 RESULT:
-	postgres: [('(f1,"[1, 2, 3]")',), ('(f2,"{""f3"": 1}")',), ('(f4,)',), ('(f5,null)',)]
+	[('(f1,"[1, 2, 3]")',), ('(f2,"{""f3"": 1}")',), ('(f4,)',), ('(f5,null)',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_each_text('{"a":{"b":"c","c":"b","1":"first"},"b":[1,2],"c":"cc","1":"first","n":null}'::jsonb) AS q;
 RESULT:
-	postgres: [('(1,first)',), ('(a,"{""1"": ""first"", ""b"": ""c"", ""c"": ""b""}")',), ('(b,"[1, 2]")',), ('(c,cc)',), ('(n,)',)]
+	[('(1,first)',), ('(a,"{""1"": ""first"", ""b"": ""c"", ""c"": ""b""}")',), ('(b,"[1, 2]")',), ('(c,cc)',), ('(n,)',)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_each_text('{"f1":[1,2,3],"f2":{"f3":1},"f4":null,"f5":99,"f6":"stringy"}') q;
 RESULT:
-	postgres: [('f1', '[1, 2, 3]'), ('f2', '{"f3": 1}'), ('f4', None), ('f5', '99'), ('f6', 'stringy')]
+	[('f1', '[1, 2, 3]'), ('f2', '{"f3": 1}'), ('f4', None), ('f5', '99'), ('f6', 'stringy')]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_each_text('{"a":{"b":"c","c":"b","1":"first"},"b":[1,2],"c":"cc","1":"first","n":null}'::jsonb) AS q;
 RESULT:
-	postgres: [('1', 'first'), ('a', '{"1": "first", "b": "c", "c": "b"}'), ('b', '[1, 2]'), ('c', 'cc'), ('n', None)]
+	[('1', 'first'), ('a', '{"1": "first", "b": "c", "c": "b"}'), ('b', '[1, 2]'), ('c', 'cc'), ('n', None)]
 
 -----------
 QUERY:
@@ -1544,56 +1544,56 @@ QUERY:
 -- exists
 SELECT jsonb_exists('{"a":null, "b":"qq"}', 'a');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists('{"a":null, "b":"qq"}', 'b');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists('{"a":null, "b":"qq"}', 'c');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists('{"a":"null", "b":"qq"}', 'a');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ? 'a';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ? 'b';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ? 'c';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":"null", "b":"qq"}' ? 'a';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1601,16 +1601,16 @@ QUERY:
 -- array exists - array elements should behave as keys
 SELECT count(*) from testjsonb  WHERE j->'array' ? 'bar';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
--- type sensitive array exists - should return no rows (since /* REPLACED */''exists/* REPLACED */'' only
+-- type sensitive array exists - should return no rows (since /* REPLACED */ ''exists/* REPLACED */ '' only
 -- matches strings that are either object keys or array elements)
 SELECT count(*) from testjsonb  WHERE j->'array' ? '5'::text;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1618,7 +1618,7 @@ QUERY:
 -- However, a raw scalar is *contained* within the array
 SELECT count(*) from testjsonb  WHERE j->'array' @> '5'::jsonb;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -1626,70 +1626,70 @@ QUERY:
 
 SELECT jsonb_exists_any('{"a":null, "b":"qq"}', ARRAY['a','b']);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_any('{"a":null, "b":"qq"}', ARRAY['b','a']);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_any('{"a":null, "b":"qq"}', ARRAY['c','a']);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_any('{"a":null, "b":"qq"}', ARRAY['c','d']);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_any('{"a":null, "b":"qq"}', '{}'::text[]);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?| ARRAY['a','b'];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?| ARRAY['b','a'];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?| ARRAY['c','a'];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?| ARRAY['c','d'];
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?| '{}'::text[];
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1697,77 +1697,77 @@ QUERY:
 
 SELECT jsonb_exists_all('{"a":null, "b":"qq"}', ARRAY['a','b']);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_all('{"a":null, "b":"qq"}', ARRAY['b','a']);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_all('{"a":null, "b":"qq"}', ARRAY['c','a']);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_all('{"a":null, "b":"qq"}', ARRAY['c','d']);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_exists_all('{"a":null, "b":"qq"}', '{}'::text[]);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?& ARRAY['a','b'];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?& ARRAY['b','a'];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?& ARRAY['c','a'];
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?& ARRAY['c','d'];
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?& ARRAY['a','a', 'b', 'b', 'b'];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb '{"a":null, "b":"qq"}' ?& '{}'::text[];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1776,105 +1776,105 @@ QUERY:
 -- typeof
 SELECT jsonb_typeof('{}') AS object;
 RESULT:
-	postgres: [('object',)]
+	[('object',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('{"c":3,"p":"o"}') AS object;
 RESULT:
-	postgres: [('object',)]
+	[('object',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('[]') AS array;
 RESULT:
-	postgres: [('array',)]
+	[('array',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('["a", 1]') AS array;
 RESULT:
-	postgres: [('array',)]
+	[('array',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('null') AS "null";
 RESULT:
-	postgres: [('null',)]
+	[('null',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('1') AS number;
 RESULT:
-	postgres: [('number',)]
+	[('number',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('-1') AS number;
 RESULT:
-	postgres: [('number',)]
+	[('number',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('1.0') AS number;
 RESULT:
-	postgres: [('number',)]
+	[('number',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('1e2') AS number;
 RESULT:
-	postgres: [('number',)]
+	[('number',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('-1.0') AS number;
 RESULT:
-	postgres: [('number',)]
+	[('number',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('true') AS boolean;
 RESULT:
-	postgres: [('boolean',)]
+	[('boolean',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('false') AS boolean;
 RESULT:
-	postgres: [('boolean',)]
+	[('boolean',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('"hello"') AS string;
 RESULT:
-	postgres: [('string',)]
+	[('string',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('"true"') AS string;
 RESULT:
-	postgres: [('string',)]
+	[('string',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_typeof('"1.0"') AS string;
 RESULT:
-	postgres: [('string',)]
+	[('string',)]
 
 -----------
 QUERY:
@@ -1884,63 +1884,63 @@ QUERY:
 
 SELECT jsonb_build_array('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}');
 RESULT:
-	postgres: [(['a', 1, 'b', 1.2, 'c', True, 'd', None, 'e', {'x': 3, 'y': [1, 2, 3]}],)]
+	[(['a', 1, 'b', 1.2, 'c', True, 'd', None, 'e', {'x': 3, 'y': [1, 2, 3]}],)]
 
 -----------
 QUERY:
 
 SELECT jsonb_build_array('a', NULL);
 RESULT:
-	postgres: [(['a', None],)]
+	[(['a', None],)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC NULL::text[]);
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC '{}'::text[]);
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC '{a,b,c}'::text[]);
 RESULT:
-	postgres: [(['a', 'b', 'c'],)]
+	[(['a', 'b', 'c'],)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC ARRAY['a', NULL]::text[]);
 RESULT:
-	postgres: [(['a', None],)]
+	[(['a', None],)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC '{1,2,3,4}'::text[]);
 RESULT:
-	postgres: [(['1', '2', '3', '4'],)]
+	[(['1', '2', '3', '4'],)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC '{1,2,3,4}'::int[]);
 RESULT:
-	postgres: [([1, 2, 3, 4],)]
+	[([1, 2, 3, 4],)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_array(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][]);
 RESULT:
-	postgres: [([1, 4, 2, 5, 3, 6],)]
+	[([1, 4, 2, 5, 3, 6],)]
 
 -----------
 QUERY:
@@ -1948,7 +1948,7 @@ QUERY:
 
 SELECT jsonb_build_object('a',1,'b',1.2,'c',true,'d',null,'e',json '{"x": 3, "y": [1,2,3]}');
 RESULT:
-	postgres: [({'a': 1, 'b': 1.2, 'c': True, 'd': None, 'e': {'x': 3, 'y': [1, 2, 3]}},)]
+	[({'a': 1, 'b': 1.2, 'c': True, 'd': None, 'e': {'x': 3, 'y': [1, 2, 3]}},)]
 
 -----------
 QUERY:
@@ -1959,14 +1959,14 @@ SELECT jsonb_build_object(
        'd', jsonb_build_object('e',array[9,8,7]::int[],
            'f', (select row_to_json(r) from ( select relkind, oid::regclass as name from pg_class where relname = 'pg_class') r)));
 RESULT:
-	postgres: [({'a': {'b': False, 'c': 99}, 'd': {'e': [9, 8, 7], 'f': {'name': 'pg_class', 'relkind': 'r'}}},)]
+	[({'a': {'b': False, 'c': 99}, 'd': {'e': [9, 8, 7], 'f': {'name': 'pg_class', 'relkind': 'r'}}},)]
 
 -----------
 QUERY:
 
 SELECT jsonb_build_object('{a,b,c}'::text[]);
 RESULT:
-	postgres: argument list must have even number of elements
+	ERROR - argument list must have even number of elements
 HINT:  The arguments of jsonb_build_object() must consist of alternating keys and values.
 
 
@@ -1975,7 +1975,7 @@ QUERY:
  -- error
 SELECT jsonb_build_object('{a,b,c}'::text[], '{d,e,f}'::text[]);
 RESULT:
-	postgres: key value must be scalar, not array, composite, or json
+	ERROR - key value must be scalar, not array, composite, or json
 
 
 -----------
@@ -1983,7 +1983,7 @@ QUERY:
  -- error, key cannot be array
 SELECT jsonb_build_object('a', 'b', 'c');
 RESULT:
-	postgres: argument list must have even number of elements
+	ERROR - argument list must have even number of elements
 HINT:  The arguments of jsonb_build_object() must consist of alternating keys and values.
 
 
@@ -1992,7 +1992,7 @@ QUERY:
  -- error
 SELECT jsonb_build_object(NULL, 'a');
 RESULT:
-	postgres: argument 1: key must not be null
+	ERROR - argument 1: key must not be null
 
 
 -----------
@@ -2000,28 +2000,28 @@ QUERY:
  -- error, key cannot be NULL
 SELECT jsonb_build_object('a', NULL);
 RESULT:
-	postgres: [({'a': None},)]
+	[({'a': None},)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_object(VARIADIC NULL::text[]);
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_object(VARIADIC '{}'::text[]);
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_object(VARIADIC '{a,b,c}'::text[]);
 RESULT:
-	postgres: argument list must have even number of elements
+	ERROR - argument list must have even number of elements
 HINT:  The arguments of jsonb_build_object() must consist of alternating keys and values.
 
 
@@ -2030,14 +2030,14 @@ QUERY:
  -- error
 SELECT jsonb_build_object(VARIADIC ARRAY['a', NULL]::text[]);
 RESULT:
-	postgres: [({'a': None},)]
+	[({'a': None},)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_object(VARIADIC ARRAY[NULL, 'a']::text[]);
 RESULT:
-	postgres: argument 1: key must not be null
+	ERROR - argument 1: key must not be null
 
 
 -----------
@@ -2045,21 +2045,21 @@ QUERY:
  -- error, key cannot be NULL
 SELECT jsonb_build_object(VARIADIC '{1,2,3,4}'::text[]);
 RESULT:
-	postgres: [({'1': '2', '3': '4'},)]
+	[({'1': '2', '3': '4'},)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_object(VARIADIC '{1,2,3,4}'::int[]);
 RESULT:
-	postgres: [({'1': 2, '3': 4},)]
+	[({'1': 2, '3': 4},)]
 
 -----------
 QUERY:
  -- ok
 SELECT jsonb_build_object(VARIADIC '{{1,4},{2,5},{3,6}}'::int[][]);
 RESULT:
-	postgres: [({'1': 4, '2': 5, '3': 6},)]
+	[({'1': 4, '2': 5, '3': 6},)]
 
 -----------
 QUERY:
@@ -2068,7 +2068,7 @@ QUERY:
 -- empty objects/arrays
 SELECT jsonb_build_array();
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
@@ -2076,7 +2076,7 @@ QUERY:
 
 SELECT jsonb_build_object();
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
@@ -2085,7 +2085,7 @@ QUERY:
 -- make sure keys are quoted
 SELECT jsonb_build_object(1,2);
 RESULT:
-	postgres: [({'1': 2},)]
+	[({'1': 2},)]
 
 -----------
 QUERY:
@@ -2094,7 +2094,7 @@ QUERY:
 -- keys must be scalar and not null
 SELECT jsonb_build_object(null,2);
 RESULT:
-	postgres: argument 1: key must not be null
+	ERROR - argument 1: key must not be null
 
 
 -----------
@@ -2103,7 +2103,7 @@ QUERY:
 
 SELECT jsonb_build_object(r,2) FROM (SELECT 1 AS a, 2 AS b) r;
 RESULT:
-	postgres: key value must be scalar, not array, composite, or json
+	ERROR - key value must be scalar, not array, composite, or json
 
 
 -----------
@@ -2112,7 +2112,7 @@ QUERY:
 
 SELECT jsonb_build_object(json '{"a":1,"b":2}', 3);
 RESULT:
-	postgres: key value must be scalar, not array, composite, or json
+	ERROR - key value must be scalar, not array, composite, or json
 
 
 -----------
@@ -2121,7 +2121,7 @@ QUERY:
 
 SELECT jsonb_build_object('{1,2,3}'::int[], 3);
 RESULT:
-	postgres: key value must be scalar, not array, composite, or json
+	ERROR - key value must be scalar, not array, composite, or json
 
 
 -----------
@@ -2131,14 +2131,14 @@ QUERY:
 -- handling of NULL values
 SELECT jsonb_object_agg(1, NULL::jsonb);
 RESULT:
-	postgres: [({'1': None},)]
+	[({'1': None},)]
 
 -----------
 QUERY:
 
 SELECT jsonb_object_agg(NULL, '{"a":1}');
 RESULT:
-	postgres: field name must not be null
+	ERROR - field name must not be null
 
 
 -----------
@@ -2147,28 +2147,28 @@ QUERY:
 
 CREATE TEMP TABLE foo (serial_num int, name text, type text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO foo VALUES (847001,'t15','GE1043');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO foo VALUES (847002,'t16','GE1043');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO foo VALUES (847003,'sub-alpha','GESS90');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2177,7 +2177,7 @@ QUERY:
 SELECT jsonb_build_object('turbines',jsonb_object_agg(serial_num,jsonb_build_object('name',name,'type',type)))
 FROM foo;
 RESULT:
-	postgres: [({'turbines': {'847001': {'name': 't15', 'type': 'GE1043'}, '847002': {'name': 't16', 'type': 'GE1043'}, '847003': {'name': 'sub-alpha', 'type': 'GESS90'}}},)]
+	[({'turbines': {'847001': {'name': 't15', 'type': 'GE1043'}, '847002': {'name': 't16', 'type': 'GE1043'}, '847003': {'name': 'sub-alpha', 'type': 'GESS90'}}},)]
 
 -----------
 QUERY:
@@ -2185,7 +2185,7 @@ QUERY:
 
 SELECT jsonb_object_agg(name, type) FROM foo;
 RESULT:
-	postgres: [({'t15': 'GE1043', 't16': 'GE1043', 'sub-alpha': 'GESS90'},)]
+	[({'t15': 'GE1043', 't16': 'GE1043', 'sub-alpha': 'GESS90'},)]
 
 -----------
 QUERY:
@@ -2193,14 +2193,14 @@ QUERY:
 
 INSERT INTO foo VALUES (999999, NULL, 'bar');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT jsonb_object_agg(name, type) FROM foo;
 RESULT:
-	postgres: field name must not be null
+	ERROR - field name must not be null
 
 
 -----------
@@ -2210,7 +2210,7 @@ QUERY:
 -- edge case for parser
 SELECT jsonb_object_agg(DISTINCT 'a', 'abc');
 RESULT:
-	postgres: [({'a': 'abc'},)]
+	[({'a': 'abc'},)]
 
 -----------
 QUERY:
@@ -2221,7 +2221,7 @@ QUERY:
 -- empty object, one dimension
 SELECT jsonb_object('{}');
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
@@ -2230,7 +2230,7 @@ QUERY:
 -- empty object, two dimensions
 SELECT jsonb_object('{}', '{}');
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
@@ -2239,7 +2239,7 @@ QUERY:
 -- one dimension
 SELECT jsonb_object('{a,1,b,2,3,NULL,"d e f","a b c"}');
 RESULT:
-	postgres: [({'3': None, 'a': '1', 'b': '2', 'd e f': 'a b c'},)]
+	[({'3': None, 'a': '1', 'b': '2', 'd e f': 'a b c'},)]
 
 -----------
 QUERY:
@@ -2248,7 +2248,7 @@ QUERY:
 -- same but with two dimensions
 SELECT jsonb_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}');
 RESULT:
-	postgres: [({'3': None, 'a': '1', 'b': '2', 'd e f': 'a b c'},)]
+	[({'3': None, 'a': '1', 'b': '2', 'd e f': 'a b c'},)]
 
 -----------
 QUERY:
@@ -2257,7 +2257,7 @@ QUERY:
 -- odd number error
 SELECT jsonb_object('{a,b,c}');
 RESULT:
-	postgres: array must have even number of elements
+	ERROR - array must have even number of elements
 
 
 -----------
@@ -2267,7 +2267,7 @@ QUERY:
 -- one column error
 SELECT jsonb_object('{{a},{b}}');
 RESULT:
-	postgres: array must have two columns
+	ERROR - array must have two columns
 
 
 -----------
@@ -2277,7 +2277,7 @@ QUERY:
 -- too many columns error
 SELECT jsonb_object('{{a,b,c},{b,c,d}}');
 RESULT:
-	postgres: array must have two columns
+	ERROR - array must have two columns
 
 
 -----------
@@ -2287,7 +2287,7 @@ QUERY:
 -- too many dimensions error
 SELECT jsonb_object('{{{a,b},{c,d}},{{b,c},{d,e}}}');
 RESULT:
-	postgres: wrong number of array subscripts
+	ERROR - wrong number of array subscripts
 
 
 -----------
@@ -2298,7 +2298,7 @@ QUERY:
 
 select jsonb_object('{a,b,c,"d e f"}','{1,2,3,"a b c"}');
 RESULT:
-	postgres: [({'a': '1', 'b': '2', 'c': '3', 'd e f': 'a b c'},)]
+	[({'a': '1', 'b': '2', 'c': '3', 'd e f': 'a b c'},)]
 
 -----------
 QUERY:
@@ -2307,7 +2307,7 @@ QUERY:
 -- too many dimensions
 SELECT jsonb_object('{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}', '{{a,1},{b,2},{3,NULL},{"d e f","a b c"}}');
 RESULT:
-	postgres: wrong number of array subscripts
+	ERROR - wrong number of array subscripts
 
 
 -----------
@@ -2318,7 +2318,7 @@ QUERY:
 
 select jsonb_object('{a,b,c,"d e f",g}','{1,2,3,"a b c"}');
 RESULT:
-	postgres: mismatched array dimensions
+	ERROR - mismatched array dimensions
 
 
 -----------
@@ -2327,7 +2327,7 @@ QUERY:
 
 select jsonb_object('{a,b,c,"d e f"}','{1,2,3,"a b c",g}');
 RESULT:
-	postgres: mismatched array dimensions
+	ERROR - mismatched array dimensions
 
 
 -----------
@@ -2338,7 +2338,7 @@ QUERY:
 
 select jsonb_object('{a,b,NULL,"d e f"}','{1,2,3,"a b c"}');
 RESULT:
-	postgres: null value not allowed for object key
+	ERROR - null value not allowed for object key
 
 
 -----------
@@ -2349,7 +2349,7 @@ QUERY:
 
 select jsonb_object('{a,b,"","d e f"}','{1,2,3,"a b c"}');
 RESULT:
-	postgres: [({'': '3', 'a': '1', 'b': '2', 'd e f': 'a b c'},)]
+	[({'': '3', 'a': '1', 'b': '2', 'd e f': 'a b c'},)]
 
 -----------
 QUERY:
@@ -2360,56 +2360,56 @@ QUERY:
 -- extract_path, extract_path_as_text
 SELECT jsonb_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6');
 RESULT:
-	postgres: [('stringy',)]
+	[('stringy',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f2');
 RESULT:
-	postgres: [({'f3': 1},)]
+	[({'f3': 1},)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text);
 RESULT:
-	postgres: [('f3',)]
+	[('f3',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f4','f6');
 RESULT:
-	postgres: [('stringy',)]
+	[('stringy',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path_text('{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}','f2');
 RESULT:
-	postgres: [('{"f3": 1}',)]
+	[('{"f3": 1}',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',0::text);
 RESULT:
-	postgres: [('f3',)]
+	[('f3',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path_text('{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}','f2',1::text);
 RESULT:
-	postgres: [('1',)]
+	[('1',)]
 
 -----------
 QUERY:
@@ -2418,28 +2418,28 @@ QUERY:
 -- extract_path nulls
 SELECT jsonb_extract_path('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') IS NULL AS expect_false;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path_text('{"f2":{"f3":1},"f4":{"f5":null,"f6":"stringy"}}','f4','f5') IS NULL AS expect_true;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') IS NULL AS expect_false;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_extract_path_text('{"f2":{"f3":1},"f4":[0,1,2,null]}','f4','3') IS NULL AS expect_true;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -2448,28 +2448,28 @@ QUERY:
 -- extract_path operators
 SELECT '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>array['f4','f6'];
 RESULT:
-	postgres: [('stringy',)]
+	[('stringy',)]
 
 -----------
 QUERY:
 
 SELECT '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>array['f2'];
 RESULT:
-	postgres: [({'f3': 1},)]
+	[({'f3': 1},)]
 
 -----------
 QUERY:
 
 SELECT '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>array['f2','0'];
 RESULT:
-	postgres: [('f3',)]
+	[('f3',)]
 
 -----------
 QUERY:
 
 SELECT '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>array['f2','1'];
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -2477,28 +2477,28 @@ QUERY:
 
 SELECT '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>>array['f4','f6'];
 RESULT:
-	postgres: [('stringy',)]
+	[('stringy',)]
 
 -----------
 QUERY:
 
 SELECT '{"f2":{"f3":1},"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>>array['f2'];
 RESULT:
-	postgres: [('{"f3": 1}',)]
+	[('{"f3": 1}',)]
 
 -----------
 QUERY:
 
 SELECT '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>>array['f2','0'];
 RESULT:
-	postgres: [('f3',)]
+	[('f3',)]
 
 -----------
 QUERY:
 
 SELECT '{"f2":["f3",1],"f4":{"f5":99,"f6":"stringy"}}'::jsonb#>>array['f2','1'];
 RESULT:
-	postgres: [('1',)]
+	[('1',)]
 
 -----------
 QUERY:
@@ -2507,140 +2507,140 @@ QUERY:
 -- corner cases for same
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> '{}';
 RESULT:
-	postgres: [({'a': {'b': {'c': 'foo'}}},)]
+	[({'a': {'b': {'c': 'foo'}}},)]
 
 -----------
 QUERY:
 
 select '[1,2,3]'::jsonb #> '{}';
 RESULT:
-	postgres: [([1, 2, 3],)]
+	[([1, 2, 3],)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb #> '{}';
 RESULT:
-	postgres: [('foo',)]
+	[('foo',)]
 
 -----------
 QUERY:
 
 select '42'::jsonb #> '{}';
 RESULT:
-	postgres: [(42,)]
+	[(42,)]
 
 -----------
 QUERY:
 
 select 'null'::jsonb #> '{}';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a'];
 RESULT:
-	postgres: [({'b': {'c': 'foo'}},)]
+	[({'b': {'c': 'foo'}},)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a', null];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a', ''];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a','b'];
 RESULT:
-	postgres: [({'c': 'foo'},)]
+	[({'c': 'foo'},)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a','b','c'];
 RESULT:
-	postgres: [('foo',)]
+	[('foo',)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a','b','c','d'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #> array['a','z','c'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb #> array['a','1','b'];
 RESULT:
-	postgres: [('cc',)]
+	[('cc',)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb #> array['a','z','b'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb #> array['1','b'];
 RESULT:
-	postgres: [('cc',)]
+	[('cc',)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb #> array['z','b'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": null}]'::jsonb #> array['1','b'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb #> array['z'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '42'::jsonb #> array['f2'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '42'::jsonb #> array['0'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -2648,140 +2648,140 @@ QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> '{}';
 RESULT:
-	postgres: [('{"a": {"b": {"c": "foo"}}}',)]
+	[('{"a": {"b": {"c": "foo"}}}',)]
 
 -----------
 QUERY:
 
 select '[1,2,3]'::jsonb #>> '{}';
 RESULT:
-	postgres: [('[1, 2, 3]',)]
+	[('[1, 2, 3]',)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb #>> '{}';
 RESULT:
-	postgres: [('foo',)]
+	[('foo',)]
 
 -----------
 QUERY:
 
 select '42'::jsonb #>> '{}';
 RESULT:
-	postgres: [('42',)]
+	[('42',)]
 
 -----------
 QUERY:
 
 select 'null'::jsonb #>> '{}';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a'];
 RESULT:
-	postgres: [('{"b": {"c": "foo"}}',)]
+	[('{"b": {"c": "foo"}}',)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a', null];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a', ''];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a','b'];
 RESULT:
-	postgres: [('{"c": "foo"}',)]
+	[('{"c": "foo"}',)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a','b','c'];
 RESULT:
-	postgres: [('foo',)]
+	[('foo',)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a','b','c','d'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": {"b":{"c": "foo"}}}'::jsonb #>> array['a','z','c'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb #>> array['a','1','b'];
 RESULT:
-	postgres: [('cc',)]
+	[('cc',)]
 
 -----------
 QUERY:
 
 select '{"a": [{"b": "c"}, {"b": "cc"}]}'::jsonb #>> array['a','z','b'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb #>> array['1','b'];
 RESULT:
-	postgres: [('cc',)]
+	[('cc',)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": "cc"}]'::jsonb #>> array['z','b'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '[{"b": "c"}, {"b": null}]'::jsonb #>> array['1','b'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '"foo"'::jsonb #>> array['z'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '42'::jsonb #>> array['f2'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select '42'::jsonb #>> array['0'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -2790,28 +2790,28 @@ QUERY:
 -- array_elements
 SELECT jsonb_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false]');
 RESULT:
-	postgres: [(1,), (True,), ([1, [2, 3]],), (None,), ({'f1': 1, 'f2': [7, 8, 9]},), (False,)]
+	[(1,), (True,), ([1, [2, 3]],), (None,), ({'f1': 1, 'f2': [7, 8, 9]},), (False,)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_array_elements('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false]') q;
 RESULT:
-	postgres: [(1,), (True,), ([1, [2, 3]],), (None,), ({'f1': 1, 'f2': [7, 8, 9]},), (False,)]
+	[(1,), (True,), ([1, [2, 3]],), (None,), ({'f1': 1, 'f2': [7, 8, 9]},), (False,)]
 
 -----------
 QUERY:
 
 SELECT jsonb_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]');
 RESULT:
-	postgres: [('1',), ('true',), ('[1, [2, 3]]',), (None,), ('{"f1": 1, "f2": [7, 8, 9]}',), ('false',), ('stringy',)]
+	[('1',), ('true',), ('[1, [2, 3]]',), (None,), ('{"f1": 1, "f2": [7, 8, 9]}',), ('false',), ('stringy',)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_array_elements_text('[1,true,[1,[2,3]],null,{"f1":1,"f2":[7,8,9]},false,"stringy"]') q;
 RESULT:
-	postgres: [('1',), ('true',), ('[1, [2, 3]]',), (None,), ('{"f1": 1, "f2": [7, 8, 9]}',), ('false',), ('stringy',)]
+	[('1',), ('true',), ('[1, [2, 3]]',), (None,), ('{"f1": 1, "f2": [7, 8, 9]}',), ('false',), ('stringy',)]
 
 -----------
 QUERY:
@@ -2820,7 +2820,7 @@ QUERY:
 -- populate_record
 CREATE TYPE jbpop AS (a text, b int, c timestamp);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2828,21 +2828,21 @@ QUERY:
 
 CREATE DOMAIN jsb_int_not_null  AS int     NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE DOMAIN jsb_int_array_1d  AS int[]   CHECK(array_length(VALUE, 1) = 3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE DOMAIN jsb_int_array_2d  AS int[][] CHECK(array_length(VALUE, 2) = 3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2850,14 +2850,14 @@ QUERY:
 
 create type jb_unordered_pair as (x int, y int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create domain jb_ordered_pair as jb_unordered_pair check((value).x <= (value).y);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2883,7 +2883,7 @@ CREATE TYPE jsbrec AS (
 	reca	jbpop[]
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2893,7 +2893,7 @@ CREATE TYPE jsbrec_i_not_null AS (
 	i	jsb_int_not_null
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2901,14 +2901,14 @@ QUERY:
 
 SELECT * FROM jsonb_populate_record(NULL::jbpop,'{"a":"blurfl","x":43.2}') q;
 RESULT:
-	postgres: [('blurfl', None, None)]
+	[('blurfl', None, None)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_record(row('x',3,'2012-12-31 15:30:56')::jbpop,'{"a":"blurfl","x":43.2}') q;
 RESULT:
-	postgres: [('blurfl', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
+	[('blurfl', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
 
 -----------
 QUERY:
@@ -2916,14 +2916,14 @@ QUERY:
 
 SELECT * FROM jsonb_populate_record(NULL::jbpop,'{"a":"blurfl","x":43.2}') q;
 RESULT:
-	postgres: [('blurfl', None, None)]
+	[('blurfl', None, None)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_record(row('x',3,'2012-12-31 15:30:56')::jbpop,'{"a":"blurfl","x":43.2}') q;
 RESULT:
-	postgres: [('blurfl', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
+	[('blurfl', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
 
 -----------
 QUERY:
@@ -2931,21 +2931,21 @@ QUERY:
 
 SELECT * FROM jsonb_populate_record(NULL::jbpop,'{"a":[100,200,false],"x":43.2}') q;
 RESULT:
-	postgres: [('[100, 200, false]', None, None)]
+	[('[100, 200, false]', None, None)]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_record(row('x',3,'2012-12-31 15:30:56')::jbpop,'{"a":[100,200,false],"x":43.2}') q;
 RESULT:
-	postgres: [('[100, 200, false]', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
+	[('[100, 200, false]', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_record(row('x',3,'2012-12-31 15:30:56')::jbpop,'{"c":[100,200,false],"x":43.2}') q;
 RESULT:
-	postgres: invalid input syntax for type timestamp: "[100, 200, false]"
+	ERROR - invalid input syntax for type timestamp: "[100, 200, false]"
 
 
 -----------
@@ -2954,7 +2954,7 @@ QUERY:
 
 SELECT * FROM jsonb_populate_record(row('x',3,'2012-12-31 15:30:56')::jbpop, '{}') q;
 RESULT:
-	postgres: [('x', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
+	[('x', 3, datetime.datetime(2012, 12, 31, 15, 30, 56))]
 
 -----------
 QUERY:
@@ -2962,7 +2962,7 @@ QUERY:
 
 SELECT i FROM jsonb_populate_record(NULL::jsbrec_i_not_null, '{"x": 43.2}') q;
 RESULT:
-	postgres: domain jsb_int_not_null does not allow null values
+	ERROR - domain jsb_int_not_null does not allow null values
 
 
 -----------
@@ -2970,7 +2970,7 @@ QUERY:
 
 SELECT i FROM jsonb_populate_record(NULL::jsbrec_i_not_null, '{"i": null}') q;
 RESULT:
-	postgres: domain jsb_int_not_null does not allow null values
+	ERROR - domain jsb_int_not_null does not allow null values
 
 
 -----------
@@ -2978,7 +2978,7 @@ QUERY:
 
 SELECT i FROM jsonb_populate_record(NULL::jsbrec_i_not_null, '{"i": 12345}') q;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
@@ -2986,14 +2986,14 @@ QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "ia".
 
 
@@ -3002,21 +3002,21 @@ QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [([1, 2, None, 4],)]
+	[([1, 2, None, 4],)]
 
 -----------
 QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": [[1, 2], [3, 4]]}') q;
 RESULT:
-	postgres: [([[1, 2], [3, 4]],)]
+	[([[1, 2], [3, 4]],)]
 
 -----------
 QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": [[1], 2]}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the array element [1] of key "ia".
 
 
@@ -3025,7 +3025,7 @@ QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": [[1], [2, 3]]}') q;
 RESULT:
-	postgres: malformed JSON array
+	ERROR - malformed JSON array
 DETAIL:  Multidimensional arrays must have sub-arrays with matching dimensions.
 
 
@@ -3034,7 +3034,7 @@ QUERY:
 
 SELECT ia FROM jsonb_populate_record(NULL::jsbrec, '{"ia": "{1,2,3}"}') q;
 RESULT:
-	postgres: [([1, 2, 3],)]
+	[([1, 2, 3],)]
 
 -----------
 QUERY:
@@ -3042,14 +3042,14 @@ QUERY:
 
 SELECT ia1 FROM jsonb_populate_record(NULL::jsbrec, '{"ia1": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT ia1 FROM jsonb_populate_record(NULL::jsbrec, '{"ia1": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "ia1".
 
 
@@ -3058,14 +3058,14 @@ QUERY:
 
 SELECT ia1 FROM jsonb_populate_record(NULL::jsbrec, '{"ia1": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [([1, 2, None, 4],)]
+	[([1, 2, None, 4],)]
 
 -----------
 QUERY:
 
 SELECT ia1 FROM jsonb_populate_record(NULL::jsbrec, '{"ia1": [[1, 2, 3]]}') q;
 RESULT:
-	postgres: [([[1, 2, 3]],)]
+	[([[1, 2, 3]],)]
 
 -----------
 QUERY:
@@ -3073,14 +3073,14 @@ QUERY:
 
 SELECT ia1d FROM jsonb_populate_record(NULL::jsbrec, '{"ia1d": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT ia1d FROM jsonb_populate_record(NULL::jsbrec, '{"ia1d": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "ia1d".
 
 
@@ -3089,7 +3089,7 @@ QUERY:
 
 SELECT ia1d FROM jsonb_populate_record(NULL::jsbrec, '{"ia1d": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: value for domain jsb_int_array_1d violates check constraint "jsb_int_array_1d_check"
+	ERROR - value for domain jsb_int_array_1d violates check constraint "jsb_int_array_1d_check"
 
 
 -----------
@@ -3097,7 +3097,7 @@ QUERY:
 
 SELECT ia1d FROM jsonb_populate_record(NULL::jsbrec, '{"ia1d": [1, "2", null]}') q;
 RESULT:
-	postgres: [([1, 2, None],)]
+	[([1, 2, None],)]
 
 -----------
 QUERY:
@@ -3105,28 +3105,28 @@ QUERY:
 
 SELECT ia2 FROM jsonb_populate_record(NULL::jsbrec, '{"ia2": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [([1, 2, None, 4],)]
+	[([1, 2, None, 4],)]
 
 -----------
 QUERY:
 
 SELECT ia2 FROM jsonb_populate_record(NULL::jsbrec, '{"ia2": [[1, 2], [null, 4]]}') q;
 RESULT:
-	postgres: [([[1, 2], [None, 4]],)]
+	[([[1, 2], [None, 4]],)]
 
 -----------
 QUERY:
 
 SELECT ia2 FROM jsonb_populate_record(NULL::jsbrec, '{"ia2": [[], []]}') q;
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 
 SELECT ia2 FROM jsonb_populate_record(NULL::jsbrec, '{"ia2": [[1, 2], [3]]}') q;
 RESULT:
-	postgres: malformed JSON array
+	ERROR - malformed JSON array
 DETAIL:  Multidimensional arrays must have sub-arrays with matching dimensions.
 
 
@@ -3135,7 +3135,7 @@ QUERY:
 
 SELECT ia2 FROM jsonb_populate_record(NULL::jsbrec, '{"ia2": [[1, 2], 3, 4]}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the array element [1] of key "ia2".
 
 
@@ -3145,7 +3145,7 @@ QUERY:
 
 SELECT ia2d FROM jsonb_populate_record(NULL::jsbrec, '{"ia2d": [[1, "2"], [null, 4]]}') q;
 RESULT:
-	postgres: value for domain jsb_int_array_2d violates check constraint "jsb_int_array_2d_check"
+	ERROR - value for domain jsb_int_array_2d violates check constraint "jsb_int_array_2d_check"
 
 
 -----------
@@ -3153,7 +3153,7 @@ QUERY:
 
 SELECT ia2d FROM jsonb_populate_record(NULL::jsbrec, '{"ia2d": [[1, "2", 3], [null, 5, 6]]}') q;
 RESULT:
-	postgres: [([[1, 2, 3], [None, 5, 6]],)]
+	[([[1, 2, 3], [None, 5, 6]],)]
 
 -----------
 QUERY:
@@ -3161,42 +3161,42 @@ QUERY:
 
 SELECT ia3 FROM jsonb_populate_record(NULL::jsbrec, '{"ia3": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [([1, 2, None, 4],)]
+	[([1, 2, None, 4],)]
 
 -----------
 QUERY:
 
 SELECT ia3 FROM jsonb_populate_record(NULL::jsbrec, '{"ia3": [[1, 2], [null, 4]]}') q;
 RESULT:
-	postgres: [([[1, 2], [None, 4]],)]
+	[([[1, 2], [None, 4]],)]
 
 -----------
 QUERY:
 
 SELECT ia3 FROM jsonb_populate_record(NULL::jsbrec, '{"ia3": [ [[], []], [[], []], [[], []] ]}') q;
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 
 SELECT ia3 FROM jsonb_populate_record(NULL::jsbrec, '{"ia3": [ [[1, 2]], [[3, 4]] ]}') q;
 RESULT:
-	postgres: [([[[1, 2]], [[3, 4]]],)]
+	[([[[1, 2]], [[3, 4]]],)]
 
 -----------
 QUERY:
 
 SELECT ia3 FROM jsonb_populate_record(NULL::jsbrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8]] ]}') q;
 RESULT:
-	postgres: [([[[1, 2], [3, 4]], [[5, 6], [7, 8]]],)]
+	[([[[1, 2], [3, 4]], [[5, 6], [7, 8]]],)]
 
 -----------
 QUERY:
 
 SELECT ia3 FROM jsonb_populate_record(NULL::jsbrec, '{"ia3": [ [[1, 2], [3, 4]], [[5, 6], [7, 8], [9, 10]] ]}') q;
 RESULT:
-	postgres: malformed JSON array
+	ERROR - malformed JSON array
 DETAIL:  Multidimensional arrays must have sub-arrays with matching dimensions.
 
 
@@ -3206,14 +3206,14 @@ QUERY:
 
 SELECT ta FROM jsonb_populate_record(NULL::jsbrec, '{"ta": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT ta FROM jsonb_populate_record(NULL::jsbrec, '{"ta": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "ta".
 
 
@@ -3222,14 +3222,14 @@ QUERY:
 
 SELECT ta FROM jsonb_populate_record(NULL::jsbrec, '{"ta": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [(['1', '2', None, '4'],)]
+	[(['1', '2', None, '4'],)]
 
 -----------
 QUERY:
 
 SELECT ta FROM jsonb_populate_record(NULL::jsbrec, '{"ta": [[1, 2, 3], {"k": "v"}]}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the array element [1] of key "ta".
 
 
@@ -3239,28 +3239,28 @@ QUERY:
 
 SELECT c FROM jsonb_populate_record(NULL::jsbrec, '{"c": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT c FROM jsonb_populate_record(NULL::jsbrec, '{"c": "aaa"}') q;
 RESULT:
-	postgres: [('aaa       ',)]
+	[('aaa       ',)]
 
 -----------
 QUERY:
 
 SELECT c FROM jsonb_populate_record(NULL::jsbrec, '{"c": "aaaaaaaaaa"}') q;
 RESULT:
-	postgres: [('aaaaaaaaaa',)]
+	[('aaaaaaaaaa',)]
 
 -----------
 QUERY:
 
 SELECT c FROM jsonb_populate_record(NULL::jsbrec, '{"c": "aaaaaaaaaaaaa"}') q;
 RESULT:
-	postgres: value too long for type character(10)
+	ERROR - value too long for type character(10)
 
 
 -----------
@@ -3269,14 +3269,14 @@ QUERY:
 
 SELECT ca FROM jsonb_populate_record(NULL::jsbrec, '{"ca": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT ca FROM jsonb_populate_record(NULL::jsbrec, '{"ca": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "ca".
 
 
@@ -3285,14 +3285,14 @@ QUERY:
 
 SELECT ca FROM jsonb_populate_record(NULL::jsbrec, '{"ca": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [(['1         ', '2         ', None, '4         '],)]
+	[(['1         ', '2         ', None, '4         '],)]
 
 -----------
 QUERY:
 
 SELECT ca FROM jsonb_populate_record(NULL::jsbrec, '{"ca": ["aaaaaaaaaaaaaaaa"]}') q;
 RESULT:
-	postgres: value too long for type character(10)
+	ERROR - value too long for type character(10)
 
 
 -----------
@@ -3300,7 +3300,7 @@ QUERY:
 
 SELECT ca FROM jsonb_populate_record(NULL::jsbrec, '{"ca": [[1, 2, 3], {"k": "v"}]}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the array element [1] of key "ca".
 
 
@@ -3310,49 +3310,49 @@ QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": true}') q;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": 123.45}') q;
 RESULT:
-	postgres: [(123.45,)]
+	[(123.45,)]
 
 -----------
 QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": "123.45"}') q;
 RESULT:
-	postgres: [('123.45',)]
+	[('123.45',)]
 
 -----------
 QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": "abc"}') q;
 RESULT:
-	postgres: [('abc',)]
+	[('abc',)]
 
 -----------
 QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": [123, "123", null, {"key": "value"}]}') q;
 RESULT:
-	postgres: [([123, '123', None, {'key': 'value'}],)]
+	[([123, '123', None, {'key': 'value'}],)]
 
 -----------
 QUERY:
 
 SELECT js FROM jsonb_populate_record(NULL::jsbrec, '{"js": {"a": "bbb", "b": null, "c": 123.45}}') q;
 RESULT:
-	postgres: [({'a': 'bbb', 'b': None, 'c': 123.45},)]
+	[({'a': 'bbb', 'b': None, 'c': 123.45},)]
 
 -----------
 QUERY:
@@ -3360,49 +3360,49 @@ QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": true}') q;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": 123.45}') q;
 RESULT:
-	postgres: [(123.45,)]
+	[(123.45,)]
 
 -----------
 QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": "123.45"}') q;
 RESULT:
-	postgres: [('123.45',)]
+	[('123.45',)]
 
 -----------
 QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": "abc"}') q;
 RESULT:
-	postgres: [('abc',)]
+	[('abc',)]
 
 -----------
 QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": [123, "123", null, {"key": "value"}]}') q;
 RESULT:
-	postgres: [([123, '123', None, {'key': 'value'}],)]
+	[([123, '123', None, {'key': 'value'}],)]
 
 -----------
 QUERY:
 
 SELECT jsb FROM jsonb_populate_record(NULL::jsbrec, '{"jsb": {"a": "bbb", "b": null, "c": 123.45}}') q;
 RESULT:
-	postgres: [({'a': 'bbb', 'b': None, 'c': 123.45},)]
+	[({'a': 'bbb', 'b': None, 'c': 123.45},)]
 
 -----------
 QUERY:
@@ -3410,14 +3410,14 @@ QUERY:
 
 SELECT jsa FROM jsonb_populate_record(NULL::jsbrec, '{"jsa": null}') q;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT jsa FROM jsonb_populate_record(NULL::jsbrec, '{"jsa": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "jsa".
 
 
@@ -3426,14 +3426,14 @@ QUERY:
 
 SELECT jsa FROM jsonb_populate_record(NULL::jsbrec, '{"jsa": [1, "2", null, 4]}') q;
 RESULT:
-	postgres: [([1, '2', None, 4],)]
+	[([1, '2', None, 4],)]
 
 -----------
 QUERY:
 
 SELECT jsa FROM jsonb_populate_record(NULL::jsbrec, '{"jsa": ["aaa", null, [1, 2, "3", {}], { "k" : "v" }]}') q;
 RESULT:
-	postgres: [(['aaa', None, [1, 2, '3', {}], {'k': 'v'}],)]
+	[(['aaa', None, [1, 2, '3', {}], {'k': 'v'}],)]
 
 -----------
 QUERY:
@@ -3441,7 +3441,7 @@ QUERY:
 
 SELECT rec FROM jsonb_populate_record(NULL::jsbrec, '{"rec": 123}') q;
 RESULT:
-	postgres: cannot call populate_composite on a scalar
+	ERROR - cannot call populate_composite on a scalar
 
 
 -----------
@@ -3449,7 +3449,7 @@ QUERY:
 
 SELECT rec FROM jsonb_populate_record(NULL::jsbrec, '{"rec": [1, 2]}') q;
 RESULT:
-	postgres: cannot call populate_composite on an array
+	ERROR - cannot call populate_composite on an array
 
 
 -----------
@@ -3457,14 +3457,14 @@ QUERY:
 
 SELECT rec FROM jsonb_populate_record(NULL::jsbrec, '{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}') q;
 RESULT:
-	postgres: [('(abc,,"2003-02-01 00:00:00")',)]
+	[('(abc,,"2003-02-01 00:00:00")',)]
 
 -----------
 QUERY:
 
 SELECT rec FROM jsonb_populate_record(NULL::jsbrec, '{"rec": "(abc,42,01.02.2003)"}') q;
 RESULT:
-	postgres: [('(abc,42,"2003-02-01 00:00:00")',)]
+	[('(abc,42,"2003-02-01 00:00:00")',)]
 
 -----------
 QUERY:
@@ -3472,7 +3472,7 @@ QUERY:
 
 SELECT reca FROM jsonb_populate_record(NULL::jsbrec, '{"reca": 123}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "reca".
 
 
@@ -3481,7 +3481,7 @@ QUERY:
 
 SELECT reca FROM jsonb_populate_record(NULL::jsbrec, '{"reca": [1, 2]}') q;
 RESULT:
-	postgres: cannot call populate_composite on a scalar
+	ERROR - cannot call populate_composite on a scalar
 
 
 -----------
@@ -3489,21 +3489,21 @@ QUERY:
 
 SELECT reca FROM jsonb_populate_record(NULL::jsbrec, '{"reca": [{"a": "abc", "b": 456}, null, {"c": "01.02.2003", "x": 43.2}]}') q;
 RESULT:
-	postgres: [('{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}',)]
+	[('{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}',)]
 
 -----------
 QUERY:
 
 SELECT reca FROM jsonb_populate_record(NULL::jsbrec, '{"reca": ["(abc,42,01.02.2003)"]}') q;
 RESULT:
-	postgres: [('{"(abc,42,\\"2003-02-01 00:00:00\\")"}',)]
+	[('{"(abc,42,\\"2003-02-01 00:00:00\\")"}',)]
 
 -----------
 QUERY:
 
 SELECT reca FROM jsonb_populate_record(NULL::jsbrec, '{"reca": "{\"(abc,42,01.02.2003)\"}"}') q;
 RESULT:
-	postgres: [('{"(abc,42,\\"2003-02-01 00:00:00\\")"}',)]
+	[('{"(abc,42,\\"2003-02-01 00:00:00\\")"}',)]
 
 -----------
 QUERY:
@@ -3515,7 +3515,7 @@ SELECT rec FROM jsonb_populate_record(
 	'{"rec": {"a": "abc", "c": "01.02.2003", "x": 43.2}}'
 ) q;
 RESULT:
-	postgres: [('(abc,3,"2003-02-01 00:00:00")',)]
+	[('(abc,3,"2003-02-01 00:00:00")',)]
 
 -----------
 QUERY:
@@ -3526,21 +3526,21 @@ QUERY:
 -- populate_scalar()
 create type jsb_char2 as (a char(2));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_char2, '{"a": "aaa"}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_char2, '{"a": "aaa"}') q;
 RESULT:
-	postgres: value too long for type character(2)
+	ERROR - value too long for type character(2)
 
 
 -----------
@@ -3548,14 +3548,14 @@ QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_char2, '{"a": "aa"}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_char2, '{"a": "aa"}') q;
 RESULT:
-	postgres: [('aa',)]
+	[('aa',)]
 
 -----------
 QUERY:
@@ -3564,28 +3564,28 @@ QUERY:
 -- populate_array()
 create type jsb_ia as (a int[]);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create type jsb_ia2 as (a int[][]);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_ia, '{"a": 43.2}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_ia, '{"a": 43.2}') q;
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "a".
 
 
@@ -3594,28 +3594,28 @@ QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_ia, '{"a": [1, 2]}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_ia, '{"a": [1, 2]}') q;
 RESULT:
-	postgres: [([1, 2],)]
+	[([1, 2],)]
 
 -----------
 QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_ia2, '{"a": [[1], [2, 3]]}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_ia2, '{"a": [[1], [2, 3]]}') q;
 RESULT:
-	postgres: malformed JSON array
+	ERROR - malformed JSON array
 DETAIL:  Multidimensional arrays must have sub-arrays with matching dimensions.
 
 
@@ -3624,14 +3624,14 @@ QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_ia2, '{"a": [[1, 0], [2, 3]]}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_ia2, '{"a": [[1, 0], [2, 3]]}') q;
 RESULT:
-	postgres: [([[1, 0], [2, 3]],)]
+	[([[1, 0], [2, 3]],)]
 
 -----------
 QUERY:
@@ -3640,42 +3640,42 @@ QUERY:
 -- populate_domain()
 create domain jsb_i_not_null as int not null;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create domain jsb_i_gt_1 as int check (value > 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create type jsb_i_not_null_rec as (a jsb_i_not_null);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create type jsb_i_gt_1_rec as (a jsb_i_gt_1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_i_not_null_rec, '{"a": null}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_i_not_null_rec, '{"a": null}') q;
 RESULT:
-	postgres: domain jsb_i_not_null does not allow null values
+	ERROR - domain jsb_i_not_null does not allow null values
 
 
 -----------
@@ -3683,28 +3683,28 @@ QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_i_not_null_rec, '{"a": 1}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_i_not_null_rec, '{"a": 1}') q;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_i_gt_1_rec, '{"a": 1}');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_i_gt_1_rec, '{"a": 1}') q;
 RESULT:
-	postgres: value for domain jsb_i_gt_1 violates check constraint "jsb_i_gt_1_check"
+	ERROR - value for domain jsb_i_gt_1 violates check constraint "jsb_i_gt_1_check"
 
 
 -----------
@@ -3712,28 +3712,28 @@ QUERY:
 
 select jsonb_populate_record_valid(NULL::jsb_i_gt_1_rec, '{"a": 2}');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select * from jsonb_populate_record(NULL::jsb_i_gt_1_rec, '{"a": 2}') q;
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 drop type jsb_ia, jsb_ia2, jsb_char2, jsb_i_not_null_rec, jsb_i_gt_1_rec;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop domain jsb_i_not_null, jsb_i_gt_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3742,7 +3742,7 @@ QUERY:
 -- anonymous record type
 SELECT jsonb_populate_record(null::record, '{"x": 0, "y": 1}');
 RESULT:
-	postgres: could not determine row type for result of jsonb_populate_record
+	ERROR - could not determine row type for result of jsonb_populate_record
 HINT:  Provide a non-null record argument, or call the function in the FROM clause using a column definition list.
 
 
@@ -3751,7 +3751,7 @@ QUERY:
 
 SELECT jsonb_populate_record(row(1,2), '{"f1": 0, "f2": 1}');
 RESULT:
-	postgres: [('(0,1)',)]
+	[('(0,1)',)]
 
 -----------
 QUERY:
@@ -3759,7 +3759,7 @@ QUERY:
 SELECT * FROM
   jsonb_populate_record(null::record, '{"x": 776}') AS (x int, y int);
 RESULT:
-	postgres: [(776, None)]
+	[(776, None)]
 
 -----------
 QUERY:
@@ -3768,21 +3768,21 @@ QUERY:
 -- composite domain
 SELECT jsonb_populate_record(null::jb_ordered_pair, '{"x": 0, "y": 1}');
 RESULT:
-	postgres: [('(0,1)',)]
+	[('(0,1)',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_populate_record(row(1,2)::jb_ordered_pair, '{"x": 0}');
 RESULT:
-	postgres: [('(0,2)',)]
+	[('(0,2)',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_populate_record(row(1,2)::jb_ordered_pair, '{"x": 1, "y": 0}');
 RESULT:
-	postgres: value for domain jb_ordered_pair violates check constraint "jb_ordered_pair_check"
+	ERROR - value for domain jb_ordered_pair violates check constraint "jb_ordered_pair_check"
 
 
 -----------
@@ -3792,42 +3792,42 @@ QUERY:
 -- populate_recordset
 SELECT * FROM jsonb_populate_recordset(NULL::jbpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('blurfl', None, None), (None, 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('blurfl', None, None), (None, 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(row('def',99,NULL)::jbpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('blurfl', 99, None), ('def', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('blurfl', 99, None), ('def', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(NULL::jbpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('blurfl', None, None), (None, 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('blurfl', None, None), (None, 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(row('def',99,NULL)::jbpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('blurfl', 99, None), ('def', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('blurfl', 99, None), ('def', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(row('def',99,NULL)::jbpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('[100, 200, 300]', 99, None), ('{"z": true}', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('[100, 200, 300]', 99, None), ('{"z": true}', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(row('def',99,NULL)::jbpop,'[{"c":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: invalid input syntax for type timestamp: "[100, 200, 300]"
+	ERROR - invalid input syntax for type timestamp: "[100, 200, 300]"
 
 
 -----------
@@ -3836,21 +3836,21 @@ QUERY:
 
 SELECT * FROM jsonb_populate_recordset(NULL::jbpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('blurfl', None, None), (None, 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('blurfl', None, None), (None, 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(row('def',99,NULL)::jbpop,'[{"a":"blurfl","x":43.2},{"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('blurfl', 99, None), ('def', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('blurfl', 99, None), ('def', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(row('def',99,NULL)::jbpop,'[{"a":[100,200,300],"x":43.2},{"a":{"z":true},"b":3,"c":"2012-01-20 10:42:53"}]') q;
 RESULT:
-	postgres: [('[100, 200, 300]', 99, None), ('{"z": true}', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
+	[('[100, 200, 300]', 99, None), ('{"z": true}', 3, datetime.datetime(2012, 1, 20, 10, 42, 53))]
 
 -----------
 QUERY:
@@ -3859,7 +3859,7 @@ QUERY:
 -- anonymous record type
 SELECT jsonb_populate_recordset(null::record, '[{"x": 0, "y": 1}]');
 RESULT:
-	postgres: could not determine row type for result of jsonb_populate_recordset
+	ERROR - could not determine row type for result of jsonb_populate_recordset
 HINT:  Provide a non-null record argument, or call the function in the FROM clause using a column definition list.
 
 
@@ -3868,7 +3868,7 @@ QUERY:
 
 SELECT jsonb_populate_recordset(row(1,2), '[{"f1": 0, "f2": 1}]');
 RESULT:
-	postgres: [('(0,1)',)]
+	[('(0,1)',)]
 
 -----------
 QUERY:
@@ -3876,7 +3876,7 @@ QUERY:
 SELECT i, jsonb_populate_recordset(row(i,50), '[{"f1":"42"},{"f2":"43"}]')
 FROM (VALUES (1),(2)) v(i);
 RESULT:
-	postgres: [(1, '(42,50)'), (1, '(1,43)'), (2, '(42,50)'), (2, '(2,43)')]
+	[(1, '(42,50)'), (1, '(1,43)'), (2, '(42,50)'), (2, '(2,43)')]
 
 -----------
 QUERY:
@@ -3884,7 +3884,7 @@ QUERY:
 SELECT * FROM
   jsonb_populate_recordset(null::record, '[{"x": 776}]') AS (x int, y int);
 RESULT:
-	postgres: [(776, None)]
+	[(776, None)]
 
 -----------
 QUERY:
@@ -3893,7 +3893,7 @@ QUERY:
 -- empty array is a corner case
 SELECT jsonb_populate_recordset(null::record, '[]');
 RESULT:
-	postgres: could not determine row type for result of jsonb_populate_recordset
+	ERROR - could not determine row type for result of jsonb_populate_recordset
 HINT:  Provide a non-null record argument, or call the function in the FROM clause using a column definition list.
 
 
@@ -3902,14 +3902,14 @@ QUERY:
 
 SELECT jsonb_populate_recordset(row(1,2), '[]');
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM jsonb_populate_recordset(NULL::jbpop,'[]') q;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -3917,7 +3917,7 @@ QUERY:
 SELECT * FROM
   jsonb_populate_recordset(null::record, '[]') AS (x int, y int);
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -3926,21 +3926,21 @@ QUERY:
 -- composite domain
 SELECT jsonb_populate_recordset(null::jb_ordered_pair, '[{"x": 0, "y": 1}]');
 RESULT:
-	postgres: [('(0,1)',)]
+	[('(0,1)',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_populate_recordset(row(1,2)::jb_ordered_pair, '[{"x": 0}, {"y": 3}]');
 RESULT:
-	postgres: [('(0,2)',), ('(1,3)',)]
+	[('(0,2)',), ('(1,3)',)]
 
 -----------
 QUERY:
 
 SELECT jsonb_populate_recordset(row(1,2)::jb_ordered_pair, '[{"x": 1, "y": 0}]');
 RESULT:
-	postgres: value for domain jb_ordered_pair violates check constraint "jb_ordered_pair_check"
+	ERROR - value for domain jb_ordered_pair violates check constraint "jb_ordered_pair_check"
 
 
 -----------
@@ -3950,7 +3950,7 @@ QUERY:
 -- negative cases where the wrong record type is supplied
 select * from jsonb_populate_recordset(row(0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text);
 RESULT:
-	postgres: function return row and query-specified return row do not match
+	ERROR - function return row and query-specified return row do not match
 DETAIL:  Returned row contains 1 attribute, but query expects 2.
 
 
@@ -3959,7 +3959,7 @@ QUERY:
 
 select * from jsonb_populate_recordset(row(0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text);
 RESULT:
-	postgres: function return row and query-specified return row do not match
+	ERROR - function return row and query-specified return row do not match
 DETAIL:  Returned type integer at ordinal position 1, but query expects text.
 
 
@@ -3968,7 +3968,7 @@ QUERY:
 
 select * from jsonb_populate_recordset(row(0::int,0::int,0::int),'[{"a":"1","b":"2"},{"a":"3"}]') q (a text, b text);
 RESULT:
-	postgres: function return row and query-specified return row do not match
+	ERROR - function return row and query-specified return row do not match
 DETAIL:  Returned row contains 3 attributes, but query expects 2.
 
 
@@ -3977,7 +3977,7 @@ QUERY:
 
 select * from jsonb_populate_recordset(row(1000000000::int,50::int),'[{"b":"2"},{"a":"3"}]') q (a text, b text);
 RESULT:
-	postgres: function return row and query-specified return row do not match
+	ERROR - function return row and query-specified return row do not match
 DETAIL:  Returned type integer at ordinal position 1, but query expects text.
 
 
@@ -3990,7 +3990,7 @@ QUERY:
 select * from jsonb_to_record('{"a":1,"b":"foo","c":"bar"}')
     as x(a int, b text, d text);
 RESULT:
-	postgres: [(1, 'foo', None)]
+	[(1, 'foo', None)]
 
 -----------
 QUERY:
@@ -3999,7 +3999,7 @@ QUERY:
 select * from jsonb_to_recordset('[{"a":1,"b":"foo","d":false},{"a":2,"b":"bar","c":true}]')
     as x(a int, b text, c boolean);
 RESULT:
-	postgres: [(1, 'foo', None), (2, 'bar', True)]
+	[(1, 'foo', None), (2, 'bar', True)]
 
 -----------
 QUERY:
@@ -4009,7 +4009,7 @@ select *, c is null as c_is_null
 from jsonb_to_record('{"a":1, "b":{"c":16, "d":2}, "x":8, "ca": ["1 2", 3], "ia": [[1,2],[3,4]], "r": {"a": "aaa", "b": 123}}'::jsonb)
     as t(a int, b jsonb, c text, x int, ca char(5)[], ia int[][], r jbpop);
 RESULT:
-	postgres: [(1, {'c': 16, 'd': 2}, None, 8, ['1 2  ', '3    '], [[1, 2], [3, 4]], '(aaa,123,)', True)]
+	[(1, {'c': 16, 'd': 2}, None, 8, ['1 2  ', '3    '], [[1, 2], [3, 4]], '(aaa,123,)', True)]
 
 -----------
 QUERY:
@@ -4019,7 +4019,7 @@ select *, c is null as c_is_null
 from jsonb_to_recordset('[{"a":1, "b":{"c":16, "d":2}, "x":8}]'::jsonb)
     as t(a int, b jsonb, c text, x int);
 RESULT:
-	postgres: [(1, {'c': 16, 'd': 2}, None, 8, True)]
+	[(1, {'c': 16, 'd': 2}, None, 8, True)]
 
 -----------
 QUERY:
@@ -4027,14 +4027,14 @@ QUERY:
 
 select * from jsonb_to_record('{"ia": null}') as x(ia _int4);
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"ia": 123}') as x(ia _int4);
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the value of key "ia".
 
 
@@ -4043,21 +4043,21 @@ QUERY:
 
 select * from jsonb_to_record('{"ia": [1, "2", null, 4]}') as x(ia _int4);
 RESULT:
-	postgres: [([1, 2, None, 4],)]
+	[([1, 2, None, 4],)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"ia": [[1, 2], [3, 4]]}') as x(ia _int4);
 RESULT:
-	postgres: [([[1, 2], [3, 4]],)]
+	[([[1, 2], [3, 4]],)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"ia": [[1], 2]}') as x(ia _int4);
 RESULT:
-	postgres: expected JSON array
+	ERROR - expected JSON array
 HINT:  See the array element [1] of key "ia".
 
 
@@ -4066,7 +4066,7 @@ QUERY:
 
 select * from jsonb_to_record('{"ia": [[1], [2, 3]]}') as x(ia _int4);
 RESULT:
-	postgres: malformed JSON array
+	ERROR - malformed JSON array
 DETAIL:  Multidimensional arrays must have sub-arrays with matching dimensions.
 
 
@@ -4076,21 +4076,21 @@ QUERY:
 
 select * from jsonb_to_record('{"ia2": [1, 2, 3]}') as x(ia2 int[][]);
 RESULT:
-	postgres: [([1, 2, 3],)]
+	[([1, 2, 3],)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"ia2": [[1, 2], [3, 4]]}') as x(ia2 int4[][]);
 RESULT:
-	postgres: [([[1, 2], [3, 4]],)]
+	[([[1, 2], [3, 4]],)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"ia2": [[[1], [2], [3]]]}') as x(ia2 int4[][]);
 RESULT:
-	postgres: [([[[1], [2], [3]]],)]
+	[([[[1], [2], [3]]],)]
 
 -----------
 QUERY:
@@ -4098,42 +4098,42 @@ QUERY:
 
 select * from jsonb_to_record('{"out": {"key": 1}}') as x(out json);
 RESULT:
-	postgres: [({'key': 1},)]
+	[({'key': 1},)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"out": [{"key": 1}]}') as x(out json);
 RESULT:
-	postgres: [([{'key': 1}],)]
+	[([{'key': 1}],)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"out": "{\"key\": 1}"}') as x(out json);
 RESULT:
-	postgres: [('{"key": 1}',)]
+	[('{"key": 1}',)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"out": {"key": 1}}') as x(out jsonb);
 RESULT:
-	postgres: [({'key': 1},)]
+	[({'key': 1},)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"out": [{"key": 1}]}') as x(out jsonb);
 RESULT:
-	postgres: [([{'key': 1}],)]
+	[([{'key': 1}],)]
 
 -----------
 QUERY:
 
 select * from jsonb_to_record('{"out": "{\"key\": 1}"}') as x(out jsonb);
 RESULT:
-	postgres: [('{"key": 1}',)]
+	[('{"key": 1}',)]
 
 -----------
 QUERY:
@@ -4142,7 +4142,7 @@ QUERY:
 -- test type info caching in jsonb_populate_record()
 CREATE TEMP TABLE jsbpoptest (js jsonb);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4156,7 +4156,7 @@ SELECT '{
 }'::jsonb
 FROM generate_series(1, 3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4164,7 +4164,7 @@ QUERY:
 
 SELECT (jsonb_populate_record(NULL::jsbrec, js)).* FROM jsbpoptest;
 RESULT:
-	postgres: [(None, None, None, None, None, None, None, None, None, None, None, None, None, None, [1, '2', None, 4], '(abc,,"2003-02-01 00:00:00")', '{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}'), (None, None, None, None, None, None, None, None, None, None, None, None, None, None, [1, '2', None, 4], '(abc,,"2003-02-01 00:00:00")', '{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}'), (None, None, None, None, None, None, None, None, None, None, None, None, None, None, [1, '2', None, 4], '(abc,,"2003-02-01 00:00:00")', '{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}')]
+	[(None, None, None, None, None, None, None, None, None, None, None, None, None, None, [1, '2', None, 4], '(abc,,"2003-02-01 00:00:00")', '{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}'), (None, None, None, None, None, None, None, None, None, None, None, None, None, None, [1, '2', None, 4], '(abc,,"2003-02-01 00:00:00")', '{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}'), (None, None, None, None, None, None, None, None, None, None, None, None, None, None, [1, '2', None, 4], '(abc,,"2003-02-01 00:00:00")', '{"(abc,456,)",NULL,"(,,\\"2003-02-01 00:00:00\\")"}')]
 
 -----------
 QUERY:
@@ -4172,49 +4172,49 @@ QUERY:
 
 DROP TYPE jsbrec;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TYPE jsbrec_i_not_null;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP DOMAIN jsb_int_not_null;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP DOMAIN jsb_int_array_1d;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP DOMAIN jsb_int_array_2d;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP DOMAIN jb_ordered_pair;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TYPE jb_unordered_pair;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4223,189 +4223,189 @@ QUERY:
 -- indexing
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC"}';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC", "public":true}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25.0}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ? 'public';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ? 'bar';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?| ARRAY['public','disabled'];
 RESULT:
-	postgres: [(337,)]
+	[(337,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?& ARRAY['public','disabled'];
 RESULT:
-	postgres: [(42,)]
+	[(42,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '"CC" == $.wait';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == "CC" && true == $.public';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25.0';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($)';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public)';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.bar)';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) || exists($.disabled)';
 RESULT:
-	postgres: [(337,)]
+	[(337,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) && exists($.disabled)';
 RESULT:
-	postgres: [(42,)]
+	[(42,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? ("CC" == @)';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.wait == "CC" && true == @.public)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.age ? (@ == 25)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.age == 25.0)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.public';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.bar';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4413,14 +4413,14 @@ QUERY:
 
 CREATE INDEX jidx ON testjsonb USING gin (j);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4428,49 +4428,49 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC"}';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC", "public":true}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25.0}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"array":["foo"]}';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"array":["bar"]}';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
@@ -4478,35 +4478,35 @@ QUERY:
 -- exercise GIN_SEARCH_MODE_ALL
 SELECT count(*) FROM testjsonb WHERE j @> '{}';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ? 'public';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ? 'bar';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?| ARRAY['public','disabled'];
 RESULT:
-	postgres: [(337,)]
+	[(337,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?& ARRAY['public','disabled'];
 RESULT:
-	postgres: [(42,)]
+	[(42,)]
 
 -----------
 QUERY:
@@ -4515,126 +4515,126 @@ QUERY:
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on testjsonb',), ('        Recheck Cond: (j @@ \'($."wait" == null)\'::jsonpath)',), ('        ->  Bitmap Index Scan on jidx',), ('              Index Cond: (j @@ \'($."wait" == null)\'::jsonpath)',)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on testjsonb',), ('        Recheck Cond: (j @@ \'($."wait" == null)\'::jsonpath)',), ('        ->  Bitmap Index Scan on jidx',), ('              Index Cond: (j @@ \'($."wait" == null)\'::jsonpath)',)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.wait == null))';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.wait ? (@ == null))';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '"CC" == $.wait';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == "CC" && true == $.public';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25.0';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "foo"';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "bar"';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.array[*] == "bar"))';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array ? (@[*] == "bar"))';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array[*] ? (@ == "bar"))';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($)';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public)';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.bar)';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) || exists($.disabled)';
 RESULT:
-	postgres: [(337,)]
+	[(337,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) && exists($.disabled)';
 RESULT:
-	postgres: [(42,)]
+	[(42,)]
 
 -----------
 QUERY:
@@ -4642,84 +4642,84 @@ QUERY:
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on testjsonb',), ('        Recheck Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',), ('        ->  Bitmap Index Scan on jidx',), ('              Index Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on testjsonb',), ('        Recheck Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',), ('        ->  Bitmap Index Scan on jidx',), ('              Index Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? ("CC" == @)';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.wait == "CC" && true == @.public)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.age ? (@ == 25)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.age == 25.0)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.array[*] == "bar")';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array ? (@[*] == "bar")';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array[*] ? (@ == "bar")';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.public';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.bar';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4728,23 +4728,23 @@ QUERY:
 -- array exists - array elements should behave as keys (for GIN index scans too)
 CREATE INDEX jidx_array ON testjsonb USING gin((j->'array'));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT count(*) from testjsonb  WHERE j->'array' ? 'bar';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
--- type sensitive array exists - should return no rows (since /* REPLACED */''exists/* REPLACED */'' only
+-- type sensitive array exists - should return no rows (since /* REPLACED */ ''exists/* REPLACED */ '' only
 -- matches strings that are either object keys or array elements)
 SELECT count(*) from testjsonb  WHERE j->'array' ? '5'::text;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4752,7 +4752,7 @@ QUERY:
 -- However, a raw scalar is *contained* within the array
 SELECT count(*) from testjsonb  WHERE j->'array' @> '5'::jsonb;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -4760,7 +4760,7 @@ QUERY:
 
 RESET enable_seqscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4768,14 +4768,14 @@ QUERY:
 
 SELECT count(*) FROM (SELECT (jsonb_each(j)).key FROM testjsonb) AS wow;
 RESULT:
-	postgres: [(4791,)]
+	[(4791,)]
 
 -----------
 QUERY:
 
 SELECT key, count(*) FROM (SELECT (jsonb_each(j)).key FROM testjsonb) AS wow GROUP BY key ORDER BY count DESC, key;
 RESULT:
-	postgres: [('line', 884), ('query', 207), ('pos', 203), ('node', 202), ('space', 197), ('status', 195), ('public', 194), ('title', 190), ('wait', 190), ('org', 189), ('user', 189), ('coauthors', 188), ('disabled', 185), ('indexed', 184), ('cleaned', 180), ('bad', 179), ('date', 179), ('world', 176), ('state', 172), ('subtitle', 169), ('auth', 168), ('abstract', 161), ('array', 5), ('age', 2), ('foo', 2), ('fool', 1)]
+	[('line', 884), ('query', 207), ('pos', 203), ('node', 202), ('space', 197), ('status', 195), ('public', 194), ('title', 190), ('wait', 190), ('org', 189), ('user', 189), ('coauthors', 188), ('disabled', 185), ('indexed', 184), ('cleaned', 180), ('bad', 179), ('date', 179), ('world', 176), ('state', 172), ('subtitle', 169), ('auth', 168), ('abstract', 161), ('array', 5), ('age', 2), ('foo', 2), ('fool', 1)]
 
 -----------
 QUERY:
@@ -4784,56 +4784,56 @@ QUERY:
 -- sort/hash
 SELECT count(distinct j) FROM testjsonb;
 RESULT:
-	postgres: [(894,)]
+	[(894,)]
 
 -----------
 QUERY:
 
 SET enable_hashagg = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM (SELECT j FROM (SELECT * FROM testjsonb UNION ALL SELECT * FROM testjsonb) js GROUP BY j) js2;
 RESULT:
-	postgres: [(894,)]
+	[(894,)]
 
 -----------
 QUERY:
 
 SET enable_hashagg = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_sort = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM (SELECT j FROM (SELECT * FROM testjsonb UNION ALL SELECT * FROM testjsonb) js GROUP BY j) js2;
 RESULT:
-	postgres: [(894,)]
+	[(894,)]
 
 -----------
 QUERY:
 
 SELECT distinct * FROM (values (jsonb '{}'::text),('{}')) v(j);
 RESULT:
-	postgres: [('{}',)]
+	[('{}',)]
 
 -----------
 QUERY:
 
 SET enable_sort = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4841,14 +4841,14 @@ QUERY:
 
 RESET enable_hashagg;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET enable_sort;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4856,14 +4856,14 @@ QUERY:
 
 DROP INDEX jidx;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP INDEX jidx_array;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4871,14 +4871,14 @@ QUERY:
 -- btree
 CREATE INDEX jidx ON testjsonb USING btree (j);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4886,14 +4886,14 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j > '{"p":1}';
 RESULT:
-	postgres: [(884,)]
+	[(884,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j = '{"pos":98, "line":371, "node":"CBA", "indexed":true}';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -4902,21 +4902,21 @@ QUERY:
 --gin path opclass
 DROP INDEX jidx;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX jidx ON testjsonb USING gin (j jsonb_path_ops);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4924,35 +4924,35 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC"}';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC", "public":true}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25.0}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
@@ -4960,7 +4960,7 @@ QUERY:
 -- exercise GIN_SEARCH_MODE_ALL
 SELECT count(*) FROM testjsonb WHERE j @> '{}';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
@@ -4968,91 +4968,91 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.wait == null))';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.wait ? (@ == null))';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '"CC" == $.wait';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == "CC" && true == $.public';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25.0';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "foo"';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "bar"';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.array[*] == "bar"))';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array ? (@[*] == "bar"))';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array[*] ? (@ == "bar"))';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($)';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
@@ -5061,84 +5061,84 @@ QUERY:
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on testjsonb',), ('        Recheck Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',), ('        ->  Bitmap Index Scan on jidx',), ('              Index Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on testjsonb',), ('        Recheck Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',), ('        ->  Bitmap Index Scan on jidx',), ('              Index Cond: (j @? \'$."wait"?(@ == null)\'::jsonpath)',)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? ("CC" == @)';
 RESULT:
-	postgres: [(15,)]
+	[(15,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.wait == "CC" && true == @.public)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.age ? (@ == 25)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.age == 25.0)';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.array[*] == "bar")';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array ? (@[*] == "bar")';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array[*] ? (@ == "bar")';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$';
 RESULT:
-	postgres: [(1012,)]
+	[(1012,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.public';
 RESULT:
-	postgres: [(194,)]
+	[(194,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.bar';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -5146,14 +5146,14 @@ QUERY:
 
 RESET enable_seqscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP INDEX jidx;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5162,42 +5162,42 @@ QUERY:
 -- nested tests
 SELECT '{"ff":{"a":12,"b":16}}'::jsonb;
 RESULT:
-	postgres: [({'ff': {'a': 12, 'b': 16}},)]
+	[({'ff': {'a': 12, 'b': 16}},)]
 
 -----------
 QUERY:
 
 SELECT '{"ff":{"a":12,"b":16},"qq":123}'::jsonb;
 RESULT:
-	postgres: [({'ff': {'a': 12, 'b': 16}, 'qq': 123},)]
+	[({'ff': {'a': 12, 'b': 16}, 'qq': 123},)]
 
 -----------
 QUERY:
 
 SELECT '{"aa":["a","aaa"],"qq":{"a":12,"b":16,"c":["c1","c2"],"d":{"d1":"d1","d2":"d2","d1":"d3"}}}'::jsonb;
 RESULT:
-	postgres: [({'aa': ['a', 'aaa'], 'qq': {'a': 12, 'b': 16, 'c': ['c1', 'c2'], 'd': {'d1': 'd3', 'd2': 'd2'}}},)]
+	[({'aa': ['a', 'aaa'], 'qq': {'a': 12, 'b': 16, 'c': ['c1', 'c2'], 'd': {'d1': 'd3', 'd2': 'd2'}}},)]
 
 -----------
 QUERY:
 
 SELECT '{"aa":["a","aaa"],"qq":{"a":"12","b":"16","c":["c1","c2"],"d":{"d1":"d1","d2":"d2"}}}'::jsonb;
 RESULT:
-	postgres: [({'aa': ['a', 'aaa'], 'qq': {'a': '12', 'b': '16', 'c': ['c1', 'c2'], 'd': {'d1': 'd1', 'd2': 'd2'}}},)]
+	[({'aa': ['a', 'aaa'], 'qq': {'a': '12', 'b': '16', 'c': ['c1', 'c2'], 'd': {'d1': 'd1', 'd2': 'd2'}}},)]
 
 -----------
 QUERY:
 
 SELECT '{"aa":["a","aaa"],"qq":{"a":"12","b":"16","c":["c1","c2",["c3"],{"c4":4}],"d":{"d1":"d1","d2":"d2"}}}'::jsonb;
 RESULT:
-	postgres: [({'aa': ['a', 'aaa'], 'qq': {'a': '12', 'b': '16', 'c': ['c1', 'c2', ['c3'], {'c4': 4}], 'd': {'d1': 'd1', 'd2': 'd2'}}},)]
+	[({'aa': ['a', 'aaa'], 'qq': {'a': '12', 'b': '16', 'c': ['c1', 'c2', ['c3'], {'c4': 4}], 'd': {'d1': 'd1', 'd2': 'd2'}}},)]
 
 -----------
 QUERY:
 
 SELECT '{"ff":["a","aaa"]}'::jsonb;
 RESULT:
-	postgres: [({'ff': ['a', 'aaa']},)]
+	[({'ff': ['a', 'aaa']},)]
 
 -----------
 QUERY:
@@ -5210,7 +5210,7 @@ SELECT
   ('{"ff":{"a":12,"b":16},"qq":123,"x":[1,2],"Y":null}'::jsonb ->> 'Y') IS NULL AS t,
    '{"ff":{"a":12,"b":16},"qq":123,"x":[1,2],"Y":null}'::jsonb -> 'x';
 RESULT:
-	postgres: [({'a': 12, 'b': 16}, 123, False, True, [1, 2])]
+	[({'a': 12, 'b': 16}, 123, False, True, [1, 2])]
 
 -----------
 QUERY:
@@ -5219,70 +5219,70 @@ QUERY:
 -- nested containment
 SELECT '{"a":[1,2],"c":"b"}'::jsonb @> '{"a":[1,2]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":[2,1],"c":"b"}'::jsonb @> '{"a":[1,2]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":{"1":2},"c":"b"}'::jsonb @> '{"a":[1,2]}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":{"2":1},"c":"b"}'::jsonb @> '{"a":[1,2]}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":{"1":2},"c":"b"}'::jsonb @> '{"a":{"1":2}}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":{"2":1},"c":"b"}'::jsonb @> '{"a":{"1":2}}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b"]'::jsonb @> '["a","b","c","b"]';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c","b"]'::jsonb @> '["a","b"]';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2]]'::jsonb @> '["a",[1,2]]';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2]]'::jsonb @> '["b",[1,2]]';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -5290,21 +5290,21 @@ QUERY:
 
 SELECT '{"a":[1,2],"c":"b"}'::jsonb @> '{"a":[1]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":[1,2],"c":"b"}'::jsonb @> '{"a":[2]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":[1,2],"c":"b"}'::jsonb @> '{"a":[3]}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -5312,28 +5312,28 @@ QUERY:
 
 SELECT '{"a":[1,2,{"c":3,"x":4}],"c":"b"}'::jsonb @> '{"a":[{"c":3}]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":[1,2,{"c":3,"x":4}],"c":"b"}'::jsonb @> '{"a":[{"x":4}]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":[1,2,{"c":3,"x":4}],"c":"b"}'::jsonb @> '{"a":[{"x":4},3]}';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":[1,2,{"c":3,"x":4}],"c":"b"}'::jsonb @> '{"a":[{"x":4},1]}';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -5342,35 +5342,35 @@ QUERY:
 -- check some corner cases for indexed nested containment (bug #13756)
 create temp table nestjsonb (j jsonb);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into nestjsonb (j) values ('{"a":[["b",{"x":1}],["b",{"x":2}]],"c":3}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into nestjsonb (j) values ('[[14,2,3]]');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into nestjsonb (j) values ('[1,[14,2,3]]');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create index on nestjsonb using gin(j jsonb_path_ops);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5378,84 +5378,84 @@ QUERY:
 
 set enable_seqscan = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_bitmapscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from nestjsonb where j @> '{"a":[[{"x":2}]]}'::jsonb;
 RESULT:
-	postgres: [({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
+	[({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
 
 -----------
 QUERY:
 
 select * from nestjsonb where j @> '{"c":3}';
 RESULT:
-	postgres: [({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
+	[({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
 
 -----------
 QUERY:
 
 select * from nestjsonb where j @> '[[14]]';
 RESULT:
-	postgres: [([[14, 2, 3]],), ([1, [14, 2, 3]],)]
+	[([[14, 2, 3]],), ([1, [14, 2, 3]],)]
 
 -----------
 QUERY:
 
 set enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_bitmapscan = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from nestjsonb where j @> '{"a":[[{"x":2}]]}'::jsonb;
 RESULT:
-	postgres: [({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
+	[({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
 
 -----------
 QUERY:
 
 select * from nestjsonb where j @> '{"c":3}';
 RESULT:
-	postgres: [({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
+	[({'a': [['b', {'x': 1}], ['b', {'x': 2}]], 'c': 3},)]
 
 -----------
 QUERY:
 
 select * from nestjsonb where j @> '[[14]]';
 RESULT:
-	postgres: [([[14, 2, 3]],), ([1, [14, 2, 3]],)]
+	[([[14, 2, 3]],), ([1, [14, 2, 3]],)]
 
 -----------
 QUERY:
 
 reset enable_seqscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 reset enable_bitmapscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -5464,56 +5464,56 @@ QUERY:
 -- nested object field / array index lookup
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'n';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'a';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'b';
 RESULT:
-	postgres: [([1, 2],)]
+	[([1, 2],)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'c';
 RESULT:
-	postgres: [({'1': 2},)]
+	[({'1': 2},)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'd';
 RESULT:
-	postgres: [({'1': [2, 3]},)]
+	[({'1': [2, 3]},)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'd' -> '1';
 RESULT:
-	postgres: [([2, 3],)]
+	[([2, 3],)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 'e';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb -> 0;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -5521,70 +5521,70 @@ QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 0;
 RESULT:
-	postgres: [('a',)]
+	[('a',)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 1;
 RESULT:
-	postgres: [('b',)]
+	[('b',)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 2;
 RESULT:
-	postgres: [('c',)]
+	[('c',)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 3;
 RESULT:
-	postgres: [([1, 2],)]
+	[([1, 2],)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 3 -> 1;
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 4;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> 5;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> -1;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> -5;
 RESULT:
-	postgres: [('a',)]
+	[('a',)]
 
 -----------
 QUERY:
 
 SELECT '["a","b","c",[1,2],null]'::jsonb -> -6;
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -5593,70 +5593,70 @@ QUERY:
 --nested path extraction
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{0}';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{a}';
 RESULT:
-	postgres: [('b',)]
+	[('b',)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c}';
 RESULT:
-	postgres: [([1, 2, 3],)]
+	[([1, 2, 3],)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,0}';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,1}';
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,2}';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,3}';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,-1}';
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,-3}';
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT '{"a":"b","c":[1,2,3]}'::jsonb #> '{c,-4}';
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -5664,28 +5664,28 @@ QUERY:
 
 SELECT '[0,1,2,[3,4],{"5":"five"}]'::jsonb #> '{0}';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT '[0,1,2,[3,4],{"5":"five"}]'::jsonb #> '{3}';
 RESULT:
-	postgres: [([3, 4],)]
+	[([3, 4],)]
 
 -----------
 QUERY:
 
 SELECT '[0,1,2,[3,4],{"5":"five"}]'::jsonb #> '{4}';
 RESULT:
-	postgres: [({'5': 'five'},)]
+	[({'5': 'five'},)]
 
 -----------
 QUERY:
 
 SELECT '[0,1,2,[3,4],{"5":"five"}]'::jsonb #> '{4,5}';
 RESULT:
-	postgres: [('five',)]
+	[('five',)]
 
 -----------
 QUERY:
@@ -5694,42 +5694,42 @@ QUERY:
 --nested exists
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb ? 'n';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb ? 'a';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb ? 'b';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb ? 'c';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb ? 'd';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT '{"n":null,"a":1,"b":[1,2],"c":{"1":2},"d":{"1":[2,3]}}'::jsonb ? 'e';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -5739,7 +5739,7 @@ QUERY:
 
 select jsonb_strip_nulls(null);
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -5747,7 +5747,7 @@ QUERY:
 
 select jsonb_strip_nulls('1');
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -5755,7 +5755,7 @@ QUERY:
 
 select jsonb_strip_nulls('"a string"');
 RESULT:
-	postgres: [('a string',)]
+	[('a string',)]
 
 -----------
 QUERY:
@@ -5763,7 +5763,7 @@ QUERY:
 
 select jsonb_strip_nulls('null');
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
@@ -5771,7 +5771,7 @@ QUERY:
 
 select jsonb_strip_nulls('[1,2,null,3,4]');
 RESULT:
-	postgres: [([1, 2, None, 3, 4],)]
+	[([1, 2, None, 3, 4],)]
 
 -----------
 QUERY:
@@ -5779,7 +5779,7 @@ QUERY:
 
 select jsonb_strip_nulls('{"a":1,"b":null,"c":[2,null,3],"d":{"e":4,"f":null}}');
 RESULT:
-	postgres: [({'a': 1, 'c': [2, None, 3], 'd': {'e': 4}},)]
+	[({'a': 1, 'c': [2, None, 3], 'd': {'e': 4}},)]
 
 -----------
 QUERY:
@@ -5787,7 +5787,7 @@ QUERY:
 
 select jsonb_strip_nulls('[1,{"a":1,"b":null,"c":2},3]');
 RESULT:
-	postgres: [([1, {'a': 1, 'c': 2}, 3],)]
+	[([1, {'a': 1, 'c': 2}, 3],)]
 
 -----------
 QUERY:
@@ -5796,7 +5796,7 @@ QUERY:
 -- an empty object is not null and should not be stripped
 select jsonb_strip_nulls('{"a": {"b": null, "c": null}, "d": {} }');
 RESULT:
-	postgres: [({'a': {}, 'd': {}},)]
+	[({'a': {}, 'd': {}},)]
 
 -----------
 QUERY:
@@ -5805,21 +5805,21 @@ QUERY:
 
 select jsonb_pretty('{"a": "test", "b": [1, 2, 3], "c": "test3", "d":{"dd": "test4", "dd2":{"ddd": "test5"}}}');
 RESULT:
-	postgres: [('{\n    "a": "test",\n    "b": [\n        1,\n        2,\n        3\n    ],\n    "c": "test3",\n    "d": {\n        "dd": "test4",\n        "dd2": {\n            "ddd": "test5"\n        }\n    }\n}',)]
+	[('{\n    "a": "test",\n    "b": [\n        1,\n        2,\n        3\n    ],\n    "c": "test3",\n    "d": {\n        "dd": "test4",\n        "dd2": {\n            "ddd": "test5"\n        }\n    }\n}',)]
 
 -----------
 QUERY:
 
 select jsonb_pretty('[{"f1":1,"f2":null},2,null,[[{"x":true},6,7],8],3]');
 RESULT:
-	postgres: [('[\n    {\n        "f1": 1,\n        "f2": null\n    },\n    2,\n    null,\n    [\n        [\n            {\n                "x": true\n            },\n            6,\n            7\n        ],\n        8\n    ],\n    3\n]',)]
+	[('[\n    {\n        "f1": 1,\n        "f2": null\n    },\n    2,\n    null,\n    [\n        [\n            {\n                "x": true\n            },\n            6,\n            7\n        ],\n        8\n    ],\n    3\n]',)]
 
 -----------
 QUERY:
 
 select jsonb_pretty('{"a":["b", "c"], "d": {"e":"f"}}');
 RESULT:
-	postgres: [('{\n    "a": [\n        "b",\n        "c"\n    ],\n    "d": {\n        "e": "f"\n    }\n}',)]
+	[('{\n    "a": [\n        "b",\n        "c"\n    ],\n    "d": {\n        "e": "f"\n    }\n}',)]
 
 -----------
 QUERY:
@@ -5827,7 +5827,7 @@ QUERY:
 
 select jsonb_concat('{"d": "test", "a": [1, 2]}', '{"g": "test2", "c": {"c1":1, "c2":2}}');
 RESULT:
-	postgres: [({'a': [1, 2], 'c': {'c1': 1, 'c2': 2}, 'd': 'test', 'g': 'test2'},)]
+	[({'a': [1, 2], 'c': {'c1': 1, 'c2': 2}, 'd': 'test', 'g': 'test2'},)]
 
 -----------
 QUERY:
@@ -5835,28 +5835,28 @@ QUERY:
 
 select '{"aa":1 , "b":2, "cq":3}'::jsonb || '{"cq":"l", "b":"g", "fg":false}';
 RESULT:
-	postgres: [({'b': 'g', 'aa': 1, 'cq': 'l', 'fg': False},)]
+	[({'b': 'g', 'aa': 1, 'cq': 'l', 'fg': False},)]
 
 -----------
 QUERY:
 
 select '{"aa":1 , "b":2, "cq":3}'::jsonb || '{"aq":"l"}';
 RESULT:
-	postgres: [({'b': 2, 'aa': 1, 'aq': 'l', 'cq': 3},)]
+	[({'b': 2, 'aa': 1, 'aq': 'l', 'cq': 3},)]
 
 -----------
 QUERY:
 
 select '{"aa":1 , "b":2, "cq":3}'::jsonb || '{"aa":"l"}';
 RESULT:
-	postgres: [({'b': 2, 'aa': 'l', 'cq': 3},)]
+	[({'b': 2, 'aa': 'l', 'cq': 3},)]
 
 -----------
 QUERY:
 
 select '{"aa":1 , "b":2, "cq":3}'::jsonb || '{}';
 RESULT:
-	postgres: [({'b': 2, 'aa': 1, 'cq': 3},)]
+	[({'b': 2, 'aa': 1, 'cq': 3},)]
 
 -----------
 QUERY:
@@ -5864,21 +5864,21 @@ QUERY:
 
 select '["a", "b"]'::jsonb || '["c"]';
 RESULT:
-	postgres: [(['a', 'b', 'c'],)]
+	[(['a', 'b', 'c'],)]
 
 -----------
 QUERY:
 
 select '["a", "b"]'::jsonb || '["c", "d"]';
 RESULT:
-	postgres: [(['a', 'b', 'c', 'd'],)]
+	[(['a', 'b', 'c', 'd'],)]
 
 -----------
 QUERY:
 
 select '["c"]["a", "b"]'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: select '["c"]["a", "b"]'::jsonb;
                ^
 DETAIL:  Expected end of input, but found "[".
@@ -5891,14 +5891,14 @@ QUERY:
 
 select '["a", "b"]'::jsonb || '"c"';
 RESULT:
-	postgres: [(['a', 'b', 'c'],)]
+	[(['a', 'b', 'c'],)]
 
 -----------
 QUERY:
 
 select '"c"["a", "b"]'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: select '"c"["a", "b"]'::jsonb;
                ^
 DETAIL:  Expected end of input, but found "[".
@@ -5911,42 +5911,42 @@ QUERY:
 
 select '[]'::jsonb || '["a"]'::jsonb;
 RESULT:
-	postgres: [(['a'],)]
+	[(['a'],)]
 
 -----------
 QUERY:
 
 select '[]'::jsonb || '"a"'::jsonb;
 RESULT:
-	postgres: [(['a'],)]
+	[(['a'],)]
 
 -----------
 QUERY:
 
 select '"b"'::jsonb || '"a"'::jsonb;
 RESULT:
-	postgres: [(['b', 'a'],)]
+	[(['b', 'a'],)]
 
 -----------
 QUERY:
 
 select '{}'::jsonb || '{"a":"b"}'::jsonb;
 RESULT:
-	postgres: [({'a': 'b'},)]
+	[({'a': 'b'},)]
 
 -----------
 QUERY:
 
 select '[]'::jsonb || '{"a":"b"}'::jsonb;
 RESULT:
-	postgres: [([{'a': 'b'}],)]
+	[([{'a': 'b'}],)]
 
 -----------
 QUERY:
 
 select '{"a":"b"}'::jsonb || '[]'::jsonb;
 RESULT:
-	postgres: [([{'a': 'b'}],)]
+	[([{'a': 'b'}],)]
 
 -----------
 QUERY:
@@ -5954,14 +5954,14 @@ QUERY:
 
 select '"a"'::jsonb || '{"a":1}';
 RESULT:
-	postgres: [(['a', {'a': 1}],)]
+	[(['a', {'a': 1}],)]
 
 -----------
 QUERY:
 
 select '{"a":1}"a"'::jsonb;
 RESULT:
-	postgres: invalid input syntax for type json
+	ERROR - invalid input syntax for type json
 LINE 2: select '{"a":1}"a"'::jsonb;
                ^
 DETAIL:  Expected end of input, but found ""a"".
@@ -5974,28 +5974,28 @@ QUERY:
 
 select '[3]'::jsonb || '{}'::jsonb;
 RESULT:
-	postgres: [([3, {}],)]
+	[([3, {}],)]
 
 -----------
 QUERY:
 
 select '3'::jsonb || '[]'::jsonb;
 RESULT:
-	postgres: [([3],)]
+	[([3],)]
 
 -----------
 QUERY:
 
 select '3'::jsonb || '4'::jsonb;
 RESULT:
-	postgres: [([3, 4],)]
+	[([3, 4],)]
 
 -----------
 QUERY:
 
 select '3'::jsonb || '{}'::jsonb;
 RESULT:
-	postgres: [([3, {}],)]
+	[([3, {}],)]
 
 -----------
 QUERY:
@@ -6003,14 +6003,14 @@ QUERY:
 
 select '["a", "b"]'::jsonb || '{"c":1}';
 RESULT:
-	postgres: [(['a', 'b', {'c': 1}],)]
+	[(['a', 'b', {'c': 1}],)]
 
 -----------
 QUERY:
 
 select '{"c": 1}'::jsonb || '["a", "b"]';
 RESULT:
-	postgres: [([{'c': 1}, 'a', 'b'],)]
+	[([{'c': 1}, 'a', 'b'],)]
 
 -----------
 QUERY:
@@ -6018,7 +6018,7 @@ QUERY:
 
 select '{}'::jsonb || '{"cq":"l", "b":"g", "fg":false}';
 RESULT:
-	postgres: [({'b': 'g', 'cq': 'l', 'fg': False},)]
+	[({'b': 'g', 'cq': 'l', 'fg': False},)]
 
 -----------
 QUERY:
@@ -6026,28 +6026,28 @@ QUERY:
 
 select pg_column_size('{}'::jsonb || '{}'::jsonb) = pg_column_size('{}'::jsonb);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select pg_column_size('{"aa":1}'::jsonb || '{"b":2}'::jsonb) = pg_column_size('{"aa":1, "b":2}'::jsonb);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select pg_column_size('{"aa":1, "b":2}'::jsonb || '{}'::jsonb) = pg_column_size('{"aa":1, "b":2}'::jsonb);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select pg_column_size('{}'::jsonb || '{"aa":1, "b":2}'::jsonb) = pg_column_size('{"aa":1, "b":2}'::jsonb);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -6055,77 +6055,77 @@ QUERY:
 
 select jsonb_delete('{"a":1 , "b":2, "c":3}'::jsonb, 'a');
 RESULT:
-	postgres: [({'b': 2, 'c': 3},)]
+	[({'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
 
 select jsonb_delete('{"a":null , "b":2, "c":3}'::jsonb, 'a');
 RESULT:
-	postgres: [({'b': 2, 'c': 3},)]
+	[({'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
 
 select jsonb_delete('{"a":1 , "b":2, "c":3}'::jsonb, 'b');
 RESULT:
-	postgres: [({'a': 1, 'c': 3},)]
+	[({'a': 1, 'c': 3},)]
 
 -----------
 QUERY:
 
 select jsonb_delete('{"a":1 , "b":2, "c":3}'::jsonb, 'c');
 RESULT:
-	postgres: [({'a': 1, 'b': 2},)]
+	[({'a': 1, 'b': 2},)]
 
 -----------
 QUERY:
 
 select jsonb_delete('{"a":1 , "b":2, "c":3}'::jsonb, 'd');
 RESULT:
-	postgres: [({'a': 1, 'b': 2, 'c': 3},)]
+	[({'a': 1, 'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - 'a';
 RESULT:
-	postgres: [({'b': 2, 'c': 3},)]
+	[({'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
 
 select '{"a":null , "b":2, "c":3}'::jsonb - 'a';
 RESULT:
-	postgres: [({'b': 2, 'c': 3},)]
+	[({'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - 'b';
 RESULT:
-	postgres: [({'a': 1, 'c': 3},)]
+	[({'a': 1, 'c': 3},)]
 
 -----------
 QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - 'c';
 RESULT:
-	postgres: [({'a': 1, 'b': 2},)]
+	[({'a': 1, 'b': 2},)]
 
 -----------
 QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - 'd';
 RESULT:
-	postgres: [({'a': 1, 'b': 2, 'c': 3},)]
+	[({'a': 1, 'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
 
 select pg_column_size('{"a":1 , "b":2, "c":3}'::jsonb - 'b') = pg_column_size('{"a":1, "b":2}'::jsonb);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -6133,56 +6133,56 @@ QUERY:
 
 select '["a","b","c"]'::jsonb - 3;
 RESULT:
-	postgres: [(['a', 'b', 'c'],)]
+	[(['a', 'b', 'c'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - 2;
 RESULT:
-	postgres: [(['a', 'b'],)]
+	[(['a', 'b'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - 1;
 RESULT:
-	postgres: [(['a', 'c'],)]
+	[(['a', 'c'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - 0;
 RESULT:
-	postgres: [(['b', 'c'],)]
+	[(['b', 'c'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - -1;
 RESULT:
-	postgres: [(['a', 'b'],)]
+	[(['a', 'b'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - -2;
 RESULT:
-	postgres: [(['a', 'c'],)]
+	[(['a', 'c'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - -3;
 RESULT:
-	postgres: [(['b', 'c'],)]
+	[(['b', 'c'],)]
 
 -----------
 QUERY:
 
 select '["a","b","c"]'::jsonb - -4;
 RESULT:
-	postgres: [(['a', 'b', 'c'],)]
+	[(['a', 'b', 'c'],)]
 
 -----------
 QUERY:
@@ -6190,21 +6190,21 @@ QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - '{b}'::text[];
 RESULT:
-	postgres: [({'a': 1, 'c': 3},)]
+	[({'a': 1, 'c': 3},)]
 
 -----------
 QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - '{c,b}'::text[];
 RESULT:
-	postgres: [({'a': 1},)]
+	[({'a': 1},)]
 
 -----------
 QUERY:
 
 select '{"a":1 , "b":2, "c":3}'::jsonb - '{}'::text[];
 RESULT:
-	postgres: [({'a': 1, 'b': 2, 'c': 3},)]
+	[({'a': 1, 'b': 2, 'c': 3},)]
 
 -----------
 QUERY:
@@ -6212,28 +6212,28 @@ QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{n}', '[1,2,3]');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': [1, 2, 3]},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': [1, 2, 3]},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{b,-1}', '[1,2,3]');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, [1, 2, 3]], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, [1, 2, 3]], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{d,1,0}', '[1,2,3]');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [[1, 2, 3], 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [[1, 2, 3], 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{d,NULL,0}', '[1,2,3]');
 RESULT:
-	postgres: path element at position 2 is null
+	ERROR - path element at position 2 is null
 
 
 -----------
@@ -6242,28 +6242,28 @@ QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{n}', '{"1": 2}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': {'1': 2}},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': {'1': 2}},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{b,-1}', '{"1": 2}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, {'1': 2}], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, {'1': 2}], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{d,1,0}', '{"1": 2}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [{'1': 2}, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [{'1': 2}, 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{d,NULL,0}', '{"1": 2}');
 RESULT:
-	postgres: path element at position 2 is null
+	ERROR - path element at position 2 is null
 
 
 -----------
@@ -6272,14 +6272,14 @@ QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{b,-1}', '"test"');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 'test'], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, 'test'], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb, '{b,-1}', '{"f": "test"}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, {'f': 'test'}], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, {'f': 'test'}], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
 
 -----------
 QUERY:
@@ -6287,21 +6287,21 @@ QUERY:
 
 select jsonb_delete_path('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}', '{n}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}},)]
 
 -----------
 QUERY:
 
 select jsonb_delete_path('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}', '{b,-1}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select jsonb_delete_path('{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}', '{d,1,0}');
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [3]}, 'n': None},)]
 
 -----------
 QUERY:
@@ -6309,21 +6309,21 @@ QUERY:
 
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{n}';
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [2, 3]}},)]
 
 -----------
 QUERY:
 
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{b,-1}';
 RESULT:
-	postgres: [({'a': 1, 'b': [1], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
+	[({'a': 1, 'b': [1], 'c': {'1': 2}, 'd': {'1': [2, 3]}, 'n': None},)]
 
 -----------
 QUERY:
 
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{b,-1e}';
 RESULT:
-	postgres: path element at position 2 is not an integer: "-1e"
+	ERROR - path element at position 2 is not an integer: "-1e"
 
 
 -----------
@@ -6331,7 +6331,7 @@ QUERY:
  -- invalid array subscript
 select '{"n":null, "a":1, "b":[1,2], "c":{"1":2}, "d":{"1":[2,3]}}'::jsonb #- '{d,1,0}';
 RESULT:
-	postgres: [({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [3]}, 'n': None},)]
+	[({'a': 1, 'b': [1, 2], 'c': {'1': 2}, 'd': {'1': [3]}, 'n': None},)]
 
 -----------
 QUERY:
@@ -6342,7 +6342,7 @@ QUERY:
 
 select '"a"'::jsonb - 'a';
 RESULT:
-	postgres: cannot delete from scalar
+	ERROR - cannot delete from scalar
 
 
 -----------
@@ -6350,21 +6350,21 @@ QUERY:
  -- error
 select '{}'::jsonb - 'a';
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
 
 select '[]'::jsonb - 'a';
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 
 select '"a"'::jsonb - 1;
 RESULT:
-	postgres: cannot delete from scalar
+	ERROR - cannot delete from scalar
 
 
 -----------
@@ -6372,7 +6372,7 @@ QUERY:
  -- error
 select '{}'::jsonb -  1;
 RESULT:
-	postgres: cannot delete from object using integer index
+	ERROR - cannot delete from object using integer index
 
 
 -----------
@@ -6380,14 +6380,14 @@ QUERY:
  -- error
 select '[]'::jsonb - 1;
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 
 select '"a"'::jsonb #- '{a}';
 RESULT:
-	postgres: cannot delete path in scalar
+	ERROR - cannot delete path in scalar
 
 
 -----------
@@ -6395,21 +6395,21 @@ QUERY:
  -- error
 select '{}'::jsonb #- '{a}';
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
 
 select '[]'::jsonb #- '{a}';
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 
 select jsonb_set('"a"','{a}','"b"');
 RESULT:
-	postgres: cannot set path in scalar
+	ERROR - cannot set path in scalar
 
 
 -----------
@@ -6417,21 +6417,21 @@ QUERY:
  --error
 select jsonb_set('{}','{a}','"b"', false);
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
 
 select jsonb_set('[]','{1}','"b"', false);
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
 
 select jsonb_set('[{"f1":1,"f2":null},2,null,3]', '{0}','[2,3,4]', false);
 RESULT:
-	postgres: [([[2, 3, 4], 2, None, 3],)]
+	[([[2, 3, 4], 2, None, 3],)]
 
 -----------
 QUERY:
@@ -6442,7 +6442,7 @@ QUERY:
 -- prepend to array
 select jsonb_set('{"a":1,"b":[0,1,2],"c":{"d":4}}','{b,-33}','{"foo":123}');
 RESULT:
-	postgres: [({'a': 1, 'b': [{'foo': 123}, 0, 1, 2], 'c': {'d': 4}},)]
+	[({'a': 1, 'b': [{'foo': 123}, 0, 1, 2], 'c': {'d': 4}},)]
 
 -----------
 QUERY:
@@ -6450,7 +6450,7 @@ QUERY:
 -- append to array
 select jsonb_set('{"a":1,"b":[0,1,2],"c":{"d":4}}','{b,33}','{"foo":123}');
 RESULT:
-	postgres: [({'a': 1, 'b': [0, 1, 2, {'foo': 123}], 'c': {'d': 4}},)]
+	[({'a': 1, 'b': [0, 1, 2, {'foo': 123}], 'c': {'d': 4}},)]
 
 -----------
 QUERY:
@@ -6458,7 +6458,7 @@ QUERY:
 -- check nesting levels addition
 select jsonb_set('{"a":1,"b":[4,5,[0,1,2],6,7],"c":{"d":4}}','{b,2,33}','{"foo":123}');
 RESULT:
-	postgres: [({'a': 1, 'b': [4, 5, [0, 1, 2, {'foo': 123}], 6, 7], 'c': {'d': 4}},)]
+	[({'a': 1, 'b': [4, 5, [0, 1, 2, {'foo': 123}], 6, 7], 'c': {'d': 4}},)]
 
 -----------
 QUERY:
@@ -6466,22 +6466,22 @@ QUERY:
 -- add new key
 select jsonb_set('{"a":1,"b":[0,1,2],"c":{"d":4}}','{c,e}','{"foo":123}');
 RESULT:
-	postgres: [({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4, 'e': {'foo': 123}}},)]
+	[({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4, 'e': {'foo': 123}}},)]
 
 -----------
 QUERY:
 
--- adding doesn/* REPLACED */''t do anything if elements before last aren/* REPLACED */''t present
+-- adding doesn/* REPLACED */ ''t do anything if elements before last aren/* REPLACED */ ''t present
 select jsonb_set('{"a":1,"b":[0,1,2],"c":{"d":4}}','{x,-33}','{"foo":123}');
 RESULT:
-	postgres: [({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4}},)]
+	[({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4}},)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"a":1,"b":[0,1,2],"c":{"d":4}}','{x,y}','{"foo":123}');
 RESULT:
-	postgres: [({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4}},)]
+	[({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4}},)]
 
 -----------
 QUERY:
@@ -6489,7 +6489,7 @@ QUERY:
 -- add to empty object
 select jsonb_set('{}','{x}','{"foo":123}');
 RESULT:
-	postgres: [({'x': {'foo': 123}},)]
+	[({'x': {'foo': 123}},)]
 
 -----------
 QUERY:
@@ -6497,28 +6497,28 @@ QUERY:
 --add to empty array
 select jsonb_set('[]','{0}','{"foo":123}');
 RESULT:
-	postgres: [([{'foo': 123}],)]
+	[([{'foo': 123}],)]
 
 -----------
 QUERY:
 
 select jsonb_set('[]','{99}','{"foo":123}');
 RESULT:
-	postgres: [([{'foo': 123}],)]
+	[([{'foo': 123}],)]
 
 -----------
 QUERY:
 
 select jsonb_set('[]','{-99}','{"foo":123}');
 RESULT:
-	postgres: [([{'foo': 123}],)]
+	[([{'foo': 123}],)]
 
 -----------
 QUERY:
 
 select jsonb_set('{"a": [1, 2, 3]}', '{a, non_integer}', '"new_value"');
 RESULT:
-	postgres: path element at position 2 is not an integer: "non_integer"
+	ERROR - path element at position 2 is not an integer: "non_integer"
 
 
 -----------
@@ -6526,7 +6526,7 @@ QUERY:
 
 select jsonb_set('{"a": {"b": [1, 2, 3]}}', '{a, b, non_integer}', '"new_value"');
 RESULT:
-	postgres: path element at position 3 is not an integer: "non_integer"
+	ERROR - path element at position 3 is not an integer: "non_integer"
 
 
 -----------
@@ -6534,7 +6534,7 @@ QUERY:
 
 select jsonb_set('{"a": {"b": [1, 2, 3]}}', '{a, b, NULL}', '"new_value"');
 RESULT:
-	postgres: path element at position 3 is null
+	ERROR - path element at position 3 is null
 
 
 -----------
@@ -6543,22 +6543,19 @@ QUERY:
 
 -- jsonb_set_lax
 
-\pset null NULL
+-- \pset null NULL
 
 -- pass though non nulls to jsonb_set
 select jsonb_set_lax('{"a":1,"b":2}','{b}','5') ;
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 5: \pset null NULL
-        ^
-
+	[({'a': 1, 'b': 5},)]
 
 -----------
 QUERY:
 
 select jsonb_set_lax('{"a":1,"b":2}','{d}','6', true) ;
 RESULT:
-	postgres: [({'a': 1, 'b': 2, 'd': 6},)]
+	[({'a': 1, 'b': 2, 'd': 6},)]
 
 -----------
 QUERY:
@@ -6566,14 +6563,14 @@ QUERY:
 -- using the default treatment
 select jsonb_set_lax('{"a":1,"b":2}','{b}',null);
 RESULT:
-	postgres: [({'a': 1, 'b': None},)]
+	[({'a': 1, 'b': None},)]
 
 -----------
 QUERY:
 
 select jsonb_set_lax('{"a":1,"b":2}','{d}',null,true);
 RESULT:
-	postgres: [({'a': 1, 'b': 2, 'd': None},)]
+	[({'a': 1, 'b': 2, 'd': None},)]
 
 -----------
 QUERY:
@@ -6581,7 +6578,7 @@ QUERY:
 -- errors
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, true, null);
 RESULT:
-	postgres: null_value_treatment must be "delete_key", "return_target", "use_json_null", or "raise_exception"
+	ERROR - null_value_treatment must be "delete_key", "return_target", "use_json_null", or "raise_exception"
 
 
 -----------
@@ -6589,7 +6586,7 @@ QUERY:
 
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, true, 'no_such_treatment');
 RESULT:
-	postgres: null_value_treatment must be "delete_key", "return_target", "use_json_null", or "raise_exception"
+	ERROR - null_value_treatment must be "delete_key", "return_target", "use_json_null", or "raise_exception"
 
 
 -----------
@@ -6598,7 +6595,7 @@ QUERY:
 -- explicit treatments
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'raise_exception') as raise_exception;
 RESULT:
-	postgres: JSON value must not be null
+	ERROR - JSON value must not be null
 DETAIL:  Exception was raised because null_value_treatment is "raise_exception".
 HINT:  To avoid, either change the null_value_treatment argument or ensure that an SQL NULL is not passed.
 
@@ -6608,70 +6605,67 @@ QUERY:
 
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'return_target') as return_target;
 RESULT:
-	postgres: [({'a': 1, 'b': 2},)]
+	[({'a': 1, 'b': 2},)]
 
 -----------
 QUERY:
 
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'delete_key') as delete_key;
 RESULT:
-	postgres: [({'a': 1},)]
+	[({'a': 1},)]
 
 -----------
 QUERY:
 
 select jsonb_set_lax('{"a":1,"b":2}', '{b}', null, null_value_treatment => 'use_json_null') as use_json_null;
 RESULT:
-	postgres: [({'a': 1, 'b': None},)]
+	[({'a': 1, 'b': None},)]
 
 -----------
 QUERY:
 
 
-\pset null ''
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
 
 -- jsonb_insert
 select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '"new_value"');
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 3: \pset null ''
-        ^
-
+	[({'a': [0, 'new_value', 1, 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': [0, 1, 'new_value', 2]},)]
+	[({'a': [0, 1, 'new_value', 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": {"b": {"c": [0, 1, "test1", "test2"]}}}', '{a, b, c, 2}', '"new_value"');
 RESULT:
-	postgres: [({'a': {'b': {'c': [0, 1, 'new_value', 'test1', 'test2']}}},)]
+	[({'a': {'b': {'c': [0, 1, 'new_value', 'test1', 'test2']}}},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": {"b": {"c": [0, 1, "test1", "test2"]}}}', '{a, b, c, 2}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': {'b': {'c': [0, 1, 'test1', 'new_value', 'test2']}}},)]
+	[({'a': {'b': {'c': [0, 1, 'test1', 'new_value', 'test2']}}},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '{"b": "value"}');
 RESULT:
-	postgres: [({'a': [0, {'b': 'value'}, 1, 2]},)]
+	[({'a': [0, {'b': 'value'}, 1, 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '["value1", "value2"]');
 RESULT:
-	postgres: [({'a': [0, ['value1', 'value2'], 1, 2]},)]
+	[({'a': [0, ['value1', 'value2'], 1, 2]},)]
 
 -----------
 QUERY:
@@ -6680,84 +6674,84 @@ QUERY:
 -- edge cases
 select jsonb_insert('{"a": [0,1,2]}', '{a, 0}', '"new_value"');
 RESULT:
-	postgres: [({'a': ['new_value', 0, 1, 2]},)]
+	[({'a': ['new_value', 0, 1, 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 0}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': [0, 'new_value', 1, 2]},)]
+	[({'a': [0, 'new_value', 1, 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 2}', '"new_value"');
 RESULT:
-	postgres: [({'a': [0, 1, 'new_value', 2]},)]
+	[({'a': [0, 1, 'new_value', 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 2}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': [0, 1, 2, 'new_value']},)]
+	[({'a': [0, 1, 2, 'new_value']},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, -1}', '"new_value"');
 RESULT:
-	postgres: [({'a': [0, 1, 'new_value', 2]},)]
+	[({'a': [0, 1, 'new_value', 2]},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, -1}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': [0, 1, 2, 'new_value']},)]
+	[({'a': [0, 1, 2, 'new_value']},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('[]', '{1}', '"new_value"');
 RESULT:
-	postgres: [(['new_value'],)]
+	[(['new_value'],)]
 
 -----------
 QUERY:
 
 select jsonb_insert('[]', '{1}', '"new_value"', true);
 RESULT:
-	postgres: [(['new_value'],)]
+	[(['new_value'],)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": []}', '{a, 1}', '"new_value"');
 RESULT:
-	postgres: [({'a': ['new_value']},)]
+	[({'a': ['new_value']},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": []}', '{a, 1}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': ['new_value']},)]
+	[({'a': ['new_value']},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, 10}', '"new_value"');
 RESULT:
-	postgres: [({'a': [0, 1, 2, 'new_value']},)]
+	[({'a': [0, 1, 2, 'new_value']},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": [0,1,2]}', '{a, -10}', '"new_value"');
 RESULT:
-	postgres: [({'a': ['new_value', 0, 1, 2]},)]
+	[({'a': ['new_value', 0, 1, 2]},)]
 
 -----------
 QUERY:
@@ -6766,14 +6760,14 @@ QUERY:
 -- jsonb_insert should be able to insert new value for objects, but not to replace
 select jsonb_insert('{"a": {"b": "value"}}', '{a, c}', '"new_value"');
 RESULT:
-	postgres: [({'a': {'b': 'value', 'c': 'new_value'}},)]
+	[({'a': {'b': 'value', 'c': 'new_value'}},)]
 
 -----------
 QUERY:
 
 select jsonb_insert('{"a": {"b": "value"}}', '{a, c}', '"new_value"', true);
 RESULT:
-	postgres: [({'a': {'b': 'value', 'c': 'new_value'}},)]
+	[({'a': {'b': 'value', 'c': 'new_value'}},)]
 
 -----------
 QUERY:
@@ -6781,7 +6775,7 @@ QUERY:
 
 select jsonb_insert('{"a": {"b": "value"}}', '{a, b}', '"new_value"');
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 HINT:  Try using the function jsonb_set to replace key value.
 
 
@@ -6790,7 +6784,7 @@ QUERY:
 
 select jsonb_insert('{"a": {"b": "value"}}', '{a, b}', '"new_value"', true);
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 HINT:  Try using the function jsonb_set to replace key value.
 
 
@@ -6801,77 +6795,77 @@ QUERY:
 -- jsonb subscript
 select ('123'::jsonb)['a'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('123'::jsonb)[0];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('123'::jsonb)[NULL];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('{"a": 1}'::jsonb)['a'];
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 select ('{"a": 1}'::jsonb)[0];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('{"a": 1}'::jsonb)['not_exist'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('{"a": 1}'::jsonb)[NULL];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)['a'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)[0];
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)['1'];
 RESULT:
-	postgres: [('2',)]
+	[('2',)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)[1.0];
 RESULT:
-	postgres: subscript type numeric is not supported
+	ERROR - subscript type numeric is not supported
 LINE 2: select ('[1, "2", null]'::jsonb)[1.0];
                                          ^
 HINT:  jsonb subscript must be coercible to either integer or text.
@@ -6882,98 +6876,98 @@ QUERY:
 
 select ('[1, "2", null]'::jsonb)[2];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)[3];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)[-2];
 RESULT:
-	postgres: [('2',)]
+	[('2',)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)[1]['a'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('[1, "2", null]'::jsonb)[1][0];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('{"a": 1, "b": "c", "d": [1, 2, 3]}'::jsonb)['b'];
 RESULT:
-	postgres: [('c',)]
+	[('c',)]
 
 -----------
 QUERY:
 
 select ('{"a": 1, "b": "c", "d": [1, 2, 3]}'::jsonb)['d'];
 RESULT:
-	postgres: [([1, 2, 3],)]
+	[([1, 2, 3],)]
 
 -----------
 QUERY:
 
 select ('{"a": 1, "b": "c", "d": [1, 2, 3]}'::jsonb)['d'][1];
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 select ('{"a": 1, "b": "c", "d": [1, 2, 3]}'::jsonb)['d']['a'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('{"a": {"a1": {"a2": "aaa"}}, "b": "bbb", "c": "ccc"}'::jsonb)['a']['a1'];
 RESULT:
-	postgres: [({'a2': 'aaa'},)]
+	[({'a2': 'aaa'},)]
 
 -----------
 QUERY:
 
 select ('{"a": {"a1": {"a2": "aaa"}}, "b": "bbb", "c": "ccc"}'::jsonb)['a']['a1']['a2'];
 RESULT:
-	postgres: [('aaa',)]
+	[('aaa',)]
 
 -----------
 QUERY:
 
 select ('{"a": {"a1": {"a2": "aaa"}}, "b": "bbb", "c": "ccc"}'::jsonb)['a']['a1']['a2']['a3'];
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ('{"a": ["a1", {"b1": ["aaa", "bbb", "ccc"]}], "b": "bb"}'::jsonb)['a'][1]['b1'];
 RESULT:
-	postgres: [(['aaa', 'bbb', 'ccc'],)]
+	[(['aaa', 'bbb', 'ccc'],)]
 
 -----------
 QUERY:
 
 select ('{"a": ["a1", {"b1": ["aaa", "bbb", "ccc"]}], "b": "bb"}'::jsonb)['a'][1]['b1'][2];
 RESULT:
-	postgres: [('ccc',)]
+	[('ccc',)]
 
 -----------
 QUERY:
@@ -6982,7 +6976,7 @@ QUERY:
 -- slices are not supported
 select ('{"a": 1}'::jsonb)['a':'b'];
 RESULT:
-	postgres: jsonb subscript does not support slices
+	ERROR - jsonb subscript does not support slices
 LINE 4: select ('{"a": 1}'::jsonb)['a':'b'];
                                        ^
 
@@ -6992,7 +6986,7 @@ QUERY:
 
 select ('[1, "2", null]'::jsonb)[1:2];
 RESULT:
-	postgres: jsonb subscript does not support slices
+	ERROR - jsonb subscript does not support slices
 LINE 2: select ('[1, "2", null]'::jsonb)[1:2];
                                            ^
 
@@ -7002,7 +6996,7 @@ QUERY:
 
 select ('[1, "2", null]'::jsonb)[:2];
 RESULT:
-	postgres: jsonb subscript does not support slices
+	ERROR - jsonb subscript does not support slices
 LINE 2: select ('[1, "2", null]'::jsonb)[:2];
                                           ^
 
@@ -7012,7 +7006,7 @@ QUERY:
 
 select ('[1, "2", null]'::jsonb)[1:];
 RESULT:
-	postgres: jsonb subscript does not support slices
+	ERROR - jsonb subscript does not support slices
 LINE 2: select ('[1, "2", null]'::jsonb)[1:];
                                          ^
 
@@ -7022,7 +7016,7 @@ QUERY:
 
 select ('[1, "2", null]'::jsonb)[:];
 RESULT:
-	postgres: jsonb subscript does not support slices
+	ERROR - jsonb subscript does not support slices
 
 
 -----------
@@ -7034,7 +7028,7 @@ create TEMP TABLE test_jsonb_subscript (
        test_json jsonb
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7044,7 +7038,7 @@ insert into test_jsonb_subscript values
 (1, '{}'), -- empty jsonb
 (2, '{"key": "value"}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7053,14 +7047,14 @@ QUERY:
 -- update empty jsonb
 update test_jsonb_subscript set test_json['a'] = '1' where id = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(2, {'key': 'value'}), (1, {'a': 1})]
+	[(2, {'key': 'value'}), (1, {'a': 1})]
 
 -----------
 QUERY:
@@ -7069,14 +7063,14 @@ QUERY:
 -- update jsonb with some data
 update test_jsonb_subscript set test_json['a'] = '1' where id = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': 1}), (2, {'a': 1, 'key': 'value'})]
+	[(1, {'a': 1}), (2, {'a': 1, 'key': 'value'})]
 
 -----------
 QUERY:
@@ -7085,14 +7079,14 @@ QUERY:
 -- replace jsonb
 update test_jsonb_subscript set test_json['a'] = '"test"';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': 'test'}), (2, {'a': 'test', 'key': 'value'})]
+	[(1, {'a': 'test'}), (2, {'a': 'test', 'key': 'value'})]
 
 -----------
 QUERY:
@@ -7101,14 +7095,14 @@ QUERY:
 -- replace by object
 update test_jsonb_subscript set test_json['a'] = '{"b": 1}'::jsonb;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': {'b': 1}}), (2, {'a': {'b': 1}, 'key': 'value'})]
+	[(1, {'a': {'b': 1}}), (2, {'a': {'b': 1}, 'key': 'value'})]
 
 -----------
 QUERY:
@@ -7117,14 +7111,14 @@ QUERY:
 -- replace by array
 update test_jsonb_subscript set test_json['a'] = '[1, 2, 3]'::jsonb;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [1, 2, 3]}), (2, {'a': [1, 2, 3], 'key': 'value'})]
+	[(1, {'a': [1, 2, 3]}), (2, {'a': [1, 2, 3], 'key': 'value'})]
 
 -----------
 QUERY:
@@ -7133,21 +7127,21 @@ QUERY:
 -- use jsonb subscription in where clause
 select * from test_jsonb_subscript where test_json['key'] = '"value"';
 RESULT:
-	postgres: [(2, {'a': [1, 2, 3], 'key': 'value'})]
+	[(2, {'a': [1, 2, 3], 'key': 'value'})]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript where test_json['key_doesnt_exists'] = '"value"';
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript where test_json['key'] = '"wrong_value"';
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -7156,7 +7150,7 @@ QUERY:
 -- NULL
 update test_jsonb_subscript set test_json[NULL] = '1';
 RESULT:
-	postgres: jsonb subscript in assignment must not be null
+	ERROR - jsonb subscript in assignment must not be null
 
 
 -----------
@@ -7164,14 +7158,14 @@ QUERY:
 
 update test_jsonb_subscript set test_json['another_key'] = NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [1, 2, 3], 'another_key': None}), (2, {'a': [1, 2, 3], 'key': 'value', 'another_key': None})]
+	[(1, {'a': [1, 2, 3], 'another_key': None}), (2, {'a': [1, 2, 3], 'key': 'value', 'another_key': None})]
 
 -----------
 QUERY:
@@ -7180,21 +7174,21 @@ QUERY:
 -- NULL as jsonb source
 insert into test_jsonb_subscript values (3, NULL);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a'] = '1' where id = 3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [1, 2, 3], 'another_key': None}), (2, {'a': [1, 2, 3], 'key': 'value', 'another_key': None}), (3, {'a': 1})]
+	[(1, {'a': [1, 2, 3], 'another_key': None}), (2, {'a': [1, 2, 3], 'key': 'value', 'another_key': None}), (3, {'a': 1})]
 
 -----------
 QUERY:
@@ -7202,21 +7196,21 @@ QUERY:
 
 update test_jsonb_subscript set test_json = NULL where id = 3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[0] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'0': 1, 'a': [1, 2, 3], 'another_key': None}), (2, {'0': 1, 'a': [1, 2, 3], 'key': 'value', 'another_key': None}), (3, [1])]
+	[(1, {'0': 1, 'a': [1, 2, 3], 'another_key': None}), (2, {'0': 1, 'a': [1, 2, 3], 'key': 'value', 'another_key': None}), (3, [1])]
 
 -----------
 QUERY:
@@ -7225,14 +7219,14 @@ QUERY:
 -- Fill the gaps logic
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '[0]');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7240,14 +7234,14 @@ QUERY:
 
 update test_jsonb_subscript set test_json[5] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, [0, None, None, None, None, 1])]
+	[(1, [0, None, None, None, None, 1])]
 
 -----------
 QUERY:
@@ -7255,14 +7249,14 @@ QUERY:
 
 update test_jsonb_subscript set test_json[-4] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, [0, None, 1, None, None, 1])]
+	[(1, [0, None, 1, None, None, 1])]
 
 -----------
 QUERY:
@@ -7270,7 +7264,7 @@ QUERY:
 
 update test_jsonb_subscript set test_json[-8] = '1';
 RESULT:
-	postgres: path element at position 1 is out of range: -8
+	ERROR - path element at position 1 is out of range: -8
 
 
 -----------
@@ -7278,7 +7272,7 @@ QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, [0, None, 1, None, None, 1])]
+	[(1, [0, None, 1, None, None, 1])]
 
 -----------
 QUERY:
@@ -7287,14 +7281,14 @@ QUERY:
 -- keep consistent values position
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '[]');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7302,14 +7296,14 @@ QUERY:
 
 update test_jsonb_subscript set test_json[5] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, [None, None, None, None, None, 1])]
+	[(1, [None, None, None, None, None, 1])]
 
 -----------
 QUERY:
@@ -7318,28 +7312,28 @@ QUERY:
 -- create the whole path
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a'][0]['b'][0]['c'] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [{'b': [{'c': 1}]}]})]
+	[(1, {'a': [{'b': [{'c': 1}]}]})]
 
 -----------
 QUERY:
@@ -7347,28 +7341,28 @@ QUERY:
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a'][2]['b'][2]['c'][2] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [None, None, {'b': [None, None, {'c': [None, None, 1]}]}]})]
+	[(1, {'a': [None, None, {'b': [None, None, {'c': [None, None, 1]}]}]})]
 
 -----------
 QUERY:
@@ -7377,28 +7371,28 @@ QUERY:
 -- create the whole path with already existing keys
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{"b": 1}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a'][0] = '2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [2], 'b': 1})]
+	[(1, {'a': [2], 'b': 1})]
 
 -----------
 QUERY:
@@ -7407,28 +7401,28 @@ QUERY:
 -- the start jsonb is an object, first subscript is treated as a key
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[0]['a'] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'0': {'a': 1}})]
+	[(1, {'0': {'a': 1}})]
 
 -----------
 QUERY:
@@ -7437,35 +7431,35 @@ QUERY:
 -- the start jsonb is an array
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '[]');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[0]['a'] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[2]['b'] = '2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, [{'a': 1}, None, {'b': 2}])]
+	[(1, [{'a': 1}, None, {'b': 2}])]
 
 -----------
 QUERY:
@@ -7474,35 +7468,35 @@ QUERY:
 -- overwriting an existing path
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a']['b'][1] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a']['b'][10] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': {'b': [None, 1, None, None, None, None, None, None, None, None, 1]}})]
+	[(1, {'a': {'b': [None, 1, None, None, None, None, None, None, None, None, 1]}})]
 
 -----------
 QUERY:
@@ -7510,35 +7504,35 @@ QUERY:
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '[]');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[0][0][0] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[0][0][1] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, [[[1, 1]]])]
+	[(1, [[[1, 1]]])]
 
 -----------
 QUERY:
@@ -7546,35 +7540,35 @@ QUERY:
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a']['b'][10] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a'][10][10] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': {'b': [None, None, None, None, None, None, None, None, None, None, 1], '10': [None, None, None, None, None, None, None, None, None, None, 1]}})]
+	[(1, {'a': {'b': [None, None, None, None, None, None, None, None, None, None, 1], '10': [None, None, None, None, None, None, None, None, None, None, 1]}})]
 
 -----------
 QUERY:
@@ -7584,28 +7578,28 @@ QUERY:
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{"a": {}}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a']['b']['c'][2] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': {'b': {'c': [None, None, 1]}}})]
+	[(1, {'a': {'b': {'c': [None, None, 1]}}})]
 
 -----------
 QUERY:
@@ -7613,52 +7607,52 @@ QUERY:
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{"a": []}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a'][1]['c'][2] = '1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select * from test_jsonb_subscript;
 RESULT:
-	postgres: [(1, {'a': [None, {'c': [None, None, 1]}]})]
+	[(1, {'a': [None, {'c': [None, None, 1]}]})]
 
 -----------
 QUERY:
 
 
--- trying replace assuming a composite object, but it/* REPLACED */''s an element or a value
+-- trying replace assuming a composite object, but it/* REPLACED */ ''s an element or a value
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, '{"a": 1}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json['a']['b'] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7667,7 +7661,7 @@ QUERY:
 
 update test_jsonb_subscript set test_json['a']['b']['c'] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7676,7 +7670,7 @@ QUERY:
 
 update test_jsonb_subscript set test_json['a'][0] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7685,7 +7679,7 @@ QUERY:
 
 update test_jsonb_subscript set test_json['a'][0]['c'] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7694,7 +7688,7 @@ QUERY:
 
 update test_jsonb_subscript set test_json['a'][0][0] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7702,25 +7696,25 @@ DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 QUERY:
 
 
--- trying replace assuming a composite object, but it/* REPLACED */''s a raw scalar
+-- trying replace assuming a composite object, but it/* REPLACED */ ''s a raw scalar
 
 delete from test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into test_jsonb_subscript values (1, 'null');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[0] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7729,7 +7723,7 @@ QUERY:
 
 update test_jsonb_subscript set test_json[0][0] = '1';
 RESULT:
-	postgres: cannot replace existing key
+	ERROR - cannot replace existing key
 DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 
 
@@ -7741,7 +7735,7 @@ QUERY:
 
 drop table test_jsonb_subscript;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7751,7 +7745,7 @@ create temp table test_jsonb_subscript (
        test_json jsonb
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7759,7 +7753,7 @@ QUERY:
 
 insert into test_jsonb_subscript values('foo', '{"foo": "bar"}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -7767,52 +7761,46 @@ QUERY:
 insert into test_jsonb_subscript
   select s, ('{"' || s || '": "bar"}')::jsonb from repeat('xyzzy', 500) s;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select length(id), test_json[id] from test_jsonb_subscript;
 RESULT:
-	postgres: [(3, 'bar'), (2500, 'bar')]
+	[(3, 'bar'), (2500, 'bar')]
 
 -----------
 QUERY:
 
 update test_jsonb_subscript set test_json[id] = '"baz"';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select length(id), test_json[id] from test_jsonb_subscript;
 RESULT:
-	postgres: [(3, 'baz'), (2500, 'baz')]
+	[(3, 'baz'), (2500, 'baz')]
 
 -----------
 QUERY:
 
-\x
+-- \x
 table test_jsonb_subscript;
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 2: \x
-        ^
-
+	[('foo', {'foo': 'baz'}), ('xyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzy', {'xyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzy': 'baz'})]
 
 -----------
 QUERY:
 
-\x
+-- \x
 
 -- jsonb to tsvector
 select to_tsvector('{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::jsonb);
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 2: \x
-        ^
-
+	[("'aaa':1 'bbb':2 'ccc':4 'ddd':3 'eee':6 'fff':7 'ggg':8 'hhh':10 'iii':11",)]
 
 -----------
 QUERY:
@@ -7821,7 +7809,7 @@ QUERY:
 -- jsonb to tsvector with config
 select to_tsvector('simple', '{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::jsonb);
 RESULT:
-	postgres: [("'aaa':1 'bbb':2 'ccc':4 'ddd':3 'eee':6 'fff':7 'ggg':8 'hhh':10 'iii':11",)]
+	[("'aaa':1 'bbb':2 'ccc':4 'ddd':3 'eee':6 'fff':7 'ggg':8 'hhh':10 'iii':11",)]
 
 -----------
 QUERY:
@@ -7830,7 +7818,7 @@ QUERY:
 -- jsonb to tsvector with stop words
 select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": ["the eee fff ggg"], "c": {"d": "hhh. iii"}}'::jsonb);
 RESULT:
-	postgres: [("'aaa':1 'bbb':3 'ccc':5 'ddd':4 'eee':8 'fff':9 'ggg':10 'hhh':12 'iii':13",)]
+	[("'aaa':1 'bbb':3 'ccc':5 'ddd':4 'eee':8 'fff':9 'ggg':10 'hhh':12 'iii':13",)]
 
 -----------
 QUERY:
@@ -7839,7 +7827,7 @@ QUERY:
 -- jsonb to tsvector with numeric values
 select to_tsvector('english', '{"a": "aaa in bbb ddd ccc", "b": 123, "c": 456}'::jsonb);
 RESULT:
-	postgres: [("'aaa':1 'bbb':3 'ccc':5 'ddd':4",)]
+	[("'aaa':1 'bbb':3 'ccc':5 'ddd':4",)]
 
 -----------
 QUERY:
@@ -7848,42 +7836,42 @@ QUERY:
 -- jsonb_to_tsvector
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"all"');
 RESULT:
-	postgres: [("'123':8 '456':12 'aaa':2 'b':6 'bbb':4 'c':10 'd':14 'f':18 'fals':20 'g':22 'true':16",)]
+	[("'123':8 '456':12 'aaa':2 'b':6 'bbb':4 'c':10 'd':14 'f':18 'fals':20 'g':22 'true':16",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"key"');
 RESULT:
-	postgres: [("'b':2 'c':4 'd':6 'f':8 'g':10",)]
+	[("'b':2 'c':4 'd':6 'f':8 'g':10",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"string"');
 RESULT:
-	postgres: [("'aaa':1 'bbb':3",)]
+	[("'aaa':1 'bbb':3",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"numeric"');
 RESULT:
-	postgres: [("'123':1 '456':3",)]
+	[("'123':1 '456':3",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"boolean"');
 RESULT:
-	postgres: [("'fals':3 'true':1",)]
+	[("'fals':3 'true':1",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '["string", "numeric"]');
 RESULT:
-	postgres: [("'123':5 '456':7 'aaa':1 'bbb':3",)]
+	[("'123':5 '456':7 'aaa':1 'bbb':3",)]
 
 -----------
 QUERY:
@@ -7891,42 +7879,42 @@ QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"all"');
 RESULT:
-	postgres: [("'123':8 '456':12 'aaa':2 'b':6 'bbb':4 'c':10 'd':14 'f':18 'fals':20 'g':22 'true':16",)]
+	[("'123':8 '456':12 'aaa':2 'b':6 'bbb':4 'c':10 'd':14 'f':18 'fals':20 'g':22 'true':16",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"key"');
 RESULT:
-	postgres: [("'b':2 'c':4 'd':6 'f':8 'g':10",)]
+	[("'b':2 'c':4 'd':6 'f':8 'g':10",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"string"');
 RESULT:
-	postgres: [("'aaa':1 'bbb':3",)]
+	[("'aaa':1 'bbb':3",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"numeric"');
 RESULT:
-	postgres: [("'123':1 '456':3",)]
+	[("'123':1 '456':3",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '"boolean"');
 RESULT:
-	postgres: [("'fals':3 'true':1",)]
+	[("'fals':3 'true':1",)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '["string", "numeric"]');
 RESULT:
-	postgres: [("'123':5 '456':7 'aaa':1 'bbb':3",)]
+	[("'123':5 '456':7 'aaa':1 'bbb':3",)]
 
 -----------
 QUERY:
@@ -7935,28 +7923,28 @@ QUERY:
 -- to_tsvector corner cases
 select to_tsvector('""'::jsonb);
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select to_tsvector('{}'::jsonb);
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select to_tsvector('[]'::jsonb);
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select to_tsvector('null'::jsonb);
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
@@ -7965,28 +7953,28 @@ QUERY:
 -- jsonb_to_tsvector corner cases
 select jsonb_to_tsvector('""'::jsonb, '"all"');
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('{}'::jsonb, '"all"');
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('[]'::jsonb, '"all"');
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('null'::jsonb, '"all"');
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
@@ -7994,7 +7982,7 @@ QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '""');
 RESULT:
-	postgres: wrong flag in flag array: ""
+	ERROR - wrong flag in flag array: ""
 HINT:  Possible values are: "string", "numeric", "boolean", "key", and "all".
 
 
@@ -8003,7 +7991,7 @@ QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '{}');
 RESULT:
-	postgres: wrong flag type, only arrays and scalars are allowed
+	ERROR - wrong flag type, only arrays and scalars are allowed
 
 
 -----------
@@ -8011,14 +7999,14 @@ QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '[]');
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, 'null');
 RESULT:
-	postgres: flag array element is not a string
+	ERROR - flag array element is not a string
 HINT:  Possible values are: "string", "numeric", "boolean", "key", and "all".
 
 
@@ -8027,7 +8015,7 @@ QUERY:
 
 select jsonb_to_tsvector('english', '{"a": "aaa in bbb", "b": 123, "c": 456, "d": true, "f": false, "g": null}'::jsonb, '["all", null]');
 RESULT:
-	postgres: flag array element is not a string
+	ERROR - flag array element is not a string
 HINT:  Possible values are: "string", "numeric", "boolean", "key", and "all".
 
 
@@ -8038,28 +8026,28 @@ QUERY:
 -- ts_headline for jsonb
 select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::jsonb, tsquery('bbb & ddd & hhh'));
 RESULT:
-	postgres: [({'a': 'aaa <b>bbb</b>', 'b': {'c': 'ccc <b>ddd</b> fff', 'c1': 'ccc1 ddd1'}, 'd': ['ggg <b>hhh</b>', 'iii jjj']},)]
+	[({'a': 'aaa <b>bbb</b>', 'b': {'c': 'ccc <b>ddd</b> fff', 'c1': 'ccc1 ddd1'}, 'd': ['ggg <b>hhh</b>', 'iii jjj']},)]
 
 -----------
 QUERY:
 
 select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff"}, "d": ["ggg hhh", "iii jjj"]}'::jsonb, tsquery('bbb & ddd & hhh'));
 RESULT:
-	postgres: [({'a': 'aaa <b>bbb</b>', 'b': {'c': 'ccc <b>ddd</b> fff'}, 'd': ['ggg <b>hhh</b>', 'iii jjj']},)]
+	[({'a': 'aaa <b>bbb</b>', 'b': {'c': 'ccc <b>ddd</b> fff'}, 'd': ['ggg <b>hhh</b>', 'iii jjj']},)]
 
 -----------
 QUERY:
 
 select ts_headline('{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::jsonb, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >');
 RESULT:
-	postgres: [({'a': 'aaa <bbb>', 'b': {'c': 'ccc <ddd> fff', 'c1': 'ccc1 ddd1'}, 'd': ['ggg <hhh>', 'iii jjj']},)]
+	[({'a': 'aaa <bbb>', 'b': {'c': 'ccc <ddd> fff', 'c1': 'ccc1 ddd1'}, 'd': ['ggg <hhh>', 'iii jjj']},)]
 
 -----------
 QUERY:
 
 select ts_headline('english', '{"a": "aaa bbb", "b": {"c": "ccc ddd fff", "c1": "ccc1 ddd1"}, "d": ["ggg hhh", "iii jjj"]}'::jsonb, tsquery('bbb & ddd & hhh'), 'StartSel = <, StopSel = >');
 RESULT:
-	postgres: [({'a': 'aaa <bbb>', 'b': {'c': 'ccc <ddd> fff', 'c1': 'ccc1 ddd1'}, 'd': ['ggg <hhh>', 'iii jjj']},)]
+	[({'a': 'aaa <bbb>', 'b': {'c': 'ccc <ddd> fff', 'c1': 'ccc1 ddd1'}, 'd': ['ggg <hhh>', 'iii jjj']},)]
 
 -----------
 QUERY:
@@ -8068,21 +8056,21 @@ QUERY:
 -- corner cases for ts_headline with jsonb
 select ts_headline('null'::jsonb, tsquery('aaa & bbb'));
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 select ts_headline('{}'::jsonb, tsquery('aaa & bbb'));
 RESULT:
-	postgres: [({},)]
+	[({},)]
 
 -----------
 QUERY:
 
 select ts_headline('[]'::jsonb, tsquery('aaa & bbb'));
 RESULT:
-	postgres: [([],)]
+	[([],)]
 
 -----------
 QUERY:
@@ -8091,14 +8079,14 @@ QUERY:
 -- casts
 select 'true'::jsonb::bool;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select '[]'::jsonb::bool;
 RESULT:
-	postgres: cannot cast jsonb array to type boolean
+	ERROR - cannot cast jsonb array to type boolean
 
 
 -----------
@@ -8106,14 +8094,14 @@ QUERY:
 
 select '1.0'::jsonb::float;
 RESULT:
-	postgres: [(1.0,)]
+	[(1.0,)]
 
 -----------
 QUERY:
 
 select '[1.0]'::jsonb::float;
 RESULT:
-	postgres: cannot cast jsonb array to type double precision
+	ERROR - cannot cast jsonb array to type double precision
 
 
 -----------
@@ -8121,14 +8109,14 @@ QUERY:
 
 select '12345'::jsonb::int4;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
 
 select '"hello"'::jsonb::int4;
 RESULT:
-	postgres: cannot cast jsonb string to type integer
+	ERROR - cannot cast jsonb string to type integer
 
 
 -----------
@@ -8136,14 +8124,14 @@ QUERY:
 
 select '12345'::jsonb::numeric;
 RESULT:
-	postgres: [(Decimal('12345'),)]
+	[(Decimal('12345'),)]
 
 -----------
 QUERY:
 
 select '{}'::jsonb::numeric;
 RESULT:
-	postgres: cannot cast jsonb object to type numeric
+	ERROR - cannot cast jsonb object to type numeric
 
 
 -----------
@@ -8151,81 +8139,81 @@ QUERY:
 
 select '12345.05'::jsonb::numeric;
 RESULT:
-	postgres: [(Decimal('12345.05'),)]
+	[(Decimal('12345.05'),)]
 
 -----------
 QUERY:
 
 select '12345.05'::jsonb::float4;
 RESULT:
-	postgres: [(12345.05,)]
+	[(12345.05,)]
 
 -----------
 QUERY:
 
 select '12345.05'::jsonb::float8;
 RESULT:
-	postgres: [(12345.05,)]
+	[(12345.05,)]
 
 -----------
 QUERY:
 
 select '12345.05'::jsonb::int2;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
 
 select '12345.05'::jsonb::int4;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
 
 select '12345.05'::jsonb::int8;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
 
 select '12345.0000000000000000000000000000000000000000000005'::jsonb::numeric;
 RESULT:
-	postgres: [(Decimal('12345.0000000000000000000000000000000000000000000005'),)]
+	[(Decimal('12345.0000000000000000000000000000000000000000000005'),)]
 
 -----------
 QUERY:
 
 select '12345.0000000000000000000000000000000000000000000005'::jsonb::float4;
 RESULT:
-	postgres: [(12345.0,)]
+	[(12345.0,)]
 
 -----------
 QUERY:
 
 select '12345.0000000000000000000000000000000000000000000005'::jsonb::float8;
 RESULT:
-	postgres: [(12345.0,)]
+	[(12345.0,)]
 
 -----------
 QUERY:
 
 select '12345.0000000000000000000000000000000000000000000005'::jsonb::int2;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
 
 select '12345.0000000000000000000000000000000000000000000005'::jsonb::int4;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]
 
 -----------
 QUERY:
 
 select '12345.0000000000000000000000000000000000000000000005'::jsonb::int8;
 RESULT:
-	postgres: [(12345,)]
+	[(12345,)]

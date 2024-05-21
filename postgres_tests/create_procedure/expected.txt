@@ -3,7 +3,7 @@
 QUERY:
 CALL nonexistent();
 RESULT:
-	postgres: procedure nonexistent() does not exist
+	ERROR - procedure nonexistent() does not exist
 LINE 1: CALL nonexistent();
              ^
 HINT:  No procedure matches the given name and argument types. You might need to add explicit type casts.
@@ -14,7 +14,7 @@ QUERY:
   -- error
 CALL random();
 RESULT:
-	postgres: random() is not a procedure
+	ERROR - random() is not a procedure
 LINE 2: CALL random();
              ^
 HINT:  To call a function, use SELECT.
@@ -26,7 +26,7 @@ QUERY:
 
 CREATE FUNCTION cp_testfunc1(a int) RETURNS int LANGUAGE SQL AS $$ SELECT a $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -34,7 +34,7 @@ QUERY:
 
 CREATE TABLE cp_test (a int, b text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -46,7 +46,7 @@ AS $$
 INSERT INTO cp_test VALUES (1, x);
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -55,7 +55,7 @@ QUERY:
 -- \df ptest1
 SELECT pg_get_functiondef('ptest1'::regproc);
 RESULT:
-	postgres: [('CREATE OR REPLACE PROCEDURE public.ptest1(IN x text)\n LANGUAGE sql\nAS $procedure$\nINSERT INTO cp_test VALUES (1, x);\n$procedure$\n',)]
+	[('CREATE OR REPLACE PROCEDURE public.ptest1(IN x text)\n LANGUAGE sql\nAS $procedure$\nINSERT INTO cp_test VALUES (1, x);\n$procedure$\n',)]
 
 -----------
 QUERY:
@@ -69,7 +69,7 @@ QUERY:
 
 SELECT ptest1('x');
 RESULT:
-	postgres: ptest1(unknown) is a procedure
+	ERROR - ptest1(unknown) is a procedure
 LINE 9: SELECT ptest1('x');
                ^
 HINT:  To call a procedure, use CALL.
@@ -80,21 +80,21 @@ QUERY:
   -- error
 CALL ptest1('a');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- ok
 CALL ptest1('xy' || 'zzy');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- ok, constant-folded arg
 CALL ptest1(substring(random()::numeric(20,15)::text, 1, 1));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -102,7 +102,7 @@ QUERY:
 
 SELECT * FROM cp_test ORDER BY b COLLATE "C";
 RESULT:
-	postgres: [(1, '0'), (1, 'a'), (1, 'xyzzy')]
+	[(1, '0'), (1, 'a'), (1, 'xyzzy')]
 
 -----------
 QUERY:
@@ -115,7 +115,7 @@ LANGUAGE SQL
 BEGIN ATOMIC
   INSERT INTO cp_test VALUES (1, x);
 RESULT:
-	postgres: syntax error at end of input
+	ERROR - syntax error at end of input
 LINE 8:   INSERT INTO cp_test VALUES (1, x);
                                             ^
 
@@ -125,7 +125,7 @@ QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -134,7 +134,7 @@ QUERY:
 -- \df ptest1s
 SELECT pg_get_functiondef('ptest1s'::regproc);
 RESULT:
-	postgres: function "ptest1s" does not exist
+	ERROR - function "ptest1s" does not exist
 LINE 4: SELECT pg_get_functiondef('ptest1s'::regproc);
                                   ^
 
@@ -145,7 +145,7 @@ QUERY:
 
 CALL ptest1s('b');
 RESULT:
-	postgres: procedure ptest1s(unknown) does not exist
+	ERROR - procedure ptest1s(unknown) does not exist
 LINE 3: CALL ptest1s('b');
              ^
 HINT:  No procedure matches the given name and argument types. You might need to add explicit type casts.
@@ -157,7 +157,7 @@ QUERY:
 
 SELECT * FROM cp_test ORDER BY b COLLATE "C";
 RESULT:
-	postgres: [(1, '0'), (1, 'a'), (1, 'xyzzy')]
+	[(1, '0'), (1, 'a'), (1, 'xyzzy')]
 
 -----------
 QUERY:
@@ -169,7 +169,7 @@ LANGUAGE SQL
 BEGIN ATOMIC
   CREATE TABLE x (a int);
 RESULT:
-	postgres: syntax error at end of input
+	ERROR - syntax error at end of input
 LINE 7:   CREATE TABLE x (a int);
                                  ^
 
@@ -179,7 +179,7 @@ QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -192,7 +192,7 @@ AS $$
 SELECT 5;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -200,7 +200,7 @@ QUERY:
 
 CALL ptest2();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -210,7 +210,7 @@ QUERY:
 -- nested CALL
 TRUNCATE cp_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -223,7 +223,7 @@ CALL ptest1(y);
 CALL ptest1($1);
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -231,7 +231,7 @@ QUERY:
 
 CALL ptest3('b');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -239,7 +239,7 @@ QUERY:
 
 SELECT * FROM cp_test;
 RESULT:
-	postgres: [(1, 'b'), (1, 'b')]
+	[(1, 'b'), (1, 'b')]
 
 -----------
 QUERY:
@@ -254,7 +254,7 @@ AS $$
 SELECT 1, 2;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -262,7 +262,7 @@ QUERY:
 
 CALL ptest4a(NULL, NULL);
 RESULT:
-	postgres: [(1, 2)]
+	[(1, 2)]
 
 -----------
 QUERY:
@@ -274,7 +274,7 @@ AS $$
 CALL ptest4a(a, b);  -- error, not supported
 $$;
 RESULT:
-	postgres: calling procedures with output arguments is not supported in SQL functions
+	ERROR - calling procedures with output arguments is not supported in SQL functions
 CONTEXT:  SQL function "ptest4b"
 
 
@@ -289,7 +289,7 @@ AS $$
 SELECT ROW(1, 2);
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -297,7 +297,7 @@ QUERY:
 
 CALL ptest4c(NULL);
 RESULT:
-	postgres: [('(1,2)',)]
+	[('(1,2)',)]
 
 -----------
 QUERY:
@@ -305,7 +305,7 @@ QUERY:
 
 DROP PROCEDURE ptest4a, ptest4c;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -321,7 +321,7 @@ INSERT INTO cp_test VALUES(a, b);
 INSERT INTO cp_test VALUES(c, b);
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -329,7 +329,7 @@ QUERY:
 
 TRUNCATE cp_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -337,28 +337,28 @@ QUERY:
 
 CALL ptest5(10, 'Hello', 20);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CALL ptest5(10, 'Hello');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CALL ptest5(10, b => 'Hello');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CALL ptest5(b => 'Hello', a => 10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -366,7 +366,7 @@ QUERY:
 
 SELECT * FROM cp_test;
 RESULT:
-	postgres: [(10, 'Hello'), (20, 'Hello'), (10, 'Hello'), (100, 'Hello'), (10, 'Hello'), (100, 'Hello'), (10, 'Hello'), (100, 'Hello')]
+	[(10, 'Hello'), (20, 'Hello'), (10, 'Hello'), (100, 'Hello'), (10, 'Hello'), (100, 'Hello'), (10, 'Hello'), (100, 'Hello')]
 
 -----------
 QUERY:
@@ -381,7 +381,7 @@ AS $$
 SELECT NULL::int;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -389,7 +389,7 @@ QUERY:
 
 CALL ptest6(1, 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -404,7 +404,7 @@ AS $$
 SELECT a = b;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -412,7 +412,7 @@ QUERY:
 
 CALL ptest7(least('a', 'b'), 'a');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -424,7 +424,7 @@ CREATE PROCEDURE ptest8(x text)
 BEGIN ATOMIC
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -433,14 +433,14 @@ QUERY:
 -- \df ptest8
 SELECT pg_get_functiondef('ptest8'::regproc);
 RESULT:
-	postgres: [('CREATE OR REPLACE PROCEDURE public.ptest8(IN x text)\n LANGUAGE sql\nBEGIN ATOMIC\nEND\n',)]
+	[('CREATE OR REPLACE PROCEDURE public.ptest8(IN x text)\n LANGUAGE sql\nBEGIN ATOMIC\nEND\n',)]
 
 -----------
 QUERY:
 
 CALL ptest8('');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -456,7 +456,7 @@ INSERT INTO cp_test VALUES (1, 'a');
 SELECT 1;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -465,15 +465,15 @@ QUERY:
 -- standard way to do a call:
 CALL ptest9(NULL);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
--- you can write an expression, but it/* REPLACED */''s not evaluated
+-- you can write an expression, but it/* REPLACED */ ''s not evaluated
 CALL ptest9(1/0);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -481,7 +481,7 @@ QUERY:
 -- ... and it had better match the type of the parameter
 CALL ptest9(1./0.);
 RESULT:
-	postgres: procedure ptest9(numeric) does not exist
+	ERROR - procedure ptest9(numeric) does not exist
 LINE 3: CALL ptest9(1./0.);
              ^
 HINT:  No procedure matches the given name and argument types. You might need to add explicit type casts.
@@ -495,7 +495,7 @@ QUERY:
 CREATE PROCEDURE ptest10(OUT a int, IN b int, IN c int)
 LANGUAGE SQL AS $$ SELECT b - c $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -503,35 +503,35 @@ QUERY:
 
 CALL ptest10(null, 7, 4);
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 CALL ptest10(a => null, b => 8, c => 2);
 RESULT:
-	postgres: [(6,)]
+	[(6,)]
 
 -----------
 QUERY:
 
 CALL ptest10(null, 7, c => 2);
 RESULT:
-	postgres: [(5,)]
+	[(5,)]
 
 -----------
 QUERY:
 
 CALL ptest10(null, c => 4, b => 11);
 RESULT:
-	postgres: [(7,)]
+	[(7,)]
 
 -----------
 QUERY:
 
 CALL ptest10(b => 8, c => 2, a => 0);
 RESULT:
-	postgres: [(6,)]
+	[(6,)]
 
 -----------
 QUERY:
@@ -540,7 +540,7 @@ QUERY:
 CREATE PROCEDURE ptest11(a OUT int, VARIADIC b int[]) LANGUAGE SQL
   AS $$ SELECT b[1] + b[2] $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -548,7 +548,7 @@ QUERY:
 
 CALL ptest11(null, 11, 12, 13);
 RESULT:
-	postgres: [(23,)]
+	[(23,)]
 
 -----------
 QUERY:
@@ -559,7 +559,7 @@ QUERY:
 CREATE PROCEDURE ptest10(IN a int, IN b int, IN c int)
 LANGUAGE SQL AS $$ SELECT a + b - c $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -569,7 +569,7 @@ QUERY:
 
 drop procedure ptest10;
 RESULT:
-	postgres: procedure name "ptest10" is not unique
+	ERROR - procedure name "ptest10" is not unique
 HINT:  Specify the argument list to select the procedure unambiguously.
 
 
@@ -578,7 +578,7 @@ QUERY:
   -- fail
 drop procedure ptest10(int, int, int);
 RESULT:
-	postgres: procedure name "ptest10" is not unique
+	ERROR - procedure name "ptest10" is not unique
 
 
 -----------
@@ -586,14 +586,14 @@ QUERY:
   -- fail
 begin;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop procedure ptest10(out int, int, int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -601,28 +601,28 @@ QUERY:
 -- \df ptest10
 drop procedure ptest10(int, int, int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- now this would work
 rollback;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 begin;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop procedure ptest10(in int, int, int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -630,14 +630,14 @@ QUERY:
 -- \df ptest10
 drop procedure ptest10(int, int, int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- now this would work
 rollback;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -647,7 +647,7 @@ QUERY:
 
 CALL version();
 RESULT:
-	postgres: version() is not a procedure
+	ERROR - version() is not a procedure
 LINE 5: CALL version();
              ^
 HINT:  To call a function, use SELECT.
@@ -658,7 +658,7 @@ QUERY:
   -- error: not a procedure
 CALL sum(1);
 RESULT:
-	postgres: sum(integer) is not a procedure
+	ERROR - sum(integer) is not a procedure
 LINE 2: CALL sum(1);
              ^
 HINT:  To call a function, use SELECT.
@@ -670,7 +670,7 @@ QUERY:
 
 CREATE PROCEDURE ptestx() LANGUAGE SQL WINDOW AS $$ INSERT INTO cp_test VALUES (1, 'a') $$;
 RESULT:
-	postgres: invalid attribute in procedure definition
+	ERROR - invalid attribute in procedure definition
 LINE 3: CREATE PROCEDURE ptestx() LANGUAGE SQL WINDOW AS $$ INSERT I...
                                                ^
 
@@ -680,7 +680,7 @@ QUERY:
 
 CREATE PROCEDURE ptestx() LANGUAGE SQL STRICT AS $$ INSERT INTO cp_test VALUES (1, 'a') $$;
 RESULT:
-	postgres: invalid attribute in procedure definition
+	ERROR - invalid attribute in procedure definition
 LINE 2: CREATE PROCEDURE ptestx() LANGUAGE SQL STRICT AS $$ INSERT I...
                                                ^
 
@@ -691,7 +691,7 @@ QUERY:
 CREATE PROCEDURE ptestx(a VARIADIC int[], b OUT int) LANGUAGE SQL
   AS $$ SELECT a[1] $$;
 RESULT:
-	postgres: VARIADIC parameter must be the last parameter
+	ERROR - VARIADIC parameter must be the last parameter
 
 
 -----------
@@ -700,7 +700,7 @@ QUERY:
 CREATE PROCEDURE ptestx(a int DEFAULT 42, b OUT int) LANGUAGE SQL
   AS $$ SELECT a $$;
 RESULT:
-	postgres: procedure OUT parameters cannot appear after one with a default value
+	ERROR - procedure OUT parameters cannot appear after one with a default value
 
 
 -----------
@@ -709,7 +709,7 @@ QUERY:
 
 ALTER PROCEDURE ptest1(text) STRICT;
 RESULT:
-	postgres: invalid attribute in procedure definition
+	ERROR - invalid attribute in procedure definition
 LINE 3: ALTER PROCEDURE ptest1(text) STRICT;
                                      ^
 
@@ -719,7 +719,7 @@ QUERY:
 
 ALTER FUNCTION ptest1(text) VOLATILE;
 RESULT:
-	postgres: ptest1(text) is not a function
+	ERROR - ptest1(text) is not a function
 
 
 -----------
@@ -727,7 +727,7 @@ QUERY:
   -- error: not a function
 ALTER PROCEDURE cp_testfunc1(int) VOLATILE;
 RESULT:
-	postgres: cp_testfunc1(integer) is not a procedure
+	ERROR - cp_testfunc1(integer) is not a procedure
 
 
 -----------
@@ -735,7 +735,7 @@ QUERY:
   -- error: not a procedure
 ALTER PROCEDURE nonexistent() VOLATILE;
 RESULT:
-	postgres: procedure nonexistent() does not exist
+	ERROR - procedure nonexistent() does not exist
 
 
 -----------
@@ -744,7 +744,7 @@ QUERY:
 
 DROP FUNCTION ptest1(text);
 RESULT:
-	postgres: ptest1(text) is not a function
+	ERROR - ptest1(text) is not a function
 
 
 -----------
@@ -752,7 +752,7 @@ QUERY:
   -- error: not a function
 DROP PROCEDURE cp_testfunc1(int);
 RESULT:
-	postgres: cp_testfunc1(integer) is not a procedure
+	ERROR - cp_testfunc1(integer) is not a procedure
 
 
 -----------
@@ -760,7 +760,7 @@ QUERY:
   -- error: not a procedure
 DROP PROCEDURE nonexistent();
 RESULT:
-	postgres: procedure nonexistent() does not exist
+	ERROR - procedure nonexistent() does not exist
 
 
 -----------
@@ -772,35 +772,35 @@ QUERY:
 
 CREATE USER regress_cp_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT INSERT ON cp_test TO regress_cp_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 REVOKE EXECUTE ON PROCEDURE ptest1(text) FROM PUBLIC;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_cp_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CALL ptest1('a');
 RESULT:
-	postgres: permission denied for procedure ptest1
+	ERROR - permission denied for procedure ptest1
 
 
 -----------
@@ -808,35 +808,35 @@ QUERY:
   -- error
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT EXECUTE ON PROCEDURE ptest1(text) TO regress_cp_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_cp_user1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CALL ptest1('a');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- ok
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -847,14 +847,14 @@ QUERY:
 
 ALTER ROUTINE cp_testfunc1(int) RENAME TO cp_testfunc1a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER ROUTINE cp_testfunc1a RENAME TO cp_testfunc1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -862,14 +862,14 @@ QUERY:
 
 ALTER ROUTINE ptest1(text) RENAME TO ptest1a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER ROUTINE ptest1a RENAME TO ptest1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -877,7 +877,7 @@ QUERY:
 
 DROP ROUTINE cp_testfunc1(int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -888,14 +888,14 @@ QUERY:
 
 DROP PROCEDURE ptest1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP PROCEDURE ptest1s;
 RESULT:
-	postgres: could not find a procedure named "ptest1s"
+	ERROR - could not find a procedure named "ptest1s"
 
 
 -----------
@@ -903,7 +903,7 @@ QUERY:
 
 DROP PROCEDURE ptest2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -911,7 +911,7 @@ QUERY:
 
 DROP TABLE cp_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -919,4 +919,4 @@ QUERY:
 
 DROP USER regress_cp_user1;
 RESULT:
-	postgres: None
+	[]

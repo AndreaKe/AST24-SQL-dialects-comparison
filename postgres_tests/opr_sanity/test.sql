@@ -12,7 +12,7 @@
 -- NB: we assume the oidjoins test will have caught any dangling links,
 -- that is OID or REGPROC fields that are not zero and do not match some
 -- row in the linked-to table.  However, if we want to enforce that a link
--- field can/* REPLACED */''t be 0, we have to check it here.
+-- field can/* REPLACED */ ''t be 0, we have to check it here.
 --
 -- NB: run this test earlier than the create_operator test, because
 -- that test creates some bogus operators...
@@ -37,7 +37,7 @@ WHERE p1.prolang = 0 OR p1.prorettype = 0 OR
        provolatile NOT IN ('i', 's', 'v') OR
        proparallel NOT IN ('s', 'r', 'u');
 
--- prosrc should never be null /* REPLACED */, it can be empty only if prosqlbody isn/* REPLACED */''t null
+-- prosrc should never be null /* REPLACED */ , it can be empty only if prosqlbody isn/* REPLACED */ ''t null
 SELECT p1.oid, p1.proname
 FROM pg_proc as p1
 WHERE prosrc IS NULL;
@@ -50,7 +50,7 @@ SELECT p1.oid, p1.proname
 FROM pg_proc AS p1
 WHERE proretset AND prokind != 'f';
 
--- currently, no built-in functions should be SECURITY DEFINER /* REPLACED */,
+-- currently, no built-in functions should be SECURITY DEFINER /* REPLACED */ ,
 -- this might change in future, but there will probably never be many.
 SELECT p1.oid, p1.proname
 FROM pg_proc AS p1
@@ -73,7 +73,7 @@ WHERE prolang != 13 AND probin IS NOT NULL;
 
 -- Look for conflicting proc definitions (same names and input datatypes).
 -- (This test should be dead code now that we have the unique index
--- pg_proc_proname_args_nsp_index, but I/* REPLACED */''ll leave it in anyway.)
+-- pg_proc_proname_args_nsp_index, but I/* REPLACED */ ''ll leave it in anyway.)
 
 SELECT p1.oid, p1.proname, p2.oid, p2.proname
 FROM pg_proc AS p1, pg_proc AS p2
@@ -83,10 +83,10 @@ WHERE p1.oid != p2.oid AND
     p1.proargtypes = p2.proargtypes;
 
 -- Considering only built-in procs (prolang = 12), look for multiple uses
--- of the same internal function (ie, matching prosrc fields).  It/* REPLACED */''s OK to
+-- of the same internal function (ie, matching prosrc fields).  It/* REPLACED */ ''s OK to
 -- have several entries with different pronames for the same internal function,
 -- but conflicts in the number of arguments and other critical items should
--- be complained of.  (We don/* REPLACED */''t check data types here /* REPLACED */, see next query.)
+-- be complained of.  (We don/* REPLACED */ ''t check data types here /* REPLACED */ , see next query.)
 -- Note: ignore aggregate functions here, since they all point to the same
 -- dummy built-in function.
 
@@ -109,7 +109,7 @@ WHERE p1.oid < p2.oid AND
 -- for different aliases of the same built-in function.
 -- This indicates that the types are being presumed to be binary-equivalent,
 -- or that the built-in function is prepared to deal with different types.
--- That/* REPLACED */''s not wrong, necessarily, but we make lists of all the types being
+-- That/* REPLACED */ ''s not wrong, necessarily, but we make lists of all the types being
 -- so treated.  Note that the expected output of this part of the test will
 -- need to be modified whenever new pairs of types are made binary-equivalent,
 -- or when new polymorphic built-in functions are added!
@@ -210,8 +210,8 @@ WHERE p1.oid != p2.oid AND
     (p1.proargtypes[7] < p2.proargtypes[7])
 ORDER BY 1, 2;
 
--- Look for functions that return type /* REPLACED */''internal/* REPLACED */'' and do not have any
--- /* REPLACED */''internal/* REPLACED */'' argument.  Such a function would be a security hole since
+-- Look for functions that return type /* REPLACED */ ''internal/* REPLACED */ '' and do not have any
+-- /* REPLACED */ ''internal/* REPLACED */ '' argument.  Such a function would be a security hole since
 -- it might be used to call an internal function from an SQL command.
 -- As of 7.3 this query should find only internal_in, which is safe because
 -- it always throws an error when called.
@@ -274,8 +274,8 @@ ORDER BY 2;
 
 
 -- Look for functions that accept cstring and are neither datatype input
--- functions nor encoding conversion functions.  It/* REPLACED */''s almost never a good
--- idea to use cstring input for a function meant to be called from SQL /* REPLACED */,
+-- functions nor encoding conversion functions.  It/* REPLACED */ ''s almost never a good
+-- idea to use cstring input for a function meant to be called from SQL /* REPLACED */ ,
 -- text should be used instead, because cstring lacks suitable casts.
 -- As of 9.6 this query should find only cstring_out and cstring_send.
 -- However, we must manually exclude shell_in, which might or might not be
@@ -290,7 +290,7 @@ WHERE 'cstring'::regtype = ANY (p1.proargtypes)
     AND p1.oid != 'shell_in(cstring)'::regprocedure
 ORDER BY 1;
 
--- Likewise, look for functions that return cstring and aren/* REPLACED */''t datatype output
+-- Likewise, look for functions that return cstring and aren/* REPLACED */ ''t datatype output
 -- functions nor typmod output functions.
 -- As of 9.6 this query should find only cstring_in and cstring_recv.
 -- However, we must manually exclude shell_out.
@@ -344,7 +344,7 @@ WHERE proallargtypes IS NOT NULL AND
         FROM generate_series(1, array_length(proallargtypes, 1)) g(i)
         WHERE proargmodes IS NULL OR proargmodes[i] IN ('i', 'b', 'v'));
 
--- Check for type of the variadic array parameter/* REPLACED */''s elements.
+-- Check for type of the variadic array parameter/* REPLACED */ ''s elements.
 -- provariadic should be ANYOID if the type of the last element is ANYOID,
 -- ANYELEMENTOID if the type of the last element is ANYARRAYOID,
 -- ANYCOMPATIBLEOID if the type of the last element is ANYCOMPATIBLEARRAYOID,
@@ -387,11 +387,11 @@ WHERE d.classoid IS NULL AND p1.oid <= 9999;
 --
 -- Leakproof functions should only be added after carefully
 -- scrutinizing all possibly executed codepaths for possible
--- information leaks. Don/* REPLACED */''t add functions here unless you know what a
--- leakproof function is. If unsure, don/* REPLACED */''t mark it as such.
+-- information leaks. Don/* REPLACED */ ''t add functions here unless you know what a
+-- leakproof function is. If unsure, don/* REPLACED */ ''t mark it as such.
 
 -- temporarily disable fancy output, so catalog changes create less diff noise
-\a\t
+-- \a\t
 
 SELECT p1.oid::regprocedure
 FROM pg_proc p1 JOIN pg_namespace pn
@@ -400,9 +400,9 @@ WHERE nspname = 'pg_catalog' AND proleakproof
 ORDER BY 1;
 
 -- restore normal output mode
-\a\t
+-- \a\t
 
--- List of functions used by libpq/* REPLACED */''s fe-lobj.c
+-- List of functions used by libpq/* REPLACED */ ''s fe-lobj.c
 --
 -- If the output of this query changes, you probably broke libpq.
 -- lo_initialize() assumes that there will be at most one match for
@@ -450,7 +450,7 @@ FROM pg_cast c
 WHERE (castmethod = 'f' AND castfunc = 0)
    OR (castmethod IN ('b', 'i') AND castfunc <> 0);
 
--- Look for casts to/from the same type that aren/* REPLACED */''t length coercion functions.
+-- Look for casts to/from the same type that aren/* REPLACED */ ''t length coercion functions.
 -- (We assume they are length coercions if they take multiple arguments.)
 -- Such entries are not necessarily harmful, but they are useless.
 
@@ -462,7 +462,7 @@ SELECT c.*
 FROM pg_cast c, pg_proc p
 WHERE c.castfunc = p.oid AND p.pronargs < 2 AND castsource = casttarget;
 
--- Look for cast functions that don/* REPLACED */''t have the right signature.  The
+-- Look for cast functions that don/* REPLACED */ ''t have the right signature.  The
 -- argument and result types in pg_proc must be the same as, or binary
 -- compatible with, what it says in pg_cast.
 -- As a special case, we allow casts from CHAR(n) that use functions
@@ -521,7 +521,7 @@ WHERE c.conproc = 0 OR
     pg_encoding_to_char(conforencoding) = '' OR
     pg_encoding_to_char(contoencoding) = '';
 
--- Look for conprocs that don/* REPLACED */''t have the expected signature.
+-- Look for conprocs that don/* REPLACED */ ''t have the expected signature.
 
 SELECT p.oid, p.proname, c.oid, c.conname
 FROM pg_proc p, pg_conversion c
@@ -535,15 +535,15 @@ WHERE p.oid = c.conproc AND
      p.proargtypes[4] != 'int4'::regtype OR
      p.proargtypes[5] != 'bool'::regtype);
 
--- Check for conprocs that don/* REPLACED */''t perform the specific conversion that
+-- Check for conprocs that don/* REPLACED */ ''t perform the specific conversion that
 -- pg_conversion alleges they do, by trying to invoke each conversion
 -- on some simple ASCII data.  (The conproc should throw an error if
--- it doesn/* REPLACED */''t accept the encodings that are passed to it.)
--- Unfortunately, we can/* REPLACED */''t test non-default conprocs this way, because
+-- it doesn/* REPLACED */ ''t accept the encodings that are passed to it.)
+-- Unfortunately, we can/* REPLACED */ ''t test non-default conprocs this way, because
 -- there is no way to ask convert() to invoke them, and we cannot call
 -- them directly from SQL.  But there are no non-default built-in
 -- conversions anyway.
--- (Similarly, this doesn/* REPLACED */''t cope with any search path issues.)
+-- (Similarly, this doesn/* REPLACED */ ''t cope with any search path issues.)
 
 SELECT c.oid, c.conname
 FROM pg_conversion as c
@@ -579,9 +579,9 @@ WHERE o1.oid != o2.oid AND
     o1.oprleft = o2.oprleft AND
     o1.oprright = o2.oprright;
 
--- Look for commutative operators that don/* REPLACED */''t commute.
+-- Look for commutative operators that don/* REPLACED */ ''t commute.
 -- DEFINITIONAL NOTE: If A.oprcom = B, then x A y has the same result as y B x.
--- We expect that B will always say that B.oprcom = A as well /* REPLACED */, that/* REPLACED */''s not
+-- We expect that B will always say that B.oprcom = A as well /* REPLACED */ , that/* REPLACED */ ''s not
 -- inherently essential, but it would be inefficient not to mark it so.
 
 SELECT o1.oid, o1.oprcode, o2.oid, o2.oprcode
@@ -593,11 +593,11 @@ WHERE o1.oprcom = o2.oid AND
      o1.oprresult != o2.oprresult OR
      o1.oid != o2.oprcom);
 
--- Look for negatory operators that don/* REPLACED */''t agree.
+-- Look for negatory operators that don/* REPLACED */ ''t agree.
 -- DEFINITIONAL NOTE: If A.oprnegate = B, then both A and B must yield
 -- boolean results, and (x A y) == ! (x B y), or the equivalent for
 -- single-operand operators.
--- We expect that B will always say that B.oprnegate = A as well /* REPLACED */, that/* REPLACED */''s not
+-- We expect that B will always say that B.oprnegate = A as well /* REPLACED */ , that/* REPLACED */ ''s not
 -- inherently essential, but it would be inefficient not to mark it so.
 -- Also, A and B had better not be the same operator.
 
@@ -614,7 +614,7 @@ WHERE o1.oprnegate = o2.oid AND
 
 -- Make a list of the names of operators that are claimed to be commutator
 -- pairs.  This list will grow over time, but before accepting a new entry
--- make sure you didn/* REPLACED */''t link the wrong operators.
+-- make sure you didn/* REPLACED */ ''t link the wrong operators.
 
 SELECT DISTINCT o1.oprname AS op1, o2.oprname AS op2
 FROM pg_operator o1, pg_operator o2
@@ -629,14 +629,14 @@ WHERE o1.oprnegate = o2.oid AND o1.oprname <= o2.oprname
 ORDER BY 1, 2;
 
 -- A mergejoinable or hashjoinable operator must be binary, must return
--- boolean, and must have a commutator (itself, unless it/* REPLACED */''s a cross-type
+-- boolean, and must have a commutator (itself, unless it/* REPLACED */ ''s a cross-type
 -- operator).
 
 SELECT o1.oid, o1.oprname FROM pg_operator AS o1
 WHERE (o1.oprcanmerge OR o1.oprcanhash) AND NOT
     (o1.oprkind = 'b' AND o1.oprresult = 'bool'::regtype AND o1.oprcom != 0);
 
--- What/* REPLACED */''s more, the commutator had better be mergejoinable/hashjoinable too.
+-- What/* REPLACED */ ''s more, the commutator had better be mergejoinable/hashjoinable too.
 
 SELECT o1.oid, o1.oprname, o2.oid, o2.oprname
 FROM pg_operator AS o1, pg_operator AS o2
@@ -751,14 +751,14 @@ FROM pg_operator as o1 LEFT JOIN pg_description as d
      ON o1.tableoid = d.classoid and o1.oid = d.objoid and d.objsubid = 0
 WHERE d.classoid IS NULL AND o1.oid <= 9999;
 
--- Check that operators/* REPLACED */'' underlying functions have suitable comments,
--- namely /* REPLACED */''implementation of XXX operator/* REPLACED */''.  (Note: it/* REPLACED */''s not necessary to
--- put such comments into pg_proc.dat /* REPLACED */, initdb will generate them as needed.)
+-- Check that operators/* REPLACED */ '' underlying functions have suitable comments,
+-- namely /* REPLACED */ ''implementation of XXX operator/* REPLACED */ ''.  (Note: it/* REPLACED */ ''s not necessary to
+-- put such comments into pg_proc.dat /* REPLACED */ , initdb will generate them as needed.)
 -- In some cases involving legacy names for operators, there are multiple
 -- operators referencing the same pg_proc entry, so ignore operators whose
 -- comments say they are deprecated.
 -- We also have a few functions that are both operator support and meant to
--- be called directly /* REPLACED */, those should have comments matching their operator.
+-- be called directly /* REPLACED */ , those should have comments matching their operator.
 WITH funcdescs AS (
   SELECT p.oid as p_oid, proname, o.oid as o_oid,
     pd.description as prodesc,
@@ -779,7 +779,7 @@ SELECT * FROM funcdescs
 -- Show all the operator-implementation functions that have their own
 -- comments.  This should happen only in cases where the function and
 -- operator syntaxes are both documented at the user level.
--- This should be a pretty short list /* REPLACED */, it/* REPLACED */''s mostly legacy cases.
+-- This should be a pretty short list /* REPLACED */ , it/* REPLACED */ ''s mostly legacy cases.
 WITH funcdescs AS (
   SELECT p.oid as p_oid, proname, o.oid as o_oid,
     pd.description as prodesc,
@@ -812,7 +812,7 @@ WHERE o1.oprnegate = o2.oid AND p1.oid = o1.oprcode AND p2.oid = o2.oprcode AND
     (p1.provolatile != p2.provolatile OR
      p1.proleakproof != p2.proleakproof);
 
--- Btree comparison operators/* REPLACED */'' functions should have the same volatility
+-- Btree comparison operators/* REPLACED */ '' functions should have the same volatility
 -- and leakproofness markings as the associated comparison support function.
 SELECT pp.oid::regprocedure as proc, pp.provolatile as vp, pp.proleakproof as lp,
        po.oid::regprocedure as opr, po.provolatile as vo, po.proleakproof as lo
@@ -1052,7 +1052,7 @@ WHERE (aggserialfn != 0 OR aggdeserialfn != 0)
 
 -- Check that all serialization functions have signature
 -- serialize(internal) returns bytea
--- Also insist that they be strict /* REPLACED */, it/* REPLACED */''s wasteful to run them on NULLs.
+-- Also insist that they be strict /* REPLACED */ , it/* REPLACED */ ''s wasteful to run them on NULLs.
 
 SELECT a.aggfnoid, p.proname
 FROM pg_aggregate as a, pg_proc as p
@@ -1063,7 +1063,7 @@ WHERE a.aggserialfn = p.oid AND
 
 -- Check that all deserialization functions have signature
 -- deserialize(bytea, internal) returns internal
--- Also insist that they be strict /* REPLACED */, it/* REPLACED */''s wasteful to run them on NULLs.
+-- Also insist that they be strict /* REPLACED */ , it/* REPLACED */ ''s wasteful to run them on NULLs.
 
 SELECT a.aggfnoid, p.proname
 FROM pg_aggregate as a, pg_proc as p
@@ -1075,7 +1075,7 @@ WHERE a.aggdeserialfn = p.oid AND
 
 -- Check that aggregates which have the same transition function also have
 -- the same combine, serialization, and deserialization functions.
--- While that isn/* REPLACED */''t strictly necessary, it/* REPLACED */''s fishy if they don/* REPLACED */''t.
+-- While that isn/* REPLACED */ ''t strictly necessary, it/* REPLACED */ ''s fishy if they don/* REPLACED */ ''t.
 
 SELECT a.aggfnoid, a.aggcombinefn, a.aggserialfn, a.aggdeserialfn,
        b.aggfnoid, b.aggcombinefn, b.aggserialfn, b.aggdeserialfn
@@ -1128,7 +1128,7 @@ ORDER BY 1, 2;
 -- to avoid this because it opens the door for confusion in connection with
 -- ORDER BY: novices frequently put the ORDER BY in the wrong place.
 -- See the fate of the single-argument form of string_agg() for history.
--- (Note: we don/* REPLACED */''t forbid users from creating such aggregates /* REPLACED */, the policy is
+-- (Note: we don/* REPLACED */ ''t forbid users from creating such aggregates /* REPLACED */ , the policy is
 -- just to think twice before creating built-in aggregates like this.)
 -- The only aggregates that should show up here are count(x) and count(*).
 
@@ -1163,7 +1163,7 @@ FROM pg_opfamily as f
 WHERE f.opfmethod = 0 OR f.opfnamespace = 0;
 
 -- Look for opfamilies having no opclasses.  While most validation of
--- opfamilies is now handled by AM-specific amvalidate functions, that/* REPLACED */''s
+-- opfamilies is now handled by AM-specific amvalidate functions, that/* REPLACED */ ''s
 -- driven from pg_opclass entries below, so an empty opfamily would not
 -- get noticed.
 
@@ -1180,7 +1180,7 @@ FROM pg_opclass AS c1
 WHERE c1.opcmethod = 0 OR c1.opcnamespace = 0 OR c1.opcfamily = 0
     OR c1.opcintype = 0;
 
--- opcmethod must match owning opfamily/* REPLACED */''s opfmethod
+-- opcmethod must match owning opfamily/* REPLACED */ ''s opfmethod
 
 SELECT c1.oid, f1.oid
 FROM pg_opclass AS c1, pg_opfamily AS f1
@@ -1243,7 +1243,7 @@ FROM pg_amop as a1
 WHERE NOT ((a1.amoppurpose = 's' AND a1.amopsortfamily = 0) OR
            (a1.amoppurpose = 'o' AND a1.amopsortfamily <> 0));
 
--- amopmethod must match owning opfamily/* REPLACED */''s opfmethod
+-- amopmethod must match owning opfamily/* REPLACED */ ''s opfmethod
 
 SELECT a1.oid, f1.oid
 FROM pg_amop AS a1, pg_opfamily AS f1
@@ -1251,7 +1251,7 @@ WHERE a1.amopfamily = f1.oid AND a1.amopmethod != f1.opfmethod;
 
 -- Make a list of all the distinct operator names being used in particular
 -- strategy slots.  This is a bit hokey, since the list might need to change
--- in future releases, but it/* REPLACED */''s an effective way of spotting mistakes such as
+-- in future releases, but it/* REPLACED */ ''s an effective way of spotting mistakes such as
 -- swapping two operators within a family.
 
 SELECT DISTINCT amopmethod, amopstrategy, oprname
@@ -1280,7 +1280,7 @@ WHERE NOT EXISTS(SELECT 1 FROM pg_amop AS a1
 -- that is one whose opcintype matches oprleft (possibly by coercion).
 -- Otherwise the operator is useless because it cannot be matched to an index.
 -- (In principle it could be useful to list such operators in multiple-datatype
--- btree opfamilies, but in practice you/* REPLACED */''d expect there to be an opclass for
+-- btree opfamilies, but in practice you/* REPLACED */ ''d expect there to be an opclass for
 -- every datatype the family knows about.)
 
 SELECT a1.amopfamily, a1.amopstrategy, a1.amopopr
@@ -1290,7 +1290,7 @@ WHERE NOT EXISTS(SELECT 1 FROM pg_opclass AS c1
                    AND binary_coercible(c1.opcintype, a1.amoplefttype));
 
 -- Operators that are primary members of opclasses must be immutable (else
--- it suggests that the index ordering isn/* REPLACED */''t fixed).  Operators that are
+-- it suggests that the index ordering isn/* REPLACED */ ''t fixed).  Operators that are
 -- cross-type members need only be stable, since they are just shorthands
 -- for index probe queries.
 
@@ -1317,7 +1317,7 @@ WHERE a1.amprocfamily = 0 OR a1.amproclefttype = 0 OR a1.amprocrighttype = 0
     OR a1.amprocnum < 0 OR a1.amproc = 0;
 
 -- Support routines that are primary members of opfamilies must be immutable
--- (else it suggests that the index ordering isn/* REPLACED */''t fixed).  But cross-type
+-- (else it suggests that the index ordering isn/* REPLACED */ ''t fixed).  But cross-type
 -- members need only be stable, since they are just shorthands
 -- for index probe queries.
 
@@ -1333,11 +1333,11 @@ WHERE a1.amproc = p1.oid AND
     a1.amproclefttype != a1.amprocrighttype AND
     p1.provolatile = 'v';
 
--- Almost all of the core distribution/* REPLACED */''s Btree opclasses can use one of the
--- two generic /* REPLACED */''equalimage/* REPLACED */'' functions as their support function 4.  Look for
--- opclasses that don/* REPLACED */''t allow deduplication unconditionally here.
+-- Almost all of the core distribution/* REPLACED */ ''s Btree opclasses can use one of the
+-- two generic /* REPLACED */ ''equalimage/* REPLACED */ '' functions as their support function 4.  Look for
+-- opclasses that don/* REPLACED */ ''t allow deduplication unconditionally here.
 --
--- Newly added Btree opclasses don/* REPLACED */''t have to support deduplication.  It will
+-- Newly added Btree opclasses don/* REPLACED */ ''t have to support deduplication.  It will
 -- usually be trivial to add support, though.  Note that the expected output
 -- of this part of the test will need to be updated when a new opclass cannot
 -- support deduplication (by using btequalimage).
@@ -1399,18 +1399,18 @@ ORDER BY 1;
 
 -- Check for system catalogs with collation-sensitive ordering.  This is not
 -- a representational error in pg_index, but simply wrong catalog design.
--- It/* REPLACED */''s bad because we expect to be able to clone template0 and assign the
+-- It/* REPLACED */ ''s bad because we expect to be able to clone template0 and assign the
 -- copy a different database collation.  It would especially not work for
 -- shared catalogs.
 
 SELECT relname, attname, attcollation
 FROM pg_class c, pg_attribute a
 WHERE c.oid = attrelid AND c.oid < 16384 AND
-    c.relkind != 'v' AND  -- we don/* REPLACED */''t care about columns in views
+    c.relkind != 'v' AND  -- we don/* REPLACED */ ''t care about columns in views
     attcollation != 0 AND
     attcollation != (SELECT oid FROM pg_collation WHERE collname = 'C');
 
--- Double-check that collation-sensitive indexes have /* REPLACED */''C/* REPLACED */'' collation, too.
+-- Double-check that collation-sensitive indexes have /* REPLACED */ ''C/* REPLACED */ '' collation, too.
 
 SELECT indexrelid::regclass, indrelid::regclass, iclass, icoll
 FROM (SELECT indexrelid, indrelid,

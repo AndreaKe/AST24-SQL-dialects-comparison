@@ -2,10 +2,10 @@
 -----------
 QUERY:
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 --
 -- num_nulls()
@@ -13,56 +13,56 @@ QUERY:
 
 SELECT num_nonnulls(NULL);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls('1');
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(NULL::text);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(NULL::text, NULL::int);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(1, 2, NULL::text, NULL::point, '', int8 '9', 1.0 / NULL);
 RESULT:
-	postgres: [(4,)]
+	[(4,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(VARIADIC '{1,2,NULL,3}'::int[]);
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(VARIADIC '{"1","2","3","4"}'::text[]);
 RESULT:
-	postgres: [(4,)]
+	[(4,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(VARIADIC ARRAY(SELECT CASE WHEN i <> 40 THEN i END FROM generate_series(1, 100) i));
 RESULT:
-	postgres: [(99,)]
+	[(99,)]
 
 -----------
 QUERY:
@@ -70,56 +70,56 @@ QUERY:
 
 SELECT num_nulls(NULL);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls('1');
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(NULL::text);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(NULL::text, NULL::int);
 RESULT:
-	postgres: [(2,)]
+	[(2,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(1, 2, NULL::text, NULL::point, '', int8 '9', 1.0 / NULL);
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(VARIADIC '{1,2,NULL,3}'::int[]);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(VARIADIC '{"1","2","3","4"}'::text[]);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(VARIADIC ARRAY(SELECT CASE WHEN i <> 40 THEN i END FROM generate_series(1, 100) i));
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -128,28 +128,28 @@ QUERY:
 -- special cases
 SELECT num_nonnulls(VARIADIC NULL::text[]);
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT num_nonnulls(VARIADIC '{}'::int[]);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(VARIADIC NULL::text[]);
 RESULT:
-	postgres: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
 
 SELECT num_nulls(VARIADIC '{}'::int[]);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -158,7 +158,7 @@ QUERY:
 -- should fail, one or more arguments is required
 SELECT num_nonnulls();
 RESULT:
-	postgres: function num_nonnulls() does not exist
+	ERROR - function num_nonnulls() does not exist
 LINE 4: SELECT num_nonnulls();
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -169,7 +169,7 @@ QUERY:
 
 SELECT num_nulls();
 RESULT:
-	postgres: function num_nulls() does not exist
+	ERROR - function num_nulls() does not exist
 LINE 2: SELECT num_nulls();
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -185,10 +185,10 @@ QUERY:
 
 CREATE FUNCTION test_canonicalize_path(text)
    RETURNS text
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -196,154 +196,154 @@ QUERY:
 
 SELECT test_canonicalize_path('/');
 RESULT:
-	postgres: [('/',)]
+	[('/',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/./abc/def/');
 RESULT:
-	postgres: [('/abc/def',)]
+	[('/abc/def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/./../abc/def');
 RESULT:
-	postgres: [('/abc/def',)]
+	[('/abc/def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/./../../abc/def/');
 RESULT:
-	postgres: [('/abc/def',)]
+	[('/abc/def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/abc/.././def/ghi');
 RESULT:
-	postgres: [('/def/ghi',)]
+	[('/def/ghi',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/abc/./../def/ghi//');
 RESULT:
-	postgres: [('/def/ghi',)]
+	[('/def/ghi',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/abc/def/../..');
 RESULT:
-	postgres: [('/',)]
+	[('/',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/abc/def/../../..');
 RESULT:
-	postgres: [('/',)]
+	[('/',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('/abc/def/../../../../ghi/jkl');
 RESULT:
-	postgres: [('/ghi/jkl',)]
+	[('/ghi/jkl',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('.');
 RESULT:
-	postgres: [('.',)]
+	[('.',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('./');
 RESULT:
-	postgres: [('.',)]
+	[('.',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('./abc/..');
 RESULT:
-	postgres: [('.',)]
+	[('.',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('abc/../');
 RESULT:
-	postgres: [('.',)]
+	[('.',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('abc/../def');
 RESULT:
-	postgres: [('def',)]
+	[('def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('..');
 RESULT:
-	postgres: [('..',)]
+	[('..',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('../abc/def');
 RESULT:
-	postgres: [('../abc/def',)]
+	[('../abc/def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('../abc/..');
 RESULT:
-	postgres: [('..',)]
+	[('..',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('../abc/../def');
 RESULT:
-	postgres: [('../def',)]
+	[('../def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('../abc/../../def/ghi');
 RESULT:
-	postgres: [('../../def/ghi',)]
+	[('../../def/ghi',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('./abc/./def/.');
 RESULT:
-	postgres: [('abc/def',)]
+	[('abc/def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('./abc/././def/.');
 RESULT:
-	postgres: [('abc/def',)]
+	[('abc/def',)]
 
 -----------
 QUERY:
 
 SELECT test_canonicalize_path('./abc/./def/.././ghi/../../../jkl/mno');
 RESULT:
-	postgres: [('../jkl/mno',)]
+	[('../jkl/mno',)]
 
 -----------
 QUERY:
@@ -354,13 +354,13 @@ QUERY:
 --
 -- Memory contexts are logged and they are not returned to the function.
 -- Furthermore, their contents can vary depending on the timing. However,
--- we can at least verify that the code doesn/* REPLACED */''t fail, and that the
+-- we can at least verify that the code doesn/* REPLACED */ ''t fail, and that the
 -- permissions are set properly.
 --
 
 SELECT pg_log_backend_memory_contexts(pg_backend_pid());
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -369,7 +369,7 @@ QUERY:
 SELECT pg_log_backend_memory_contexts(pid) FROM pg_stat_activity
   WHERE backend_type = 'checkpointer';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -377,7 +377,7 @@ QUERY:
 
 CREATE ROLE regress_log_memory;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -386,7 +386,7 @@ QUERY:
 SELECT has_function_privilege('regress_log_memory',
   'pg_log_backend_memory_contexts(integer)', 'EXECUTE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -395,7 +395,7 @@ QUERY:
 GRANT EXECUTE ON FUNCTION pg_log_backend_memory_contexts(integer)
   TO regress_log_memory;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -404,7 +404,7 @@ QUERY:
 SELECT has_function_privilege('regress_log_memory',
   'pg_log_backend_memory_contexts(integer)', 'EXECUTE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -412,21 +412,21 @@ QUERY:
 
 SET ROLE regress_log_memory;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT pg_log_backend_memory_contexts(pg_backend_pid());
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -435,7 +435,7 @@ QUERY:
 REVOKE EXECUTE ON FUNCTION pg_log_backend_memory_contexts(integer)
   FROM regress_log_memory;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -443,7 +443,7 @@ QUERY:
 
 DROP ROLE regress_log_memory;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -452,17 +452,17 @@ QUERY:
 --
 -- Test some built-in SRFs
 --
--- The outputs of these are variable, so we can/* REPLACED */''t just print their results
--- directly, but we can at least verify that the code doesn/* REPLACED */''t fail.
+-- The outputs of these are variable, so we can/* REPLACED */ ''t just print their results
+-- directly, but we can at least verify that the code doesn/* REPLACED */ ''t fail.
 --
 select setting as segsize
 from pg_settings where name = 'wal_segment_size'
-\gset
+-- \gset
 
 select count(*) > 0 as ok from pg_ls_waldir();
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 11: \gset
+	ERROR - syntax error at or near "select"
+LINE 13: select count(*) > 0 as ok from pg_ls_waldir();
          ^
 
 
@@ -472,7 +472,7 @@ QUERY:
 -- Test ProjectSet as well as FunctionScan
 select count(*) > 0 as ok from (select pg_ls_waldir()) ss;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -480,14 +480,14 @@ QUERY:
 -- Test not-run-to-completion cases.
 select * from pg_ls_waldir() limit 0;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 select count(*) > 0 as ok from (select * from pg_ls_waldir() limit 1) ss;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -495,7 +495,7 @@ QUERY:
 select (w).size = :segsize as ok
 from (select pg_ls_waldir() w) ss where length((w).name) = 24 limit 1;
 RESULT:
-	postgres: syntax error at or near ":"
+	ERROR - syntax error at or near ":"
 LINE 2: select (w).size = :segsize as ok
                           ^
 
@@ -506,7 +506,7 @@ QUERY:
 
 select count(*) >= 0 as ok from pg_ls_archive_statusdir();
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -515,14 +515,14 @@ QUERY:
 -- pg_read_file()
 select length(pg_read_file('postmaster.pid')) > 20;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select length(pg_read_file('postmaster.pid', 1, 20));
 RESULT:
-	postgres: [(20,)]
+	[(20,)]
 
 -----------
 QUERY:
@@ -530,7 +530,7 @@ QUERY:
 -- Test missing_ok
 select pg_read_file('does not exist');
 RESULT:
-	postgres: could not open file "does not exist" for reading: Datei oder Verzeichnis nicht gefunden
+	ERROR - could not open file "does not exist" for reading: Datei oder Verzeichnis nicht gefunden
 
 
 -----------
@@ -538,7 +538,7 @@ QUERY:
  -- error
 select pg_read_file('does not exist', true) IS NULL;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -546,7 +546,7 @@ QUERY:
 -- Test invalid argument
 select pg_read_file('does not exist', 0, -1);
 RESULT:
-	postgres: requested length cannot be negative
+	ERROR - requested length cannot be negative
 
 
 -----------
@@ -554,7 +554,7 @@ QUERY:
  -- error
 select pg_read_file('does not exist', 0, -1, true);
 RESULT:
-	postgres: requested length cannot be negative
+	ERROR - requested length cannot be negative
 
 
 -----------
@@ -564,14 +564,14 @@ QUERY:
 -- pg_read_binary_file()
 select length(pg_read_binary_file('postmaster.pid')) > 20;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 select length(pg_read_binary_file('postmaster.pid', 1, 20));
 RESULT:
-	postgres: [(20,)]
+	[(20,)]
 
 -----------
 QUERY:
@@ -579,7 +579,7 @@ QUERY:
 -- Test missing_ok
 select pg_read_binary_file('does not exist');
 RESULT:
-	postgres: could not open file "does not exist" for reading: Datei oder Verzeichnis nicht gefunden
+	ERROR - could not open file "does not exist" for reading: Datei oder Verzeichnis nicht gefunden
 
 
 -----------
@@ -587,7 +587,7 @@ QUERY:
  -- error
 select pg_read_binary_file('does not exist', true) IS NULL;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -595,7 +595,7 @@ QUERY:
 -- Test invalid argument
 select pg_read_binary_file('does not exist', 0, -1);
 RESULT:
-	postgres: requested length cannot be negative
+	ERROR - requested length cannot be negative
 
 
 -----------
@@ -603,7 +603,7 @@ QUERY:
  -- error
 select pg_read_binary_file('does not exist', 0, -1, true);
 RESULT:
-	postgres: requested length cannot be negative
+	ERROR - requested length cannot be negative
 
 
 -----------
@@ -613,7 +613,7 @@ QUERY:
 -- pg_stat_file()
 select size > 20, isdir from pg_stat_file('postmaster.pid');
 RESULT:
-	postgres: [(True, False)]
+	[(True, False)]
 
 -----------
 QUERY:
@@ -622,7 +622,7 @@ QUERY:
 -- pg_ls_dir()
 select * from (select pg_ls_dir('.') a) a where a = 'base' limit 1;
 RESULT:
-	postgres: [('base',)]
+	[('base',)]
 
 -----------
 QUERY:
@@ -630,7 +630,7 @@ QUERY:
 -- Test missing_ok (second argument)
 select pg_ls_dir('does not exist', false, false);
 RESULT:
-	postgres: could not open directory "does not exist": Datei oder Verzeichnis nicht gefunden
+	ERROR - could not open directory "does not exist": Datei oder Verzeichnis nicht gefunden
 
 
 -----------
@@ -638,7 +638,7 @@ QUERY:
  -- error
 select pg_ls_dir('does not exist', true, false);
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -647,7 +647,7 @@ QUERY:
 select count(*) = 1 as dot_found
   from pg_ls_dir('.', false, true) as ls where ls = '.';
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -655,7 +655,7 @@ QUERY:
 select count(*) = 1 as dot_found
   from pg_ls_dir('.', false, false) as ls where ls = '.';
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -664,7 +664,7 @@ QUERY:
 -- pg_timezone_names()
 select * from (select (pg_timezone_names()).name) ptn where name='UTC' limit 1;
 RESULT:
-	postgres: [('UTC',)]
+	[('UTC',)]
 
 -----------
 QUERY:
@@ -676,7 +676,7 @@ select count(*) > 0 from
    where spcname = 'pg_default') pts
   join pg_database db on pts.pts = db.oid;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -687,7 +687,7 @@ QUERY:
 --
 CREATE ROLE regress_slot_dir_funcs;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -696,7 +696,7 @@ QUERY:
 SELECT has_function_privilege('regress_slot_dir_funcs',
   'pg_ls_logicalsnapdir()', 'EXECUTE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -704,7 +704,7 @@ QUERY:
 SELECT has_function_privilege('regress_slot_dir_funcs',
   'pg_ls_logicalmapdir()', 'EXECUTE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -712,14 +712,14 @@ QUERY:
 SELECT has_function_privilege('regress_slot_dir_funcs',
   'pg_ls_replslotdir(text)', 'EXECUTE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 GRANT pg_monitor TO regress_slot_dir_funcs;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -728,7 +728,7 @@ QUERY:
 SELECT has_function_privilege('regress_slot_dir_funcs',
   'pg_ls_logicalsnapdir()', 'EXECUTE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -736,7 +736,7 @@ QUERY:
 SELECT has_function_privilege('regress_slot_dir_funcs',
   'pg_ls_logicalmapdir()', 'EXECUTE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -744,14 +744,14 @@ QUERY:
 SELECT has_function_privilege('regress_slot_dir_funcs',
   'pg_ls_replslotdir(text)', 'EXECUTE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 DROP ROLE regress_slot_dir_funcs;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -765,30 +765,30 @@ CREATE FUNCTION my_int_eq(int, int) RETURNS bool
   LANGUAGE internal STRICT IMMUTABLE PARALLEL SAFE
   AS $$int4eq$$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- By default, planner does not think that/* REPLACED */''s selective
+-- By default, planner does not think that/* REPLACED */ ''s selective
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN tenk1 b ON a.unique1 = b.unique1
 WHERE my_int_eq(a.unique2, 42);
 RESULT:
-	postgres: [('Hash Join',), ('  Hash Cond: (b.unique1 = a.unique1)',), ('  ->  Seq Scan on tenk1 b',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',), ('              Filter: my_int_eq(unique2, 42)',)]
+	[('Nested Loop',), ('  Join Filter: (a.unique1 = b.unique1)',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: my_int_eq(unique2, 42)',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
 
 
--- With support function that knows it/* REPLACED */''s int4eq, we get a different plan
+-- With support function that knows it/* REPLACED */ ''s int4eq, we get a different plan
 CREATE FUNCTION test_support_func(internal)
     RETURNS internal
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_support_func'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_support_func'
     LANGUAGE C STRICT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -796,7 +796,7 @@ QUERY:
 
 ALTER FUNCTION my_int_eq(int, int) SUPPORT test_support_func;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -806,7 +806,7 @@ EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN tenk1 b ON a.unique1 = b.unique1
 WHERE my_int_eq(a.unique2, 42);
 RESULT:
-	postgres: [('Nested Loop',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: my_int_eq(unique2, 42)',), ('  ->  Index Scan using tenk1_unique1 on tenk1 b',), ('        Index Cond: (unique1 = a.unique1)',)]
+	[('Nested Loop',), ('  Join Filter: (a.unique1 = b.unique1)',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: my_int_eq(unique2, 42)',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -818,7 +818,7 @@ CREATE FUNCTION my_gen_series(int, int) RETURNS SETOF integer
   AS $$generate_series_int4$$
   SUPPORT test_support_func;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -827,7 +827,7 @@ QUERY:
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN my_gen_series(1,1000) g ON a.unique1 = g;
 RESULT:
-	postgres: [('Hash Join',), ('  Hash Cond: (g.g = a.unique1)',), ('  ->  Function Scan on my_gen_series g',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',)]
+	[('Hash Join',), ('  Hash Cond: (g.g = a.unique1)',), ('  ->  Function Scan on my_gen_series g',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',)]
 
 -----------
 QUERY:
@@ -836,7 +836,7 @@ QUERY:
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN my_gen_series(1,10) g ON a.unique1 = g;
 RESULT:
-	postgres: [('Nested Loop',), ('  ->  Function Scan on my_gen_series g',), ('  ->  Index Scan using tenk1_unique1 on tenk1 a',), ('        Index Cond: (unique1 = g.g)',)]
+	[('Hash Join',), ('  Hash Cond: (g.g = a.unique1)',), ('  ->  Function Scan on my_gen_series g',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',)]
 
 -----------
 QUERY:
@@ -845,28 +845,28 @@ QUERY:
 -- Test functions for control data
 SELECT count(*) > 0 AS ok FROM pg_control_checkpoint();
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT count(*) > 0 AS ok FROM pg_control_init();
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT count(*) > 0 AS ok FROM pg_control_recovery();
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT count(*) > 0 AS ok FROM pg_control_system();
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -875,14 +875,14 @@ QUERY:
 -- pg_split_walfile_name, pg_walfile_name & pg_walfile_name_offset
 SELECT * FROM pg_split_walfile_name(NULL);
 RESULT:
-	postgres: [(None, None)]
+	[(None, None)]
 
 -----------
 QUERY:
 
 SELECT * FROM pg_split_walfile_name('invalid');
 RESULT:
-	postgres: invalid WAL file name "invalid"
+	ERROR - invalid WAL file name "invalid"
 
 
 -----------
@@ -891,7 +891,7 @@ QUERY:
 SELECT segment_number > 0 AS ok_segment_number, timeline_id
   FROM pg_split_walfile_name('000000010000000100000000');
 RESULT:
-	postgres: [(True, 1)]
+	[(True, 1)]
 
 -----------
 QUERY:
@@ -899,7 +899,7 @@ QUERY:
 SELECT segment_number > 0 AS ok_segment_number, timeline_id
   FROM pg_split_walfile_name('ffffffFF00000001000000af');
 RESULT:
-	postgres: [(True, 4294967295)]
+	[(True, 4294967295)]
 
 -----------
 QUERY:
@@ -907,13 +907,13 @@ QUERY:
 SELECT setting::int8 AS segment_size
 FROM pg_settings
 WHERE name = 'wal_segment_size'
-\gset
+-- \gset
 SELECT segment_number, file_offset
 FROM pg_walfile_name_offset('0/0'::pg_lsn + :segment_size),
      pg_split_walfile_name(file_name);
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 5: \gset
+	ERROR - syntax error at or near "SELECT"
+LINE 6: SELECT segment_number, file_offset
         ^
 
 
@@ -924,7 +924,7 @@ SELECT segment_number, file_offset
 FROM pg_walfile_name_offset('0/0'::pg_lsn + :segment_size + 1),
      pg_split_walfile_name(file_name);
 RESULT:
-	postgres: syntax error at or near ":"
+	ERROR - syntax error at or near ":"
 LINE 3: FROM pg_walfile_name_offset('0/0'::pg_lsn + :segment_size + ...
                                                     ^
 
@@ -936,7 +936,7 @@ SELECT segment_number, file_offset = :segment_size - 1
 FROM pg_walfile_name_offset('0/0'::pg_lsn + :segment_size - 1),
      pg_split_walfile_name(file_name);
 RESULT:
-	postgres: syntax error at or near ":"
+	ERROR - syntax error at or near ":"
 LINE 2: SELECT segment_number, file_offset = :segment_size - 1
                                              ^
 
@@ -948,14 +948,14 @@ QUERY:
 -- test stratnum support functions
 SELECT gist_stratnum_identity(3::smallint);
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
 
 SELECT gist_stratnum_identity(18::smallint);
 RESULT:
-	postgres: [(18,)]
+	[(18,)]
 
 -----------
 QUERY:
@@ -964,7 +964,7 @@ QUERY:
 -- pg_current_logfile
 CREATE ROLE regress_current_logfile;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -973,14 +973,14 @@ QUERY:
 SELECT has_function_privilege('regress_current_logfile',
   'pg_current_logfile()', 'EXECUTE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 GRANT pg_monitor TO regress_current_logfile;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -989,14 +989,14 @@ QUERY:
 SELECT has_function_privilege('regress_current_logfile',
   'pg_current_logfile()', 'EXECUTE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 DROP ROLE regress_current_logfile;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1005,14 +1005,14 @@ QUERY:
 -- pg_column_toast_chunk_id
 CREATE TABLE test_chunk_id (a TEXT, b TEXT STORAGE EXTERNAL);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO test_chunk_id VALUES ('x', repeat('x', 8192));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1020,13 +1020,13 @@ QUERY:
 SELECT t.relname AS toastrel FROM pg_class c
   LEFT JOIN pg_class t ON c.reltoastrelid = t.oid
   WHERE c.relname = 'test_chunk_id'
-\gset
+-- \gset
 SELECT pg_column_toast_chunk_id(a) IS NULL,
   pg_column_toast_chunk_id(b) IN (SELECT chunk_id FROM pg_toast.:toastrel)
   FROM test_chunk_id;
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 5: \gset
+	ERROR - syntax error at or near "SELECT"
+LINE 6: SELECT pg_column_toast_chunk_id(a) IS NULL,
         ^
 
 
@@ -1035,4 +1035,4 @@ QUERY:
 
 DROP TABLE test_chunk_id;
 RESULT:
-	postgres: None
+	[]

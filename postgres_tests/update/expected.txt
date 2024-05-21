@@ -11,7 +11,7 @@ CREATE TABLE update_test (
     c   TEXT
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -22,7 +22,7 @@ CREATE TABLE upsert_test (
     b   TEXT
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -30,14 +30,14 @@ QUERY:
 
 INSERT INTO update_test VALUES (5, 10, 'foo');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO update_test(b, a) VALUES (15, 10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -45,7 +45,7 @@ QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(5, 10, 'foo'), (10, 15, None)]
+	[(5, 10, 'foo'), (10, 15, None)]
 
 -----------
 QUERY:
@@ -53,7 +53,7 @@ QUERY:
 
 UPDATE update_test SET a = DEFAULT, b = DEFAULT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -61,7 +61,7 @@ QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(10, None, 'foo'), (10, None, None)]
+	[(10, None, 'foo'), (10, None, None)]
 
 -----------
 QUERY:
@@ -70,7 +70,7 @@ QUERY:
 -- aliases for the UPDATE target table
 UPDATE update_test AS t SET b = 10 WHERE t.a = 10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -78,7 +78,7 @@ QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(10, 10, 'foo'), (10, 10, None)]
+	[(10, 10, 'foo'), (10, 10, None)]
 
 -----------
 QUERY:
@@ -86,7 +86,7 @@ QUERY:
 
 UPDATE update_test t SET b = t.b + 10 WHERE t.a = 10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -94,16 +94,16 @@ QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(10, 20, 'foo'), (10, 20, None)]
+	[(10, 20, 'foo'), (10, 20, None)]
 
 -----------
 QUERY:
 
 
--- error, you/* REPLACED */''re not supposed to qualify the target column
+-- error, you/* REPLACED */ ''re not supposed to qualify the target column
 UPDATE update_test t SET t.b = t.b + 10 WHERE t.a = 10;
 RESULT:
-	postgres: column "t" of relation "update_test" does not exist
+	ERROR - column "t" of relation "update_test" does not exist
 LINE 4: UPDATE update_test t SET t.b = t.b + 10 WHERE t.a = 10;
                                  ^
 HINT:  SET target columns cannot be qualified with the relation name.
@@ -120,7 +120,7 @@ QUERY:
 UPDATE update_test SET a=v.i FROM (VALUES(100, 20)) AS v(i, j)
   WHERE update_test.b = v.j;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -128,7 +128,7 @@ QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(100, 20, 'foo'), (100, 20, None)]
+	[(100, 20, 'foo'), (100, 20, None)]
 
 -----------
 QUERY:
@@ -138,7 +138,7 @@ QUERY:
 UPDATE update_test SET a = v.* FROM (VALUES(100, 20)) AS v(i, j)
   WHERE update_test.b = v.j;
 RESULT:
-	postgres: column "a" is of type integer but expression is of type record
+	ERROR - column "a" is of type integer but expression is of type record
 LINE 4: UPDATE update_test SET a = v.* FROM (VALUES(100, 20)) AS v(i...
                                    ^
 HINT:  You will need to rewrite or cast the expression.
@@ -154,14 +154,14 @@ QUERY:
 
 INSERT INTO update_test SELECT a,b+1,c FROM update_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(100, 20, 'foo'), (100, 20, None), (100, 21, 'foo'), (100, 21, None)]
+	[(100, 20, 'foo'), (100, 20, None), (100, 21, 'foo'), (100, 21, None)]
 
 -----------
 QUERY:
@@ -169,28 +169,28 @@ QUERY:
 
 UPDATE update_test SET (c,b,a) = ('bugle', b+11, DEFAULT) WHERE c = 'foo';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(100, 20, None), (100, 21, None), (10, 31, 'bugle'), (10, 32, 'bugle')]
+	[(100, 20, None), (100, 21, None), (10, 31, 'bugle'), (10, 32, 'bugle')]
 
 -----------
 QUERY:
 
 UPDATE update_test SET (c,b) = ('car', a+b), a = a + 1 WHERE a = 10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(100, 20, None), (100, 21, None), (11, 41, 'car'), (11, 42, 'car')]
+	[(100, 20, None), (100, 21, None), (11, 41, 'car'), (11, 42, 'car')]
 
 -----------
 QUERY:
@@ -198,7 +198,7 @@ QUERY:
 -- fail, multi assignment to same column:
 UPDATE update_test SET (c,b) = ('car', a+b), b = a + 1 WHERE a = 10;
 RESULT:
-	postgres: multiple assignments to same column "b"
+	ERROR - multiple assignments to same column "b"
 
 
 -----------
@@ -210,14 +210,14 @@ UPDATE update_test
   SET (b,a) = (select a,b from update_test where b = 41 and c = 'car')
   WHERE a = 100 AND b = 20;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(100, 21, None), (11, 41, 'car'), (11, 42, 'car'), (41, 11, None)]
+	[(100, 21, None), (11, 41, 'car'), (11, 42, 'car'), (41, 11, None)]
 
 -----------
 QUERY:
@@ -227,14 +227,14 @@ UPDATE update_test o
   SET (b,a) = (select a+1,b from update_test i
                where i.a=o.a and i.b=o.b and i.c is not distinct from o.c);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(21, 101, None), (41, 12, 'car'), (42, 12, 'car'), (11, 42, None)]
+	[(21, 101, None), (41, 12, 'car'), (42, 12, 'car'), (11, 42, None)]
 
 -----------
 QUERY:
@@ -242,7 +242,7 @@ QUERY:
 -- fail, multiple rows supplied:
 UPDATE update_test SET (b,a) = (select a+1,b from update_test);
 RESULT:
-	postgres: more than one row returned by a subquery used as an expression
+	ERROR - more than one row returned by a subquery used as an expression
 
 
 -----------
@@ -252,14 +252,14 @@ QUERY:
 UPDATE update_test SET (b,a) = (select a+1,b from update_test where a = 1000)
   WHERE a = 11;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM update_test;
 RESULT:
-	postgres: [(21, 101, None), (41, 12, 'car'), (42, 12, 'car'), (None, None, None)]
+	[(21, 101, None), (41, 12, 'car'), (42, 12, 'car'), (None, None, None)]
 
 -----------
 QUERY:
@@ -268,16 +268,16 @@ QUERY:
 UPDATE update_test SET (a,b) = ROW(v.*) FROM (VALUES(21, 100)) AS v(i, j)
   WHERE update_test.a = v.i;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- you might expect this to work, but syntactically it/* REPLACED */''s not a RowExpr:
+-- you might expect this to work, but syntactically it/* REPLACED */ ''s not a RowExpr:
 UPDATE update_test SET (a,b) = (v.*) FROM (VALUES(21, 101)) AS v(i, j)
   WHERE update_test.a = v.i;
 RESULT:
-	postgres: source for a multiple-column UPDATE item must be a sub-SELECT or ROW() expression
+	ERROR - source for a multiple-column UPDATE item must be a sub-SELECT or ROW() expression
 LINE 3: UPDATE update_test SET (a,b) = (v.*) FROM (VALUES(21, 101)) ...
                                         ^
 
@@ -286,11 +286,11 @@ LINE 3: UPDATE update_test SET (a,b) = (v.*) FROM (VALUES(21, 101)) ...
 QUERY:
 
 
--- if an alias for the target table is specified, don/* REPLACED */''t allow references
+-- if an alias for the target table is specified, don/* REPLACED */ ''t allow references
 -- to the original table name
 UPDATE update_test AS t SET b = update_test.b + 10 WHERE t.a = 10;
 RESULT:
-	postgres: invalid reference to FROM-clause entry for table "update_test"
+	ERROR - invalid reference to FROM-clause entry for table "update_test"
 LINE 5: UPDATE update_test AS t SET b = update_test.b + 10 WHERE t.a...
                                         ^
 HINT:  Perhaps you meant to reference the table alias "t".
@@ -303,14 +303,14 @@ QUERY:
 -- Make sure that we can update to a TOASTed value.
 UPDATE update_test SET c = repeat('x', 10000) WHERE c = 'car';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT a, b, char_length(c) FROM update_test;
 RESULT:
-	postgres: [(None, None, None), (21, 100, None), (41, 12, 10000), (42, 12, 10000)]
+	[(None, None, None), (21, 100, None), (41, 12, 10000), (42, 12, 10000)]
 
 -----------
 QUERY:
@@ -322,7 +322,7 @@ UPDATE update_test t
   SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
   WHERE CURRENT_USER = SESSION_USER;
 RESULT:
-	postgres: [('Update on public.update_test t',), ('  ->  Result',), ('        Output: (SubPlan 1).col1, (SubPlan 1).col2, (rescan SubPlan 1), t.ctid',), ('        One-Time Filter: (CURRENT_USER = SESSION_USER)',), ('        ->  Seq Scan on public.update_test t',), ('              Output: t.a, t.ctid',), ('        SubPlan 1',), ('          ->  Seq Scan on public.update_test s',), ('                Output: s.b, s.a',), ('                Filter: (s.a = t.a)',)]
+	[('Update on public.update_test t',), ('  ->  Result',), ('        Output: (SubPlan 1).col1, (SubPlan 1).col2, (rescan SubPlan 1), t.ctid',), ('        One-Time Filter: (CURRENT_USER = SESSION_USER)',), ('        ->  Seq Scan on public.update_test t',), ('              Output: t.a, t.ctid',), ('        SubPlan 1',), ('          ->  Seq Scan on public.update_test s',), ('                Output: s.b, s.a',), ('                Filter: (s.a = t.a)',)]
 
 -----------
 QUERY:
@@ -331,14 +331,14 @@ UPDATE update_test t
   SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
   WHERE CURRENT_USER = SESSION_USER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT a, b, char_length(c) FROM update_test;
 RESULT:
-	postgres: [(None, None, None), (100, 21, None), (12, 41, 10000), (12, 42, 10000)]
+	[(None, None, None), (100, 21, None), (12, 41, 10000), (12, 42, 10000)]
 
 -----------
 QUERY:
@@ -348,7 +348,7 @@ QUERY:
 
 INSERT INTO upsert_test VALUES(1, 'Boo'), (3, 'Zoo');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -358,7 +358,7 @@ WITH aaa AS (SELECT 1 AS a, 'Foo' AS b) INSERT INTO upsert_test
   VALUES (1, 'Bar') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b, a FROM aaa) RETURNING *;
 RESULT:
-	postgres: [(1, 'Foo')]
+	[(1, 'Foo')]
 
 -----------
 QUERY:
@@ -368,7 +368,7 @@ INSERT INTO upsert_test VALUES (1, 'Baz'), (3, 'Zaz') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Correlated', a from upsert_test i WHERE i.a = upsert_test.a)
   RETURNING *;
 RESULT:
-	postgres: [(1, 'Foo, Correlated'), (3, 'Zoo, Correlated')]
+	[(1, 'Foo, Correlated'), (3, 'Zoo, Correlated')]
 
 -----------
 QUERY:
@@ -378,7 +378,7 @@ INSERT INTO upsert_test VALUES (1, 'Bat'), (3, 'Zot') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
   RETURNING *;
 RESULT:
-	postgres: [(1, 'Foo, Correlated, Excluded'), (3, 'Zoo, Correlated, Excluded')]
+	[(1, 'Foo, Correlated, Excluded'), (3, 'Zoo, Correlated, Excluded')]
 
 -----------
 QUERY:
@@ -391,18 +391,18 @@ INSERT INTO upsert_test VALUES (2, 'Beeble') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
   RETURNING tableoid::regclass, xmin = pg_current_xact_id()::xid AS xmin_correct, xmax = 0 AS xmax_correct;
 RESULT:
-	postgres: [('upsert_test', True, True)]
+	[('upsert_test', True, True)]
 
 -----------
 QUERY:
 
--- currently xmax is set after a conflict - that/* REPLACED */''s probably not good,
+-- currently xmax is set after a conflict - that/* REPLACED */ ''s probably not good,
 -- but it seems worthwhile to have to be explicit if that changes.
 INSERT INTO upsert_test VALUES (2, 'Brox') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b || ', Excluded', a from upsert_test i WHERE i.a = excluded.a)
   RETURNING tableoid::regclass, xmin = pg_current_xact_id()::xid AS xmin_correct, xmax = pg_current_xact_id()::xid AS xmax_correct;
 RESULT:
-	postgres: [('upsert_test', True, True)]
+	[('upsert_test', True, True)]
 
 -----------
 QUERY:
@@ -410,14 +410,14 @@ QUERY:
 
 DROP TABLE update_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE upsert_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -430,7 +430,7 @@ CREATE TABLE upsert_test (
     b   TEXT
 ) PARTITION BY LIST (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -438,21 +438,21 @@ QUERY:
 
 CREATE TABLE upsert_test_1 PARTITION OF upsert_test FOR VALUES IN (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE upsert_test_2 (b TEXT, a INT PRIMARY KEY);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE upsert_test ATTACH PARTITION upsert_test_2 FOR VALUES IN (2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -460,7 +460,7 @@ QUERY:
 
 INSERT INTO upsert_test VALUES(1, 'Boo'), (2, 'Zoo');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -470,7 +470,7 @@ WITH aaa AS (SELECT 1 AS a, 'Foo' AS b) INSERT INTO upsert_test
   VALUES (1, 'Bar') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT b, a FROM aaa) RETURNING *;
 RESULT:
-	postgres: [(1, 'Foo')]
+	[(1, 'Foo')]
 
 -----------
 QUERY:
@@ -480,7 +480,7 @@ WITH aaa AS (SELECT 1 AS ctea, ' Foo' AS cteb) INSERT INTO upsert_test
   VALUES (1, 'Bar'), (2, 'Baz') ON CONFLICT(a)
   DO UPDATE SET (b, a) = (SELECT upsert_test.b||cteb, upsert_test.a FROM aaa) RETURNING *;
 RESULT:
-	postgres: [(1, 'Foo Foo'), (2, 'Zoo Foo')]
+	[(1, 'Foo Foo'), (2, 'Zoo Foo')]
 
 -----------
 QUERY:
@@ -488,7 +488,7 @@ QUERY:
 
 DROP TABLE upsert_test;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -500,7 +500,7 @@ QUERY:
 ---------------------------
 
 -- When a partitioned table receives an UPDATE to the partitioned key and the
--- new values no longer meet the partition/* REPLACED */''s bound, the row must be moved to
+-- new values no longer meet the partition/* REPLACED */ ''s bound, the row must be moved to
 -- the correct partition for the new partition key (if one exists). We must
 -- also ensure that updatable views on partitioned tables properly enforce any
 -- WITH CHECK OPTION that is defined. The situation with triggers in this case
@@ -515,7 +515,7 @@ CREATE TABLE range_parted (
 	e varchar
 ) PARTITION BY RANGE (a, b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -525,49 +525,49 @@ QUERY:
 -- that update-row-movement works with the leaf partitions not in bound order.
 CREATE TABLE part_b_20_b_30 (e varchar, c numeric, a text, b bigint, d int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE range_parted ATTACH PARTITION part_b_20_b_30 FOR VALUES FROM ('b', 20) TO ('b', 30);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE part_b_10_b_20 (e varchar, c numeric, a text, b bigint, d int) PARTITION BY RANGE (c);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE part_b_1_b_10 PARTITION OF range_parted FOR VALUES FROM ('b', 1) TO ('b', 10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE range_parted ATTACH PARTITION part_b_10_b_20 FOR VALUES FROM ('b', 10) TO ('b', 20);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE part_a_10_a_20 PARTITION OF range_parted FOR VALUES FROM ('a', 10) TO ('a', 20);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE part_a_1_a_10 PARTITION OF range_parted FOR VALUES FROM ('a', 1) TO ('a', 10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -577,60 +577,60 @@ QUERY:
 -- does not have any child partitions.
 UPDATE part_b_10_b_20 set b = b - 6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- Create some more partitions following the above pattern of descending bound
--- order, but let/* REPLACED */''s make the situation a bit more complex by having the
+-- order, but let/* REPLACED */ ''s make the situation a bit more complex by having the
 -- attribute numbers of the columns vary from their parent partition.
 CREATE TABLE part_c_100_200 (e varchar, c numeric, a text, b bigint, d int) PARTITION BY range (abs(d));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE part_c_100_200 DROP COLUMN e, DROP COLUMN c, DROP COLUMN a;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE part_c_100_200 ADD COLUMN c numeric, ADD COLUMN e varchar, ADD COLUMN a text;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE part_c_100_200 DROP COLUMN b;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE part_c_100_200 ADD COLUMN b bigint;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE part_d_1_15 PARTITION OF part_c_100_200 FOR VALUES FROM (1) TO (15);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE part_d_15_20 PARTITION OF part_c_100_200 FOR VALUES FROM (15) TO (20);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -638,7 +638,7 @@ QUERY:
 
 ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_100_200 FOR VALUES FROM (100) TO (200);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -646,14 +646,14 @@ QUERY:
 
 CREATE TABLE part_c_1_100 (e varchar, d int, c numeric, b bigint, a text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE part_b_10_b_20 ATTACH PARTITION part_c_1_100 FOR VALUES FROM (1) TO (100);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -661,15 +661,15 @@ QUERY:
 
 -- \set init_range_parted 'truncate range_parted;
 RESULT:
-	postgres: can't execute an empty query
+	ERROR - can't execute an empty query
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)'
 -- \set show_data 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -678,7 +678,7 @@ LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -686,11 +686,11 @@ LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -700,7 +700,7 @@ QUERY:
 -- The order of subplans should be in bound order
 EXPLAIN (costs off) UPDATE range_parted set c = c - 50 WHERE c > 97;
 RESULT:
-	postgres: [('Update on range_parted',), ('  Update on part_a_1_a_10 range_parted_1',), ('  Update on part_a_10_a_20 range_parted_2',), ('  Update on part_b_1_b_10 range_parted_3',), ('  Update on part_c_1_100 range_parted_4',), ('  Update on part_d_1_15 range_parted_5',), ('  Update on part_d_15_20 range_parted_6',), ('  Update on part_b_20_b_30 range_parted_7',), ('  ->  Append',), ('        ->  Seq Scan on part_a_1_a_10 range_parted_1',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_a_10_a_20 range_parted_2',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_b_1_b_10 range_parted_3',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_c_1_100 range_parted_4',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_d_1_15 range_parted_5',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_d_15_20 range_parted_6',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_b_20_b_30 range_parted_7',), ("              Filter: (c > '97'::numeric)",)]
+	[('Update on range_parted',), ('  Update on part_a_1_a_10 range_parted_1',), ('  Update on part_a_10_a_20 range_parted_2',), ('  Update on part_b_1_b_10 range_parted_3',), ('  Update on part_c_1_100 range_parted_4',), ('  Update on part_d_1_15 range_parted_5',), ('  Update on part_d_15_20 range_parted_6',), ('  Update on part_b_20_b_30 range_parted_7',), ('  ->  Append',), ('        ->  Seq Scan on part_a_1_a_10 range_parted_1',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_a_10_a_20 range_parted_2',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_b_1_b_10 range_parted_3',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_c_1_100 range_parted_4',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_d_1_15 range_parted_5',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_d_15_20 range_parted_6',), ("              Filter: (c > '97'::numeric)",), ('        ->  Seq Scan on part_b_20_b_30 range_parted_7',), ("              Filter: (c > '97'::numeric)",)]
 
 -----------
 QUERY:
@@ -709,16 +709,16 @@ QUERY:
 -- fail, row movement happens only within the partition subtree.
 UPDATE part_c_100_200 set c = c - 20, d = c WHERE c = 105;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 -- fail, no partition key update, so no attempt to move tuple,
--- but /* REPLACED */''a = /* REPLACED */''a/* REPLACED */''/* REPLACED */'' violates partition constraint enforced by root partition)
+-- but /* REPLACED */ ''a = /* REPLACED */ ''a/* REPLACED */ ''/* REPLACED */ '' violates partition constraint enforced by root partition)
 UPDATE part_b_10_b_20 set a = 'a';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -726,7 +726,7 @@ QUERY:
 -- ok, partition key update, no constraint violation
 UPDATE range_parted set d = d - 10 WHERE d > 10;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -734,7 +734,7 @@ QUERY:
 -- ok, no partition key update, no constraint violation
 UPDATE range_parted set e = d;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -742,7 +742,7 @@ QUERY:
 -- No row found
 UPDATE part_c_1_100 set c = c + 20 WHERE c = 98;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -750,16 +750,16 @@ QUERY:
 -- ok, row movement
 UPDATE part_b_10_b_20 set c = c + 20 returning c, b, a;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -769,7 +769,7 @@ QUERY:
 -- fail, row movement happens only within the partition subtree.
 UPDATE part_b_10_b_20 set b = b - 6 WHERE c > 116 returning *;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -777,17 +777,17 @@ QUERY:
 -- ok, row movement, with subset of rows moved into different partition.
 UPDATE range_parted set b = b - 6 WHERE c > 116 returning a, b + c;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 3: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 3: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -797,14 +797,14 @@ QUERY:
 -- Common table needed for multiple test scenarios.
 CREATE TABLE mintab(c1 int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into mintab VALUES (120);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -813,7 +813,7 @@ QUERY:
 -- update partition key using updatable view.
 CREATE VIEW upview AS SELECT * FROM range_parted WHERE (select c > c1 FROM mintab) WITH CHECK OPTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -821,7 +821,7 @@ QUERY:
 -- ok
 UPDATE upview set c = 199 WHERE b = 4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -829,7 +829,7 @@ QUERY:
 -- fail, check option violation
 UPDATE upview set c = 120 WHERE b = 4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -837,7 +837,7 @@ QUERY:
 -- fail, row movement with check option violation
 UPDATE upview set a = 'b', b = 15, c = 120 WHERE b = 4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -845,17 +845,17 @@ QUERY:
 -- ok, row movement, check option passes
 UPDATE upview set a = 'b', b = 15 WHERE b = 4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 3: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 3: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -865,25 +865,25 @@ QUERY:
 -- cleanup
 DROP VIEW upview;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- RETURNING having whole-row vars.
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 4: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 4: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -893,16 +893,16 @@ QUERY:
 
 UPDATE range_parted set c = 95 WHERE a = 'b' and b > 10 and c > 100 returning (range_parted), *;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -911,18 +911,18 @@ QUERY:
 
 
 -- Transition tables with update row movement
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 5: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 5: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -942,7 +942,7 @@ $$
   end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -952,7 +952,7 @@ CREATE TRIGGER trans_updatetrig
   AFTER UPDATE ON range_parted REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -960,33 +960,33 @@ QUERY:
 
 UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end ) WHERE a = 'b' and b > 10 and c >= 96;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1002,7 +1002,7 @@ CREATE TRIGGER trans_deletetrig
   AFTER DELETE ON range_parted REFERENCING OLD TABLE AS old_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1011,23 +1011,23 @@ CREATE TRIGGER trans_inserttrig
   AFTER INSERT ON range_parted REFERENCING NEW TABLE AS new_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -1035,19 +1035,19 @@ QUERY:
 
 DROP TRIGGER trans_deletetrig ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trans_inserttrig ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- Don/* REPLACED */''t drop trans_updatetrig yet. It is required below.
+-- Don/* REPLACED */ ''t drop trans_updatetrig yet. It is required below.
 
 -- Test with transition tuple conversion happening for rows moved into the
 -- new partition. This requires a trigger that references transition table
@@ -1062,7 +1062,7 @@ BEGIN
    return NEW;
 END $$ language plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1070,7 +1070,7 @@ QUERY:
 CREATE TRIGGER trig_c1_100 BEFORE UPDATE OR INSERT ON part_c_1_100
    FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1078,7 +1078,7 @@ QUERY:
 CREATE TRIGGER trig_d1_15 BEFORE UPDATE OR INSERT ON part_d_1_15
    FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1086,23 +1086,23 @@ QUERY:
 CREATE TRIGGER trig_d15_20 BEFORE UPDATE OR INSERT ON part_d_15_20
    FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1112,33 +1112,33 @@ QUERY:
 
 UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end) WHERE a = 'b' and b > 10 and c >= 96;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1148,16 +1148,16 @@ QUERY:
 
 UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -1167,18 +1167,18 @@ QUERY:
 -- Case where per-partition tuple conversion map array is allocated, but the
 -- map is not required for the particular tuple that is routed, thanks to
 -- matching table attributes of the partition and the target table.
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 6: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 6: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1188,16 +1188,16 @@ QUERY:
 
 UPDATE range_parted set b = 15 WHERE b = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -1206,35 +1206,35 @@ QUERY:
 
 DROP TRIGGER trans_updatetrig ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trig_c1_100 ON part_c_1_100;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trig_d1_15 ON part_d_1_15;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trig_d15_20 ON part_d_15_20;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FUNCTION func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1245,52 +1245,52 @@ QUERY:
 
 ALTER TABLE range_parted ENABLE ROW LEVEL SECURITY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT ALL ON range_parted, mintab TO regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE POLICY seeall ON range_parted AS PERMISSIVE FOR SELECT USING (true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE POLICY policy_range_parted ON range_parted for UPDATE USING (true) WITH CHECK (c % 2 = 0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 3: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 3: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1300,16 +1300,16 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 -- This should fail with RLS violation error while moving row from
--- part_a_10_a_20 to part_d_1_15, because we are setting /* REPLACED */''c/* REPLACED */'' to an odd number.
+-- part_a_10_a_20 to part_d_1_15, because we are setting /* REPLACED */ ''c/* REPLACED */ '' to an odd number.
 UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1317,7 +1317,7 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1329,7 +1329,7 @@ BEGIN
    return NEW;
 END $$ LANGUAGE plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1337,24 +1337,24 @@ QUERY:
 CREATE TRIGGER trig_d_1_15 BEFORE INSERT ON part_d_1_15
    FOR EACH ROW EXECUTE PROCEDURE func_d_1_15();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 3: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 3: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1364,18 +1364,18 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- Here, RLS checks should succeed while moving row from part_a_10_a_20 to
--- part_d_1_15. Even though the UPDATE is setting /* REPLACED */''c/* REPLACED */'' to an odd number, the
+-- part_d_1_15. Even though the UPDATE is setting /* REPLACED */ ''c/* REPLACED */ '' to an odd number, the
 -- trigger at the destination partition again makes it an even number.
 UPDATE range_parted set a = 'b', c = 151 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1383,23 +1383,23 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1409,17 +1409,17 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 -- This should fail with RLS violation error. Even though the UPDATE is setting
--- /* REPLACED */''c/* REPLACED */'' to an even number, the trigger at the destination partition again makes
+-- /* REPLACED */ ''c/* REPLACED */ '' to an even number, the trigger at the destination partition again makes
 -- it an odd number.
 UPDATE range_parted set a = 'b', c = 150 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1428,21 +1428,21 @@ QUERY:
 -- Cleanup
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trig_d_1_15 ON part_d_1_15;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FUNCTION func_d_1_15();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1451,23 +1451,23 @@ QUERY:
 -- Policy expression contains SubPlan
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1479,14 +1479,14 @@ CREATE POLICY policy_range_parted_subplan on range_parted
     AS RESTRICTIVE for UPDATE USING (true)
     WITH CHECK ((SELECT range_parted.c <= c1 FROM mintab));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1494,7 +1494,7 @@ QUERY:
 -- fail, mintab has row with c1 = 120
 UPDATE range_parted set a = 'b', c = 122 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1502,7 +1502,7 @@ QUERY:
 -- ok
 UPDATE range_parted set a = 'b', c = 120 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1512,23 +1512,23 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1539,14 +1539,14 @@ QUERY:
 CREATE POLICY policy_range_parted_wholerow on range_parted AS RESTRICTIVE for UPDATE USING (true)
    WITH CHECK (range_parted = row('b', 10, 112, 1, NULL)::range_parted);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1554,30 +1554,30 @@ QUERY:
 -- ok, should pass the RLS check
 UPDATE range_parted set a = 'b', c = 112 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 2: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 2: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1587,7 +1587,7 @@ QUERY:
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1595,7 +1595,7 @@ QUERY:
 -- fail, the whole row RLS check should fail
 UPDATE range_parted set a = 'b', c = 116 WHERE a = 'a' and c = 200;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1604,49 +1604,49 @@ QUERY:
 -- Cleanup
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP POLICY policy_range_parted ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP POLICY policy_range_parted_subplan ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP POLICY policy_range_parted_wholerow ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 REVOKE ALL ON range_parted, mintab FROM regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER regress_range_parted_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE mintab;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1656,18 +1656,18 @@ QUERY:
 -- statement triggers with update row movement
 ---------------------------------------------------
 
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 7: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 7: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1685,7 +1685,7 @@ $$
   end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1694,7 +1694,7 @@ QUERY:
 CREATE TRIGGER parent_delete_trig
   AFTER DELETE ON range_parted for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1702,7 +1702,7 @@ QUERY:
 CREATE TRIGGER parent_update_trig
   AFTER UPDATE ON range_parted for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1710,7 +1710,7 @@ QUERY:
 CREATE TRIGGER parent_insert_trig
   AFTER INSERT ON range_parted for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1720,7 +1720,7 @@ QUERY:
 CREATE TRIGGER c1_delete_trig
   AFTER DELETE ON part_c_1_100 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1728,7 +1728,7 @@ QUERY:
 CREATE TRIGGER c1_update_trig
   AFTER UPDATE ON part_c_1_100 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1736,7 +1736,7 @@ QUERY:
 CREATE TRIGGER c1_insert_trig
   AFTER INSERT ON part_c_1_100 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1746,7 +1746,7 @@ QUERY:
 CREATE TRIGGER d1_delete_trig
   AFTER DELETE ON part_d_1_15 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1754,7 +1754,7 @@ QUERY:
 CREATE TRIGGER d1_update_trig
   AFTER UPDATE ON part_d_1_15 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1762,7 +1762,7 @@ QUERY:
 CREATE TRIGGER d1_insert_trig
   AFTER INSERT ON part_d_1_15 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1771,7 +1771,7 @@ QUERY:
 CREATE TRIGGER d15_delete_trig
   AFTER DELETE ON part_d_15_20 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1779,7 +1779,7 @@ QUERY:
 CREATE TRIGGER d15_update_trig
   AFTER UPDATE ON part_d_15_20 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1787,7 +1787,7 @@ QUERY:
 CREATE TRIGGER d15_insert_trig
   AFTER INSERT ON part_d_15_20 for each statement execute procedure trigfunc();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1797,16 +1797,16 @@ QUERY:
 -- insert statement triggers should be fired.
 UPDATE range_parted set c = c - 50 WHERE c > 97;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -1815,84 +1815,84 @@ QUERY:
 
 DROP TRIGGER parent_delete_trig ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER parent_update_trig ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER parent_insert_trig ON range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER c1_delete_trig ON part_c_1_100;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER c1_update_trig ON part_c_1_100;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER c1_insert_trig ON part_c_1_100;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER d1_delete_trig ON part_d_1_15;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER d1_update_trig ON part_d_1_15;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER d1_insert_trig ON part_d_1_15;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER d15_delete_trig ON part_d_15_20;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER d15_update_trig ON part_d_15_20;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER d15_insert_trig ON part_d_15_20;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1900,18 +1900,18 @@ QUERY:
 
 
 -- Creating default partition for range
-/* REPLACED */'truncate range_parted;
+/* REPLACED */ 'truncate range_parted;
 RESULT:
-	postgres: unterminated quoted string at or near "'truncate range_parted;"
-LINE 5: /* REPLACED */'truncate range_parted;
-                      ^
+	ERROR - unterminated quoted string at or near "'truncate range_parted;"
+LINE 5: /* REPLACED */ 'truncate range_parted;
+                       ^
 
 
 -----------
 QUERY:
  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 10, 200, 1), (''b'', 12, 96, 1), (''b'', 13, 97, 2), (''b'', 15, 105, 16), (''b'', 17, 105, 19)';
 RESULT:
-	postgres: syntax error at or near "a"
+	ERROR - syntax error at or near "a"
 LINE 1:  insert into range_parted VALUES (''a'', 1, 1, 1), (''a'', 1...
                                             ^
 
@@ -1921,7 +1921,7 @@ QUERY:
 
 create table part_def partition of range_parted default;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1929,7 +1929,7 @@ QUERY:
 -- \d+ part_def
 insert into range_parted values ('c', 9);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1937,7 +1937,7 @@ QUERY:
 -- ok
 update part_def set a = 'd' where a = 'c';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1945,7 +1945,7 @@ QUERY:
 -- fail
 update part_def set a = 'a' where a = 'd';
 RESULT:
-	postgres: new row for relation "part_def" violates partition constraint
+	ERROR - new row for relation "part_def" violates partition constraint
 DETAIL:  Failing row contains (a, 9, null, null, null).
 
 
@@ -1953,11 +1953,11 @@ DETAIL:  Failing row contains (a, 9, null, null, null).
 QUERY:
 
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 3: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 3: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -1965,10 +1965,10 @@ QUERY:
 
 
 -- Update row movement from non-default to default partition.
--- fail, default partition is not under part_a_10_a_20 /* REPLACED */,
+-- fail, default partition is not under part_a_10_a_20 /* REPLACED */ ,
 UPDATE part_a_10_a_20 set a = 'ad' WHERE a = 'a';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1976,23 +1976,23 @@ QUERY:
 -- ok
 UPDATE range_parted set a = 'ad' WHERE a = 'a';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE range_parted set a = 'bd' WHERE a = 'b';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -2002,23 +2002,23 @@ QUERY:
 -- ok
 UPDATE range_parted set a = 'a' WHERE a = 'ad';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE range_parted set a = 'b' WHERE a = 'bd';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-/* REPLACED */'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
+/* REPLACED */ 'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6';
 RESULT:
-	postgres: syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
-LINE 2: /* REPLACED */'select tableoid::regclass::text COLLATE "C" p...
-                      ^
+	ERROR - syntax error at or near "'select tableoid::regclass::text COLLATE "C" partname, * from range_parted ORDER BY 1, 2, 3, 4, 5, 6'"
+LINE 2: /* REPLACED */ 'select tableoid::regclass::text COLLATE "C" ...
+                       ^
 
 
 -----------
@@ -2028,7 +2028,7 @@ QUERY:
 -- Cleanup: range_parted no longer needed.
 DROP TABLE range_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2039,35 +2039,35 @@ CREATE TABLE list_parted (
 	b int
 ) PARTITION BY list (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE list_part1  PARTITION OF list_parted for VALUES in ('a', 'b');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE list_default PARTITION OF list_parted default;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into list_part1 VALUES ('a', 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into list_default VALUES ('d', 10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2076,7 +2076,7 @@ QUERY:
 -- fail
 UPDATE list_default set a = 'a' WHERE a = 'd';
 RESULT:
-	postgres: new row for relation "list_default" violates partition constraint
+	ERROR - new row for relation "list_default" violates partition constraint
 DETAIL:  Failing row contains (a, 10).
 
 
@@ -2086,7 +2086,7 @@ QUERY:
 -- ok
 UPDATE list_default set a = 'x' WHERE a = 'd';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2094,7 +2094,7 @@ QUERY:
 
 DROP TABLE list_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2105,42 +2105,42 @@ QUERY:
 
 create table utrtest (a int, b text) partition by list (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table utr1 (a int check (a in (1)), q text, b text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table utr2 (a int check (a in (2)), b text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table utr1 drop column q;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table utrtest attach partition utr1 for values in (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table utrtest attach partition utr2 for values in (2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2149,7 +2149,7 @@ QUERY:
 insert into utrtest values (1, 'foo')
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
 RESULT:
-	postgres: [(1, 'foo', 'utr1', True)]
+	[(1, 'foo', 'utr1', True)]
 
 -----------
 QUERY:
@@ -2157,7 +2157,7 @@ QUERY:
 insert into utrtest values (2, 'bar')
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
 RESULT:
-	postgres: cannot retrieve a system column in this context
+	ERROR - cannot retrieve a system column in this context
 
 
 -----------
@@ -2166,7 +2166,7 @@ QUERY:
 insert into utrtest values (2, 'bar')
   returning *, tableoid::regclass;
 RESULT:
-	postgres: [(2, 'bar', 'utr2')]
+	[(2, 'bar', 'utr2')]
 
 -----------
 QUERY:
@@ -2175,7 +2175,7 @@ QUERY:
 update utrtest set b = b || b from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
 RESULT:
-	postgres: [(1, 'foofoo', 1, 'utr1', True), (2, 'barbar', 2, 'utr2', True)]
+	[(1, 'foofoo', 1, 'utr1', True), (2, 'barbar', 2, 'utr2', True)]
 
 -----------
 QUERY:
@@ -2184,7 +2184,7 @@ QUERY:
 update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;
 RESULT:
-	postgres: cannot retrieve a system column in this context
+	ERROR - cannot retrieve a system column in this context
 
 
 -----------
@@ -2194,7 +2194,7 @@ QUERY:
 update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass;
 RESULT:
-	postgres: [(2, 'foofoo', 1, 'utr2'), (1, 'barbar', 2, 'utr1')]
+	[(2, 'foofoo', 1, 'utr2'), (1, 'barbar', 2, 'utr1')]
 
 -----------
 QUERY:
@@ -2203,7 +2203,7 @@ QUERY:
 delete from utrtest
   returning *, tableoid::regclass, xmax = pg_current_xact_id()::xid as xmax_ok;
 RESULT:
-	postgres: [(1, 'barbar', 'utr1', True), (2, 'foofoo', 'utr2', True)]
+	[(1, 'barbar', 'utr1', True), (2, 'foofoo', 'utr2', True)]
 
 -----------
 QUERY:
@@ -2211,7 +2211,7 @@ QUERY:
 
 drop table utrtest;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2226,14 +2226,14 @@ QUERY:
 -- Setup for list partitions
 CREATE TABLE list_parted (a numeric, b int, c int8) PARTITION BY list (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE sub_parted PARTITION OF list_parted for VALUES in (1) PARTITION BY list (b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2241,28 +2241,28 @@ QUERY:
 
 CREATE TABLE sub_part1(b int, c int8, a numeric);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE sub_parted ATTACH PARTITION sub_part1 for VALUES in (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE sub_part2(b int, c int8, a numeric);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE sub_parted ATTACH PARTITION sub_part2 for VALUES in (2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2270,14 +2270,14 @@ QUERY:
 
 CREATE TABLE list_part1(a numeric, b int, c int8);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE list_parted ATTACH PARTITION list_part1 for VALUES in (2,3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2285,28 +2285,28 @@ QUERY:
 
 INSERT into list_parted VALUES (2,5,50);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into list_parted VALUES (3,6,60);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into sub_parted VALUES (1,1,60);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into sub_parted VALUES (1,2,10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2316,7 +2316,7 @@ QUERY:
 -- constraint is inherited from upper root.
 UPDATE sub_parted set a = 2 WHERE c = 10;
 RESULT:
-	postgres: new row for relation "sub_parted" violates partition constraint
+	ERROR - new row for relation "sub_parted" violates partition constraint
 DETAIL:  Failing row contains (2, 2, 10).
 
 
@@ -2328,21 +2328,21 @@ QUERY:
 -- partition keys updated.
 SELECT tableoid::regclass::text, * FROM list_parted WHERE a = 2 ORDER BY 1;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 5, 50)]
+	[('list_part1', Decimal('2'), 5, 50)]
 
 -----------
 QUERY:
 
 UPDATE list_parted set b = c + a WHERE a = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT tableoid::regclass::text, * FROM list_parted WHERE a = 2 ORDER BY 1;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 52, 50)]
+	[('list_part1', Decimal('2'), 52, 50)]
 
 -----------
 QUERY:
@@ -2356,7 +2356,7 @@ BEGIN
    return NEW;
 END $$ LANGUAGE plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2364,7 +2364,7 @@ QUERY:
 CREATE TRIGGER parted_mod_b before update on sub_part1
    for each row execute procedure func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2372,7 +2372,7 @@ QUERY:
 
 SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part1', Decimal('1'), 1, 60), ('sub_part2', Decimal('1'), 2, 10)]
+	[('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part1', Decimal('1'), 1, 60), ('sub_part2', Decimal('1'), 2, 10)]
 
 -----------
 QUERY:
@@ -2382,14 +2382,14 @@ QUERY:
 -- partition-key update, because there is a trigger on sub_part1.
 UPDATE list_parted set c = 70 WHERE b  = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part2', Decimal('1'), 2, 10), ('sub_part2', Decimal('1'), 2, 70)]
+	[('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part2', Decimal('1'), 2, 10), ('sub_part2', Decimal('1'), 2, 70)]
 
 -----------
 QUERY:
@@ -2397,7 +2397,7 @@ QUERY:
 
 DROP TRIGGER parted_mod_b ON sub_part1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2411,7 +2411,7 @@ BEGIN
    return NULL;
 END $$ LANGUAGE plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2419,21 +2419,21 @@ QUERY:
 CREATE TRIGGER trig_skip_delete before delete on sub_part2
    for each row execute procedure func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE list_parted set b = 1 WHERE c = 70;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part2', Decimal('1'), 2, 10), ('sub_part2', Decimal('1'), 2, 70)]
+	[('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part2', Decimal('1'), 2, 10), ('sub_part2', Decimal('1'), 2, 70)]
 
 -----------
 QUERY:
@@ -2441,28 +2441,28 @@ QUERY:
 -- Drop the trigger. Now the row should be moved.
 DROP TRIGGER trig_skip_delete ON sub_part2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE list_parted set b = 1 WHERE c = 70;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part1', Decimal('1'), 1, 70), ('sub_part2', Decimal('1'), 2, 10)]
+	[('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60), ('sub_part1', Decimal('1'), 1, 70), ('sub_part2', Decimal('1'), 2, 10)]
 
 -----------
 QUERY:
 
 DROP FUNCTION func_parted_mod_b();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2473,35 +2473,35 @@ QUERY:
 -- once. There should not be any rows inserted.
 CREATE TABLE non_parted (id int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT into non_parted VALUES (1), (1), (1), (2), (2), (2), (3), (3), (3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE list_parted t1 set a = 2 FROM non_parted t2 WHERE t1.a = t2.id and a = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT tableoid::regclass::text, * FROM list_parted ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('list_part1', Decimal('2'), 1, 70), ('list_part1', Decimal('2'), 2, 10), ('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60)]
+	[('list_part1', Decimal('2'), 1, 70), ('list_part1', Decimal('2'), 2, 10), ('list_part1', Decimal('2'), 52, 50), ('list_part1', Decimal('3'), 6, 60)]
 
 -----------
 QUERY:
 
 DROP TABLE non_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2510,7 +2510,7 @@ QUERY:
 -- Cleanup: list_parted no longer needed.
 DROP TABLE list_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2521,7 +2521,7 @@ QUERY:
 create or replace function dummy_hashint4(a int4, seed int8) returns int8 as
 $$ begin return (a + seed); end; $$ language 'plpgsql' immutable;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2529,7 +2529,7 @@ QUERY:
 create operator class custom_opclass for type int4 using hash as
 operator 1 = , function 2 dummy_hashint4(int4, int8);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2540,56 +2540,56 @@ create table hash_parted (
 	b int
 ) partition by hash (a custom_opclass, b custom_opclass);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table hpart1 partition of hash_parted for values with (modulus 2, remainder 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table hpart2 partition of hash_parted for values with (modulus 4, remainder 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table hpart3 partition of hash_parted for values with (modulus 8, remainder 0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table hpart4 partition of hash_parted for values with (modulus 8, remainder 4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into hpart1 values (1, 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into hpart2 values (2, 5);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into hpart4 values (3, 4);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2598,7 +2598,7 @@ QUERY:
 -- fail
 update hpart1 set a = 3, b=4 where a = 1;
 RESULT:
-	postgres: new row for relation "hpart1" violates partition constraint
+	ERROR - new row for relation "hpart1" violates partition constraint
 DETAIL:  Failing row contains (3, 4).
 
 
@@ -2608,7 +2608,7 @@ QUERY:
 -- ok, row movement
 update hash_parted set b = b - 1 where b = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2616,7 +2616,7 @@ QUERY:
 -- ok
 update hash_parted set b = b + 8 where b = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2625,18 +2625,18 @@ QUERY:
 -- cleanup
 drop table hash_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop operator class custom_opclass using hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop function dummy_hashint4(a int4, seed int8);
 RESULT:
-	postgres: None
+	[]

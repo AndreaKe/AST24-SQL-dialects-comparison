@@ -6,17 +6,17 @@ QUERY:
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION test_fdw_handler()
     RETURNS fdw_handler
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_fdw_handler'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_fdw_handler'
     LANGUAGE C;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -24,10 +24,10 @@ QUERY:
 
 -- Clean up in case a prior regression run failed
 
--- Suppress NOTICE messages when roles don/* REPLACED */''t exist
+-- Suppress NOTICE messages when roles don/* REPLACED */ ''t exist
 SET client_min_messages TO 'warning';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -35,7 +35,7 @@ QUERY:
 
 DROP ROLE IF EXISTS regress_foreign_data_user, regress_test_role, regress_test_role2, regress_test_role_super, regress_test_indirect, regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -43,7 +43,7 @@ QUERY:
 
 RESET client_min_messages;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -51,14 +51,14 @@ QUERY:
 
 CREATE ROLE regress_foreign_data_user LOGIN SUPERUSER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION 'regress_foreign_data_user';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -66,35 +66,35 @@ QUERY:
 
 CREATE ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_test_role2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_test_role_super SUPERUSER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -102,21 +102,21 @@ QUERY:
 
 CREATE FOREIGN DATA WRAPPER dummy;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON FOREIGN DATA WRAPPER dummy IS 'useless';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER postgresql VALIDATOR postgresql_fdw_validator;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -125,21 +125,21 @@ QUERY:
 -- At this point we should have 2 built-in wrappers and no servers.
 SELECT fdwname, fdwhandler::regproc, fdwvalidator::regproc, fdwoptions FROM pg_foreign_data_wrapper ORDER BY 1, 2, 3;
 RESULT:
-	postgres: [('dummy', '-', '-', None), ('postgresql', '-', 'postgresql_fdw_validator', None)]
+	[('dummy', '-', '-', None), ('postgresql', '-', 'postgresql_fdw_validator', None)]
 
 -----------
 QUERY:
 
 SELECT srvname, srvoptions FROM pg_foreign_server;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM pg_user_mapping;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -148,7 +148,7 @@ QUERY:
 -- CREATE FOREIGN DATA WRAPPER
 CREATE FOREIGN DATA WRAPPER foo VALIDATOR bar;
 RESULT:
-	postgres: function bar(text[], oid) does not exist
+	ERROR - function bar(text[], oid) does not exist
 
 
 -----------
@@ -156,7 +156,7 @@ QUERY:
             -- ERROR
 CREATE FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -165,7 +165,7 @@ QUERY:
 
 CREATE FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: foreign-data wrapper "foo" already exists
+	ERROR - foreign-data wrapper "foo" already exists
 
 
 -----------
@@ -173,14 +173,14 @@ QUERY:
  -- duplicate
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER foo OPTIONS (testing '1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -189,14 +189,14 @@ QUERY:
 
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER foo OPTIONS (testing '1', testing '2');
 RESULT:
-	postgres: option "testing" provided more than once
+	ERROR - option "testing" provided more than once
 
 
 -----------
@@ -204,7 +204,7 @@ QUERY:
    -- ERROR
 CREATE FOREIGN DATA WRAPPER foo OPTIONS (testing '1', another '2');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -213,21 +213,21 @@ QUERY:
 
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: permission denied to create foreign-data wrapper "foo"
+	ERROR - permission denied to create foreign-data wrapper "foo"
 HINT:  Must be superuser to create a foreign-data wrapper.
 
 
@@ -236,14 +236,14 @@ QUERY:
  -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER foo VALIDATOR postgresql_fdw_validator;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -253,7 +253,7 @@ QUERY:
 -- HANDLER related checks
 CREATE FUNCTION invalid_fdw_handler() RETURNS int LANGUAGE SQL AS 'SELECT 1;
 RESULT:
-	postgres: unterminated quoted string at or near "'SELECT 1;"
+	ERROR - unterminated quoted string at or near "'SELECT 1;"
 LINE 5: ...invalid_fdw_handler() RETURNS int LANGUAGE SQL AS 'SELECT 1;
                                                              ^
 
@@ -262,7 +262,7 @@ LINE 5: ...invalid_fdw_handler() RETURNS int LANGUAGE SQL AS 'SELECT 1;
 QUERY:
 ';
 RESULT:
-	postgres: unterminated quoted string at or near "';"
+	ERROR - unterminated quoted string at or near "';"
 LINE 1: ';
         ^
 
@@ -272,7 +272,7 @@ QUERY:
 
 CREATE FOREIGN DATA WRAPPER test_fdw HANDLER invalid_fdw_handler;
 RESULT:
-	postgres: function invalid_fdw_handler() does not exist
+	ERROR - function invalid_fdw_handler() does not exist
 
 
 -----------
@@ -280,7 +280,7 @@ QUERY:
   -- ERROR
 CREATE FOREIGN DATA WRAPPER test_fdw HANDLER test_fdw_handler HANDLER invalid_fdw_handler;
 RESULT:
-	postgres: conflicting or redundant options
+	ERROR - conflicting or redundant options
 LINE 2: ...GN DATA WRAPPER test_fdw HANDLER test_fdw_handler HANDLER in...
                                                              ^
 
@@ -290,14 +290,14 @@ QUERY:
   -- ERROR
 CREATE FOREIGN DATA WRAPPER test_fdw HANDLER test_fdw_handler;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER test_fdw;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -306,7 +306,7 @@ QUERY:
 -- ALTER FOREIGN DATA WRAPPER
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (nonexistent 'fdw');
 RESULT:
-	postgres: invalid option "nonexistent"
+	ERROR - invalid option "nonexistent"
 HINT:  There are no valid options in this context.
 
 
@@ -316,7 +316,7 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: syntax error at or near ";"
+	ERROR - syntax error at or near ";"
 LINE 3: ALTER FOREIGN DATA WRAPPER foo;
                                       ^
 
@@ -326,7 +326,7 @@ QUERY:
                              -- ERROR
 ALTER FOREIGN DATA WRAPPER foo VALIDATOR bar;
 RESULT:
-	postgres: function bar(text[], oid) does not exist
+	ERROR - function bar(text[], oid) does not exist
 
 
 -----------
@@ -334,7 +334,7 @@ QUERY:
                -- ERROR
 ALTER FOREIGN DATA WRAPPER foo NO VALIDATOR;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -343,14 +343,14 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (a '1', b '2');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (SET c '4');
 RESULT:
-	postgres: option "c" not found
+	ERROR - option "c" not found
 
 
 -----------
@@ -358,7 +358,7 @@ QUERY:
          -- ERROR
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (DROP c);
 RESULT:
-	postgres: option "c" not found
+	ERROR - option "c" not found
 
 
 -----------
@@ -366,7 +366,7 @@ QUERY:
             -- ERROR
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (ADD x '1', DROP x);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -375,7 +375,7 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (DROP a, SET b '3', ADD c '4');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -384,14 +384,14 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (a '2');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (b '4');
 RESULT:
-	postgres: option "b" provided more than once
+	ERROR - option "b" provided more than once
 
 
 -----------
@@ -401,14 +401,14 @@ QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (ADD d '5');
 RESULT:
-	postgres: permission denied to alter foreign-data wrapper "foo"
+	ERROR - permission denied to alter foreign-data wrapper "foo"
 HINT:  Must be superuser to alter a foreign-data wrapper.
 
 
@@ -417,14 +417,14 @@ QUERY:
          -- ERROR
 SET ROLE regress_test_role_super;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (ADD d '5');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -433,7 +433,7 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OWNER TO regress_test_role;
 RESULT:
-	postgres: permission denied to change owner of foreign-data wrapper "foo"
+	ERROR - permission denied to change owner of foreign-data wrapper "foo"
 HINT:  The owner of a foreign-data wrapper must be a superuser.
 
 
@@ -442,28 +442,28 @@ QUERY:
   -- ERROR
 ALTER FOREIGN DATA WRAPPER foo OWNER TO regress_test_role_super;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER ROLE regress_test_role_super NOSUPERUSER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role_super;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (ADD e '6');
 RESULT:
-	postgres: permission denied to alter foreign-data wrapper "foo"
+	ERROR - permission denied to alter foreign-data wrapper "foo"
 HINT:  Must be superuser to alter a foreign-data wrapper.
 
 
@@ -472,7 +472,7 @@ QUERY:
          -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -481,7 +481,7 @@ QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo RENAME TO foo1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -489,7 +489,7 @@ QUERY:
 -- \dew+
 ALTER FOREIGN DATA WRAPPER foo1 RENAME TO foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -498,7 +498,7 @@ QUERY:
 -- HANDLER related checks
 ALTER FOREIGN DATA WRAPPER foo HANDLER invalid_fdw_handler;
 RESULT:
-	postgres: function invalid_fdw_handler() does not exist
+	ERROR - function invalid_fdw_handler() does not exist
 
 
 -----------
@@ -506,7 +506,7 @@ QUERY:
   -- ERROR
 ALTER FOREIGN DATA WRAPPER foo HANDLER test_fdw_handler HANDLER anything;
 RESULT:
-	postgres: conflicting or redundant options
+	ERROR - conflicting or redundant options
 LINE 2: ...FOREIGN DATA WRAPPER foo HANDLER test_fdw_handler HANDLER an...
                                                              ^
 
@@ -516,14 +516,14 @@ QUERY:
   -- ERROR
 ALTER FOREIGN DATA WRAPPER foo HANDLER test_fdw_handler;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FUNCTION invalid_fdw_handler();
 RESULT:
-	postgres: function invalid_fdw_handler() does not exist
+	ERROR - function invalid_fdw_handler() does not exist
 
 
 -----------
@@ -533,7 +533,7 @@ QUERY:
 -- DROP FOREIGN DATA WRAPPER
 DROP FOREIGN DATA WRAPPER nonexistent;
 RESULT:
-	postgres: foreign-data wrapper "nonexistent" does not exist
+	ERROR - foreign-data wrapper "nonexistent" does not exist
 
 
 -----------
@@ -541,7 +541,7 @@ QUERY:
                       -- ERROR
 DROP FOREIGN DATA WRAPPER IF EXISTS nonexistent;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -550,7 +550,7 @@ QUERY:
 
 DROP ROLE regress_test_role_super;
 RESULT:
-	postgres: role "regress_test_role_super" cannot be dropped because some objects depend on it
+	ERROR - role "regress_test_role_super" cannot be dropped because some objects depend on it
 DETAIL:  owner of foreign-data wrapper foo
 
 
@@ -559,28 +559,28 @@ QUERY:
                           -- ERROR
 SET ROLE regress_test_role_super;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_role_super;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -589,35 +589,35 @@ QUERY:
 
 CREATE FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON SERVER s1 IS 'foreign server';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER s1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER s1;
 RESULT:
-	postgres: user mapping for "regress_foreign_data_user" already exists for server "s1"
+	ERROR - user mapping for "regress_foreign_data_user" already exists for server "s1"
 
 
 -----------
@@ -625,7 +625,7 @@ QUERY:
 				-- ERROR
 CREATE USER MAPPING IF NOT EXISTS FOR current_user SERVER s1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -635,7 +635,7 @@ QUERY:
 -- \deu+
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: cannot drop foreign-data wrapper foo because other objects depend on it
+	ERROR - cannot drop foreign-data wrapper foo because other objects depend on it
 DETAIL:  server s1 depends on foreign-data wrapper foo
 user mapping for regress_foreign_data_user on server s1 depends on server s1
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
@@ -646,14 +646,14 @@ QUERY:
                               -- ERROR
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER foo CASCADE;
 RESULT:
-	postgres: must be owner of foreign-data wrapper foo
+	ERROR - must be owner of foreign-data wrapper foo
 
 
 -----------
@@ -661,14 +661,14 @@ QUERY:
                       -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER foo CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -680,7 +680,7 @@ QUERY:
 -- exercise CREATE SERVER
 CREATE SERVER s1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: foreign-data wrapper "foo" does not exist
+	ERROR - foreign-data wrapper "foo" does not exist
 
 
 -----------
@@ -688,21 +688,21 @@ QUERY:
                   -- ERROR
 CREATE FOREIGN DATA WRAPPER foo OPTIONS ("test wrapper" 'true');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: server "s1" already exists
+	ERROR - server "s1" already exists
 
 
 -----------
@@ -710,56 +710,56 @@ QUERY:
                   -- ERROR
 CREATE SERVER IF NOT EXISTS s1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 	-- No ERROR, just NOTICE
 CREATE SERVER s2 FOREIGN DATA WRAPPER foo OPTIONS (host 'a', dbname 'b');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s3 TYPE 'oracle' FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s4 TYPE 'oracle' FOREIGN DATA WRAPPER foo OPTIONS (host 'a', dbname 'b');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s5 VERSION '15.0' FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s6 VERSION '16.0' FOREIGN DATA WRAPPER foo OPTIONS (host 'a', dbname 'b');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s7 TYPE 'oracle' VERSION '17.0' FOREIGN DATA WRAPPER foo OPTIONS (host 'a', dbname 'b');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s8 FOREIGN DATA WRAPPER postgresql OPTIONS (foo '1');
 RESULT:
-	postgres: invalid option "foo"
+	ERROR - invalid option "foo"
 
 
 -----------
@@ -767,7 +767,7 @@ QUERY:
  -- ERROR
 CREATE SERVER s8 FOREIGN DATA WRAPPER postgresql OPTIONS (host 'localhost', dbname 's8db');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -775,14 +775,14 @@ QUERY:
 -- \des+
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER t1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -790,35 +790,35 @@ QUERY:
                  -- ERROR: no usage on FDW
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER t1 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -827,28 +827,28 @@ QUERY:
 
 REVOKE USAGE ON FOREIGN DATA WRAPPER foo FROM regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER t2 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -856,28 +856,28 @@ QUERY:
                  -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT regress_test_indirect TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER t2 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -885,14 +885,14 @@ QUERY:
 -- \des+
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 REVOKE regress_test_indirect FROM regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -901,7 +901,7 @@ QUERY:
 -- ALTER SERVER
 ALTER SERVER s0;
 RESULT:
-	postgres: syntax error at or near ";"
+	ERROR - syntax error at or near ";"
 LINE 4: ALTER SERVER s0;
                        ^
 
@@ -911,7 +911,7 @@ QUERY:
                                             -- ERROR
 ALTER SERVER s0 OPTIONS (a '1');
 RESULT:
-	postgres: server "s0" does not exist
+	ERROR - server "s0" does not exist
 
 
 -----------
@@ -919,35 +919,35 @@ QUERY:
                             -- ERROR
 ALTER SERVER s1 VERSION '1.0' OPTIONS (servername 's1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s2 VERSION '1.1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s3 OPTIONS ("tns name" 'orcl', port '1521');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN SERVER s1 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN SERVER s6 TO regress_test_role2 WITH GRANT OPTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -955,14 +955,14 @@ QUERY:
 -- \des+
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 VERSION '1.1';
 RESULT:
-	postgres: must be owner of foreign server s1
+	ERROR - must be owner of foreign server s1
 
 
 -----------
@@ -970,7 +970,7 @@ QUERY:
                               -- ERROR
 ALTER SERVER s1 OWNER TO regress_test_role;
 RESULT:
-	postgres: must be owner of foreign server s1
+	ERROR - must be owner of foreign server s1
 
 
 -----------
@@ -978,42 +978,42 @@ QUERY:
                  -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 OWNER TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT regress_test_role2 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 VERSION '1.1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 OWNER TO regress_test_role2;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -1021,14 +1021,14 @@ QUERY:
                 -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s8 OPTIONS (foo '1');
 RESULT:
-	postgres: invalid option "foo"
+	ERROR - invalid option "foo"
 
 
 -----------
@@ -1036,21 +1036,21 @@ QUERY:
                           -- ERROR option validation
 ALTER SERVER s8 OPTIONS (connect_timeout '30', SET dbname 'db1', DROP host);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 OWNER TO regress_test_indirect;
 RESULT:
-	postgres: must be able to SET ROLE "regress_test_indirect"
+	ERROR - must be able to SET ROLE "regress_test_indirect"
 
 
 -----------
@@ -1058,70 +1058,70 @@ QUERY:
              -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT regress_test_indirect TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 OWNER TO regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s1 OWNER TO regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_indirect;
 RESULT:
-	postgres: role "regress_test_indirect" cannot be dropped because some objects depend on it
+	ERROR - role "regress_test_indirect" cannot be dropped because some objects depend on it
 DETAIL:  privileges for foreign-data wrapper foo
 owner of server s1
 
@@ -1133,7 +1133,7 @@ QUERY:
 
 ALTER SERVER s8 RENAME to s8new;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1141,7 +1141,7 @@ QUERY:
 -- \des+
 ALTER SERVER s8new RENAME to s8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1150,7 +1150,7 @@ QUERY:
 -- DROP SERVER
 DROP SERVER nonexistent;
 RESULT:
-	postgres: server "nonexistent" does not exist
+	ERROR - server "nonexistent" does not exist
 
 
 -----------
@@ -1158,7 +1158,7 @@ QUERY:
                                     -- ERROR
 DROP SERVER IF EXISTS nonexistent;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1166,14 +1166,14 @@ QUERY:
 -- \des
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s2;
 RESULT:
-	postgres: must be owner of foreign server s2
+	ERROR - must be owner of foreign server s2
 
 
 -----------
@@ -1181,14 +1181,14 @@ QUERY:
                                              -- ERROR
 DROP SERVER s1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1196,28 +1196,28 @@ QUERY:
 -- \des
 ALTER SERVER s2 OWNER TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1225,7 +1225,7 @@ QUERY:
 -- \des
 CREATE USER MAPPING FOR current_user SERVER s3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1233,7 +1233,7 @@ QUERY:
 -- \deu
 DROP SERVER s3;
 RESULT:
-	postgres: cannot drop server s3 because other objects depend on it
+	ERROR - cannot drop server s3 because other objects depend on it
 DETAIL:  user mapping for regress_foreign_data_user on server s3 depends on server s3
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 
@@ -1243,7 +1243,7 @@ QUERY:
                                              -- ERROR
 DROP SERVER s3 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1254,7 +1254,7 @@ QUERY:
 -- CREATE USER MAPPING
 CREATE USER MAPPING FOR regress_test_missing_role SERVER s1;
 RESULT:
-	postgres: role "regress_test_missing_role" does not exist
+	ERROR - role "regress_test_missing_role" does not exist
 
 
 -----------
@@ -1262,7 +1262,7 @@ QUERY:
   -- ERROR
 CREATE USER MAPPING FOR current_user SERVER s1;
 RESULT:
-	postgres: server "s1" does not exist
+	ERROR - server "s1" does not exist
 
 
 -----------
@@ -1270,14 +1270,14 @@ QUERY:
              -- ERROR
 CREATE USER MAPPING FOR current_user SERVER s4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR user SERVER s4;
 RESULT:
-	postgres: user mapping for "regress_foreign_data_user" already exists for server "s4"
+	ERROR - user mapping for "regress_foreign_data_user" already exists for server "s4"
 
 
 -----------
@@ -1285,14 +1285,14 @@ QUERY:
                      -- ERROR duplicate
 CREATE USER MAPPING FOR public SERVER s4 OPTIONS ("this mapping" 'is public');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR user SERVER s8 OPTIONS (username 'test', password 'secret');
 RESULT:
-	postgres: invalid option "username"
+	ERROR - invalid option "username"
 HINT:  Perhaps you meant the option "user".
 
 
@@ -1301,49 +1301,49 @@ QUERY:
     -- ERROR
 CREATE USER MAPPING FOR user SERVER s8 OPTIONS (user 'test', password 'secret');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s5 OWNER TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s6 OWNER TO regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER s5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER s6 OPTIONS (username 'test');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER s7;
 RESULT:
-	postgres: permission denied for foreign server s7
+	ERROR - permission denied for foreign server s7
 
 
 -----------
@@ -1351,7 +1351,7 @@ QUERY:
              -- ERROR
 CREATE USER MAPPING FOR public SERVER s8;
 RESULT:
-	postgres: must be owner of foreign server s8
+	ERROR - must be owner of foreign server s8
 
 
 -----------
@@ -1359,7 +1359,7 @@ QUERY:
                    -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1367,35 +1367,35 @@ QUERY:
 
 ALTER SERVER t1 OWNER TO regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER t1 OPTIONS (username 'bob', password 'boo');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR public SERVER t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1405,7 +1405,7 @@ QUERY:
 -- ALTER USER MAPPING
 ALTER USER MAPPING FOR regress_test_missing_role SERVER s4 OPTIONS (gotcha 'true');
 RESULT:
-	postgres: role "regress_test_missing_role" does not exist
+	ERROR - role "regress_test_missing_role" does not exist
 
 
 -----------
@@ -1413,7 +1413,7 @@ QUERY:
  -- ERROR
 ALTER USER MAPPING FOR user SERVER ss4 OPTIONS (gotcha 'true');
 RESULT:
-	postgres: server "ss4" does not exist
+	ERROR - server "ss4" does not exist
 
 
 -----------
@@ -1421,7 +1421,7 @@ QUERY:
  -- ERROR
 ALTER USER MAPPING FOR public SERVER s5 OPTIONS (gotcha 'true');
 RESULT:
-	postgres: user mapping for "public" does not exist for server "s5"
+	ERROR - user mapping for "public" does not exist for server "s5"
 
 
 -----------
@@ -1429,7 +1429,7 @@ QUERY:
             -- ERROR
 ALTER USER MAPPING FOR current_user SERVER s8 OPTIONS (username 'test');
 RESULT:
-	postgres: invalid option "username"
+	ERROR - invalid option "username"
 HINT:  Perhaps you meant the option "user".
 
 
@@ -1438,28 +1438,28 @@ QUERY:
     -- ERROR
 ALTER USER MAPPING FOR current_user SERVER s8 OPTIONS (DROP user, SET password 'public');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER USER MAPPING FOR current_user SERVER s5 OPTIONS (ADD modified '1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER USER MAPPING FOR public SERVER s4 OPTIONS (ADD modified '1');
 RESULT:
-	postgres: must be owner of foreign server s4
+	ERROR - must be owner of foreign server s4
 
 
 -----------
@@ -1467,14 +1467,14 @@ QUERY:
  -- ERROR
 ALTER USER MAPPING FOR public SERVER t1 OPTIONS (ADD modified '1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1484,7 +1484,7 @@ QUERY:
 -- DROP USER MAPPING
 DROP USER MAPPING FOR regress_test_missing_role SERVER s4;
 RESULT:
-	postgres: role "regress_test_missing_role" does not exist
+	ERROR - role "regress_test_missing_role" does not exist
 
 
 -----------
@@ -1492,7 +1492,7 @@ QUERY:
   -- ERROR
 DROP USER MAPPING FOR user SERVER ss4;
 RESULT:
-	postgres: server "ss4" does not exist
+	ERROR - server "ss4" does not exist
 
 
 -----------
@@ -1500,7 +1500,7 @@ QUERY:
 
 DROP USER MAPPING FOR public SERVER s7;
 RESULT:
-	postgres: user mapping for "public" does not exist for server "s7"
+	ERROR - user mapping for "public" does not exist for server "s7"
 
 
 -----------
@@ -1508,42 +1508,42 @@ QUERY:
                      -- ERROR
 DROP USER MAPPING IF EXISTS FOR regress_test_missing_role SERVER s4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER MAPPING IF EXISTS FOR user SERVER ss4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER MAPPING IF EXISTS FOR public SERVER s7;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR public SERVER s8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER MAPPING FOR public SERVER s8;
 RESULT:
-	postgres: must be owner of foreign server s8
+	ERROR - must be owner of foreign server s8
 
 
 -----------
@@ -1551,14 +1551,14 @@ QUERY:
                      -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s7;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1568,21 +1568,21 @@ QUERY:
 -- CREATE FOREIGN TABLE
 CREATE SCHEMA foreign_schema;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s0 FOREIGN DATA WRAPPER dummy;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN TABLE ft1 ();
 RESULT:
-	postgres: syntax error at or near ";"
+	ERROR - syntax error at or near ";"
 LINE 2: CREATE FOREIGN TABLE ft1 ();
                                    ^
 
@@ -1592,7 +1592,7 @@ QUERY:
                                     -- ERROR
 CREATE FOREIGN TABLE ft1 () SERVER no_server;
 RESULT:
-	postgres: server "no_server" does not exist
+	ERROR - server "no_server" does not exist
 
 
 -----------
@@ -1604,7 +1604,7 @@ CREATE FOREIGN TABLE ft1 (
 	c3 date
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: primary key constraints are not supported on foreign tables
+	ERROR - primary key constraints are not supported on foreign tables
 LINE 3:  c1 integer OPTIONS ("param 1" 'val1') PRIMARY KEY,
                                                ^
 
@@ -1614,7 +1614,7 @@ QUERY:
  -- ERROR
 CREATE TABLE ref_table (id integer PRIMARY KEY);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1625,7 +1625,7 @@ CREATE FOREIGN TABLE ft1 (
 	c3 date
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: foreign key constraints are not supported on foreign tables
+	ERROR - foreign key constraints are not supported on foreign tables
 LINE 3:  c1 integer OPTIONS ("param 1" 'val1') REFERENCES ref_table ...
                                                ^
 
@@ -1635,7 +1635,7 @@ QUERY:
  -- ERROR
 DROP TABLE ref_table;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1647,7 +1647,7 @@ CREATE FOREIGN TABLE ft1 (
 	UNIQUE (c3)
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: unique constraints are not supported on foreign tables
+	ERROR - unique constraints are not supported on foreign tables
 LINE 6:  UNIQUE (c3)
          ^
 
@@ -1662,21 +1662,21 @@ CREATE FOREIGN TABLE ft1 (
 	CHECK (c3 BETWEEN '1994-01-01'::date AND '1994-01-31'::date)
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON FOREIGN TABLE ft1 IS 'ft1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON COLUMN ft1.c1 IS 'ft1.c1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1685,7 +1685,7 @@ QUERY:
 -- \det+
 CREATE INDEX id_ft1_c2 ON ft1 (c2);
 RESULT:
-	postgres: cannot create index on relation "ft1"
+	ERROR - cannot create index on relation "ft1"
 DETAIL:  This operation is not supported for foreign tables.
 
 
@@ -1694,7 +1694,7 @@ QUERY:
                              -- ERROR
 SELECT * FROM ft1;
 RESULT:
-	postgres: foreign-data wrapper "dummy" has no handler
+	ERROR - foreign-data wrapper "dummy" has no handler
 
 
 -----------
@@ -1702,7 +1702,7 @@ QUERY:
                                               -- ERROR
 EXPLAIN SELECT * FROM ft1;
 RESULT:
-	postgres: foreign-data wrapper "dummy" has no handler
+	ERROR - foreign-data wrapper "dummy" has no handler
 
 
 -----------
@@ -1711,7 +1711,7 @@ QUERY:
 
 CREATE TABLE lt1 (a INT) PARTITION BY RANGE (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1719,21 +1719,21 @@ QUERY:
 CREATE FOREIGN TABLE ft_part1
   PARTITION OF lt1 FOR VALUES FROM (0) TO (1000) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX ON lt1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
                               -- skips partition
 CREATE UNIQUE INDEX ON lt1 (a);
 RESULT:
-	postgres: cannot create unique index on partitioned table "lt1"
+	ERROR - cannot create unique index on partitioned table "lt1"
 DETAIL:  Table "lt1" contains partitions that are foreign tables.
 
 
@@ -1742,7 +1742,7 @@ QUERY:
                                  -- ERROR
 ALTER TABLE lt1 ADD PRIMARY KEY (a);
 RESULT:
-	postgres: cannot create unique index on partitioned table "lt1"
+	ERROR - cannot create unique index on partitioned table "lt1"
 DETAIL:  Table "lt1" contains partitions that are foreign tables.
 
 
@@ -1751,7 +1751,7 @@ QUERY:
                             -- ERROR
 DROP TABLE lt1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1759,14 +1759,14 @@ QUERY:
 
 CREATE TABLE lt1 (a INT) PARTITION BY RANGE (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX ON lt1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1774,42 +1774,42 @@ QUERY:
 CREATE FOREIGN TABLE ft_part1
   PARTITION OF lt1 FOR VALUES FROM (0) TO (1000) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN TABLE ft_part2 (a INT) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE lt1 ATTACH PARTITION ft_part2 FOR VALUES FROM (1000) TO (2000);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN TABLE ft_part1, ft_part2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON lt1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE lt1 ADD PRIMARY KEY (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1817,7 +1817,7 @@ QUERY:
 CREATE FOREIGN TABLE ft_part1
   PARTITION OF lt1 FOR VALUES FROM (0) TO (1000) SERVER s0;
 RESULT:
-	postgres: cannot create foreign partition of partitioned table "lt1"
+	ERROR - cannot create foreign partition of partitioned table "lt1"
 DETAIL:  Table "lt1" contains indexes that are unique.
 
 
@@ -1826,7 +1826,7 @@ QUERY:
      -- ERROR
 CREATE FOREIGN TABLE ft_part2 (a INT NOT NULL) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1834,7 +1834,7 @@ QUERY:
 ALTER TABLE lt1 ATTACH PARTITION ft_part2
   FOR VALUES FROM (1000) TO (2000);
 RESULT:
-	postgres: cannot attach foreign table "ft_part2" as partition of partitioned table "lt1"
+	ERROR - cannot attach foreign table "ft_part2" as partition of partitioned table "lt1"
 DETAIL:  Partitioned table "lt1" contains unique indexes.
 
 
@@ -1843,14 +1843,14 @@ QUERY:
                              -- ERROR
 DROP TABLE lt1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN TABLE ft_part2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1858,14 +1858,14 @@ QUERY:
 
 CREATE TABLE lt1 (a INT) PARTITION BY RANGE (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX ON lt1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1874,7 +1874,7 @@ CREATE TABLE lt1_part1
   PARTITION OF lt1 FOR VALUES FROM (0) TO (1000)
   PARTITION BY RANGE (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1882,28 +1882,28 @@ QUERY:
 CREATE FOREIGN TABLE ft_part_1_1
   PARTITION OF lt1_part1 FOR VALUES FROM (0) TO (100) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN TABLE ft_part_1_2 (a INT) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE lt1_part1 ATTACH PARTITION ft_part_1_2 FOR VALUES FROM (100) TO (200);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON lt1 (a);
 RESULT:
-	postgres: cannot create unique index on partitioned table "lt1"
+	ERROR - cannot create unique index on partitioned table "lt1"
 DETAIL:  Table "lt1" contains partitions that are foreign tables.
 
 
@@ -1912,7 +1912,7 @@ QUERY:
 
 ALTER TABLE lt1 ADD PRIMARY KEY (a);
 RESULT:
-	postgres: cannot create unique index on partitioned table "lt1_part1"
+	ERROR - cannot create unique index on partitioned table "lt1_part1"
 DETAIL:  Table "lt1_part1" contains partitions that are foreign tables.
 
 
@@ -1921,21 +1921,21 @@ QUERY:
 
 DROP FOREIGN TABLE ft_part_1_1, ft_part_1_2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON lt1 (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE lt1 ADD PRIMARY KEY (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1943,7 +1943,7 @@ QUERY:
 CREATE FOREIGN TABLE ft_part_1_1
   PARTITION OF lt1_part1 FOR VALUES FROM (0) TO (100) SERVER s0;
 RESULT:
-	postgres: cannot create foreign partition of partitioned table "lt1_part1"
+	ERROR - cannot create foreign partition of partitioned table "lt1_part1"
 DETAIL:  Table "lt1_part1" contains indexes that are unique.
 
 
@@ -1952,14 +1952,14 @@ QUERY:
 
 CREATE FOREIGN TABLE ft_part_1_2 (a INT NOT NULL) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE lt1_part1 ATTACH PARTITION ft_part_1_2 FOR VALUES FROM (100) TO (200);
 RESULT:
-	postgres: cannot attach foreign table "ft_part_1_2" as partition of partitioned table "lt1_part1"
+	ERROR - cannot attach foreign table "ft_part_1_2" as partition of partitioned table "lt1_part1"
 DETAIL:  Partitioned table "lt1_part1" contains unique indexes.
 
 
@@ -1968,14 +1968,14 @@ QUERY:
 
 DROP TABLE lt1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN TABLE ft_part_1_2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1984,28 +1984,28 @@ QUERY:
 -- ALTER FOREIGN TABLE
 COMMENT ON FOREIGN TABLE ft1 IS 'foreign table';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON FOREIGN TABLE ft1 IS NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON COLUMN ft1.c1 IS 'foreign column';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON COLUMN ft1.c1 IS NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2013,49 +2013,49 @@ QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c4 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c5 integer DEFAULT 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c6 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c7 integer NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c8 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c9 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD COLUMN c10 integer OPTIONS (p1 'v1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2063,35 +2063,35 @@ QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c4 SET DEFAULT 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c5 DROP DEFAULT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c6 SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c7 DROP NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE char(10) USING '0';
 RESULT:
-	postgres: "ft1" is not a table
+	ERROR - "ft1" is not a table
 
 
 -----------
@@ -2099,21 +2099,21 @@ QUERY:
  -- ERROR
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE char(10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET DATA TYPE text;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN xmin OPTIONS (ADD p1 'v1');
 RESULT:
-	postgres: cannot alter system column "xmin"
+	ERROR - cannot alter system column "xmin"
 
 
 -----------
@@ -2122,58 +2122,58 @@ QUERY:
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c7 OPTIONS (ADD p1 'v1', ADD p2 'v2'),
                         ALTER COLUMN c8 OPTIONS (ADD p1 'v1', ADD p2 'v2');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 OPTIONS (SET p2 'V2', DROP p1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 SET STATISTICS 10000;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 SET (n_distinct = 100);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET STATISTICS -1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET STORAGE PLAIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 -- \d+ ft1
--- can/* REPLACED */''t change the column type if it/* REPLACED */''s used elsewhere
+-- can/* REPLACED */ ''t change the column type if it/* REPLACED */ ''s used elsewhere
 CREATE TABLE use_ft1_column_type (x ft1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET DATA TYPE integer;
 RESULT:
-	postgres: cannot alter foreign table "ft1" because column "use_ft1_column_type.x" uses its row type
+	ERROR - cannot alter foreign table "ft1" because column "use_ft1_column_type.x" uses its row type
 
 
 -----------
@@ -2181,14 +2181,14 @@ QUERY:
 	-- ERROR
 DROP TABLE use_ft1_column_type;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ADD PRIMARY KEY (c7);
 RESULT:
-	postgres: primary key constraints are not supported on foreign tables
+	ERROR - primary key constraints are not supported on foreign tables
 LINE 2: ALTER FOREIGN TABLE ft1 ADD PRIMARY KEY (c7);
                                     ^
 
@@ -2198,14 +2198,14 @@ QUERY:
                    -- ERROR
 ALTER FOREIGN TABLE ft1 ADD CONSTRAINT ft1_c9_check CHECK (c9 < 0) NOT VALID;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 ALTER CONSTRAINT ft1_c9_check DEFERRABLE;
 RESULT:
-	postgres: ALTER action ALTER CONSTRAINT cannot be performed on relation "ft1"
+	ERROR - ALTER action ALTER CONSTRAINT cannot be performed on relation "ft1"
 DETAIL:  This operation is not supported for foreign tables.
 
 
@@ -2214,14 +2214,14 @@ QUERY:
  -- ERROR
 ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c9_check;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 DROP CONSTRAINT no_const;
 RESULT:
-	postgres: constraint "no_const" of relation "ft1" does not exist
+	ERROR - constraint "no_const" of relation "ft1" does not exist
 
 
 -----------
@@ -2229,28 +2229,28 @@ QUERY:
                -- ERROR
 ALTER FOREIGN TABLE ft1 DROP CONSTRAINT IF EXISTS no_const;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 OWNER TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 OPTIONS (DROP delimiter, SET quote '~', ADD escape '@');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 DROP COLUMN no_column;
 RESULT:
-	postgres: column "no_column" of relation "ft1" does not exist
+	ERROR - column "no_column" of relation "ft1" does not exist
 
 
 -----------
@@ -2258,28 +2258,28 @@ QUERY:
                   -- ERROR
 ALTER FOREIGN TABLE ft1 DROP COLUMN IF EXISTS no_column;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 DROP COLUMN c9;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 SET SCHEMA foreign_schema;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft1 SET TABLESPACE ts;
 RESULT:
-	postgres: relation "ft1" does not exist
+	ERROR - relation "ft1" does not exist
 
 
 -----------
@@ -2287,14 +2287,14 @@ QUERY:
                       -- ERROR
 ALTER FOREIGN TABLE foreign_schema.ft1 RENAME c1 TO foreign_column_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE foreign_schema.ft1 RENAME TO foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2304,42 +2304,42 @@ QUERY:
 -- alter noexisting table
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ADD COLUMN c4 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ADD COLUMN c6 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ADD COLUMN c7 integer NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ADD COLUMN c8 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ADD COLUMN c9 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ADD COLUMN c10 integer OPTIONS (p1 'v1');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2347,28 +2347,28 @@ QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ALTER COLUMN c6 SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ALTER COLUMN c7 DROP NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ALTER COLUMN c8 TYPE char(10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ALTER COLUMN c8 SET DATA TYPE text;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2376,14 +2376,14 @@ QUERY:
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ALTER COLUMN c7 OPTIONS (ADD p1 'v1', ADD p2 'v2'),
                         ALTER COLUMN c8 OPTIONS (ADD p1 'v1', ADD p2 'v2');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 ALTER COLUMN c8 OPTIONS (SET p2 'V2', DROP p1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2391,63 +2391,63 @@ QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 DROP CONSTRAINT IF EXISTS no_const;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 DROP CONSTRAINT ft1_c1_check;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 OWNER TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 OPTIONS (DROP delimiter, SET quote '~', ADD escape '@');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 DROP COLUMN IF EXISTS no_column;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 DROP COLUMN c9;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 SET SCHEMA foreign_schema;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 RENAME c1 TO foreign_column_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE IF EXISTS doesnt_exist_ft1 RENAME TO foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2457,126 +2457,126 @@ QUERY:
 
 SELECT * FROM information_schema.foreign_data_wrappers ORDER BY 1, 2;
 RESULT:
-	postgres: [('regression', 'dummy', 'regress_foreign_data_user', None, 'c'), ('regression', 'foo', 'regress_foreign_data_user', None, 'c'), ('regression', 'postgresql', 'regress_foreign_data_user', None, 'c')]
+	[('regression', 'dummy', 'regress_foreign_data_user', None, 'c'), ('regression', 'foo', 'regress_foreign_data_user', None, 'c'), ('regression', 'postgresql', 'regress_foreign_data_user', None, 'c')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.foreign_data_wrapper_options ORDER BY 1, 2, 3;
 RESULT:
-	postgres: [('regression', 'foo', 'test wrapper', 'true')]
+	[('regression', 'foo', 'test wrapper', 'true')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.foreign_servers ORDER BY 1, 2;
 RESULT:
-	postgres: [('regression', 's0', 'regression', 'dummy', None, None, 'regress_foreign_data_user'), ('regression', 's4', 'regression', 'foo', 'oracle', None, 'regress_foreign_data_user'), ('regression', 's5', 'regression', 'foo', None, '15.0', 'regress_test_role'), ('regression', 's6', 'regression', 'foo', None, '16.0', 'regress_test_indirect'), ('regression', 's8', 'regression', 'postgresql', None, None, 'regress_foreign_data_user'), ('regression', 't1', 'regression', 'foo', None, None, 'regress_test_indirect'), ('regression', 't2', 'regression', 'foo', None, None, 'regress_test_role')]
+	[('regression', 's0', 'regression', 'dummy', None, None, 'regress_foreign_data_user'), ('regression', 's4', 'regression', 'foo', 'oracle', None, 'regress_foreign_data_user'), ('regression', 's5', 'regression', 'foo', None, '15.0', 'regress_test_role'), ('regression', 's6', 'regression', 'foo', None, '16.0', 'regress_test_indirect'), ('regression', 's8', 'regression', 'postgresql', None, None, 'regress_foreign_data_user'), ('regression', 't1', 'regression', 'foo', None, None, 'regress_test_indirect'), ('regression', 't2', 'regression', 'foo', None, None, 'regress_test_role')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.foreign_server_options ORDER BY 1, 2, 3;
 RESULT:
-	postgres: [('regression', 's4', 'dbname', 'b'), ('regression', 's4', 'host', 'a'), ('regression', 's6', 'dbname', 'b'), ('regression', 's6', 'host', 'a'), ('regression', 's8', 'connect_timeout', '30'), ('regression', 's8', 'dbname', 'db1')]
+	[('regression', 's4', 'dbname', 'b'), ('regression', 's4', 'host', 'a'), ('regression', 's6', 'dbname', 'b'), ('regression', 's6', 'host', 'a'), ('regression', 's8', 'connect_timeout', '30'), ('regression', 's8', 'dbname', 'db1')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.user_mappings ORDER BY lower(authorization_identifier), 2, 3;
 RESULT:
-	postgres: [('PUBLIC', 'regression', 's4'), ('PUBLIC', 'regression', 's8'), ('PUBLIC', 'regression', 't1'), ('regress_foreign_data_user', 'regression', 's4'), ('regress_foreign_data_user', 'regression', 's8'), ('regress_test_role', 'regression', 's5'), ('regress_test_role', 'regression', 's6'), ('regress_test_role', 'regression', 't1')]
+	[('PUBLIC', 'regression', 's4'), ('PUBLIC', 'regression', 's8'), ('PUBLIC', 'regression', 't1'), ('regress_foreign_data_user', 'regression', 's4'), ('regress_foreign_data_user', 'regression', 's8'), ('regress_test_role', 'regression', 's5'), ('regress_test_role', 'regression', 's6'), ('regress_test_role', 'regression', 't1')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.user_mapping_options ORDER BY lower(authorization_identifier), 2, 3, 4;
 RESULT:
-	postgres: [('PUBLIC', 'regression', 's4', 'this mapping', 'is public'), ('PUBLIC', 'regression', 't1', 'modified', '1'), ('regress_foreign_data_user', 'regression', 's8', 'password', 'public'), ('regress_test_role', 'regression', 's5', 'modified', '1'), ('regress_test_role', 'regression', 's6', 'username', 'test'), ('regress_test_role', 'regression', 't1', 'password', 'boo'), ('regress_test_role', 'regression', 't1', 'username', 'bob')]
+	[('PUBLIC', 'regression', 's4', 'this mapping', 'is public'), ('PUBLIC', 'regression', 't1', 'modified', '1'), ('regress_foreign_data_user', 'regression', 's8', 'password', 'public'), ('regress_test_role', 'regression', 's5', 'modified', '1'), ('regress_test_role', 'regression', 's6', 'username', 'test'), ('regress_test_role', 'regression', 't1', 'password', 'boo'), ('regress_test_role', 'regression', 't1', 'username', 'bob')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.usage_privileges WHERE object_type LIKE 'FOREIGN%' AND object_name IN ('s6', 'foo') ORDER BY 1, 2, 3, 4, 5;
 RESULT:
-	postgres: [('regress_foreign_data_user', 'regress_foreign_data_user', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'YES'), ('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
+	[('regress_foreign_data_user', 'regress_foreign_data_user', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'YES'), ('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.role_usage_grants WHERE object_type LIKE 'FOREIGN%' AND object_name IN ('s6', 'foo') ORDER BY 1, 2, 3, 4, 5;
 RESULT:
-	postgres: [('regress_foreign_data_user', 'regress_foreign_data_user', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'YES'), ('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
+	[('regress_foreign_data_user', 'regress_foreign_data_user', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'YES'), ('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.foreign_tables ORDER BY 1, 2, 3;
 RESULT:
-	postgres: [('regression', 'foreign_schema', 'foreign_table_1', 'regression', 's0')]
+	[('regression', 'foreign_schema', 'foreign_table_1', 'regression', 's0')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.foreign_table_options ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('regression', 'foreign_schema', 'foreign_table_1', 'be quoted', 'value'), ('regression', 'foreign_schema', 'foreign_table_1', 'escape', '@'), ('regression', 'foreign_schema', 'foreign_table_1', 'quote', '~')]
+	[('regression', 'foreign_schema', 'foreign_table_1', 'be quoted', 'value'), ('regression', 'foreign_schema', 'foreign_table_1', 'escape', '@'), ('regression', 'foreign_schema', 'foreign_table_1', 'quote', '~')]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.user_mapping_options ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('PUBLIC', 'regression', 't1', 'modified', '1'), ('regress_test_role', 'regression', 's5', 'modified', '1'), ('regress_test_role', 'regression', 's6', 'username', 'test'), ('regress_test_role', 'regression', 't1', 'password', 'boo'), ('regress_test_role', 'regression', 't1', 'username', 'bob')]
+	[('PUBLIC', 'regression', 't1', 'modified', '1'), ('regress_test_role', 'regression', 's5', 'modified', '1'), ('regress_test_role', 'regression', 's6', 'username', 'test'), ('regress_test_role', 'regression', 't1', 'password', 'boo'), ('regress_test_role', 'regression', 't1', 'username', 'bob')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.usage_privileges WHERE object_type LIKE 'FOREIGN%' AND object_name IN ('s6', 'foo') ORDER BY 1, 2, 3, 4, 5;
 RESULT:
-	postgres: [('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
+	[('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.role_usage_grants WHERE object_type LIKE 'FOREIGN%' AND object_name IN ('s6', 'foo') ORDER BY 1, 2, 3, 4, 5;
 RESULT:
-	postgres: [('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
+	[('regress_foreign_data_user', 'regress_test_indirect', 'regression', '', 'foo', 'FOREIGN DATA WRAPPER', 'USAGE', 'NO'), ('regress_test_indirect', 'regress_test_indirect', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES'), ('regress_test_indirect', 'regress_test_role2', 'regression', '', 's6', 'FOREIGN SERVER', 'USAGE', 'YES')]
 
 -----------
 QUERY:
 
 DROP USER MAPPING FOR current_user SERVER t1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_test_role2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM information_schema.user_mapping_options ORDER BY 1, 2, 3, 4;
 RESULT:
-	postgres: [('regress_test_role', 'regression', 's6', 'username', None)]
+	[('regress_test_role', 'regression', 's6', 'username', None)]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2587,14 +2587,14 @@ QUERY:
 SELECT has_foreign_data_wrapper_privilege('regress_test_role',
     (SELECT oid FROM pg_foreign_data_wrapper WHERE fdwname='foo'), 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT has_foreign_data_wrapper_privilege('regress_test_role', 'foo', 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -2603,7 +2603,7 @@ SELECT has_foreign_data_wrapper_privilege(
     (SELECT oid FROM pg_roles WHERE rolname='regress_test_role'),
     (SELECT oid FROM pg_foreign_data_wrapper WHERE fdwname='foo'), 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -2611,7 +2611,7 @@ QUERY:
 SELECT has_foreign_data_wrapper_privilege(
     (SELECT oid FROM pg_foreign_data_wrapper WHERE fdwname='foo'), 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -2619,28 +2619,28 @@ QUERY:
 SELECT has_foreign_data_wrapper_privilege(
     (SELECT oid FROM pg_roles WHERE rolname='regress_test_role'), 'foo', 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT has_foreign_data_wrapper_privilege('foo', 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT has_foreign_data_wrapper_privilege('regress_test_role', 'foo', 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -2650,14 +2650,14 @@ QUERY:
 SELECT has_server_privilege('regress_test_role',
     (SELECT oid FROM pg_foreign_server WHERE srvname='s8'), 'USAGE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT has_server_privilege('regress_test_role', 's8', 'USAGE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -2666,7 +2666,7 @@ SELECT has_server_privilege(
     (SELECT oid FROM pg_roles WHERE rolname='regress_test_role'),
     (SELECT oid FROM pg_foreign_server WHERE srvname='s8'), 'USAGE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -2674,7 +2674,7 @@ QUERY:
 SELECT has_server_privilege(
     (SELECT oid FROM pg_foreign_server WHERE srvname='s8'), 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -2682,35 +2682,35 @@ QUERY:
 SELECT has_server_privilege(
     (SELECT oid FROM pg_roles WHERE rolname='regress_test_role'), 's8', 'USAGE');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT has_server_privilege('s8', 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN SERVER s8 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT has_server_privilege('regress_test_role', 's8', 'USAGE');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 REVOKE USAGE ON FOREIGN SERVER s8 FROM regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2718,35 +2718,35 @@ QUERY:
 
 GRANT USAGE ON FOREIGN SERVER s4 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER MAPPING FOR public SERVER s4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s6 OPTIONS (DROP host, DROP dbname);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER USER MAPPING FOR regress_test_role SERVER s6 OPTIONS (DROP username);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN DATA WRAPPER foo VALIDATOR postgresql_fdw_validator;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2755,14 +2755,14 @@ QUERY:
 -- Privileges
 SET ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER foobar;
 RESULT:
-	postgres: permission denied to create foreign-data wrapper "foobar"
+	ERROR - permission denied to create foreign-data wrapper "foobar"
 HINT:  Must be superuser to create a foreign-data wrapper.
 
 
@@ -2771,7 +2771,7 @@ QUERY:
                              -- ERROR
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (gotcha 'true');
 RESULT:
-	postgres: permission denied to alter foreign-data wrapper "foo"
+	ERROR - permission denied to alter foreign-data wrapper "foo"
 HINT:  Must be superuser to alter a foreign-data wrapper.
 
 
@@ -2780,7 +2780,7 @@ QUERY:
          -- ERROR
 ALTER FOREIGN DATA WRAPPER foo OWNER TO regress_unprivileged_role;
 RESULT:
-	postgres: permission denied to change owner of foreign-data wrapper "foo"
+	ERROR - permission denied to change owner of foreign-data wrapper "foo"
 HINT:  Must be superuser to change owner of a foreign-data wrapper.
 
 
@@ -2789,7 +2789,7 @@ QUERY:
  -- ERROR
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: must be owner of foreign-data wrapper foo
+	ERROR - must be owner of foreign-data wrapper foo
 
 
 -----------
@@ -2797,7 +2797,7 @@ QUERY:
                                   -- ERROR
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_role;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -2805,7 +2805,7 @@ QUERY:
    -- ERROR
 CREATE SERVER s9 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -2813,7 +2813,7 @@ QUERY:
                       -- ERROR
 ALTER SERVER s4 VERSION '0.5';
 RESULT:
-	postgres: must be owner of foreign server s4
+	ERROR - must be owner of foreign server s4
 
 
 -----------
@@ -2821,7 +2821,7 @@ QUERY:
                                   -- ERROR
 ALTER SERVER s4 OWNER TO regress_unprivileged_role;
 RESULT:
-	postgres: must be owner of foreign server s4
+	ERROR - must be owner of foreign server s4
 
 
 -----------
@@ -2829,7 +2829,7 @@ QUERY:
              -- ERROR
 DROP SERVER s4;
 RESULT:
-	postgres: must be owner of foreign server s4
+	ERROR - must be owner of foreign server s4
 
 
 -----------
@@ -2837,7 +2837,7 @@ QUERY:
                                                  -- ERROR
 GRANT USAGE ON FOREIGN SERVER s4 TO regress_test_role;
 RESULT:
-	postgres: permission denied for foreign server s4
+	ERROR - permission denied for foreign server s4
 
 
 -----------
@@ -2845,7 +2845,7 @@ QUERY:
           -- ERROR
 CREATE USER MAPPING FOR public SERVER s4;
 RESULT:
-	postgres: must be owner of foreign server s4
+	ERROR - must be owner of foreign server s4
 
 
 -----------
@@ -2853,7 +2853,7 @@ QUERY:
                        -- ERROR
 ALTER USER MAPPING FOR regress_test_role SERVER s6 OPTIONS (gotcha 'true');
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -2861,7 +2861,7 @@ QUERY:
  -- ERROR
 DROP USER MAPPING FOR regress_test_role SERVER s6;
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -2869,7 +2869,7 @@ QUERY:
               -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2877,28 +2877,28 @@ QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER postgresql TO regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_unprivileged_role WITH GRANT OPTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE FOREIGN DATA WRAPPER foobar;
 RESULT:
-	postgres: permission denied to create foreign-data wrapper "foobar"
+	ERROR - permission denied to create foreign-data wrapper "foobar"
 HINT:  Must be superuser to create a foreign-data wrapper.
 
 
@@ -2907,7 +2907,7 @@ QUERY:
                              -- ERROR
 ALTER FOREIGN DATA WRAPPER foo OPTIONS (gotcha 'true');
 RESULT:
-	postgres: permission denied to alter foreign-data wrapper "foo"
+	ERROR - permission denied to alter foreign-data wrapper "foo"
 HINT:  Must be superuser to alter a foreign-data wrapper.
 
 
@@ -2916,7 +2916,7 @@ QUERY:
          -- ERROR
 DROP FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: must be owner of foreign-data wrapper foo
+	ERROR - must be owner of foreign-data wrapper foo
 
 
 -----------
@@ -2924,28 +2924,28 @@ QUERY:
                                   -- ERROR
 GRANT USAGE ON FOREIGN DATA WRAPPER postgresql TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- WARNING
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s9 FOREIGN DATA WRAPPER postgresql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s6 VERSION '0.5';
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -2953,7 +2953,7 @@ QUERY:
                                   -- ERROR
 DROP SERVER s6;
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -2961,7 +2961,7 @@ QUERY:
                                                  -- ERROR
 GRANT USAGE ON FOREIGN SERVER s6 TO regress_test_role;
 RESULT:
-	postgres: permission denied for foreign server s6
+	ERROR - permission denied for foreign server s6
 
 
 -----------
@@ -2969,14 +2969,14 @@ QUERY:
           -- ERROR
 GRANT USAGE ON FOREIGN SERVER s9 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR public SERVER s6;
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -2984,14 +2984,14 @@ QUERY:
                        -- ERROR
 CREATE USER MAPPING FOR public SERVER s9;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER USER MAPPING FOR regress_test_role SERVER s6 OPTIONS (gotcha 'true');
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -2999,7 +2999,7 @@ QUERY:
  -- ERROR
 DROP USER MAPPING FOR regress_test_role SERVER s6;
 RESULT:
-	postgres: must be owner of foreign server s6
+	ERROR - must be owner of foreign server s6
 
 
 -----------
@@ -3007,7 +3007,7 @@ QUERY:
               -- ERROR
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3015,7 +3015,7 @@ QUERY:
 
 REVOKE USAGE ON FOREIGN DATA WRAPPER foo FROM regress_unprivileged_role;
 RESULT:
-	postgres: dependent privileges exist
+	ERROR - dependent privileges exist
 HINT:  Use CASCADE to revoke them too.
 
 
@@ -3024,21 +3024,21 @@ QUERY:
  -- ERROR
 REVOKE USAGE ON FOREIGN DATA WRAPPER foo FROM regress_unprivileged_role CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN DATA WRAPPER foo TO regress_test_role;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -3046,7 +3046,7 @@ QUERY:
    -- ERROR
 CREATE SERVER s10 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: permission denied for foreign-data wrapper foo
+	ERROR - permission denied for foreign-data wrapper foo
 
 
 -----------
@@ -3054,63 +3054,63 @@ QUERY:
                      -- ERROR
 ALTER SERVER s9 VERSION '1.1';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN SERVER s9 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR current_user SERVER s9;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s9 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s9 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT USAGE ON FOREIGN SERVER s9 TO regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SERVER s9 VERSION '1.2';
 RESULT:
-	postgres: must be owner of foreign server s9
+	ERROR - must be owner of foreign server s9
 
 
 -----------
@@ -3118,21 +3118,21 @@ QUERY:
                                   -- ERROR
 GRANT USAGE ON FOREIGN SERVER s9 TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
           -- WARNING
 CREATE USER MAPPING FOR current_user SERVER s9;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s9 CASCADE;
 RESULT:
-	postgres: must be owner of foreign server s9
+	ERROR - must be owner of foreign server s9
 
 
 -----------
@@ -3142,28 +3142,28 @@ QUERY:
 -- Check visibility of user mapping data
 SET ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SERVER s10 FOREIGN DATA WRAPPER foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR public SERVER s10 OPTIONS (user 'secret');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE USER MAPPING FOR regress_unprivileged_role SERVER s10 OPTIONS (user 'secret');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3172,7 +3172,7 @@ QUERY:
 -- \deu+
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3182,7 +3182,7 @@ QUERY:
 -- unprivileged user cannot see any option field
 SET ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3190,14 +3190,14 @@ QUERY:
 -- \deu+
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s10 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3210,7 +3210,7 @@ CREATE FUNCTION dummy_trigger() RETURNS TRIGGER AS $$
   END
 $$ language plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3221,7 +3221,7 @@ ON foreign_schema.foreign_table_1
 FOR EACH STATEMENT
 EXECUTE PROCEDURE dummy_trigger();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3232,7 +3232,7 @@ ON foreign_schema.foreign_table_1
 FOR EACH STATEMENT
 EXECUTE PROCEDURE dummy_trigger();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3244,7 +3244,7 @@ REFERENCING NEW TABLE AS new_table
 FOR EACH STATEMENT
 EXECUTE PROCEDURE dummy_trigger();
 RESULT:
-	postgres: "foreign_table_1" is a foreign table
+	ERROR - "foreign_table_1" is a foreign table
 DETAIL:  Triggers on foreign tables cannot have transition tables.
 
 
@@ -3257,7 +3257,7 @@ ON foreign_schema.foreign_table_1
 FOR EACH ROW
 EXECUTE PROCEDURE dummy_trigger();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3268,7 +3268,7 @@ ON foreign_schema.foreign_table_1
 FOR EACH ROW
 EXECUTE PROCEDURE dummy_trigger();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3279,7 +3279,7 @@ ON foreign_schema.foreign_table_1
 FOR EACH ROW
 EXECUTE PROCEDURE dummy_trigger();
 RESULT:
-	postgres: "foreign_table_1" is a foreign table
+	ERROR - "foreign_table_1" is a foreign table
 DETAIL:  Foreign tables cannot have constraint triggers.
 
 
@@ -3290,7 +3290,7 @@ QUERY:
 ALTER FOREIGN TABLE foreign_schema.foreign_table_1
 	DISABLE TRIGGER trigtest_before_stmt;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3298,7 +3298,7 @@ QUERY:
 ALTER FOREIGN TABLE foreign_schema.foreign_table_1
 	ENABLE TRIGGER trigtest_before_stmt;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3306,28 +3306,28 @@ QUERY:
 
 DROP TRIGGER trigtest_before_stmt ON foreign_schema.foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trigtest_before_row ON foreign_schema.foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trigtest_after_stmt ON foreign_schema.foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TRIGGER trigtest_after_row ON foreign_schema.foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3335,7 +3335,7 @@ QUERY:
 
 DROP FUNCTION dummy_trigger();
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3348,7 +3348,7 @@ CREATE TABLE fd_pt1 (
 	c3 date
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3356,7 +3356,7 @@ QUERY:
 CREATE FOREIGN TABLE ft2 () INHERITS (fd_pt1)
   SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3365,7 +3365,7 @@ QUERY:
 -- \d+ ft2
 DROP FOREIGN TABLE ft2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3377,7 +3377,7 @@ CREATE FOREIGN TABLE ft2 (
 	c3 date
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3385,7 +3385,7 @@ QUERY:
 -- \d+ ft2
 ALTER FOREIGN TABLE ft2 INHERIT fd_pt1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3394,7 +3394,7 @@ QUERY:
 -- \d+ ft2
 CREATE TABLE ct3() INHERITS(ft2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3406,7 +3406,7 @@ CREATE FOREIGN TABLE ft3 (
 ) INHERITS(ft2)
   SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3418,35 +3418,35 @@ QUERY:
 -- add attributes recursively
 ALTER TABLE fd_pt1 ADD COLUMN c4 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ADD COLUMN c5 integer DEFAULT 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ADD COLUMN c6 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ADD COLUMN c7 integer NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ADD COLUMN c8 integer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3459,35 +3459,35 @@ QUERY:
 -- alter attributes recursively
 ALTER TABLE fd_pt1 ALTER COLUMN c4 SET DEFAULT 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c5 DROP DEFAULT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c6 SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c7 DROP NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c8 TYPE char(10) USING '0';
 RESULT:
-	postgres: "ft2" is not a table
+	ERROR - "ft2" is not a table
 
 
 -----------
@@ -3495,42 +3495,42 @@ QUERY:
         -- ERROR
 ALTER TABLE fd_pt1 ALTER COLUMN c8 TYPE char(10);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c8 SET DATA TYPE text;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c1 SET STATISTICS 10000;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c1 SET (n_distinct = 100);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c8 SET STATISTICS -1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ALTER COLUMN c8 SET STORAGE EXTERNAL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3541,35 +3541,35 @@ QUERY:
 -- drop attributes recursively
 ALTER TABLE fd_pt1 DROP COLUMN c4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 DROP COLUMN c5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 DROP COLUMN c6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 DROP COLUMN c7;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 DROP COLUMN c8;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3580,14 +3580,14 @@ QUERY:
 -- add constraints recursively
 ALTER TABLE fd_pt1 ADD CONSTRAINT fd_pt1chk1 CHECK (c1 > 0) NO INHERIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ADD CONSTRAINT fd_pt1chk2 CHECK (c2 <> '');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3598,7 +3598,7 @@ SELECT relname, conname, contype, conislocal, coninhcount, connoinherit
   WHERE pc.relname = 'fd_pt1'
   ORDER BY 1,2;
 RESULT:
-	postgres: [('fd_pt1', 'fd_pt1_c1_not_null', 'n', True, 0, False), ('fd_pt1', 'fd_pt1chk1', 'c', True, 0, True), ('fd_pt1', 'fd_pt1chk2', 'c', True, 0, False)]
+	[('fd_pt1', 'fd_pt1_c1_not_null', 'n', True, 0, False), ('fd_pt1', 'fd_pt1chk1', 'c', True, 0, True), ('fd_pt1', 'fd_pt1chk2', 'c', True, 0, False)]
 
 -----------
 QUERY:
@@ -3608,7 +3608,7 @@ QUERY:
 -- \d+ ft2
 DROP FOREIGN TABLE ft2;
 RESULT:
-	postgres: cannot drop foreign table ft2 because other objects depend on it
+	ERROR - cannot drop foreign table ft2 because other objects depend on it
 DETAIL:  table ct3 depends on foreign table ft2
 foreign table ft3 depends on foreign table ft2
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
@@ -3619,7 +3619,7 @@ QUERY:
  -- ERROR
 DROP FOREIGN TABLE ft2 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3630,15 +3630,15 @@ CREATE FOREIGN TABLE ft2 (
 	c3 date
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- child must have parent/* REPLACED */''s INHERIT constraints
+-- child must have parent/* REPLACED */ ''s INHERIT constraints
 ALTER FOREIGN TABLE ft2 INHERIT fd_pt1;
 RESULT:
-	postgres: child table is missing constraint "fd_pt1chk2"
+	ERROR - child table is missing constraint "fd_pt1chk2"
 
 
 -----------
@@ -3646,14 +3646,14 @@ QUERY:
                             -- ERROR
 ALTER FOREIGN TABLE ft2 ADD CONSTRAINT fd_pt1chk2 CHECK (c2 <> '');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER FOREIGN TABLE ft2 INHERIT fd_pt1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3665,14 +3665,14 @@ QUERY:
 -- drop constraints recursively
 ALTER TABLE fd_pt1 DROP CONSTRAINT fd_pt1chk1 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 DROP CONSTRAINT fd_pt1chk2 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3681,14 +3681,14 @@ QUERY:
 -- NOT VALID case
 INSERT INTO fd_pt1 VALUES (1, 'fd_pt1'::text, '1994-01-01'::date);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 ADD CONSTRAINT fd_pt1chk3 CHECK (c2 <> '') NOT VALID;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3698,7 +3698,7 @@ QUERY:
 -- VALIDATE CONSTRAINT need do nothing on foreign tables
 ALTER TABLE fd_pt1 VALIDATE CONSTRAINT fd_pt1chk3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3709,21 +3709,21 @@ QUERY:
 -- changes name of an attribute recursively
 ALTER TABLE fd_pt1 RENAME COLUMN c1 TO f1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 RENAME COLUMN c2 TO f2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt1 RENAME COLUMN c3 TO f3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3731,7 +3731,7 @@ QUERY:
 -- changes name of a constraint recursively
 ALTER TABLE fd_pt1 RENAME CONSTRAINT fd_pt1chk3 TO f2_check;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3741,7 +3741,7 @@ QUERY:
 
 DROP TABLE fd_pt1 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3750,7 +3750,7 @@ QUERY:
 -- IMPORT FOREIGN SCHEMA
 IMPORT FOREIGN SCHEMA s1 FROM SERVER s9 INTO public;
 RESULT:
-	postgres: foreign-data wrapper "foo" has no handler
+	ERROR - foreign-data wrapper "foo" has no handler
 
 
 -----------
@@ -3758,7 +3758,7 @@ QUERY:
  -- ERROR
 IMPORT FOREIGN SCHEMA s1 LIMIT TO (t1) FROM SERVER s9 INTO public;
 RESULT:
-	postgres: foreign-data wrapper "foo" has no handler
+	ERROR - foreign-data wrapper "foo" has no handler
 
 
 -----------
@@ -3766,7 +3766,7 @@ QUERY:
  --ERROR
 IMPORT FOREIGN SCHEMA s1 EXCEPT (t1) FROM SERVER s9 INTO public;
 RESULT:
-	postgres: foreign-data wrapper "foo" has no handler
+	ERROR - foreign-data wrapper "foo" has no handler
 
 
 -----------
@@ -3775,7 +3775,7 @@ QUERY:
 IMPORT FOREIGN SCHEMA s1 EXCEPT (t1, t2) FROM SERVER s9 INTO public
 OPTIONS (option1 'value1', option2 'value2');
 RESULT:
-	postgres: foreign-data wrapper "foo" has no handler
+	ERROR - foreign-data wrapper "foo" has no handler
 
 
 -----------
@@ -3785,7 +3785,7 @@ QUERY:
 -- DROP FOREIGN TABLE
 DROP FOREIGN TABLE no_table;
 RESULT:
-	postgres: foreign table "no_table" does not exist
+	ERROR - foreign table "no_table" does not exist
 
 
 -----------
@@ -3793,14 +3793,14 @@ QUERY:
                                     -- ERROR
 DROP FOREIGN TABLE IF EXISTS no_table;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN TABLE foreign_schema.foreign_table_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3809,14 +3809,14 @@ QUERY:
 -- REASSIGN OWNED/DROP OWNED of foreign objects
 REASSIGN OWNED BY regress_test_role TO regress_test_role2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP OWNED BY regress_test_role2;
 RESULT:
-	postgres: cannot drop desired object(s) because other objects depend on them
+	ERROR - cannot drop desired object(s) because other objects depend on them
 DETAIL:  user mapping for regress_test_role on server s5 depends on server s5
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 
@@ -3826,7 +3826,7 @@ QUERY:
 
 DROP OWNED BY regress_test_role2 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3839,7 +3839,7 @@ CREATE TABLE fd_pt2 (
 	c3 date
 ) PARTITION BY LIST (c1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3847,7 +3847,7 @@ QUERY:
 CREATE FOREIGN TABLE fd_pt2_1 PARTITION OF fd_pt2 FOR VALUES IN (1)
   SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3858,7 +3858,7 @@ QUERY:
 -- partition cannot have additional columns
 DROP FOREIGN TABLE fd_pt2_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3870,7 +3870,7 @@ CREATE FOREIGN TABLE fd_pt2_1 (
 	c4 char
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3878,7 +3878,7 @@ QUERY:
 -- \d+ fd_pt2_1
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 RESULT:
-	postgres: table "fd_pt2_1" contains column "c4" not found in parent "fd_pt2"
+	ERROR - table "fd_pt2_1" contains column "c4" not found in parent "fd_pt2"
 DETAIL:  The new partition may contain only the columns present in parent.
 
 
@@ -3888,7 +3888,7 @@ QUERY:
 
 DROP FOREIGN TABLE fd_pt2_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3900,7 +3900,7 @@ CREATE FOREIGN TABLE fd_pt2_1 (
 	c3 date
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3909,7 +3909,7 @@ QUERY:
 -- no attach partition validation occurs for foreign tables
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3920,24 +3920,24 @@ QUERY:
 -- cannot add column to a partition
 ALTER TABLE fd_pt2_1 ADD c4 char;
 RESULT:
-	postgres: cannot add column to a partition
+	ERROR - cannot add column to a partition
 
 
 -----------
 QUERY:
 
 
--- ok to have a partition/* REPLACED */''s own constraints though
+-- ok to have a partition/* REPLACED */ ''s own constraints though
 ALTER TABLE fd_pt2_1 ALTER c3 SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt2_1 ADD CONSTRAINT p21chk CHECK (c2 <> '');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3948,24 +3948,24 @@ QUERY:
 -- cannot drop inherited NOT NULL constraint from a partition
 ALTER TABLE fd_pt2_1 ALTER c1 DROP NOT NULL;
 RESULT:
-	postgres: column "c1" is marked NOT NULL in parent table
+	ERROR - column "c1" is marked NOT NULL in parent table
 
 
 -----------
 QUERY:
 
 
--- partition must have parent/* REPLACED */''s constraints
+-- partition must have parent/* REPLACED */ ''s constraints
 ALTER TABLE fd_pt2 DETACH PARTITION fd_pt2_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt2 ALTER c2 SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3974,7 +3974,7 @@ QUERY:
 -- \d+ fd_pt2_1
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 RESULT:
-	postgres: column "c2" in child table must be marked NOT NULL
+	ERROR - column "c2" in child table must be marked NOT NULL
 
 
 -----------
@@ -3982,14 +3982,14 @@ QUERY:
        -- ERROR
 ALTER FOREIGN TABLE fd_pt2_1 ALTER c2 SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -3997,14 +3997,14 @@ QUERY:
 
 ALTER TABLE fd_pt2 DETACH PARTITION fd_pt2_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt2 ADD CONSTRAINT fd_pt2chk1 CHECK (c1 > 0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4013,7 +4013,7 @@ QUERY:
 -- \d+ fd_pt2_1
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 RESULT:
-	postgres: child table is missing constraint "fd_pt2chk1"
+	ERROR - child table is missing constraint "fd_pt2chk1"
 
 
 -----------
@@ -4021,14 +4021,14 @@ QUERY:
        -- ERROR
 ALTER FOREIGN TABLE fd_pt2_1 ADD CONSTRAINT fd_pt2chk1 CHECK (c1 > 0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4036,14 +4036,14 @@ QUERY:
 
 DROP FOREIGN TABLE fd_pt2_1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE fd_pt2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4053,7 +4053,7 @@ QUERY:
 -- relations.
 CREATE TEMP TABLE temp_parted (a int) PARTITION BY LIST (a);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4061,7 +4061,7 @@ QUERY:
 CREATE FOREIGN TABLE foreign_part PARTITION OF temp_parted DEFAULT
   SERVER s0;
 RESULT:
-	postgres: cannot create a permanent relation as partition of temporary relation "temp_parted"
+	ERROR - cannot create a permanent relation as partition of temporary relation "temp_parted"
 
 
 -----------
@@ -4069,14 +4069,14 @@ QUERY:
   -- ERROR
 CREATE FOREIGN TABLE foreign_part (a int) SERVER s0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TABLE temp_parted ATTACH PARTITION foreign_part DEFAULT;
 RESULT:
-	postgres: cannot attach a permanent relation as partition of temporary relation "temp_parted"
+	ERROR - cannot attach a permanent relation as partition of temporary relation "temp_parted"
 
 
 -----------
@@ -4084,14 +4084,14 @@ QUERY:
   -- ERROR
 DROP FOREIGN TABLE foreign_part;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE temp_parted;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -4100,14 +4100,14 @@ QUERY:
 -- Cleanup
 DROP SCHEMA foreign_schema CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_role;
 RESULT:
-	postgres: role "regress_test_role" cannot be dropped because some objects depend on it
+	ERROR - role "regress_test_role" cannot be dropped because some objects depend on it
 DETAIL:  privileges for foreign-data wrapper foo
 privileges for server s4
 owner of user mapping for regress_test_role on server s6
@@ -4118,49 +4118,49 @@ QUERY:
                                 -- ERROR
 DROP SERVER t1 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP USER MAPPING FOR regress_test_role SERVER s6;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER foo CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SERVER s8 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_indirect;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_unprivileged_role;
 RESULT:
-	postgres: role "regress_unprivileged_role" cannot be dropped because some objects depend on it
+	ERROR - role "regress_unprivileged_role" cannot be dropped because some objects depend on it
 DETAIL:  privileges for foreign-data wrapper postgresql
 
 
@@ -4169,45 +4169,43 @@ QUERY:
                         -- ERROR
 REVOKE ALL ON FOREIGN DATA WRAPPER postgresql FROM regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_unprivileged_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_role2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER postgresql CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FOREIGN DATA WRAPPER dummy CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-\c
+-- \c
 DROP ROLE regress_foreign_data_user;
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 2: \c
-        ^
+	ERROR - current user cannot be dropped
 
 
 -----------
@@ -4217,18 +4215,18 @@ QUERY:
 -- At this point we should have no wrappers, no servers, and no mappings.
 SELECT fdwname, fdwhandler, fdwvalidator, fdwoptions FROM pg_foreign_data_wrapper;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 SELECT srvname, srvoptions FROM pg_foreign_server;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM pg_user_mapping;
 RESULT:
-	postgres: []
+	[]

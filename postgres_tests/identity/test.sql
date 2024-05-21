@@ -133,12 +133,12 @@ CREATE TABLE itest9 (a int GENERATED ALWAYS AS IDENTITY, b text, c bigint);
 COPY itest9 FROM stdin;
 100	foo	200
 101	bar	201
-\.
+-- \.
 
 COPY itest9 (b, c) FROM stdin;
 foo2	202
 bar2	203
-\.
+-- \.
 
 SELECT * FROM itest9 ORDER BY c;
 
@@ -327,7 +327,7 @@ ALTER TABLE itest8
 
 INSERT INTO itest8 VALUES(0), (1);
 
--- This does not work when the table isn/* REPLACED */''t empty.  That/* REPLACED */''s intentional,
+-- This does not work when the table isn/* REPLACED */ ''t empty.  That/* REPLACED */ ''s intentional,
 -- since ADD GENERATED should only affect later insertions:
 ALTER TABLE itest8
   ADD COLUMN f22 int NOT NULL,

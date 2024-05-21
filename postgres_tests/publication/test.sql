@@ -44,30 +44,30 @@ RESET client_min_messages;
 ALTER PUBLICATION testpub_foralltables SET (publish = 'insert, update');
 
 CREATE TABLE testpub_tbl2 (id serial primary key, data text);
--- fail - can/* REPLACED */''t add to for all tables publication
+-- fail - can/* REPLACED */ ''t add to for all tables publication
 ALTER PUBLICATION testpub_foralltables ADD TABLE testpub_tbl2;
--- fail - can/* REPLACED */''t drop from all tables publication
+-- fail - can/* REPLACED */ ''t drop from all tables publication
 ALTER PUBLICATION testpub_foralltables DROP TABLE testpub_tbl2;
--- fail - can/* REPLACED */''t add to for all tables publication
+-- fail - can/* REPLACED */ ''t add to for all tables publication
 ALTER PUBLICATION testpub_foralltables SET TABLE pub_test.testpub_nopk;
 
--- fail - can/* REPLACED */''t add schema to /* REPLACED */''FOR ALL TABLES/* REPLACED */'' publication
+-- fail - can/* REPLACED */ ''t add schema to /* REPLACED */ ''FOR ALL TABLES/* REPLACED */ '' publication
 ALTER PUBLICATION testpub_foralltables ADD TABLES IN SCHEMA pub_test;
--- fail - can/* REPLACED */''t drop schema from /* REPLACED */''FOR ALL TABLES/* REPLACED */'' publication
+-- fail - can/* REPLACED */ ''t drop schema from /* REPLACED */ ''FOR ALL TABLES/* REPLACED */ '' publication
 ALTER PUBLICATION testpub_foralltables DROP TABLES IN SCHEMA pub_test;
--- fail - can/* REPLACED */''t set schema to /* REPLACED */''FOR ALL TABLES/* REPLACED */'' publication
+-- fail - can/* REPLACED */ ''t set schema to /* REPLACED */ ''FOR ALL TABLES/* REPLACED */ '' publication
 ALTER PUBLICATION testpub_foralltables SET TABLES IN SCHEMA pub_test;
 
 SET client_min_messages = 'ERROR';
 CREATE PUBLICATION testpub_fortable FOR TABLE testpub_tbl1;
 RESET client_min_messages;
--- should be able to add schema to /* REPLACED */''FOR TABLE/* REPLACED */'' publication
+-- should be able to add schema to /* REPLACED */ ''FOR TABLE/* REPLACED */ '' publication
 ALTER PUBLICATION testpub_fortable ADD TABLES IN SCHEMA pub_test;
 -- \dRp+ testpub_fortable
--- should be able to drop schema from /* REPLACED */''FOR TABLE/* REPLACED */'' publication
+-- should be able to drop schema from /* REPLACED */ ''FOR TABLE/* REPLACED */ '' publication
 ALTER PUBLICATION testpub_fortable DROP TABLES IN SCHEMA pub_test;
 -- \dRp+ testpub_fortable
--- should be able to set schema to /* REPLACED */''FOR TABLE/* REPLACED */'' publication
+-- should be able to set schema to /* REPLACED */ ''FOR TABLE/* REPLACED */ '' publication
 ALTER PUBLICATION testpub_fortable SET TABLES IN SCHEMA pub_test;
 -- \dRp+ testpub_fortable
 
@@ -91,7 +91,7 @@ ALTER PUBLICATION testpub_forschema ADD TABLE pub_test.testpub_nopk;
 ALTER PUBLICATION testpub_forschema DROP TABLE pub_test.testpub_nopk;
 -- \dRp+ testpub_forschema
 
--- fail - can/* REPLACED */''t drop a table from the schema publication which isn/* REPLACED */''t in the
+-- fail - can/* REPLACED */ ''t drop a table from the schema publication which isn/* REPLACED */ ''t in the
 -- publication
 ALTER PUBLICATION testpub_forschema DROP TABLE pub_test.testpub_nopk;
 -- should be able to set table to schema publication
@@ -134,14 +134,14 @@ ALTER PUBLICATION testpub_forparted ADD TABLE testpub_parted;
 -- \dRp+ testpub_forparted
 -- works despite missing REPLICA IDENTITY, because no actual update happened
 UPDATE testpub_parted SET a = 1 WHERE false;
--- should now fail, because parent/* REPLACED */''s publication replicates updates
+-- should now fail, because parent/* REPLACED */ ''s publication replicates updates
 UPDATE testpub_parted1 SET a = 1;
 ALTER TABLE testpub_parted DETACH PARTITION testpub_parted1;
--- works again, because parent/* REPLACED */''s publication is no longer considered
+-- works again, because parent/* REPLACED */ ''s publication is no longer considered
 UPDATE testpub_parted1 SET a = 1;
 ALTER PUBLICATION testpub_forparted SET (publish_via_partition_root = true);
 -- \dRp+ testpub_forparted
--- still fail, because parent/* REPLACED */''s publication replicates updates
+-- still fail, because parent/* REPLACED */ ''s publication replicates updates
 UPDATE testpub_parted2 SET a = 2;
 ALTER PUBLICATION testpub_forparted DROP TABLE testpub_parted;
 -- works again, because update is no longer replicated
@@ -160,7 +160,7 @@ CREATE TABLE testpub_rf_schema1.testpub_rf_tbl5 (h integer);
 CREATE SCHEMA testpub_rf_schema2;
 CREATE TABLE testpub_rf_schema2.testpub_rf_tbl6 (i integer);
 SET client_min_messages = 'ERROR';
--- Firstly, test using the option publish=/* REPLACED */''insert/* REPLACED */'' because the row filter
+-- Firstly, test using the option publish=/* REPLACED */ ''insert/* REPLACED */ '' because the row filter
 -- validation of referenced columns is less strict than for delete/update.
 CREATE PUBLICATION testpub5 FOR TABLE testpub_rf_tbl1, testpub_rf_tbl2 WHERE (c <> 'test' AND d < 5) WITH (publish = 'insert');
 RESET client_min_messages;
@@ -193,7 +193,7 @@ CREATE PUBLICATION testpub_syntax2 FOR TABLE testpub_rf_tbl1, testpub_rf_schema1
 RESET client_min_messages;
 -- \dRp+ testpub_syntax2
 DROP PUBLICATION testpub_syntax2;
--- fail - schemas don/* REPLACED */''t allow WHERE clause
+-- fail - schemas don/* REPLACED */ ''t allow WHERE clause
 SET client_min_messages = 'ERROR';
 CREATE PUBLICATION testpub_syntax3 FOR TABLES IN SCHEMA testpub_rf_schema1 WHERE (a = 123);
 CREATE PUBLICATION testpub_syntax3 FOR TABLES IN SCHEMA testpub_rf_schema1, testpub_rf_schema1 WHERE (a = 123);
@@ -289,43 +289,43 @@ ALTER TABLE rf_tbl_abcd_part_pk ATTACH PARTITION rf_tbl_abcd_part_pk_1 FOR VALUE
 SET client_min_messages = 'ERROR';
 CREATE PUBLICATION testpub6 FOR TABLE rf_tbl_abcd_pk WHERE (a > 99);
 RESET client_min_messages;
--- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+-- ok - /* REPLACED */ ''a/* REPLACED */ '' is a PK col
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (b > 99);
--- ok - /* REPLACED */''b/* REPLACED */'' is a PK col
+-- ok - /* REPLACED */ ''b/* REPLACED */ '' is a PK col
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99);
--- fail - /* REPLACED */''c/* REPLACED */'' is not part of the PK
+-- fail - /* REPLACED */ ''c/* REPLACED */ '' is not part of the PK
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (d > 99);
--- fail - /* REPLACED */''d/* REPLACED */'' is not part of the PK
+-- fail - /* REPLACED */ ''d/* REPLACED */ '' is not part of the PK
 UPDATE rf_tbl_abcd_pk SET a = 1;
 -- 1b. REPLICA IDENTITY is DEFAULT and table has no PK
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99);
--- fail - /* REPLACED */''a/* REPLACED */'' is not part of REPLICA IDENTITY
+-- fail - /* REPLACED */ ''a/* REPLACED */ '' is not part of REPLICA IDENTITY
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
 -- Case 2. REPLICA IDENTITY FULL
 ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY FULL;
 ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY FULL;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99);
--- ok - /* REPLACED */''c/* REPLACED */'' is in REPLICA IDENTITY now even though not in PK
+-- ok - /* REPLACED */ ''c/* REPLACED */ '' is in REPLICA IDENTITY now even though not in PK
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99);
--- ok - /* REPLACED */''a/* REPLACED */'' is in REPLICA IDENTITY now
+-- ok - /* REPLACED */ ''a/* REPLACED */ '' is in REPLICA IDENTITY now
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
 -- Case 3. REPLICA IDENTITY NOTHING
 ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY NOTHING;
 ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY NOTHING;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (a > 99);
--- fail - /* REPLACED */''a/* REPLACED */'' is in PK but it is not part of REPLICA IDENTITY NOTHING
+-- fail - /* REPLACED */ ''a/* REPLACED */ '' is in PK but it is not part of REPLICA IDENTITY NOTHING
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99);
--- fail - /* REPLACED */''c/* REPLACED */'' is not in PK and not in REPLICA IDENTITY NOTHING
+-- fail - /* REPLACED */ ''c/* REPLACED */ '' is not in PK and not in REPLICA IDENTITY NOTHING
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99);
--- fail - /* REPLACED */''a/* REPLACED */'' is not in REPLICA IDENTITY NOTHING
+-- fail - /* REPLACED */ ''a/* REPLACED */ '' is not in REPLICA IDENTITY NOTHING
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
 -- Case 4. REPLICA IDENTITY INDEX
@@ -336,16 +336,16 @@ ALTER TABLE rf_tbl_abcd_nopk ALTER COLUMN c SET NOT NULL;
 CREATE UNIQUE INDEX idx_abcd_nopk_c ON rf_tbl_abcd_nopk(c);
 ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY USING INDEX idx_abcd_nopk_c;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (a > 99);
--- fail - /* REPLACED */''a/* REPLACED */'' is in PK but it is not part of REPLICA IDENTITY INDEX
+-- fail - /* REPLACED */ ''a/* REPLACED */ '' is in PK but it is not part of REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk WHERE (c > 99);
--- ok - /* REPLACED */''c/* REPLACED */'' is not in PK but it is part of REPLICA IDENTITY INDEX
+-- ok - /* REPLACED */ ''c/* REPLACED */ '' is not in PK but it is part of REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (a > 99);
--- fail - /* REPLACED */''a/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+-- fail - /* REPLACED */ ''a/* REPLACED */ '' is not in REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk WHERE (c > 99);
--- ok - /* REPLACED */''c/* REPLACED */'' is part of REPLICA IDENTITY INDEX
+-- ok - /* REPLACED */ ''c/* REPLACED */ '' is part of REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
 -- Tests for partitioned table
@@ -357,35 +357,35 @@ ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk WHERE (a > 99);
 -- ok - can use row filter for partition
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 WHERE (a > 99);
--- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+-- ok - /* REPLACED */ ''a/* REPLACED */ '' is a PK col
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 -- set PUBLISH_VIA_PARTITION_ROOT to true and test row filter for partitioned
 -- table
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1);
 -- ok - can use row filter for partitioned table
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk WHERE (a > 99);
--- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+-- ok - /* REPLACED */ ''a/* REPLACED */ '' is a PK col
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 -- fail - cannot set PUBLISH_VIA_PARTITION_ROOT to false if any row filter is
 -- used for partitioned table
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
--- remove partitioned table/* REPLACED */''s row filter
+-- remove partitioned table/* REPLACED */ ''s row filter
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk;
--- ok - we don/* REPLACED */''t have row filter for partitioned table.
+-- ok - we don/* REPLACED */ ''t have row filter for partitioned table.
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
--- Now change the root filter to use a column /* REPLACED */''b/* REPLACED */''
+-- Now change the root filter to use a column /* REPLACED */ ''b/* REPLACED */ ''
 -- (which is not in the replica identity)
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 WHERE (b > 99);
--- ok - we don/* REPLACED */''t have row filter for partitioned table.
+-- ok - we don/* REPLACED */ ''t have row filter for partitioned table.
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
--- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+-- fail - /* REPLACED */ ''b/* REPLACED */ '' is not in REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 -- set PUBLISH_VIA_PARTITION_ROOT to true
 -- can use row filter for partitioned table
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1);
 -- ok - can use row filter for partitioned table
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk WHERE (b > 99);
--- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+-- fail - /* REPLACED */ ''b/* REPLACED */ '' is not in REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 
 DROP PUBLICATION testpub6;
@@ -407,15 +407,15 @@ CREATE PUBLICATION testpub_fortable_insert WITH (publish = 'insert');
 RESET client_min_messages;
 CREATE TABLE testpub_tbl5 (a int PRIMARY KEY, b text, c text,
 	d int generated always as (a + length(b)) stored);
--- error: column /* REPLACED */''x/* REPLACED */'' does not exist
+-- error: column /* REPLACED */ ''x/* REPLACED */ '' does not exist
 ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, x);
--- error: replica identity /* REPLACED */''a/* REPLACED */'' not included in the column list
+-- error: replica identity /* REPLACED */ ''a/* REPLACED */ '' not included in the column list
 ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (b, c);
 UPDATE testpub_tbl5 SET a = 1;
 ALTER PUBLICATION testpub_fortable DROP TABLE testpub_tbl5;
--- error: generated column /* REPLACED */''d/* REPLACED */'' can/* REPLACED */''t be in list
+-- error: generated column /* REPLACED */ ''d/* REPLACED */ '' can/* REPLACED */ ''t be in list
 ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, d);
--- error: system attributes /* REPLACED */''ctid/* REPLACED */'' not allowed in column list
+-- error: system attributes /* REPLACED */ ''ctid/* REPLACED */ '' not allowed in column list
 ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, ctid);
 -- ok
 ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, c);
@@ -431,7 +431,7 @@ ALTER TABLE testpub_tbl5 REPLICA IDENTITY USING INDEX testpub_tbl5_b_key;
 UPDATE testpub_tbl5 SET a = 1;
 ALTER PUBLICATION testpub_fortable DROP TABLE testpub_tbl5;
 
--- error: change the replica identity to /* REPLACED */''b/* REPLACED */'', and column list to (a, c)
+-- error: change the replica identity to /* REPLACED */ ''b/* REPLACED */ '', and column list to (a, c)
 -- then update fails, because (a, c) does not cover replica identity
 ALTER TABLE testpub_tbl5 REPLICA IDENTITY USING INDEX testpub_tbl5_b_key;
 ALTER PUBLICATION testpub_fortable ADD TABLE testpub_tbl5 (a, c);
@@ -478,16 +478,16 @@ ALTER PUBLICATION testpub_fortable SET TABLE testpub_tbl7 (a, c);
 -- column list for partitioned tables has to cover replica identities for
 -- all child relations
 CREATE TABLE testpub_tbl8 (a int, b text, c text) PARTITION BY HASH (a);
--- first partition has replica identity /* REPLACED */''a/* REPLACED */''
+-- first partition has replica identity /* REPLACED */ ''a/* REPLACED */ ''
 CREATE TABLE testpub_tbl8_0 PARTITION OF testpub_tbl8 FOR VALUES WITH (modulus 2, remainder 0);
 ALTER TABLE testpub_tbl8_0 ADD PRIMARY KEY (a);
 ALTER TABLE testpub_tbl8_0 REPLICA IDENTITY USING INDEX testpub_tbl8_0_pkey;
--- second partition has replica identity /* REPLACED */''b/* REPLACED */''
+-- second partition has replica identity /* REPLACED */ ''b/* REPLACED */ ''
 CREATE TABLE testpub_tbl8_1 PARTITION OF testpub_tbl8 FOR VALUES WITH (modulus 2, remainder 1);
 ALTER TABLE testpub_tbl8_1 ADD PRIMARY KEY (b);
 ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey;
 
--- ok: column list covers both /* REPLACED */''a/* REPLACED */'' and /* REPLACED */''b/* REPLACED */''
+-- ok: column list covers both /* REPLACED */ ''a/* REPLACED */ '' and /* REPLACED */ ''b/* REPLACED */ ''
 SET client_min_messages = 'ERROR';
 CREATE PUBLICATION testpub_col_list FOR TABLE testpub_tbl8 (a, b) WITH (publish_via_partition_root = 'true');
 RESET client_min_messages;
@@ -513,7 +513,7 @@ ALTER PUBLICATION testpub_col_list DROP TABLE testpub_tbl8;
 ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey;
 ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, b);
 
--- failure: replica identity full can/* REPLACED */''t be used with a column list
+-- failure: replica identity full can/* REPLACED */ ''t be used with a column list
 ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY FULL;
 UPDATE testpub_tbl8 SET a = 1;
 
@@ -529,11 +529,11 @@ DROP TABLE testpub_tbl8;
 -- all child relations
 CREATE TABLE testpub_tbl8 (a int, b text, c text) PARTITION BY HASH (a);
 ALTER PUBLICATION testpub_col_list ADD TABLE testpub_tbl8 (a, b);
--- first partition has replica identity /* REPLACED */''a/* REPLACED */''
+-- first partition has replica identity /* REPLACED */ ''a/* REPLACED */ ''
 CREATE TABLE testpub_tbl8_0 (a int, b text, c text);
 ALTER TABLE testpub_tbl8_0 ADD PRIMARY KEY (a);
 ALTER TABLE testpub_tbl8_0 REPLICA IDENTITY USING INDEX testpub_tbl8_0_pkey;
--- second partition has replica identity /* REPLACED */''b/* REPLACED */''
+-- second partition has replica identity /* REPLACED */ ''b/* REPLACED */ ''
 CREATE TABLE testpub_tbl8_1 (a int, b text, c text);
 ALTER TABLE testpub_tbl8_1 ADD PRIMARY KEY (c);
 ALTER TABLE testpub_tbl8_1 REPLICA IDENTITY USING INDEX testpub_tbl8_1_pkey;
@@ -609,15 +609,15 @@ ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a, b, c);
 -- ok - (a,b,c) coverts all PK cols
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a);
--- fail - /* REPLACED */''b/* REPLACED */'' is missing from the column list
+-- fail - /* REPLACED */ ''b/* REPLACED */ '' is missing from the column list
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (b);
--- fail - /* REPLACED */''a/* REPLACED */'' is missing from the column list
+-- fail - /* REPLACED */ ''a/* REPLACED */ '' is missing from the column list
 UPDATE rf_tbl_abcd_pk SET a = 1;
 
 -- 1b. REPLICA IDENTITY is DEFAULT and table has no PK
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (a);
--- ok - there/* REPLACED */''s no replica identity, so any column list works
+-- ok - there/* REPLACED */ ''s no replica identity, so any column list works
 -- note: it fails anyway, just a bit later because UPDATE requires RI
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
@@ -636,15 +636,15 @@ ALTER TABLE rf_tbl_abcd_pk REPLICA IDENTITY NOTHING;
 ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY NOTHING;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a);
 -- ok - REPLICA IDENTITY NOTHING means all column lists are valid
--- it still fails later because without RI we can/* REPLACED */''t replicate updates
+-- it still fails later because without RI we can/* REPLACED */ ''t replicate updates
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a, b, c, d);
 -- ok - REPLICA IDENTITY NOTHING means all column lists are valid
--- it still fails later because without RI we can/* REPLACED */''t replicate updates
+-- it still fails later because without RI we can/* REPLACED */ ''t replicate updates
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (d);
 -- ok - REPLICA IDENTITY NOTHING means all column lists are valid
--- it still fails later because without RI we can/* REPLACED */''t replicate updates
+-- it still fails later because without RI we can/* REPLACED */ ''t replicate updates
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
 -- Case 4. REPLICA IDENTITY INDEX
@@ -655,16 +655,16 @@ ALTER TABLE rf_tbl_abcd_nopk ALTER COLUMN c SET NOT NULL;
 CREATE UNIQUE INDEX idx_abcd_nopk_c ON rf_tbl_abcd_nopk(c);
 ALTER TABLE rf_tbl_abcd_nopk REPLICA IDENTITY USING INDEX idx_abcd_nopk_c;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (a);
--- fail - column list /* REPLACED */''a/* REPLACED */'' does not cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+-- fail - column list /* REPLACED */ ''a/* REPLACED */ '' does not cover the REPLICA IDENTITY INDEX on /* REPLACED */ ''c/* REPLACED */ ''
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_pk (c);
--- ok - column list /* REPLACED */''c/* REPLACED */'' does cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+-- ok - column list /* REPLACED */ ''c/* REPLACED */ '' does cover the REPLICA IDENTITY INDEX on /* REPLACED */ ''c/* REPLACED */ ''
 UPDATE rf_tbl_abcd_pk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (a);
--- fail - column list /* REPLACED */''a/* REPLACED */'' does not cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+-- fail - column list /* REPLACED */ ''a/* REPLACED */ '' does not cover the REPLICA IDENTITY INDEX on /* REPLACED */ ''c/* REPLACED */ ''
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_nopk (c);
--- ok - column list /* REPLACED */''c/* REPLACED */'' does cover the REPLICA IDENTITY INDEX on /* REPLACED */''c/* REPLACED */''
+-- ok - column list /* REPLACED */ ''c/* REPLACED */ '' does cover the REPLICA IDENTITY INDEX on /* REPLACED */ ''c/* REPLACED */ ''
 UPDATE rf_tbl_abcd_nopk SET a = 1;
 
 -- Tests for partitioned table
@@ -676,35 +676,35 @@ ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk (a);
 -- ok - can use column list for partition
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 (a);
--- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+-- ok - /* REPLACED */ ''a/* REPLACED */ '' is a PK col
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 -- set PUBLISH_VIA_PARTITION_ROOT to true and test column list for partitioned
 -- table
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1);
 -- ok - can use column list for partitioned table
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk (a);
--- ok - /* REPLACED */''a/* REPLACED */'' is a PK col
+-- ok - /* REPLACED */ ''a/* REPLACED */ '' is a PK col
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 -- fail - cannot set PUBLISH_VIA_PARTITION_ROOT to false if any column list is
 -- used for partitioned table
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
--- remove partitioned table/* REPLACED */''s column list
+-- remove partitioned table/* REPLACED */ ''s column list
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk;
--- ok - we don/* REPLACED */''t have column list for partitioned table.
+-- ok - we don/* REPLACED */ ''t have column list for partitioned table.
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
--- Now change the root column list to use a column /* REPLACED */''b/* REPLACED */''
+-- Now change the root column list to use a column /* REPLACED */ ''b/* REPLACED */ ''
 -- (which is not in the replica identity)
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk_1 (b);
--- ok - we don/* REPLACED */''t have column list for partitioned table.
+-- ok - we don/* REPLACED */ ''t have column list for partitioned table.
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=0);
--- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+-- fail - /* REPLACED */ ''b/* REPLACED */ '' is not in REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 -- set PUBLISH_VIA_PARTITION_ROOT to true
 -- can use column list for partitioned table
 ALTER PUBLICATION testpub6 SET (PUBLISH_VIA_PARTITION_ROOT=1);
 -- ok - can use column list for partitioned table
 ALTER PUBLICATION testpub6 SET TABLE rf_tbl_abcd_part_pk (b);
--- fail - /* REPLACED */''b/* REPLACED */'' is not in REPLICA IDENTITY INDEX
+-- fail - /* REPLACED */ ''b/* REPLACED */ '' is not in REPLICA IDENTITY INDEX
 UPDATE rf_tbl_abcd_part_pk SET a = 1;
 
 DROP PUBLICATION testpub6;
@@ -965,7 +965,7 @@ DROP SCHEMA "CURRENT_SCHEMA" CASCADE;
 
 -- verify relation cache invalidations through update statement for the
 -- default REPLICA IDENTITY on the relation, if schema is part of the
--- publication then update will fail because relation/* REPLACED */''s relreplident
+-- publication then update will fail because relation/* REPLACED */ ''s relreplident
 -- option will be set, if schema is not part of the publication then update
 -- will be successful.
 INSERT INTO pub_test1.tbl VALUES(1, 'test');
@@ -1015,7 +1015,7 @@ UPDATE pub_testpart2.child_parent1 set a = 1;
 UPDATE pub_testpart2.parent2 set a = 1;
 UPDATE pub_testpart1.child_parent2 set a = 1;
 
--- alter publication set /* REPLACED */''TABLES IN SCHEMA/* REPLACED */'' on an empty publication.
+-- alter publication set /* REPLACED */ ''TABLES IN SCHEMA/* REPLACED */ '' on an empty publication.
 SET client_min_messages = 'ERROR';
 CREATE PUBLICATION testpub3_forschema;
 RESET client_min_messages;
@@ -1023,7 +1023,7 @@ RESET client_min_messages;
 ALTER PUBLICATION testpub3_forschema SET TABLES IN SCHEMA pub_test1;
 -- \dRp+ testpub3_forschema
 
--- create publication including both /* REPLACED */''FOR TABLE/* REPLACED */'' and /* REPLACED */''FOR TABLES IN SCHEMA/* REPLACED */''
+-- create publication including both /* REPLACED */ ''FOR TABLE/* REPLACED */ '' and /* REPLACED */ ''FOR TABLES IN SCHEMA/* REPLACED */ ''
 SET client_min_messages = 'ERROR';
 CREATE PUBLICATION testpub_forschema_fortable FOR TABLES IN SCHEMA pub_test1, TABLE pub_test2.tbl1;
 CREATE PUBLICATION testpub_fortable_forschema FOR TABLE pub_test2.tbl1, TABLES IN SCHEMA pub_test1;
@@ -1032,8 +1032,8 @@ RESET client_min_messages;
 -- \dRp+ testpub_forschema_fortable
 -- \dRp+ testpub_fortable_forschema
 
--- fail specifying table without any of /* REPLACED */''FOR TABLES IN SCHEMA/* REPLACED */'' or
---/* REPLACED */''FOR TABLE/* REPLACED */'' or /* REPLACED */''FOR ALL TABLES/* REPLACED */''
+-- fail specifying table without any of /* REPLACED */ ''FOR TABLES IN SCHEMA/* REPLACED */ '' or
+--/* REPLACED */ ''FOR TABLE/* REPLACED */ '' or /* REPLACED */ ''FOR ALL TABLES/* REPLACED */ ''
 CREATE PUBLICATION testpub_error FOR pub_test2.tbl1;
 
 DROP VIEW testpub_view;
@@ -1055,7 +1055,7 @@ DROP SCHEMA pub_testpart1 CASCADE;
 DROP SCHEMA pub_testpart2 CASCADE;
 
 -- Test the list of partitions published with or without
--- /* REPLACED */''PUBLISH_VIA_PARTITION_ROOT/* REPLACED */'' parameter
+-- /* REPLACED */ ''PUBLISH_VIA_PARTITION_ROOT/* REPLACED */ '' parameter
 SET client_min_messages = 'ERROR';
 CREATE SCHEMA sch1;
 CREATE SCHEMA sch2;

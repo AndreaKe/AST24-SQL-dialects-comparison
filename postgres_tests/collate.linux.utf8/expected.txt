@@ -11,13 +11,13 @@ SELECT getdatabaseencoding() <> 'UTF8' OR
        (SELECT count(*) FROM pg_collation WHERE collname IN ('de_DE', 'en_US', 'sv_SE', 'tr_TR') AND collencoding = pg_char_to_encoding('UTF8')) <> 4 OR
        version() !~ 'linux-gnu'
        AS skip_test \gset
-\if :skip_test
-\quit
-\endif
+-- \if :skip_test
+-- \quit
+-- \endif
 
 SET client_encoding TO UTF8;
 RESULT:
-	postgres: syntax error at or near "\"
+	ERROR - syntax error at or near "\"
 LINE 10:        AS skip_test \gset
                              ^
 
@@ -28,14 +28,14 @@ QUERY:
 
 CREATE SCHEMA collate_tests;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET search_path = collate_tests;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -47,7 +47,7 @@ CREATE TABLE collate_test1 (
     b text COLLATE "en_US" NOT NULL
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -60,7 +60,7 @@ CREATE TABLE collate_test_fail (
     b text COLLATE "ja_JP.eucjp"
 );
 RESULT:
-	postgres: collation "ja_JP.eucjp" for encoding "UTF8" does not exist
+	ERROR - collation "ja_JP.eucjp" for encoding "UTF8" does not exist
 LINE 7:     b text COLLATE "ja_JP.eucjp"
                    ^
 
@@ -74,7 +74,7 @@ CREATE TABLE collate_test_fail (
     b text COLLATE "foo"
 );
 RESULT:
-	postgres: collation "foo" for encoding "UTF8" does not exist
+	ERROR - collation "foo" for encoding "UTF8" does not exist
 LINE 5:     b text COLLATE "foo"
                    ^
 
@@ -88,7 +88,7 @@ CREATE TABLE collate_test_fail (
     b text
 );
 RESULT:
-	postgres: collations are not supported by type integer
+	ERROR - collations are not supported by type integer
 LINE 4:     a int COLLATE "en_US",
                   ^
 
@@ -101,7 +101,7 @@ CREATE TABLE collate_test_like (
     LIKE collate_test1
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -114,7 +114,7 @@ CREATE TABLE collate_test2 (
     b text COLLATE "sv_SE"
 );
 RESULT:
-	postgres: collation "sv_SE" for encoding "UTF8" does not exist
+	ERROR - collation "sv_SE" for encoding "UTF8" does not exist
 LINE 7:     b text COLLATE "sv_SE"
                    ^
 
@@ -128,7 +128,7 @@ CREATE TABLE collate_test3 (
     b text COLLATE "C"
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -136,14 +136,14 @@ QUERY:
 
 INSERT INTO collate_test1 VALUES (1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO collate_test2 SELECT * FROM collate_test1;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: INSERT INTO collate_test2 SELECT * FROM collate_test1;
                     ^
 
@@ -153,7 +153,7 @@ QUERY:
 
 INSERT INTO collate_test3 SELECT * FROM collate_test1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -161,14 +161,14 @@ QUERY:
 
 SELECT * FROM collate_test1 WHERE b >= 'bbc';
 RESULT:
-	postgres: [(3, 'bbc')]
+	[(3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test2 WHERE b >= 'bbc';
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT * FROM collate_test2 WHERE b >= 'bbc';
                       ^
 
@@ -178,14 +178,14 @@ QUERY:
 
 SELECT * FROM collate_test3 WHERE b >= 'bbc';
 RESULT:
-	postgres: [(2, 'äbc'), (3, 'bbc')]
+	[(2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test3 WHERE b >= 'BBC';
 RESULT:
-	postgres: [(1, 'abc'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
@@ -193,28 +193,28 @@ QUERY:
 
 SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc';
 RESULT:
-	postgres: [(2, 'äbc'), (3, 'bbc')]
+	[(2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b >= 'bbc' COLLATE "C";
 RESULT:
-	postgres: [(2, 'äbc'), (3, 'bbc')]
+	[(2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "C";
 RESULT:
-	postgres: [(2, 'äbc'), (3, 'bbc')]
+	[(2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "en_US";
 RESULT:
-	postgres: collation mismatch between explicit collations "C" and "en_US"
+	ERROR - collation mismatch between explicit collations "C" and "en_US"
 LINE 2: ...* FROM collate_test1 WHERE b COLLATE "C" >= 'bbc' COLLATE "e...
                                                              ^
 
@@ -226,7 +226,7 @@ QUERY:
 
 CREATE DOMAIN testdomain_sv AS text COLLATE "sv_SE";
 RESULT:
-	postgres: collation "sv_SE" for encoding "UTF8" does not exist
+	ERROR - collation "sv_SE" for encoding "UTF8" does not exist
 
 
 -----------
@@ -234,7 +234,7 @@ QUERY:
 
 CREATE DOMAIN testdomain_i AS int COLLATE "sv_SE";
 RESULT:
-	postgres: collation "sv_SE" for encoding "UTF8" does not exist
+	ERROR - collation "sv_SE" for encoding "UTF8" does not exist
 
 
 -----------
@@ -245,7 +245,7 @@ CREATE TABLE collate_test4 (
     b testdomain_sv
 );
 RESULT:
-	postgres: type "testdomain_sv" does not exist
+	ERROR - type "testdomain_sv" does not exist
 LINE 4:     b testdomain_sv
               ^
 
@@ -255,7 +255,7 @@ QUERY:
 
 INSERT INTO collate_test4 SELECT * FROM collate_test1;
 RESULT:
-	postgres: relation "collate_test4" does not exist
+	ERROR - relation "collate_test4" does not exist
 LINE 2: INSERT INTO collate_test4 SELECT * FROM collate_test1;
                     ^
 
@@ -265,7 +265,7 @@ QUERY:
 
 SELECT a, b FROM collate_test4 ORDER BY b;
 RESULT:
-	postgres: relation "collate_test4" does not exist
+	ERROR - relation "collate_test4" does not exist
 LINE 2: SELECT a, b FROM collate_test4 ORDER BY b;
                          ^
 
@@ -279,7 +279,7 @@ CREATE TABLE collate_test5 (
     b testdomain_sv COLLATE "en_US"
 );
 RESULT:
-	postgres: type "testdomain_sv" does not exist
+	ERROR - type "testdomain_sv" does not exist
 LINE 5:     b testdomain_sv COLLATE "en_US"
               ^
 
@@ -289,7 +289,7 @@ QUERY:
 
 INSERT INTO collate_test5 SELECT * FROM collate_test1;
 RESULT:
-	postgres: relation "collate_test5" does not exist
+	ERROR - relation "collate_test5" does not exist
 LINE 2: INSERT INTO collate_test5 SELECT * FROM collate_test1;
                     ^
 
@@ -299,7 +299,7 @@ QUERY:
 
 SELECT a, b FROM collate_test5 ORDER BY b;
 RESULT:
-	postgres: relation "collate_test5" does not exist
+	ERROR - relation "collate_test5" does not exist
 LINE 2: SELECT a, b FROM collate_test5 ORDER BY b;
                          ^
 
@@ -311,14 +311,14 @@ QUERY:
 
 SELECT a, b FROM collate_test1 ORDER BY b;
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, b FROM collate_test2 ORDER BY b;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, b FROM collate_test2 ORDER BY b;
                          ^
 
@@ -328,7 +328,7 @@ QUERY:
 
 SELECT a, b FROM collate_test3 ORDER BY b;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -336,7 +336,7 @@ QUERY:
 
 SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -345,14 +345,14 @@ QUERY:
 -- star expansion
 SELECT * FROM collate_test1 ORDER BY b;
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test2 ORDER BY b;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT * FROM collate_test2 ORDER BY b;
                       ^
 
@@ -362,7 +362,7 @@ QUERY:
 
 SELECT * FROM collate_test3 ORDER BY b;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -371,14 +371,14 @@ QUERY:
 -- constant expression folding
 SELECT 'bbc' COLLATE "en_US" > 'äbc' COLLATE "en_US" AS "true";
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT 'bbc' COLLATE "sv_SE" > 'äbc' COLLATE "sv_SE" AS "false";
 RESULT:
-	postgres: collation "sv_SE" for encoding "UTF8" does not exist
+	ERROR - collation "sv_SE" for encoding "UTF8" does not exist
 LINE 2: SELECT 'bbc' COLLATE "sv_SE" > 'äbc' COLLATE "sv_SE" AS "fal...
                      ^
 
@@ -395,7 +395,7 @@ CREATE TABLE collate_test10 (
     y text COLLATE "tr_TR"
 );
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 8:     y text COLLATE "tr_TR"
                    ^
 
@@ -406,7 +406,7 @@ QUERY:
 
 INSERT INTO collate_test10 VALUES (1, 'hij', 'hij'), (2, 'HIJ', 'HIJ');
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 3: INSERT INTO collate_test10 VALUES (1, 'hij', 'hij'), (2, 'HI...
                     ^
 
@@ -417,7 +417,7 @@ QUERY:
 
 SELECT a, lower(x), lower(y), upper(x), upper(y), initcap(x), initcap(y) FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 3: ..., upper(x), upper(y), initcap(x), initcap(y) FROM collate_te...
                                                              ^
 
@@ -427,7 +427,7 @@ QUERY:
 
 SELECT a, lower(x COLLATE "C"), lower(y COLLATE "C") FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: ..., lower(x COLLATE "C"), lower(y COLLATE "C") FROM collate_te...
                                                              ^
 
@@ -438,7 +438,7 @@ QUERY:
 
 SELECT a, x, y FROM collate_test10 ORDER BY lower(y), a;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 3: SELECT a, x, y FROM collate_test10 ORDER BY lower(y), a;
                             ^
 
@@ -451,42 +451,42 @@ QUERY:
 
 SELECT * FROM collate_test1 WHERE b LIKE 'abc';
 RESULT:
-	postgres: [(1, 'abc')]
+	[(1, 'abc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b LIKE 'abc%';
 RESULT:
-	postgres: [(1, 'abc')]
+	[(1, 'abc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b LIKE '%bc%';
 RESULT:
-	postgres: [(1, 'abc'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ILIKE 'abc';
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC')]
+	[(1, 'abc'), (4, 'ABC')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ILIKE 'abc%';
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC')]
+	[(1, 'abc'), (4, 'ABC')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ILIKE '%bc%';
 RESULT:
-	postgres: [(1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC')]
+	[(1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC')]
 
 -----------
 QUERY:
@@ -494,14 +494,14 @@ QUERY:
 
 SELECT 'Türkiye' COLLATE "en_US" ILIKE '%KI%' AS "true";
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT 'Türkiye' COLLATE "tr_TR" ILIKE '%KI%' AS "false";
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 2: SELECT 'Türkiye' COLLATE "tr_TR" ILIKE '%KI%' AS "false";
                          ^
 
@@ -512,14 +512,14 @@ QUERY:
 
 SELECT 'bıt' ILIKE 'BIT' COLLATE "en_US" AS "false";
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT 'bıt' ILIKE 'BIT' COLLATE "tr_TR" AS "true";
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 2: SELECT 'bıt' ILIKE 'BIT' COLLATE "tr_TR" AS "true";
                                  ^
 
@@ -531,7 +531,7 @@ QUERY:
 -- The following actually exercises the selectivity estimation for ILIKE.
 SELECT relname FROM pg_class WHERE relname ILIKE 'abc%';
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -541,42 +541,42 @@ QUERY:
 
 SELECT * FROM collate_test1 WHERE b ~ '^abc$';
 RESULT:
-	postgres: [(1, 'abc')]
+	[(1, 'abc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ~ '^abc';
 RESULT:
-	postgres: [(1, 'abc')]
+	[(1, 'abc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ~ 'bc';
 RESULT:
-	postgres: [(1, 'abc'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ~* '^abc$';
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC')]
+	[(1, 'abc'), (4, 'ABC')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ~* '^abc';
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC')]
+	[(1, 'abc'), (4, 'ABC')]
 
 -----------
 QUERY:
 
 SELECT * FROM collate_test1 WHERE b ~* 'bc';
 RESULT:
-	postgres: [(1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC')]
+	[(1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC')]
 
 -----------
 QUERY:
@@ -587,7 +587,7 @@ CREATE TABLE collate_test6 (
     b text COLLATE "en_US"
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -595,7 +595,7 @@ QUERY:
 INSERT INTO collate_test6 VALUES (1, 'abc'), (2, 'ABC'), (3, '123'), (4, 'ab1'),
                                  (5, 'a1!'), (6, 'a c'), (7, '!.;
 RESULT:
-	postgres: unterminated quoted string at or near "'!.;"
+	ERROR - unterminated quoted string at or near "'!.;"
 LINE 3: ...                            (5, 'a1!'), (6, 'a c'), (7, '!.;
                                                                    ^
 
@@ -605,7 +605,7 @@ QUERY:
 '), (8, '   '),
                                  (9, 'äbç'), (10, 'ÄBÇ');
 RESULT:
-	postgres: syntax error at or near "'), (8, '"
+	ERROR - syntax error at or near "'), (8, '"
 LINE 1: '), (8, '   '),
         ^
 
@@ -625,7 +625,7 @@ SELECT b,
        b ~ '^[[:space:]]+$' AS is_space
 FROM collate_test6;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -633,14 +633,14 @@ QUERY:
 
 SELECT 'Türkiye' COLLATE "en_US" ~* 'KI' AS "true";
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT 'Türkiye' COLLATE "tr_TR" ~* 'KI' AS "false";
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 2: SELECT 'Türkiye' COLLATE "tr_TR" ~* 'KI' AS "false";
                          ^
 
@@ -651,14 +651,14 @@ QUERY:
 
 SELECT 'bıt' ~* 'BIT' COLLATE "en_US" AS "false";
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT 'bıt' ~* 'BIT' COLLATE "tr_TR" AS "true";
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 2: SELECT 'bıt' ~* 'BIT' COLLATE "tr_TR" AS "true";
                               ^
 
@@ -670,7 +670,7 @@ QUERY:
 -- The following actually exercises the selectivity estimation for ~*.
 SELECT relname FROM pg_class WHERE relname ~* '^abc';
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -681,7 +681,7 @@ QUERY:
 
 SET lc_time TO 'tr_TR';
 RESULT:
-	postgres: invalid value for parameter "lc_time": "tr_TR"
+	ERROR - invalid value for parameter "lc_time": "tr_TR"
 
 
 -----------
@@ -689,14 +689,14 @@ QUERY:
 
 SELECT to_char(date '2010-02-01', 'DD TMMON YYYY');
 RESULT:
-	postgres: [('01 FEB 2010',)]
+	[('01 FEB 2010',)]
 
 -----------
 QUERY:
 
 SELECT to_char(date '2010-02-01', 'DD TMMON YYYY' COLLATE "tr_TR");
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 2: SELECT to_char(date '2010-02-01', 'DD TMMON YYYY' COLLATE "t...
                                                           ^
 
@@ -706,14 +706,14 @@ QUERY:
 
 SELECT to_char(date '2010-04-01', 'DD TMMON YYYY');
 RESULT:
-	postgres: [('01 APR 2010',)]
+	[('01 APR 2010',)]
 
 -----------
 QUERY:
 
 SELECT to_char(date '2010-04-01', 'DD TMMON YYYY' COLLATE "tr_TR");
 RESULT:
-	postgres: collation "tr_TR" for encoding "UTF8" does not exist
+	ERROR - collation "tr_TR" for encoding "UTF8" does not exist
 LINE 2: SELECT to_char(date '2010-04-01', 'DD TMMON YYYY' COLLATE "t...
                                                           ^
 
@@ -726,7 +726,7 @@ QUERY:
 
 SELECT to_date('01 ŞUB 2010', 'DD TMMON YYYY');
 RESULT:
-	postgres: invalid value "ŞUB" for "MON"
+	ERROR - invalid value "ŞUB" for "MON"
 DETAIL:  The given value did not match any of the allowed values for this field.
 
 
@@ -735,7 +735,7 @@ QUERY:
 
 SELECT to_date('01 Şub 2010', 'DD TMMON YYYY');
 RESULT:
-	postgres: invalid value "Şub" for "MON"
+	ERROR - invalid value "Şub" for "MON"
 DETAIL:  The given value did not match any of the allowed values for this field.
 
 
@@ -744,7 +744,7 @@ QUERY:
 
 SELECT to_date('1234567890ab 2010', 'TMMONTH YYYY');
 RESULT:
-	postgres: invalid value "1234567890ab" for "MONTH"
+	ERROR - invalid value "1234567890ab" for "MONTH"
 DETAIL:  The given value did not match any of the allowed values for this field.
 
 
@@ -757,21 +757,21 @@ QUERY:
 
 CREATE VIEW collview1 AS SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE VIEW collview2 AS SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE VIEW collview3 AS SELECT a, lower((x || x) COLLATE "C") FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: ...ew3 AS SELECT a, lower((x || x) COLLATE "C") FROM collate_te...
                                                              ^
 
@@ -783,7 +783,7 @@ QUERY:
 SELECT table_name, view_definition FROM information_schema.views
   WHERE table_name LIKE 'collview%' ORDER BY 1;
 RESULT:
-	postgres: [('collview1', ' SELECT a,\n    b\n   FROM collate_test1\n  WHERE ((b COLLATE "C") >= \'bbc\'::text);'), ('collview2', ' SELECT a,\n    b\n   FROM collate_test1\n  ORDER BY (b COLLATE "C");')]
+	[('collview1', ' SELECT a,\n    b\n   FROM collate_test1\n  WHERE ((b COLLATE "C") >= \'bbc\'::text);'), ('collview2', ' SELECT a,\n    b\n   FROM collate_test1\n  ORDER BY (b COLLATE "C");')]
 
 -----------
 QUERY:
@@ -794,14 +794,14 @@ QUERY:
 
 SELECT a, coalesce(b, 'foo') FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, coalesce(b, 'foo') FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, coalesce(b, 'foo') FROM collate_test2 ORDER BY 2;
                                           ^
 
@@ -811,14 +811,14 @@ QUERY:
 
 SELECT a, coalesce(b, 'foo') FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
 
 SELECT a, lower(coalesce(x, 'foo')), lower(coalesce(y, 'foo')) FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: ...alesce(x, 'foo')), lower(coalesce(y, 'foo')) FROM collate_te...
                                                              ^
 
@@ -829,14 +829,14 @@ QUERY:
 
 SELECT a, b, greatest(b, 'CCC') FROM collate_test1 ORDER BY 3;
 RESULT:
-	postgres: [(1, 'abc', 'CCC'), (2, 'äbc', 'CCC'), (3, 'bbc', 'CCC'), (4, 'ABC', 'CCC')]
+	[(1, 'abc', 'CCC'), (2, 'äbc', 'CCC'), (3, 'bbc', 'CCC'), (4, 'ABC', 'CCC')]
 
 -----------
 QUERY:
 
 SELECT a, b, greatest(b, 'CCC') FROM collate_test2 ORDER BY 3;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, b, greatest(b, 'CCC') FROM collate_test2 ORDER BY ...
                                              ^
 
@@ -846,14 +846,14 @@ QUERY:
 
 SELECT a, b, greatest(b, 'CCC') FROM collate_test3 ORDER BY 3;
 RESULT:
-	postgres: [(4, 'ABC', 'CCC'), (1, 'abc', 'abc'), (3, 'bbc', 'bbc'), (2, 'äbc', 'äbc')]
+	[(4, 'ABC', 'CCC'), (1, 'abc', 'abc'), (3, 'bbc', 'bbc'), (2, 'äbc', 'äbc')]
 
 -----------
 QUERY:
 
 SELECT a, x, y, lower(greatest(x, 'foo')), lower(greatest(y, 'foo')) FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: ...eatest(x, 'foo')), lower(greatest(y, 'foo')) FROM collate_te...
                                                              ^
 
@@ -864,14 +864,14 @@ QUERY:
 
 SELECT a, nullif(b, 'abc') FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (2, 'äbc'), (3, 'bbc'), (1, None)]
+	[(4, 'ABC'), (2, 'äbc'), (3, 'bbc'), (1, None)]
 
 -----------
 QUERY:
 
 SELECT a, nullif(b, 'abc') FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, nullif(b, 'abc') FROM collate_test2 ORDER BY 2;
                                         ^
 
@@ -881,14 +881,14 @@ QUERY:
 
 SELECT a, nullif(b, 'abc') FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (3, 'bbc'), (2, 'äbc'), (1, None)]
+	[(4, 'ABC'), (3, 'bbc'), (2, 'äbc'), (1, None)]
 
 -----------
 QUERY:
 
 SELECT a, lower(nullif(x, 'foo')), lower(nullif(y, 'foo')) FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: ...r(nullif(x, 'foo')), lower(nullif(y, 'foo')) FROM collate_te...
                                                              ^
 
@@ -899,14 +899,14 @@ QUERY:
 
 SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (2, 'äbc'), (1, 'abcd'), (3, 'bbc')]
+	[(4, 'ABC'), (2, 'äbc'), (1, 'abcd'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: ... a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_te...
                                                              ^
 
@@ -916,7 +916,7 @@ QUERY:
 
 SELECT a, CASE b WHEN 'abc' THEN 'abcd' ELSE b END FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abcd'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abcd'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -924,21 +924,21 @@ QUERY:
 
 CREATE DOMAIN testdomain AS text;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT a, b::testdomain FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, b::testdomain FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, b::testdomain FROM collate_test2 ORDER BY 2;
                                      ^
 
@@ -948,14 +948,14 @@ QUERY:
 
 SELECT a, b::testdomain FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
 
 SELECT a, b::testdomain_sv FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: type "testdomain_sv" does not exist
+	ERROR - type "testdomain_sv" does not exist
 LINE 2: SELECT a, b::testdomain_sv FROM collate_test3 ORDER BY 2;
                      ^
 
@@ -965,7 +965,7 @@ QUERY:
 
 SELECT a, lower(x::testdomain), lower(y::testdomain) FROM collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: ..., lower(x::testdomain), lower(y::testdomain) FROM collate_te...
                                                              ^
 
@@ -976,14 +976,14 @@ QUERY:
 
 SELECT min(b), max(b) FROM collate_test1;
 RESULT:
-	postgres: [('abc', 'bbc')]
+	[('abc', 'bbc')]
 
 -----------
 QUERY:
 
 SELECT min(b), max(b) FROM collate_test2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT min(b), max(b) FROM collate_test2;
                                    ^
 
@@ -993,7 +993,7 @@ QUERY:
 
 SELECT min(b), max(b) FROM collate_test3;
 RESULT:
-	postgres: [('ABC', 'äbc')]
+	[('ABC', 'äbc')]
 
 -----------
 QUERY:
@@ -1001,14 +1001,14 @@ QUERY:
 
 SELECT array_agg(b ORDER BY b) FROM collate_test1;
 RESULT:
-	postgres: [(['abc', 'ABC', 'äbc', 'bbc'],)]
+	[(['abc', 'ABC', 'äbc', 'bbc'],)]
 
 -----------
 QUERY:
 
 SELECT array_agg(b ORDER BY b) FROM collate_test2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT array_agg(b ORDER BY b) FROM collate_test2;
                                             ^
 
@@ -1018,7 +1018,7 @@ QUERY:
 
 SELECT array_agg(b ORDER BY b) FROM collate_test3;
 RESULT:
-	postgres: [(['ABC', 'abc', 'bbc', 'äbc'],)]
+	[(['ABC', 'abc', 'bbc', 'äbc'],)]
 
 -----------
 QUERY:
@@ -1026,14 +1026,14 @@ QUERY:
 
 SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(1, 'abc'), (1, 'abc'), (4, 'ABC'), (4, 'ABC'), (2, 'äbc'), (2, 'äbc'), (3, 'bbc'), (3, 'bbc')]
+	[(1, 'abc'), (1, 'abc'), (4, 'ABC'), (4, 'ABC'), (2, 'äbc'), (2, 'äbc'), (3, 'bbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, b FROM collate_test2 UNION SELECT a, b FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, b FROM collate_test2 UNION SELECT a, b FROM collat...
                          ^
 
@@ -1043,14 +1043,14 @@ QUERY:
 
 SELECT a, b FROM collate_test3 WHERE a < 4 INTERSECT SELECT a, b FROM collate_test3 WHERE a > 1 ORDER BY 2;
 RESULT:
-	postgres: [(3, 'bbc'), (2, 'äbc')]
+	[(3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
 
 SELECT a, b FROM collate_test3 EXCEPT SELECT a, b FROM collate_test3 WHERE a < 2 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -1058,7 +1058,7 @@ QUERY:
 
 SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: could not determine which collation to use for string comparison
+	ERROR - could not determine which collation to use for string comparison
 HINT:  Use the COLLATE clause to set the collation explicitly.
 
 
@@ -1067,14 +1067,14 @@ QUERY:
  -- fail
 SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test3;
 RESULT:
-	postgres: [(1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC'), (1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC')]
+	[(1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC'), (1, 'abc'), (2, 'äbc'), (3, 'bbc'), (4, 'ABC')]
 
 -----------
 QUERY:
  -- ok
 SELECT a, b FROM collate_test1 UNION SELECT a, b FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: collation mismatch between implicit collations "en_US" and "C"
+	ERROR - collation mismatch between implicit collations "en_US" and "C"
 LINE 2: SELECT a, b FROM collate_test1 UNION SELECT a, b FROM collat...
                                                        ^
 HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
@@ -1085,14 +1085,14 @@ QUERY:
  -- fail
 SELECT a, b COLLATE "C" FROM collate_test1 UNION SELECT a, b FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
  -- ok
 SELECT a, b FROM collate_test1 INTERSECT SELECT a, b FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: collation mismatch between implicit collations "en_US" and "C"
+	ERROR - collation mismatch between implicit collations "en_US" and "C"
 LINE 2: ...ELECT a, b FROM collate_test1 INTERSECT SELECT a, b FROM col...
                                                              ^
 HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
@@ -1103,7 +1103,7 @@ QUERY:
  -- fail
 SELECT a, b FROM collate_test1 EXCEPT SELECT a, b FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: collation mismatch between implicit collations "en_US" and "C"
+	ERROR - collation mismatch between implicit collations "en_US" and "C"
 LINE 2: SELECT a, b FROM collate_test1 EXCEPT SELECT a, b FROM colla...
                                                         ^
 HINT:  You can choose the collation by applying the COLLATE clause to one or both expressions.
@@ -1115,7 +1115,7 @@ QUERY:
 
 CREATE TABLE test_u AS SELECT a, b FROM collate_test1 UNION ALL SELECT a, b FROM collate_test3;
 RESULT:
-	postgres: no collation was derived for column "b" with collatable type text
+	ERROR - no collation was derived for column "b" with collatable type text
 HINT:  Use the COLLATE clause to set the collation explicitly.
 
 
@@ -1126,7 +1126,7 @@ QUERY:
 -- ideally this would be a parse-time error, but for now it must be run-time:
 select x < y from collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 4: select x < y from collate_test10;
                           ^
 
@@ -1136,7 +1136,7 @@ QUERY:
  -- fail
 select x || y from collate_test10;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: select x || y from collate_test10;
                            ^
 
@@ -1146,7 +1146,7 @@ QUERY:
  -- ok, because || is not collation aware
 select x, y from collate_test10 order by x || y;
 RESULT:
-	postgres: relation "collate_test10" does not exist
+	ERROR - relation "collate_test10" does not exist
 LINE 2: select x, y from collate_test10 order by x || y;
                          ^
 
@@ -1162,7 +1162,7 @@ WITH RECURSIVE foo(x) AS
    SELECT (x || 'c') COLLATE "de_DE" FROM foo WHERE length(x) < 10)
 SELECT * FROM foo;
 RESULT:
-	postgres: recursive query "foo" column 1 has collation "en_US" in non-recursive term but collation "de_DE" overall
+	ERROR - recursive query "foo" column 1 has collation "en_US" in non-recursive term but collation "de_DE" overall
 LINE 5:    (SELECT x FROM (VALUES('a' COLLATE "en_US"),('b')) t(x)
                    ^
 HINT:  Use the COLLATE clause to set the collation of the non-recursive term.
@@ -1177,7 +1177,7 @@ QUERY:
 
 SELECT CAST('42' AS text COLLATE "C");
 RESULT:
-	postgres: syntax error at or near "COLLATE"
+	ERROR - syntax error at or near "COLLATE"
 LINE 6: SELECT CAST('42' AS text COLLATE "C");
                                  ^
 
@@ -1188,14 +1188,14 @@ QUERY:
 
 SELECT a, CAST(b AS varchar) FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, CAST(b AS varchar) FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, CAST(b AS varchar) FROM collate_test2 ORDER BY 2;
                                           ^
 
@@ -1205,7 +1205,7 @@ QUERY:
 
 SELECT a, CAST(b AS varchar) FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -1218,7 +1218,7 @@ QUERY:
 CREATE FUNCTION mylt (text, text) RETURNS boolean LANGUAGE sql
     AS $$ select $1 < $2 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1227,7 +1227,7 @@ QUERY:
 CREATE FUNCTION mylt_noninline (text, text) RETURNS boolean LANGUAGE sql
     AS $$ select $1 < $2 limit 1 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1236,7 +1236,7 @@ QUERY:
 CREATE FUNCTION mylt_plpgsql (text, text) RETURNS boolean LANGUAGE plpgsql
     AS $$ begin return $1 < $2; end $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1247,7 +1247,7 @@ SELECT a.b AS a, b.b AS b, a.b < b.b AS lt,
 FROM collate_test1 a, collate_test1 b
 ORDER BY a.b, b.b;
 RESULT:
-	postgres: [('abc', 'abc', False, False, False, False), ('abc', 'ABC', True, True, True, True), ('abc', 'äbc', True, True, True, True), ('abc', 'bbc', True, True, True, True), ('ABC', 'abc', False, False, False, False), ('ABC', 'ABC', False, False, False, False), ('ABC', 'äbc', True, True, True, True), ('ABC', 'bbc', True, True, True, True), ('äbc', 'abc', False, False, False, False), ('äbc', 'ABC', False, False, False, False), ('äbc', 'äbc', False, False, False, False), ('äbc', 'bbc', True, True, True, True), ('bbc', 'abc', False, False, False, False), ('bbc', 'ABC', False, False, False, False), ('bbc', 'äbc', False, False, False, False), ('bbc', 'bbc', False, False, False, False)]
+	[('abc', 'abc', False, False, False, False), ('abc', 'ABC', True, True, True, True), ('abc', 'äbc', True, True, True, True), ('abc', 'bbc', True, True, True, True), ('ABC', 'abc', False, False, False, False), ('ABC', 'ABC', False, False, False, False), ('ABC', 'äbc', True, True, True, True), ('ABC', 'bbc', True, True, True, True), ('äbc', 'abc', False, False, False, False), ('äbc', 'ABC', False, False, False, False), ('äbc', 'äbc', False, False, False, False), ('äbc', 'bbc', True, True, True, True), ('bbc', 'abc', False, False, False, False), ('bbc', 'ABC', False, False, False, False), ('bbc', 'äbc', False, False, False, False), ('bbc', 'bbc', False, False, False, False)]
 
 -----------
 QUERY:
@@ -1259,7 +1259,7 @@ SELECT a.b AS a, b.b AS b, a.b < b.b COLLATE "C" AS lt,
 FROM collate_test1 a, collate_test1 b
 ORDER BY a.b, b.b;
 RESULT:
-	postgres: [('abc', 'abc', False, False, False, False), ('abc', 'ABC', False, False, False, False), ('abc', 'äbc', True, True, True, True), ('abc', 'bbc', True, True, True, True), ('ABC', 'abc', True, True, True, True), ('ABC', 'ABC', False, False, False, False), ('ABC', 'äbc', True, True, True, True), ('ABC', 'bbc', True, True, True, True), ('äbc', 'abc', False, False, False, False), ('äbc', 'ABC', False, False, False, False), ('äbc', 'äbc', False, False, False, False), ('äbc', 'bbc', False, False, False, False), ('bbc', 'abc', False, False, False, False), ('bbc', 'ABC', False, False, False, False), ('bbc', 'äbc', True, True, True, True), ('bbc', 'bbc', False, False, False, False)]
+	[('abc', 'abc', False, False, False, False), ('abc', 'ABC', False, False, False, False), ('abc', 'äbc', True, True, True, True), ('abc', 'bbc', True, True, True, True), ('ABC', 'abc', True, True, True, True), ('ABC', 'ABC', False, False, False, False), ('ABC', 'äbc', True, True, True, True), ('ABC', 'bbc', True, True, True, True), ('äbc', 'abc', False, False, False, False), ('äbc', 'ABC', False, False, False, False), ('äbc', 'äbc', False, False, False, False), ('äbc', 'bbc', False, False, False, False), ('bbc', 'abc', False, False, False, False), ('bbc', 'ABC', False, False, False, False), ('bbc', 'äbc', True, True, True, True), ('bbc', 'bbc', False, False, False, False)]
 
 -----------
 QUERY:
@@ -1277,7 +1277,7 @@ begin
 end
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1285,7 +1285,7 @@ QUERY:
 
 SELECT mylt2('a', 'B' collate "en_US") as t, mylt2('a', 'B' collate "C") as f;
 RESULT:
-	postgres: [(True, False)]
+	[(True, False)]
 
 -----------
 QUERY:
@@ -1301,7 +1301,7 @@ begin
 end
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1309,14 +1309,14 @@ QUERY:
 
 SELECT mylt2('a', 'B') as f;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT mylt2('a', 'B' collate "C") as fail;
 RESULT:
-	postgres: could not determine which collation to use for string comparison
+	ERROR - could not determine which collation to use for string comparison
 HINT:  Use the COLLATE clause to set the collation explicitly.
 CONTEXT:  PL/pgSQL function mylt2(text,text) line 6 at RETURN
 
@@ -1326,7 +1326,7 @@ QUERY:
  -- conflicting collations
 SELECT mylt2('a', 'B' collate "POSIX") as f;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
@@ -1337,14 +1337,14 @@ QUERY:
 
 SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test1)) ORDER BY 1;
 RESULT:
-	postgres: [('abc',), ('ABC',), ('äbc',), ('bbc',)]
+	[('abc',), ('ABC',), ('äbc',), ('bbc',)]
 
 -----------
 QUERY:
 
 SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test2)) ORDER BY 1;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: ... FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_te...
                                                              ^
 
@@ -1354,7 +1354,7 @@ QUERY:
 
 SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test3)) ORDER BY 1;
 RESULT:
-	postgres: [('ABC',), ('abc',), ('bbc',), ('äbc',)]
+	[('ABC',), ('abc',), ('bbc',), ('äbc',)]
 
 -----------
 QUERY:
@@ -1363,7 +1363,7 @@ QUERY:
 CREATE FUNCTION dup (anyelement) RETURNS anyelement
     AS 'select $1' LANGUAGE sql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1371,14 +1371,14 @@ QUERY:
 
 SELECT a, dup(b) FROM collate_test1 ORDER BY 2;
 RESULT:
-	postgres: [(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
+	[(1, 'abc'), (4, 'ABC'), (2, 'äbc'), (3, 'bbc')]
 
 -----------
 QUERY:
 
 SELECT a, dup(b) FROM collate_test2 ORDER BY 2;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 2: SELECT a, dup(b) FROM collate_test2 ORDER BY 2;
                               ^
 
@@ -1388,7 +1388,7 @@ QUERY:
 
 SELECT a, dup(b) FROM collate_test3 ORDER BY 2;
 RESULT:
-	postgres: [(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
+	[(4, 'ABC'), (1, 'abc'), (3, 'bbc'), (2, 'äbc')]
 
 -----------
 QUERY:
@@ -1399,28 +1399,28 @@ QUERY:
 
 CREATE INDEX collate_test1_idx1 ON collate_test1 (b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX collate_test1_idx2 ON collate_test1 (b COLLATE "C");
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX collate_test1_idx3 ON collate_test1 ((b COLLATE "C"));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- this is different grammatically
 CREATE INDEX collate_test1_idx4 ON collate_test1 (((b||'foo') COLLATE "POSIX"));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1428,7 +1428,7 @@ QUERY:
 
 CREATE INDEX collate_test1_idx5 ON collate_test1 (a COLLATE "C");
 RESULT:
-	postgres: collations are not supported by type integer
+	ERROR - collations are not supported by type integer
 
 
 -----------
@@ -1436,7 +1436,7 @@ QUERY:
  -- fail
 CREATE INDEX collate_test1_idx6 ON collate_test1 ((a COLLATE "C"));
 RESULT:
-	postgres: collations are not supported by type integer
+	ERROR - collations are not supported by type integer
 LINE 2: ...ATE INDEX collate_test1_idx6 ON collate_test1 ((a COLLATE "C...
                                                              ^
 
@@ -1447,7 +1447,7 @@ QUERY:
 
 SELECT relname, pg_get_indexdef(oid) FROM pg_class WHERE relname LIKE 'collate_test%_idx%' ORDER BY 1;
 RESULT:
-	postgres: [('collate_test1_idx1', 'CREATE INDEX collate_test1_idx1 ON collate_tests.collate_test1 USING btree (b)'), ('collate_test1_idx2', 'CREATE INDEX collate_test1_idx2 ON collate_tests.collate_test1 USING btree (b COLLATE "C")'), ('collate_test1_idx3', 'CREATE INDEX collate_test1_idx3 ON collate_tests.collate_test1 USING btree (b COLLATE "C")'), ('collate_test1_idx4', 'CREATE INDEX collate_test1_idx4 ON collate_tests.collate_test1 USING btree (((b || \'foo\'::text)) COLLATE "POSIX")')]
+	[('collate_test1_idx1', 'CREATE INDEX collate_test1_idx1 ON collate_tests.collate_test1 USING btree (b)'), ('collate_test1_idx2', 'CREATE INDEX collate_test1_idx2 ON collate_tests.collate_test1 USING btree (b COLLATE "C")'), ('collate_test1_idx3', 'CREATE INDEX collate_test1_idx3 ON collate_tests.collate_test1 USING btree (b COLLATE "C")'), ('collate_test1_idx4', 'CREATE INDEX collate_test1_idx4 ON collate_tests.collate_test1 USING btree (((b || \'foo\'::text)) COLLATE "POSIX")')]
 
 -----------
 QUERY:
@@ -1458,14 +1458,14 @@ QUERY:
 
 CREATE ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SCHEMA test_schema;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1479,14 +1479,14 @@ BEGIN
 END
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE COLLATION test0 FROM "C";
 RESULT:
-	postgres: collation "test0" already exists
+	ERROR - collation "test0" already exists
 
 
 -----------
@@ -1494,14 +1494,14 @@ QUERY:
  -- fail, duplicate name
 CREATE COLLATION IF NOT EXISTS test0 FROM "C";
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- ok, skipped
 CREATE COLLATION IF NOT EXISTS test0 (locale = 'foo');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1515,14 +1515,14 @@ BEGIN
 END
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE COLLATION test3 (lc_collate = 'en_US.utf8');
 RESULT:
-	postgres: parameter "lc_ctype" must be specified
+	ERROR - parameter "lc_ctype" must be specified
 
 
 -----------
@@ -1530,7 +1530,7 @@ QUERY:
  -- fail, need lc_ctype
 CREATE COLLATION testx (locale = 'nonsense');
 RESULT:
-	postgres: could not create locale "nonsense": Datei oder Verzeichnis nicht gefunden
+	ERROR - could not create locale "nonsense": Datei oder Verzeichnis nicht gefunden
 DETAIL:  The operating system could not find any locale data for the locale name "nonsense".
 
 
@@ -1540,7 +1540,7 @@ QUERY:
 
 CREATE COLLATION test4 FROM nonsense;
 RESULT:
-	postgres: collation "nonsense" for encoding "UTF8" does not exist
+	ERROR - collation "nonsense" for encoding "UTF8" does not exist
 
 
 -----------
@@ -1548,7 +1548,7 @@ QUERY:
 
 CREATE COLLATION test5 FROM test0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1556,7 +1556,7 @@ QUERY:
 
 SELECT collname FROM pg_collation WHERE collname LIKE 'test%' ORDER BY 1;
 RESULT:
-	postgres: [('test0',), ('test1',), ('test5',)]
+	[('test0',), ('test1',), ('test5',)]
 
 -----------
 QUERY:
@@ -1564,14 +1564,14 @@ QUERY:
 
 ALTER COLLATION test1 RENAME TO test11;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER COLLATION test0 RENAME TO test11;
 RESULT:
-	postgres: collation "test11" for encoding "UTF8" already exists in schema "collate_tests"
+	ERROR - collation "test11" for encoding "UTF8" already exists in schema "collate_tests"
 
 
 -----------
@@ -1579,7 +1579,7 @@ QUERY:
  -- fail
 ALTER COLLATION test1 RENAME TO test22;
 RESULT:
-	postgres: collation "test1" for encoding "UTF8" does not exist
+	ERROR - collation "test1" for encoding "UTF8" does not exist
 
 
 -----------
@@ -1588,14 +1588,14 @@ QUERY:
 
 ALTER COLLATION test11 OWNER TO regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER COLLATION test11 OWNER TO nonsense;
 RESULT:
-	postgres: role "nonsense" does not exist
+	ERROR - role "nonsense" does not exist
 
 
 -----------
@@ -1603,7 +1603,7 @@ QUERY:
 
 ALTER COLLATION test11 SET SCHEMA test_schema;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1611,7 +1611,7 @@ QUERY:
 
 COMMENT ON COLLATION test0 IS 'US English';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1622,7 +1622,7 @@ SELECT collname, nspname, obj_description(pg_collation.oid, 'pg_collation')
     WHERE collname LIKE 'test%'
     ORDER BY 1;
 RESULT:
-	postgres: [('test0', 'collate_tests', 'US English'), ('test11', 'test_schema', None), ('test5', 'collate_tests', None)]
+	[('test0', 'collate_tests', 'US English'), ('test11', 'test_schema', None), ('test5', 'collate_tests', None)]
 
 -----------
 QUERY:
@@ -1630,14 +1630,14 @@ QUERY:
 
 DROP COLLATION test0, test_schema.test11, test5;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP COLLATION test0;
 RESULT:
-	postgres: collation "test0" for encoding "UTF8" does not exist
+	ERROR - collation "test0" for encoding "UTF8" does not exist
 
 
 -----------
@@ -1645,7 +1645,7 @@ QUERY:
  -- fail
 DROP COLLATION IF EXISTS test0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1653,7 +1653,7 @@ QUERY:
 
 SELECT collname FROM pg_collation WHERE collname LIKE 'test%';
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -1661,14 +1661,14 @@ QUERY:
 
 DROP SCHEMA test_schema;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_test_role;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1679,7 +1679,7 @@ QUERY:
 
 ALTER COLLATION "en_US" REFRESH VERSION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1689,7 +1689,7 @@ QUERY:
 SELECT current_database() AS datname \gset
 ALTER DATABASE :"datname" REFRESH COLLATION VERSION;
 RESULT:
-	postgres: syntax error at or near "\"
+	ERROR - syntax error at or near "\"
 LINE 4: SELECT current_database() AS datname \gset
                                              ^
 
@@ -1703,7 +1703,7 @@ QUERY:
 
 CREATE COLLATION test0 FROM "C";
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1711,42 +1711,42 @@ QUERY:
 
 CREATE TABLE collate_dep_test1 (a int, b text COLLATE test0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE DOMAIN collate_dep_dom1 AS text COLLATE test0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TYPE collate_dep_test2 AS (x int, y text COLLATE test0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE VIEW collate_dep_test3 AS SELECT text 'foo' COLLATE test0 AS foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE collate_dep_test4t (a int, b text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE INDEX collate_dep_test4i ON collate_dep_test4t (b COLLATE test0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1754,7 +1754,7 @@ QUERY:
 
 DROP COLLATION test0 RESTRICT;
 RESULT:
-	postgres: cannot drop collation test0 because other objects depend on it
+	ERROR - cannot drop collation test0 because other objects depend on it
 DETAIL:  column b of table collate_dep_test1 depends on collation test0
 type collate_dep_dom1 depends on collation test0
 column y of composite type collate_dep_test2 depends on collation test0
@@ -1768,7 +1768,7 @@ QUERY:
  -- fail
 DROP COLLATION test0 CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1779,14 +1779,14 @@ QUERY:
 
 DROP TABLE collate_dep_test1, collate_dep_test4t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TYPE collate_dep_test2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1796,14 +1796,14 @@ QUERY:
 
 create type textrange_c as range(subtype=text, collation="C");
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create type textrange_en_us as range(subtype=text, collation="en_US");
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1811,14 +1811,14 @@ QUERY:
 
 select textrange_c('A','Z') @> 'b'::text;
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 select textrange_en_us('A','Z') @> 'b'::text;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -1826,14 +1826,14 @@ QUERY:
 
 drop type textrange_c;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop type textrange_en_us;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1844,7 +1844,7 @@ QUERY:
 
 SELECT * FROM collate_test2 ORDER BY b COLLATE UCS_BASIC;
 RESULT:
-	postgres: relation "collate_test2" does not exist
+	ERROR - relation "collate_test2" does not exist
 LINE 6: SELECT * FROM collate_test2 ORDER BY b COLLATE UCS_BASIC;
                       ^
 
@@ -1859,14 +1859,14 @@ QUERY:
 
 CREATE COLLATION ctest_det (locale = 'en_US.utf8', deterministic = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE COLLATION ctest_nondet (locale = 'en_US.utf8', deterministic = false);
 RESULT:
-	postgres: nondeterministic collations not supported with this provider
+	ERROR - nondeterministic collations not supported with this provider
 
 
 -----------
@@ -1877,11 +1877,11 @@ QUERY:
 -- cleanup
 SET client_min_messages TO warning;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SCHEMA collate_tests CASCADE;
 RESULT:
-	postgres: None
+	[]

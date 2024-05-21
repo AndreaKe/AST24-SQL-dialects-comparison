@@ -6,13 +6,13 @@ QUERY:
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_builddir PG_ABS_BUILDDIR
 
 -- ensure consistent test output regardless of the default bytea format
 SET bytea_output TO escape;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -21,7 +21,7 @@ QUERY:
 -- Test ALTER LARGE OBJECT OWNER
 CREATE ROLE regress_lo_user;
 RESULT:
-	postgres: role "regress_lo_user" already exists
+	ERROR - role "regress_lo_user" already exists
 
 
 -----------
@@ -29,14 +29,14 @@ QUERY:
 
 SELECT lo_create(42);
 RESULT:
-	postgres: [(42,)]
+	[(42,)]
 
 -----------
 QUERY:
 
 ALTER LARGE OBJECT 42 OWNER TO regress_lo_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -45,7 +45,7 @@ QUERY:
 -- Test GRANT, COMMENT as non-superuser
 SET SESSION AUTHORIZATION regress_lo_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -53,14 +53,14 @@ QUERY:
 
 GRANT SELECT ON LARGE OBJECT 42 TO public;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMENT ON LARGE OBJECT 42 IS 'the ultimate answer';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -68,22 +68,22 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- Test psql/* REPLACED */''s \lo_list et al (we assume no other LOs exist yet)
---\lo_list
---\lo_list+
---\lo_unlink 42
+-- Test psql/* REPLACED */ ''s \lo_list et al (we assume no other LOs exist yet)
+-- \lo_list
+-- \lo_list+
+-- \lo_unlink 42
 -- \dl
 
 -- Load a file
 CREATE TABLE lotest_stash_values (loid oid, fd integer);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -93,7 +93,7 @@ QUERY:
 -- returns the large object id
 INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -102,7 +102,7 @@ QUERY:
 -- NOTE: large objects require transactions
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -116,7 +116,7 @@ QUERY:
 -- transaction.
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -129,7 +129,20 @@ SELECT lowrite(fd, '
 I wandered lonely as a cloud
 That floats on high o''er vales and hills,
 When all at once I saw a crowd,
-A host, of golden daffodils.
+A host, of golden daffodils;
+RESULT:
+	ERROR - unterminated quoted string at or near "'
+I wandered lonely as a cloud
+That floats on high o''er vales and hills,
+When all at once I saw a crowd,
+A host, of golden daffodils;"
+LINE 6: SELECT lowrite(fd, '
+                           ^
+
+
+-----------
+QUERY:
+
 Beside the lake, beneath the trees,
 Fluttering and dancing in the breeze.
 
@@ -140,7 +153,16 @@ Along the margin of a bay:
 Ten thousand saw I at a glance,
 Tossing their heads in sprightly dance.
 
-The waves beside them danced. but they
+The waves beside them danced;
+RESULT:
+	ERROR - syntax error at or near "Beside"
+LINE 2: Beside the lake, beneath the trees,
+        ^
+
+
+-----------
+QUERY:
+ but they
 Out-did the sparkling waves in glee:
 A poet could not but be gay,
 In such a jocund company:
@@ -150,14 +172,26 @@ What wealth the show to me had brought:
 For oft, when on my couch I lie
 In vacant or in pensive mood,
 They flash upon that inward eye
-Which is the bliss of solitude.
+Which is the bliss of solitude;
+RESULT:
+	ERROR - syntax error at or near "but"
+LINE 1:  but they
+         ^
+
+
+-----------
+QUERY:
+
 And then my heart with pleasure fills,
 And dances with the daffodils.
 
          -- William Wordsworth
 ') FROM lotest_stash_values;
 RESULT:
-	postgres: [(848,)]
+	ERROR - syntax error at or near "And"
+LINE 2: And then my heart with pleasure fills,
+        ^
+
 
 -----------
 QUERY:
@@ -167,7 +201,8 @@ QUERY:
 -- return value is 0 for success, or <0 for error (actually only -1, but...)
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
+
 
 -----------
 QUERY:
@@ -175,23 +210,23 @@ QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- Copy to another large object.
--- Note: we intentionally don/* REPLACED */''t remove the object created here /* REPLACED */,
--- it/* REPLACED */''s left behind to help test pg_dump.
+-- Note: we intentionally don/* REPLACED */ ''t remove the object created here /* REPLACED */ ,
+-- it/* REPLACED */ ''s left behind to help test pg_dump.
 
 SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
---\gset
+-- \gset
 
 -- Add a comment to it, as well, for pg_dump/pg_upgrade testing.
 COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a Cloud';
 RESULT:
-	postgres: syntax error at or near "ON"
+	ERROR - syntax error at or near "ON"
 LINE 11: COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a ...
                  ^
 
@@ -203,14 +238,14 @@ QUERY:
 -- Read out a portion
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -224,7 +259,15 @@ QUERY:
 -- returns current position in file
 SELECT lo_lseek(fd, 104, 0) FROM lotest_stash_values;
 RESULT:
-	postgres: [(104,)]
+	[(104,)]
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek(fd, -19, 1) FROM lotest_stash_values;
+RESULT:
+	[(85,)]
 
 -----------
 QUERY:
@@ -232,7 +275,15 @@ QUERY:
 
 SELECT lowrite(fd, 'n') FROM lotest_stash_values;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
+
+-----------
+QUERY:
+
+
+SELECT lo_tell(fd) FROM lotest_stash_values;
+RESULT:
+	[(86,)]
 
 -----------
 QUERY:
@@ -240,7 +291,17 @@ QUERY:
 
 SELECT lo_lseek(fd, -744, 2) FROM lotest_stash_values;
 RESULT:
-	postgres: [(104,)]
+	ERROR - invalid large object seek target: -658
+
+
+-----------
+QUERY:
+
+
+SELECT loread(fd, 28) FROM lotest_stash_values;
+RESULT:
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
+
 
 -----------
 QUERY:
@@ -248,7 +309,8 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	ERROR - current transaction is aborted, commands ignored until end of transaction block
+
 
 -----------
 QUERY:
@@ -256,7 +318,7 @@ QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -265,38 +327,38 @@ QUERY:
 -- Test resource management
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 ABORT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/invalid/path'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path'
 -- \set dobody 'DECLARE loid oid;
 RESULT:
-	postgres: can't execute an empty query
+	ERROR - can't execute an empty query
 
 -----------
 QUERY:
  BEGIN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
-	postgres: syntax error at or near "'
--- \set dobody /* REPLACED */'"
+	ERROR - syntax error at or near "'
+-- \set dobody /* REPLACED */ '"
 LINE 1:  BEGIN '
                ^
 
@@ -305,7 +367,7 @@ LINE 1:  BEGIN '
 QUERY:
  BEGIN ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
 RESULT:
-	postgres: syntax error at or near "' '"
+	ERROR - syntax error at or near "' '"
 LINE 1:  BEGIN ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values...
                ^
 
@@ -313,10 +375,10 @@ LINE 1:  BEGIN ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values...
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
-	postgres: syntax error at or near "'
--- \set dobody /* REPLACED */'"
+	ERROR - syntax error at or near "'
+-- \set dobody /* REPLACED */ '"
 LINE 1:  '
          ^
 
@@ -325,27 +387,27 @@ LINE 1:  '
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
 RESULT:
-	postgres: syntax error at or near "SELECT"
+	ERROR - syntax error at or near "SELECT"
 LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
                ^
 
 
 -----------
 QUERY:
- ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path' ');
+ ' 'PERFORM lo_export(loid, ' /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path' ');
 RESULT:
-	postgres: syntax error at or near "' '"
-LINE 1:  ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/D...
+	ERROR - syntax error at or near "' '"
+LINE 1:  ' 'PERFORM lo_export(loid, ' /* REPLACED */  '/home/keuscha...
          ^
 
 
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
-	postgres: syntax error at or near "'
--- \set dobody /* REPLACED */'"
+	ERROR - syntax error at or near "'
+-- \set dobody /* REPLACED */ '"
 LINE 1:  '
          ^
 
@@ -354,16 +416,16 @@ LINE 1:  '
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
 RESULT:
-	postgres: syntax error at or near "SELECT"
+	ERROR - syntax error at or near "SELECT"
 LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
                ^
 
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
-	postgres: syntax error at or near "PERFORM"
+	ERROR - syntax error at or near "PERFORM"
 LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
          ^
 
@@ -371,9 +433,9 @@ LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
 -----------
 QUERY:
  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
-	postgres: syntax error at or near "' '"
+	ERROR - syntax error at or near "' '"
 LINE 1:  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
          ^
 
@@ -382,16 +444,16 @@ LINE 1:  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
 RESULT:
-	postgres: syntax error at or near "SELECT"
+	ERROR - syntax error at or near "SELECT"
 LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
                ^
 
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
-	postgres: syntax error at or near "PERFORM"
+	ERROR - syntax error at or near "PERFORM"
 LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
          ^
 
@@ -400,7 +462,7 @@ LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
 QUERY:
  EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could not open file, as expected'';
 RESULT:
-	postgres: syntax error at or near "EXCEPTION"
+	ERROR - syntax error at or near "EXCEPTION"
 LINE 1:  EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could ...
          ^
 
@@ -408,10 +470,10 @@ LINE 1:  EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could ...
 -----------
 QUERY:
  END'
-DO /* REPLACED */'DECLARE loid oid;
+DO /* REPLACED */ 'DECLARE loid oid;
 RESULT:
-	postgres: syntax error at or near "'
-DO /* REPLACED */'"
+	ERROR - syntax error at or near "'
+DO /* REPLACED */ '"
 LINE 1:  END'
             ^
 
@@ -420,16 +482,16 @@ LINE 1:  END'
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
 RESULT:
-	postgres: syntax error at or near "SELECT"
+	ERROR - syntax error at or near "SELECT"
 LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
                ^
 
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
-	postgres: syntax error at or near "PERFORM"
+	ERROR - syntax error at or near "PERFORM"
 LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
          ^
 
@@ -438,7 +500,7 @@ LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
 QUERY:
  EXCEPTION WHEN UNDEFINED_FILE THEN RAISE NOTICE ''could not open file, as expected'';
 RESULT:
-	postgres: syntax error at or near "EXCEPTION"
+	ERROR - syntax error at or near "EXCEPTION"
 LINE 1:  EXCEPTION WHEN UNDEFINED_FILE THEN RAISE NOTICE ''could not...
          ^
 
@@ -447,7 +509,7 @@ LINE 1:  EXCEPTION WHEN UNDEFINED_FILE THEN RAISE NOTICE ''could not...
 QUERY:
  END';
 RESULT:
-	postgres: unterminated quoted string at or near "';"
+	ERROR - unterminated quoted string at or near "';"
 LINE 1:  END';
             ^
 
@@ -459,14 +521,14 @@ QUERY:
 -- Test truncation.
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -474,7 +536,7 @@ QUERY:
 
 SELECT lo_truncate(fd, 11) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -482,21 +544,21 @@ QUERY:
 
 SELECT lo_truncate(fd, 10000) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	postgres: [(10000,)]
+	[(10000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(10000,)]
+	[(10000,)]
 
 -----------
 QUERY:
@@ -504,21 +566,21 @@ QUERY:
 
 SELECT lo_truncate(fd, 5000) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	postgres: [(5000,)]
+	[(5000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(5000,)]
+	[(5000,)]
 
 -----------
 QUERY:
@@ -526,14 +588,14 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -542,14 +604,14 @@ QUERY:
 -- Test 64-bit large object functions.
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -557,21 +619,21 @@ QUERY:
 
 SELECT lo_lseek64(fd, 4294967296, 0) FROM lotest_stash_values;
 RESULT:
-	postgres: [(4294967296,)]
+	[(4294967296,)]
 
 -----------
 QUERY:
 
 SELECT lowrite(fd, 'offset:4GB') FROM lotest_stash_values;
 RESULT:
-	postgres: [(10,)]
+	[(10,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(4294967306,)]
+	[(4294967306,)]
 
 -----------
 QUERY:
@@ -579,14 +641,14 @@ QUERY:
 
 SELECT lo_lseek64(fd, -10, 1) FROM lotest_stash_values;
 RESULT:
-	postgres: [(4294967296,)]
+	[(4294967296,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(4294967296,)]
+	[(4294967296,)]
 
 -----------
 QUERY:
@@ -594,21 +656,21 @@ QUERY:
 
 SELECT lo_truncate64(fd, 5000000000) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	postgres: [(5000000000,)]
+	[(5000000000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(5000000000,)]
+	[(5000000000,)]
 
 -----------
 QUERY:
@@ -616,21 +678,21 @@ QUERY:
 
 SELECT lo_truncate64(fd, 3000000000) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	postgres: [(3000000000,)]
+	[(3000000000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(3000000000,)]
+	[(3000000000,)]
 
 -----------
 QUERY:
@@ -638,14 +700,14 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -655,7 +717,7 @@ QUERY:
 -- return value appears to always be 1
 SELECT lo_unlink(loid) from lotest_stash_values;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -663,16 +725,16 @@ QUERY:
 
 TRUNCATE lotest_stash_values;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
-INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data'
+INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -680,14 +742,14 @@ QUERY:
 
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -696,7 +758,7 @@ QUERY:
 -- verify length of large object
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	postgres: [(670800,)]
+	[(670800,)]
 
 -----------
 QUERY:
@@ -706,7 +768,33 @@ QUERY:
 -- edge case
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
 RESULT:
-	postgres: [(2030,)]
+	[(2030,)]
+
+-----------
+QUERY:
+
+
+-- this should get half of the value from page 0 and half from page 1 of the
+-- large object
+SELECT loread(fd, 36) FROM lotest_stash_values;
+RESULT:
+	[(<memory at 0x7344131b7700>,)]
+
+-----------
+QUERY:
+
+
+SELECT lo_tell(fd) FROM lotest_stash_values;
+RESULT:
+	[(2066,)]
+
+-----------
+QUERY:
+
+
+SELECT lo_lseek(fd, -26, 1) FROM lotest_stash_values;
+RESULT:
+	[(2040,)]
 
 -----------
 QUERY:
@@ -714,7 +802,7 @@ QUERY:
 
 SELECT lowrite(fd, 'abcdefghijklmnop') FROM lotest_stash_values;
 RESULT:
-	postgres: [(16,)]
+	[(16,)]
 
 -----------
 QUERY:
@@ -722,7 +810,15 @@ QUERY:
 
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
 RESULT:
-	postgres: [(2030,)]
+	[(2030,)]
+
+-----------
+QUERY:
+
+
+SELECT loread(fd, 36) FROM lotest_stash_values;
+RESULT:
+	[(<memory at 0x7344131b7700>,)]
 
 -----------
 QUERY:
@@ -730,46 +826,46 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-SELECT lo_export(loid, /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt') FROM lotest_stash_values;
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+SELECT lo_export(loid, /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt') FROM lotest_stash_values;
 RESULT:
-	postgres: could not create server file "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt": Datei oder Verzeichnis nicht gefunden
+	ERROR - could not create server file "/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt": Datei oder Verzeichnis nicht gefunden
 
 
 -----------
 QUERY:
 
 
---\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid :LASTOID
 
 -- just make sure \lo_export does not barf
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest2.txt'
---\lo_export /* REPLACED */:LASTOID /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest2.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest2.txt'
+-- \lo_export /* REPLACED */ :LASTOID /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest2.txt/* REPLACED */ ''
 
 -- This is a hack to test that export/import are reversible
 -- This uses knowledge about the inner workings of large object mechanism
 -- which should not be used outside it.  This makes it a HACK
 SELECT pageno, data FROM pg_largeobject WHERE loid = (SELECT loid from lotest_stash_values)
 EXCEPT
-SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */:LASTOID;
+SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */ :LASTOID;
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 16: ...ata FROM pg_largeobject WHERE loid = /* REPLACED */:LASTOID;
+	ERROR - syntax error at or near ":"
+LINE 16: ...ta FROM pg_largeobject WHERE loid = /* REPLACED */ :LASTOID;
                                                                ^
 
 
@@ -779,7 +875,7 @@ QUERY:
 
 SELECT lo_unlink(loid) FROM lotest_stash_values;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -787,115 +883,115 @@ QUERY:
 
 TRUNCATE lotest_stash_values;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
---\lo_unlink /* REPLACED */:LASTOID
+-- \lo_unlink /* REPLACED */ :LASTOID
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
---\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid_1 :LASTOID
 
-SELECT lo_from_bytea(0, lo_get(/* REPLACED */:LASTOID_1)) AS newloid_2
---\gset
+SELECT lo_from_bytea(0, lo_get(/* REPLACED */ :LASTOID_1)) AS newloid_2
+-- \gset
 
-SELECT fipshash(lo_get(/* REPLACED */:LASTOID_1)) = fipshash(lo_get(/* REPLACED */:LASTOID_2));
+SELECT fipshash(lo_get(/* REPLACED */ :LASTOID_1)) = fipshash(lo_get(/* REPLACED */ :LASTOID_2));
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 10: SELECT lo_from_bytea(0, lo_get(/* REPLACED */:LASTOID_1)) AS...
-                                                      ^
+	ERROR - syntax error at or near ":"
+LINE 10: SELECT lo_from_bytea(0, lo_get(/* REPLACED */ :LASTOID_1)) A...
+                                                       ^
 
 
 -----------
 QUERY:
 
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 3: SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-                                    ^
+	ERROR - syntax error at or near ":"
+LINE 3: SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 10, 20);
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
-                                    ^
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1, 10, 20);
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf', 'hex'));
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 5, decode('afafafaf', 'hex'));
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 2: SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf'...
-                                    ^
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_put(/* REPLACED */ :LASTOID_1, 5, decode('afafafaf...
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-                                    ^
-
-
------------
-QUERY:
-
-
-SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
-RESULT:
-	postgres: syntax error at or near ":"
-LINE 3: SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
-                                    ^
-
-
------------
-QUERY:
-
-SELECT lo_get(/* REPLACED */:LASTOID_1);
-RESULT:
-	postgres: syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1);
-                                    ^
-
-
------------
-QUERY:
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
-RESULT:
-	postgres: syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
-                                    ^
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
+                                     ^
 
 
 -----------
 QUERY:
 
 
---\lo_unlink /* REPLACED */:LASTOID_1
---\lo_unlink /* REPLACED */:LASTOID_2
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 4294967310, 'foo');
+RESULT:
+	ERROR - syntax error at or near ":"
+LINE 3: SELECT lo_put(/* REPLACED */ :LASTOID_1, 4294967310, 'foo');
+                                     ^
+
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1);
+RESULT:
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1);
+                                     ^
+
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 4294967294, 100);
+RESULT:
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1, 4294967294, 100);
+                                     ^
+
+
+-----------
+QUERY:
+
+
+-- \lo_unlink /* REPLACED */ :LASTOID_1
+-- \lo_unlink /* REPLACED */ :LASTOID_2
 
 -- This object is left in the database for pg_dump test purposes
 SELECT lo_from_bytea(0, E'\\xdeadbeef') AS newloid
---\gset
+-- \gset
 
 SET bytea_output TO hex;
 RESULT:
-	postgres: syntax error at or near "SET"
+	ERROR - syntax error at or near "SET"
 LINE 10: SET bytea_output TO hex;
          ^
 
@@ -903,22 +999,22 @@ LINE 10: SET bytea_output TO hex;
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID);
+SELECT lo_get(/* REPLACED */ :LASTOID);
 RESULT:
-	postgres: syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID);
-                                    ^
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID);
+                                     ^
 
 
 -----------
 QUERY:
 
 
--- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */,
+-- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */ ,
 -- this one intentionally has an OID in the system range
 SELECT lo_create(2121);
 RESULT:
-	postgres: [(2121,)]
+	[(2121,)]
 
 -----------
 QUERY:
@@ -926,7 +1022,7 @@ QUERY:
 
 COMMENT ON LARGE OBJECT 2121 IS 'testing comments';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -935,7 +1031,7 @@ QUERY:
 -- Test writes on large objects in read-only transactions
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -943,7 +1039,7 @@ QUERY:
 -- INV_READ ... ok
 SELECT lo_open(2121, x'40000'::int);
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -951,7 +1047,7 @@ QUERY:
 -- INV_WRITE ... error
 SELECT lo_open(2121, x'20000'::int);
 RESULT:
-	postgres: cannot execute lo_open(INV_WRITE) in a read-only transaction
+	ERROR - cannot execute lo_open(INV_WRITE) in a read-only transaction
 
 
 -----------
@@ -959,7 +1055,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -967,14 +1063,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_create(42);
 RESULT:
-	postgres: cannot execute lo_create() in a read-only transaction
+	ERROR - cannot execute lo_create() in a read-only transaction
 
 
 -----------
@@ -982,7 +1078,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -990,14 +1086,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_creat(42);
 RESULT:
-	postgres: cannot execute lo_creat() in a read-only transaction
+	ERROR - cannot execute lo_creat() in a read-only transaction
 
 
 -----------
@@ -1005,7 +1101,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1013,14 +1109,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_unlink(42);
 RESULT:
-	postgres: cannot execute lo_unlink() in a read-only transaction
+	ERROR - cannot execute lo_unlink() in a read-only transaction
 
 
 -----------
@@ -1028,7 +1124,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1036,14 +1132,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lowrite(42, 'x');
 RESULT:
-	postgres: cannot execute lowrite() in a read-only transaction
+	ERROR - cannot execute lowrite() in a read-only transaction
 
 
 -----------
@@ -1051,7 +1147,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1059,14 +1155,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
-SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt');
+SELECT lo_import(/* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt');
 RESULT:
-	postgres: cannot execute lo_import() in a read-only transaction
+	ERROR - cannot execute lo_import() in a read-only transaction
 
 
 -----------
@@ -1074,7 +1170,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1082,14 +1178,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_truncate(42, 0);
 RESULT:
-	postgres: cannot execute lo_truncate() in a read-only transaction
+	ERROR - cannot execute lo_truncate() in a read-only transaction
 
 
 -----------
@@ -1097,7 +1193,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1105,14 +1201,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_truncate64(42, 0);
 RESULT:
-	postgres: cannot execute lo_truncate64() in a read-only transaction
+	ERROR - cannot execute lo_truncate64() in a read-only transaction
 
 
 -----------
@@ -1120,7 +1216,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1128,14 +1224,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_from_bytea(0, 'x');
 RESULT:
-	postgres: cannot execute lo_from_bytea() in a read-only transaction
+	ERROR - cannot execute lo_from_bytea() in a read-only transaction
 
 
 -----------
@@ -1143,7 +1239,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1151,14 +1247,14 @@ QUERY:
 
 START TRANSACTION READ ONLY;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT lo_put(42, 0, 'x');
 RESULT:
-	postgres: cannot execute lo_put() in a read-only transaction
+	ERROR - cannot execute lo_put() in a read-only transaction
 
 
 -----------
@@ -1166,7 +1262,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1175,7 +1271,7 @@ QUERY:
 -- Clean up
 DROP TABLE lotest_stash_values;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1183,6 +1279,6 @@ QUERY:
 
 DROP ROLE regress_lo_user;
 RESULT:
-	postgres: role "regress_lo_user" cannot be dropped because some objects depend on it
+	ERROR - role "regress_lo_user" cannot be dropped because some objects depend on it
 DETAIL:  owner of large object 42
 

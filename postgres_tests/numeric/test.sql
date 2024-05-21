@@ -635,7 +635,7 @@ SELECT t1.id1, t1.result, t2.expected
     AND t1.result != t2.expected;
 
 -- ******************************
--- * Check behavior with Inf and NaN inputs.  It/* REPLACED */''s easiest to handle these
+-- * Check behavior with Inf and NaN inputs.  It/* REPLACED */ ''s easiest to handle these
 -- * separately from the num_data framework used above, because some input
 -- * combinations will throw errors.
 -- ******************************
@@ -679,7 +679,7 @@ WITH v(x) AS
 SELECT x, round(x), round(x,1) as round1, trunc(x), trunc(x,1) as trunc1
 FROM v;
 
--- the large values fall into the numeric abbreviation code/* REPLACED */''s maximal classes
+-- the large values fall into the numeric abbreviation code/* REPLACED */ ''s maximal classes
 WITH v(x) AS
   (VALUES('0'::numeric),('1'),('-1'),('4.2'),('-7.777'),('1e340'),('-1e340'),
          ('inf'),('-inf'),('nan'),
@@ -871,7 +871,7 @@ COPY width_bucket_test (operand_num) FROM stdin;
 9.99999999999999
 10
 10.0000000000001
-\.
+-- \.
 
 UPDATE width_bucket_test SET operand_f8 = operand_num::float8;
 

@@ -7,35 +7,35 @@ QUERY:
 
 CREATE ROLE regress_subscription_user LOGIN SUPERUSER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_subscription_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_subscription_user3 IN ROLE pg_create_subscription;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE ROLE regress_subscription_user_dummy LOGIN NOSUPERUSER;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION 'regress_subscription_user';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -44,7 +44,7 @@ QUERY:
 -- fail - no publications
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'foo';
 RESULT:
-	postgres: syntax error at or near ";"
+	ERROR - syntax error at or near ";"
 LINE 4: CREATE SUBSCRIPTION regress_testsub CONNECTION 'foo';
                                                             ^
 
@@ -56,7 +56,7 @@ QUERY:
 -- fail - no connection
 CREATE SUBSCRIPTION regress_testsub PUBLICATION foo;
 RESULT:
-	postgres: syntax error at or near "PUBLICATION"
+	ERROR - syntax error at or near "PUBLICATION"
 LINE 4: CREATE SUBSCRIPTION regress_testsub PUBLICATION foo;
                                             ^
 
@@ -68,14 +68,14 @@ QUERY:
 -- fail - cannot do CREATE SUBSCRIPTION CREATE SLOT inside transaction block
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'testconn' PUBLICATION testpub WITH (create_slot);
 RESULT:
-	postgres: CREATE SUBSCRIPTION ... WITH (create_slot = true) cannot run inside a transaction block
+	ERROR - CREATE SUBSCRIPTION ... WITH (create_slot = true) cannot run inside a transaction block
 
 
 -----------
@@ -83,7 +83,7 @@ QUERY:
 
 COMMIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -92,7 +92,7 @@ QUERY:
 -- fail - invalid connection string
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'testconn' PUBLICATION testpub;
 RESULT:
-	postgres: invalid connection string syntax: missing "=" after "testconn" in connection info string
+	ERROR - invalid connection string syntax: missing "=" after "testconn" in connection info string
 
 
 
@@ -103,7 +103,7 @@ QUERY:
 -- fail - duplicate publications
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION foo, testpub, foo WITH (connect = false);
 RESULT:
-	postgres: publication name "foo" used more than once
+	ERROR - publication name "foo" used more than once
 
 
 -----------
@@ -113,7 +113,7 @@ QUERY:
 -- ok
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -121,14 +121,14 @@ QUERY:
 
 COMMENT ON SUBSCRIPTION regress_testsub IS 'test subscription';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT obj_description(s.oid, 'pg_subscription') FROM pg_subscription s;
 RESULT:
-	postgres: [('test subscription',)]
+	[('test subscription',)]
 
 -----------
 QUERY:
@@ -138,21 +138,21 @@ QUERY:
 -- by pg_stat_reset_subscription_stats().
 SELECT subname, stats_reset IS NULL stats_reset_is_null FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub';
 RESULT:
-	postgres: [('regress_testsub', True)]
+	[('regress_testsub', True)]
 
 -----------
 QUERY:
 
 SELECT pg_stat_reset_subscription_stats(oid) FROM pg_subscription WHERE subname = 'regress_testsub';
 RESULT:
-	postgres: [('',)]
+	[('',)]
 
 -----------
 QUERY:
 
 SELECT subname, stats_reset IS NULL stats_reset_is_null FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub';
 RESULT:
-	postgres: [('regress_testsub', False)]
+	[('regress_testsub', False)]
 
 -----------
 QUERY:
@@ -162,7 +162,7 @@ QUERY:
 SELECT stats_reset as prev_stats_reset FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub' \gset
 SELECT pg_stat_reset_subscription_stats(oid) FROM pg_subscription WHERE subname = 'regress_testsub';
 RESULT:
-	postgres: syntax error at or near "\"
+	ERROR - syntax error at or near "\"
 LINE 4: ...t_subscription_stats WHERE subname = 'regress_testsub' \gset
                                                                   ^
 
@@ -172,7 +172,7 @@ QUERY:
 
 SELECT :'prev_stats_reset' < stats_reset FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub';
 RESULT:
-	postgres: syntax error at or near ":"
+	ERROR - syntax error at or near ":"
 LINE 2: SELECT :'prev_stats_reset' < stats_reset FROM pg_stat_subscr...
                ^
 
@@ -184,7 +184,7 @@ QUERY:
 -- fail - name already exists
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
 RESULT:
-	postgres: subscription "regress_testsub" already exists
+	ERROR - subscription "regress_testsub" already exists
 
 
 -----------
@@ -194,14 +194,14 @@ QUERY:
 -- fail - must be superuser
 SET SESSION AUTHORIZATION 'regress_subscription_user2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION foo WITH (connect = false);
 RESULT:
-	postgres: permission denied to create subscription
+	ERROR - permission denied to create subscription
 DETAIL:  Only roles with privileges of the "pg_create_subscription" role may create subscriptions.
 
 
@@ -210,7 +210,7 @@ QUERY:
 
 SET SESSION AUTHORIZATION 'regress_subscription_user';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -219,7 +219,7 @@ QUERY:
 -- fail - invalid option combinations
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, copy_data = true);
 RESULT:
-	postgres: connect = false and copy_data = true are mutually exclusive options
+	ERROR - connect = false and copy_data = true are mutually exclusive options
 
 
 -----------
@@ -227,7 +227,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, enabled = true);
 RESULT:
-	postgres: connect = false and enabled = true are mutually exclusive options
+	ERROR - connect = false and enabled = true are mutually exclusive options
 
 
 -----------
@@ -235,7 +235,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, create_slot = true);
 RESULT:
-	postgres: connect = false and create_slot = true are mutually exclusive options
+	ERROR - connect = false and create_slot = true are mutually exclusive options
 
 
 -----------
@@ -243,7 +243,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, failover = true);
 RESULT:
-	postgres: connect = false and failover = true are mutually exclusive options
+	ERROR - connect = false and failover = true are mutually exclusive options
 
 
 -----------
@@ -251,7 +251,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, enabled = true);
 RESULT:
-	postgres: slot_name = NONE and enabled = true are mutually exclusive options
+	ERROR - slot_name = NONE and enabled = true are mutually exclusive options
 
 
 -----------
@@ -259,7 +259,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, enabled = false, create_slot = true);
 RESULT:
-	postgres: slot_name = NONE and create_slot = true are mutually exclusive options
+	ERROR - slot_name = NONE and create_slot = true are mutually exclusive options
 
 
 -----------
@@ -267,7 +267,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE);
 RESULT:
-	postgres: subscription with slot_name = NONE must also set enabled = false
+	ERROR - subscription with slot_name = NONE must also set enabled = false
 
 
 -----------
@@ -275,7 +275,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, enabled = false);
 RESULT:
-	postgres: subscription with slot_name = NONE must also set create_slot = false
+	ERROR - subscription with slot_name = NONE must also set create_slot = false
 
 
 -----------
@@ -283,7 +283,7 @@ QUERY:
 
 CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, create_slot = false);
 RESULT:
-	postgres: subscription with slot_name = NONE must also set enabled = false
+	ERROR - subscription with slot_name = NONE must also set enabled = false
 
 
 -----------
@@ -293,7 +293,7 @@ QUERY:
 -- ok - with slot_name = NONE
 CREATE SUBSCRIPTION regress_testsub3 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, connect = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -301,7 +301,7 @@ QUERY:
 -- fail
 ALTER SUBSCRIPTION regress_testsub3 ENABLE;
 RESULT:
-	postgres: cannot enable subscription that does not have a slot name
+	ERROR - cannot enable subscription that does not have a slot name
 
 
 -----------
@@ -309,7 +309,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub3 REFRESH PUBLICATION;
 RESULT:
-	postgres: ALTER SUBSCRIPTION ... REFRESH is not allowed for disabled subscriptions
+	ERROR - ALTER SUBSCRIPTION ... REFRESH is not allowed for disabled subscriptions
 
 
 -----------
@@ -319,7 +319,7 @@ QUERY:
 -- fail - origin must be either none or any
 CREATE SUBSCRIPTION regress_testsub4 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, connect = false, origin = foo);
 RESULT:
-	postgres: unrecognized origin value: "foo"
+	ERROR - unrecognized origin value: "foo"
 
 
 -----------
@@ -329,7 +329,7 @@ QUERY:
 -- now it works
 CREATE SUBSCRIPTION regress_testsub4 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, connect = false, origin = none);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -337,7 +337,7 @@ QUERY:
 -- \dRs+ regress_testsub4
 ALTER SUBSCRIPTION regress_testsub4 SET (origin = any);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -346,14 +346,14 @@ QUERY:
 
 DROP SUBSCRIPTION regress_testsub3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub4;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -362,7 +362,7 @@ QUERY:
 -- fail, connection string does not parse
 CREATE SUBSCRIPTION regress_testsub5 CONNECTION 'i_dont_exist=param' PUBLICATION testpub;
 RESULT:
-	postgres: invalid connection string syntax: invalid connection option "i_dont_exist"
+	ERROR - invalid connection string syntax: invalid connection option "i_dont_exist"
 
 
 
@@ -370,11 +370,11 @@ RESULT:
 QUERY:
 
 
--- fail, connection string parses, but doesn/* REPLACED */''t work (and does so without
+-- fail, connection string parses, but doesn/* REPLACED */ ''t work (and does so without
 -- connecting, so this is reliable and safe)
 CREATE SUBSCRIPTION regress_testsub5 CONNECTION 'port=-1' PUBLICATION testpub;
 RESULT:
-	postgres: could not connect to the publisher: invalid port number: "-1"
+	ERROR - could not connect to the publisher: invalid port number: "-1"
 
 
 -----------
@@ -384,7 +384,7 @@ QUERY:
 -- fail - invalid connection string during ALTER
 ALTER SUBSCRIPTION regress_testsub CONNECTION 'foobar';
 RESULT:
-	postgres: invalid connection string syntax: missing "=" after "foobar" in connection info string
+	ERROR - invalid connection string syntax: missing "=" after "foobar" in connection info string
 
 
 
@@ -396,35 +396,35 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET PUBLICATION testpub2, testpub3 WITH (refresh = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = 'newname');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (password_required = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (run_as_owner = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -433,14 +433,14 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (password_required = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (run_as_owner = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -449,7 +449,7 @@ QUERY:
 -- fail
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = '');
 RESULT:
-	postgres: replication slot name "" is too short
+	ERROR - replication slot name "" is too short
 
 
 -----------
@@ -459,7 +459,7 @@ QUERY:
 -- fail
 ALTER SUBSCRIPTION regress_doesnotexist CONNECTION 'dbname=regress_doesnotexist2';
 RESULT:
-	postgres: subscription "regress_doesnotexist" does not exist
+	ERROR - subscription "regress_doesnotexist" does not exist
 
 
 -----------
@@ -467,7 +467,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (create_slot = false);
 RESULT:
-	postgres: unrecognized subscription parameter: "create_slot"
+	ERROR - unrecognized subscription parameter: "create_slot"
 
 
 -----------
@@ -477,7 +477,7 @@ QUERY:
 -- ok
 ALTER SUBSCRIPTION regress_testsub SKIP (lsn = '0/12345');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -488,7 +488,7 @@ QUERY:
 -- ok - with lsn = NONE
 ALTER SUBSCRIPTION regress_testsub SKIP (lsn = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -497,7 +497,7 @@ QUERY:
 -- fail
 ALTER SUBSCRIPTION regress_testsub SKIP (lsn = '0/0');
 RESULT:
-	postgres: invalid WAL location (LSN): 0/0
+	ERROR - invalid WAL location (LSN): 0/0
 
 
 -----------
@@ -508,14 +508,14 @@ QUERY:
 
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub ENABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -525,7 +525,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub DISABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -535,7 +535,7 @@ QUERY:
 
 COMMIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -544,14 +544,14 @@ QUERY:
 -- fail - must be owner of subscription
 SET ROLE regress_subscription_user_dummy;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub_dummy;
 RESULT:
-	postgres: must be owner of subscription regress_testsub
+	ERROR - must be owner of subscription regress_testsub
 
 
 -----------
@@ -559,7 +559,7 @@ QUERY:
 
 RESET ROLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -567,21 +567,21 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub_foo;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = local);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = foobar);
 RESULT:
-	postgres: invalid value for parameter "synchronous_commit": "foobar"
+	ERROR - invalid value for parameter "synchronous_commit": "foobar"
 HINT:  Available values: local, remote_write, remote_apply, on, off.
 
 
@@ -594,16 +594,16 @@ QUERY:
 -- rename back to keep the rest simple
 ALTER SUBSCRIPTION regress_testsub_foo RENAME TO regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- ok, we/* REPLACED */''re a superuser
+-- ok, we/* REPLACED */ ''re a superuser
 ALTER SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -612,14 +612,14 @@ QUERY:
 -- fail - cannot do DROP SUBSCRIPTION inside transaction block with slot name
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: DROP SUBSCRIPTION cannot run inside a transaction block
+	ERROR - DROP SUBSCRIPTION cannot run inside a transaction block
 
 
 -----------
@@ -627,7 +627,7 @@ QUERY:
 
 COMMIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -635,7 +635,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -644,21 +644,21 @@ QUERY:
 -- now it works
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -666,14 +666,14 @@ QUERY:
 
 DROP SUBSCRIPTION IF EXISTS regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: subscription "regress_testsub" does not exist
+	ERROR - subscription "regress_testsub" does not exist
 
 
 -----------
@@ -683,7 +683,7 @@ QUERY:
 -- fail - binary must be boolean
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, binary = foo);
 RESULT:
-	postgres: binary requires a Boolean value
+	ERROR - binary requires a Boolean value
 
 
 -----------
@@ -693,7 +693,7 @@ QUERY:
 -- now it works
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, binary = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -703,14 +703,14 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (binary = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -720,16 +720,16 @@ QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- fail - streaming must be boolean or /* REPLACED */''parallel/* REPLACED */''
+-- fail - streaming must be boolean or /* REPLACED */ ''parallel/* REPLACED */ ''
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = foo);
 RESULT:
-	postgres: streaming requires a Boolean value or "parallel"
+	ERROR - streaming requires a Boolean value or "parallel"
 
 
 -----------
@@ -739,7 +739,7 @@ QUERY:
 -- now it works
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -749,7 +749,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (streaming = parallel);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -759,14 +759,14 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (streaming = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -777,7 +777,7 @@ QUERY:
 -- fail - publication already exists
 ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub WITH (refresh = false);
 RESULT:
-	postgres: publication "testpub" is already in subscription "regress_testsub"
+	ERROR - publication "testpub" is already in subscription "regress_testsub"
 
 
 -----------
@@ -787,7 +787,7 @@ QUERY:
 -- fail - publication used more than once
 ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub1 WITH (refresh = false);
 RESULT:
-	postgres: publication name "testpub1" used more than once
+	ERROR - publication name "testpub1" used more than once
 
 
 -----------
@@ -797,7 +797,7 @@ QUERY:
 -- ok - add two publications into subscription
 ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub2 WITH (refresh = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -806,7 +806,7 @@ QUERY:
 -- fail - publications already exist
 ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub2 WITH (refresh = false);
 RESULT:
-	postgres: publication "testpub1" is already in subscription "regress_testsub"
+	ERROR - publication "testpub1" is already in subscription "regress_testsub"
 
 
 -----------
@@ -818,7 +818,7 @@ QUERY:
 -- fail - publication used more than once
 ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub1, testpub1 WITH (refresh = false);
 RESULT:
-	postgres: publication name "testpub1" used more than once
+	ERROR - publication name "testpub1" used more than once
 
 
 -----------
@@ -828,7 +828,7 @@ QUERY:
 -- fail - all publications are deleted
 ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub, testpub1, testpub2 WITH (refresh = false);
 RESULT:
-	postgres: cannot drop all the publications from a subscription
+	ERROR - cannot drop all the publications from a subscription
 
 
 -----------
@@ -838,7 +838,7 @@ QUERY:
 -- fail - publication does not exist in subscription
 ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub3 WITH (refresh = false);
 RESULT:
-	postgres: publication "testpub3" is not in subscription "regress_testsub"
+	ERROR - publication "testpub3" is not in subscription "regress_testsub"
 
 
 -----------
@@ -848,7 +848,7 @@ QUERY:
 -- ok - delete publications
 ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub1, testpub2 WITH (refresh = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -858,7 +858,7 @@ QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -867,7 +867,7 @@ QUERY:
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION mypub
        WITH (connect = false, create_slot = false, copy_data = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -875,7 +875,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub ENABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -885,14 +885,14 @@ QUERY:
 -- block or function
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET PUBLICATION mypub WITH (refresh = true);
 RESULT:
-	postgres: ALTER SUBSCRIPTION with refresh cannot run inside a transaction block
+	ERROR - ALTER SUBSCRIPTION with refresh cannot run inside a transaction block
 
 
 -----------
@@ -900,7 +900,7 @@ QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -908,14 +908,14 @@ QUERY:
 
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub REFRESH PUBLICATION;
 RESULT:
-	postgres: ALTER SUBSCRIPTION ... REFRESH cannot run inside a transaction block
+	ERROR - ALTER SUBSCRIPTION ... REFRESH cannot run inside a transaction block
 
 
 -----------
@@ -923,7 +923,7 @@ QUERY:
 
 END;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -932,14 +932,14 @@ QUERY:
 CREATE FUNCTION func() RETURNS VOID AS
 $$ ALTER SUBSCRIPTION regress_testsub SET PUBLICATION mypub WITH (refresh = true) $$ LANGUAGE SQL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT func();
 RESULT:
-	postgres: ALTER SUBSCRIPTION with refresh cannot be executed from a function
+	ERROR - ALTER SUBSCRIPTION with refresh cannot be executed from a function
 CONTEXT:  SQL function "func" statement 1
 
 
@@ -949,28 +949,28 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub DISABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP FUNCTION func;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -979,7 +979,7 @@ QUERY:
 -- fail - two_phase must be boolean
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, two_phase = foo);
 RESULT:
-	postgres: two_phase requires a Boolean value
+	ERROR - two_phase requires a Boolean value
 
 
 -----------
@@ -989,7 +989,7 @@ QUERY:
 -- now it works
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, two_phase = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -999,7 +999,7 @@ QUERY:
 --fail - alter of two_phase option not supported.
 ALTER SUBSCRIPTION regress_testsub SET (two_phase = false);
 RESULT:
-	postgres: unrecognized subscription parameter: "two_phase"
+	ERROR - unrecognized subscription parameter: "two_phase"
 
 
 -----------
@@ -1009,7 +1009,7 @@ QUERY:
 -- but can alter streaming when two_phase enabled
 ALTER SUBSCRIPTION regress_testsub SET (streaming = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1019,14 +1019,14 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1035,7 +1035,7 @@ QUERY:
 -- two_phase and streaming are compatible.
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = true, two_phase = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1045,14 +1045,14 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1061,7 +1061,7 @@ QUERY:
 -- fail - disable_on_error must be boolean
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, disable_on_error = foo);
 RESULT:
-	postgres: disable_on_error requires a Boolean value
+	ERROR - disable_on_error requires a Boolean value
 
 
 -----------
@@ -1071,7 +1071,7 @@ QUERY:
 -- now it works
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, disable_on_error = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1081,7 +1081,7 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (disable_on_error = true);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1091,23 +1091,23 @@ QUERY:
 
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- let/* REPLACED */''s do some tests with pg_create_subscription rather than superuser
+-- let/* REPLACED */ ''s do some tests with pg_create_subscription rather than superuser
 SET SESSION AUTHORIZATION regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1116,7 +1116,7 @@ QUERY:
 -- fail, not enough privileges
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
 RESULT:
-	postgres: permission denied for database regression
+	ERROR - permission denied for database regression
 
 
 -----------
@@ -1126,28 +1126,28 @@ QUERY:
 -- fail, must specify password
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
 RESULT:
-	postgres: password is required
+	ERROR - password is required
 DETAIL:  Non-superusers must provide a password in the connection string.
 
 
@@ -1155,31 +1155,31 @@ DETAIL:  Non-superusers must provide a password in the connection string.
 QUERY:
 
 
--- fail, can/* REPLACED */''t set password_required=false
+-- fail, can/* REPLACED */ ''t set password_required=false
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, password_required = false);
 RESULT:
-	postgres: password_required=false is superuser-only
+	ERROR - password_required=false is superuser-only
 HINT:  Subscriptions with the password_required option set to false may only be created or modified by the superuser.
 
 
@@ -1190,28 +1190,28 @@ QUERY:
 -- ok
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist password=regress_fakepassword' PUBLICATION testpub WITH (connect = false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1220,7 +1220,7 @@ QUERY:
 -- we cannot give the subscription away to some random user
 ALTER SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user;
 RESULT:
-	postgres: must be able to SET ROLE "regress_subscription_user"
+	ERROR - must be able to SET ROLE "regress_subscription_user"
 
 
 -----------
@@ -1230,7 +1230,7 @@ QUERY:
 -- but we can rename the subscription we just created
 ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1239,58 +1239,58 @@ QUERY:
 -- ok, even after losing pg_create_subscription we can still rename it
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 REVOKE pg_create_subscription FROM regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub2 RENAME TO regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- fail, after losing CREATE on the database we can/* REPLACED */''t rename it any more
+-- fail, after losing CREATE on the database we can/* REPLACED */ ''t rename it any more
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 REVOKE CREATE ON DATABASE REGRESSION FROM regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET SESSION AUTHORIZATION regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub2;
 RESULT:
-	postgres: permission denied for database regression
+	ERROR - permission denied for database regression
 
 
 -----------
@@ -1300,14 +1300,14 @@ QUERY:
 -- ok, owning it is enough for this stuff
 ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP SUBSCRIPTION regress_testsub;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1315,32 +1315,32 @@ QUERY:
 
 RESET SESSION AUTHORIZATION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_subscription_user;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_subscription_user2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_subscription_user3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP ROLE regress_subscription_user_dummy;
 RESULT:
-	postgres: None
+	[]

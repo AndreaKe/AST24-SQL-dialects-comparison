@@ -3,36 +3,36 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set autoinclib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/autoinc' /* REPLACED */'.so'
--- \set refintlib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/refint' /* REPLACED */'.so'
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set autoinclib /* REPLACED */ PG_LIBDIR '/autoinc' /* REPLACED */ PG_DLSUFFIX
+-- \set refintlib /* REPLACED */ PG_LIBDIR '/refint' /* REPLACED */ PG_DLSUFFIX
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION autoinc ()
 	RETURNS trigger
-	AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/autoinc.so'
+	AS /* REPLACED */ PG_LIBDIR '/autoinc' PG_DLSUFFIX
 	LANGUAGE C;
 
 CREATE FUNCTION check_primary_key ()
 	RETURNS trigger
-	AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
+	AS /* REPLACED */ PG_LIBDIR '/refint' PG_DLSUFFIX
 	LANGUAGE C;
 
 CREATE FUNCTION check_foreign_key ()
 	RETURNS trigger
-	AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/refint.so'
+	AS /* REPLACED */ PG_LIBDIR '/refint' PG_DLSUFFIX
 	LANGUAGE C;
 
 CREATE FUNCTION trigger_return_old ()
         RETURNS trigger
-        AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
         LANGUAGE C;
 
 CREATE FUNCTION set_ttdummy (int4)
         RETURNS int4
-        AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
         LANGUAGE C STRICT;
 
 create table pkeys (pkey1 int4 not null, pkey2 text not null);
@@ -265,21 +265,21 @@ select * from tttest;
 -- and try change price_id now!
 update tttest set price_id = 5 where price_id = 3;
 select * from tttest;
--- isn/* REPLACED */''t it what we need ?
+-- isn/* REPLACED */ ''t it what we need ?
 
 select set_ttdummy(1);
 
--- we want to correct some /* REPLACED */''date/* REPLACED */''
+-- we want to correct some /* REPLACED */ ''date/* REPLACED */ ''
 update tttest set price_on = -1 where price_id = 1;
--- but this doesn/* REPLACED */''t work
+-- but this doesn/* REPLACED */ ''t work
 
 -- try in this way
 select set_ttdummy(0);
 update tttest set price_on = -1 where price_id = 1;
 select * from tttest;
--- isn/* REPLACED */''t it what we need ?
+-- isn/* REPLACED */ ''t it what we need ?
 
--- get price for price_id == 5 as it was @ /* REPLACED */''date/* REPLACED */'' 35
+-- get price for price_id == 5 as it was @ /* REPLACED */ ''date/* REPLACED */ '' 35
 select * from tttest where price_on <= 35 and price_off > 35 and price_id = 5;
 
 drop table tttest;
@@ -299,7 +299,7 @@ COPY main_table (a,b) FROM stdin;
 30	10
 50	35
 80	15
-\.
+-- \.
 
 CREATE FUNCTION trigger_func() RETURNS trigger LANGUAGE plpgsql AS '
 BEGIN
@@ -314,14 +314,14 @@ CREATE TRIGGER after_ins_stmt_trig AFTER INSERT ON main_table
 FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func('after_ins_stmt');
 
 --
--- if neither /* REPLACED */''FOR EACH ROW/* REPLACED */'' nor /* REPLACED */''FOR EACH STATEMENT/* REPLACED */'' was specified,
--- CREATE TRIGGER should default to /* REPLACED */''FOR EACH STATEMENT/* REPLACED */''
+-- if neither /* REPLACED */ ''FOR EACH ROW/* REPLACED */ '' nor /* REPLACED */ ''FOR EACH STATEMENT/* REPLACED */ '' was specified,
+-- CREATE TRIGGER should default to /* REPLACED */ ''FOR EACH STATEMENT/* REPLACED */ ''
 --
 CREATE TRIGGER after_upd_stmt_trig AFTER UPDATE ON main_table
 EXECUTE PROCEDURE trigger_func('after_upd_stmt');
 
 -- Both insert and update statement level triggers (before and after) should
--- fire.  Doesn/* REPLACED */''t fire UPDATE before trigger, but only because one isn/* REPLACED */''t
+-- fire.  Doesn/* REPLACED */ ''t fire UPDATE before trigger, but only because one isn/* REPLACED */ ''t
 -- defined.
 INSERT INTO main_table (a, b) VALUES (5, 10) ON CONFLICT (a)
   DO UPDATE SET b = EXCLUDED.b;
@@ -342,7 +342,7 @@ ALTER TABLE main_table DROP CONSTRAINT main_table_a_key;
 COPY main_table (a, b) FROM stdin;
 30	40
 50	60
-\.
+-- \.
 
 SELECT * FROM main_table ORDER BY a, b;
 
@@ -372,7 +372,7 @@ INSERT INTO main_table (a) VALUES (123), (456);
 COPY main_table FROM stdin;
 123	999
 456	999
-\.
+-- \.
 DELETE FROM main_table WHERE a IN (123, 456);
 UPDATE main_table SET a = 50, b = 60;
 SELECT * FROM main_table ORDER BY a, b;
@@ -470,7 +470,7 @@ EXECUTE PROCEDURE trigger_func('error_stmt_when');
 
 -- check dependency restrictions
 ALTER TABLE main_table DROP COLUMN b;
--- this should succeed, but we/* REPLACED */''ll roll it back to keep the triggers around
+-- this should succeed, but we/* REPLACED */ ''ll roll it back to keep the triggers around
 begin;
 DROP TRIGGER after_upd_a_b_row_trig ON main_table;
 DROP TRIGGER after_upd_b_row_trig ON main_table;
@@ -543,7 +543,7 @@ begin
 
 	relid := TG_relid::regclass;
 
-	-- plpgsql can/* REPLACED */''t discover its trigger data in a hash like perl and python
+	-- plpgsql can/* REPLACED */ ''t discover its trigger data in a hash like perl and python
 	-- can, or by a sort of reflection like tcl can,
 	-- so we have to hard code the names.
 	raise NOTICE 'TG_NAME: %', TG_name;
@@ -623,7 +623,7 @@ INSERT INTO trigger_test VALUES(2, 'baz', 'quux');
 
 UPDATE trigger_test SET f3 = 'bar';
 UPDATE trigger_test SET f3 = NULL;
--- this demonstrates that the above isn/* REPLACED */''t really working as desired:
+-- this demonstrates that the above isn/* REPLACED */ ''t really working as desired:
 UPDATE trigger_test SET f3 = NULL;
 
 -- the right way when considering nulls is
@@ -750,7 +750,7 @@ begin
 end;
 $$;
 
--- Before row triggers aren/* REPLACED */''t allowed on views
+-- Before row triggers aren/* REPLACED */ ''t allowed on views
 CREATE TRIGGER invalid_trig BEFORE INSERT ON main_view
 FOR EACH ROW EXECUTE PROCEDURE trigger_func('before_ins_row');
 
@@ -760,7 +760,7 @@ FOR EACH ROW EXECUTE PROCEDURE trigger_func('before_upd_row');
 CREATE TRIGGER invalid_trig BEFORE DELETE ON main_view
 FOR EACH ROW EXECUTE PROCEDURE trigger_func('before_del_row');
 
--- After row triggers aren/* REPLACED */''t allowed on views
+-- After row triggers aren/* REPLACED */ ''t allowed on views
 CREATE TRIGGER invalid_trig AFTER INSERT ON main_view
 FOR EACH ROW EXECUTE PROCEDURE trigger_func('before_ins_row');
 
@@ -770,14 +770,14 @@ FOR EACH ROW EXECUTE PROCEDURE trigger_func('before_upd_row');
 CREATE TRIGGER invalid_trig AFTER DELETE ON main_view
 FOR EACH ROW EXECUTE PROCEDURE trigger_func('before_del_row');
 
--- Truncate triggers aren/* REPLACED */''t allowed on views
+-- Truncate triggers aren/* REPLACED */ ''t allowed on views
 CREATE TRIGGER invalid_trig BEFORE TRUNCATE ON main_view
 EXECUTE PROCEDURE trigger_func('before_tru_row');
 
 CREATE TRIGGER invalid_trig AFTER TRUNCATE ON main_view
 EXECUTE PROCEDURE trigger_func('before_tru_row');
 
--- INSTEAD OF triggers aren/* REPLACED */''t allowed on tables
+-- INSTEAD OF triggers aren/* REPLACED */ ''t allowed on tables
 CREATE TRIGGER invalid_trig INSTEAD OF INSERT ON main_table
 FOR EACH ROW EXECUTE PROCEDURE view_trigger('instead_of_ins');
 
@@ -787,15 +787,15 @@ FOR EACH ROW EXECUTE PROCEDURE view_trigger('instead_of_upd');
 CREATE TRIGGER invalid_trig INSTEAD OF DELETE ON main_table
 FOR EACH ROW EXECUTE PROCEDURE view_trigger('instead_of_del');
 
--- Don/* REPLACED */''t support WHEN clauses with INSTEAD OF triggers
+-- Don/* REPLACED */ ''t support WHEN clauses with INSTEAD OF triggers
 CREATE TRIGGER invalid_trig INSTEAD OF UPDATE ON main_view
 FOR EACH ROW WHEN (OLD.a <> NEW.a) EXECUTE PROCEDURE view_trigger('instead_of_upd');
 
--- Don/* REPLACED */''t support column-level INSTEAD OF triggers
+-- Don/* REPLACED */ ''t support column-level INSTEAD OF triggers
 CREATE TRIGGER invalid_trig INSTEAD OF UPDATE OF a ON main_view
 FOR EACH ROW EXECUTE PROCEDURE view_trigger('instead_of_upd');
 
--- Don/* REPLACED */''t support statement-level INSTEAD OF triggers
+-- Don/* REPLACED */ ''t support statement-level INSTEAD OF triggers
 CREATE TRIGGER invalid_trig INSTEAD OF UPDATE ON main_view
 EXECUTE PROCEDURE view_trigger('instead_of_upd');
 
@@ -1024,7 +1024,7 @@ DO INSTEAD DELETE FROM city_view WHERE city_id = OLD.city_id RETURNING *;
 
 -- \set QUIET false
 
--- INSERT not limited by view/* REPLACED */''s WHERE clause, but UPDATE AND DELETE are
+-- INSERT not limited by view/* REPLACED */ ''s WHERE clause, but UPDATE AND DELETE are
 INSERT INTO european_city_view(city_name, country_name)
     VALUES ('Cambridge', 'USA') RETURNING *;
 UPDATE european_city_view SET country_name = 'UK'
@@ -1448,9 +1448,9 @@ select tgrelid::regclass, tgname, tgfoid::regproc from pg_trigger
 create trigger trg1 after insert on trigpart for each row execute procedure trigger_nothing();
 -- \d trigpart3
 alter table trigpart detach partition trigpart3;
-drop trigger trg1 on trigpart3; -- fail due to /* REPLACED */''does not exist/* REPLACED */''
+drop trigger trg1 on trigpart3; -- fail due to /* REPLACED */ ''does not exist/* REPLACED */ ''
 alter table trigpart detach partition trigpart4;
-drop trigger trg1 on trigpart41; -- fail due to /* REPLACED */''does not exist/* REPLACED */''
+drop trigger trg1 on trigpart41; -- fail due to /* REPLACED */ ''does not exist/* REPLACED */ ''
 drop table trigpart4;
 alter table trigpart attach partition trigpart3 for values from (2000) to (3000);
 alter table trigpart detach partition trigpart3;
@@ -1558,12 +1558,12 @@ delete from parted_stmt_trig;
 copy parted_stmt_trig(a) from stdin;
 1
 2
-\.
+-- \.
 
 -- insert via copy on the first partition
 copy parted_stmt_trig1(a) from stdin;
 1
-\.
+-- \.
 
 -- Disabling a trigger in the parent table should disable children triggers too
 alter table parted_stmt_trig disable trigger trig_ins_after_parent;
@@ -1719,7 +1719,7 @@ insert into parted values (1, 1, 'uno uno');       -- works
 update parted set c = c || ' v6';                   -- works
 select tableoid::regclass, * from parted;
 
--- update itself moves tuple to new partition /* REPLACED */, trigger still works
+-- update itself moves tuple to new partition /* REPLACED */ , trigger still works
 truncate table parted;
 create table parted_2 partition of parted for values in (2);
 insert into parted values (1, 1, 'uno uno v5');
@@ -1740,7 +1740,7 @@ insert into parted values (1, 1, 'uno uno v6');
 create table parted_3 partition of parted for values in (3);
 update parted set a = a + 1;
 select tableoid::regclass, * from parted;
--- there/* REPLACED */''s no partition for a=0, but this update works anyway because
+-- there/* REPLACED */ ''s no partition for a=0, but this update works anyway because
 -- the trigger causes the tuple to be routed to another partition
 update parted set a = 0;
 select tableoid::regclass, * from parted;
@@ -1783,7 +1783,7 @@ create constraint trigger parted_trig_two after insert on parted_constr
   for each row when (bark(new.b) AND new.a % 2 = 1)
   execute procedure trigger_notice_ab();
 
--- The immediate constraint is fired immediately /* REPLACED */, the WHEN clause of the
+-- The immediate constraint is fired immediately /* REPLACED */ , the WHEN clause of the
 -- deferred constraint is also called immediately.  The deferred constraint
 -- is fired at commit time.
 begin;
@@ -1818,7 +1818,7 @@ insert into parted_trigger values
     (0, 'a'), (1, 'bbb'), (2, 'bcd'), (3, 'c'),
 	(1000, 'c'), (1001, 'ddd'), (1002, 'efg'), (1003, 'f'),
 	(2000, 'e'), (2001, 'fff'), (2002, 'ghi'), (2003, 'h');
-update parted_trigger set a = a + 2; -- notice for odd /* REPLACED */''a/* REPLACED */'' values, long /* REPLACED */''b/* REPLACED */'' values
+update parted_trigger set a = a + 2; -- notice for odd /* REPLACED */ ''a/* REPLACED */ '' values, long /* REPLACED */ ''b/* REPLACED */ '' values
 drop table parted_trigger;
 
 -- try a constraint trigger, also
@@ -1846,7 +1846,7 @@ select tgname, conname, t.tgrelid::regclass, t.tgconstrrelid::regclass,
   order by t.tgrelid::regclass::text;
 drop table parted_referenced, parted_trigger, unparted_trigger;
 
--- verify that the /* REPLACED */''AFTER UPDATE OF columns/* REPLACED */'' event is propagated correctly
+-- verify that the /* REPLACED */ ''AFTER UPDATE OF columns/* REPLACED */ '' event is propagated correctly
 create table parted_trigger (a int, b text) partition by range (a);
 create table parted_trigger_1 partition of parted_trigger for values from (0) to (1000);
 create table parted_trigger_2 (drp int, a int, b text);
@@ -1865,7 +1865,7 @@ drop table parted_trigger;
 
 drop function trigger_notice_ab();
 
--- Make sure we don/* REPLACED */''t end up with unnecessary copies of triggers, when
+-- Make sure we don/* REPLACED */ ''t end up with unnecessary copies of triggers, when
 -- cloning them.
 create table trg_clone (a int) partition by range (a);
 create table trg_clone1 partition of trg_clone for values from (0) to (1000);
@@ -1978,7 +1978,7 @@ DROP FUNCTION tgf();
 
 --
 -- Test the interaction between transition tables and both kinds of
--- inheritance.  We/* REPLACED */''ll dump the contents of the transition tables in a
+-- inheritance.  We/* REPLACED */ ''ll dump the contents of the transition tables in a
 -- format that shows the attribute order, so that we can distinguish
 -- tuple formats (though not dropped attributes).
 --
@@ -2108,7 +2108,7 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	42
-\.
+-- \.
 
 -- DML affecting parent sees tuples collected from children even if
 -- there is no transition table trigger on the children
@@ -2129,7 +2129,7 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	42
-\.
+-- \.
 
 -- insert into parent with a before trigger on a child tuple before
 -- insertion, and we capture the newly modified row in parent format
@@ -2154,7 +2154,7 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	234
-\.
+-- \.
 
 drop table child1, child2, child3, parent;
 drop function intercept_insert();
@@ -2178,10 +2178,10 @@ create trigger child_row_trig
   after insert on child referencing new table as new_table
   for each row execute procedure dump_insert();
 
--- but now we/* REPLACED */''re not allowed to reattach it
+-- but now we/* REPLACED */ ''re not allowed to reattach it
 alter table parent attach partition child for values in ('AAA');
 
--- drop the trigger, and now we/* REPLACED */''re allowed to attach it again
+-- drop the trigger, and now we/* REPLACED */ ''re allowed to attach it again
 drop trigger child_row_trig on child;
 alter table parent attach partition child for values in ('AAA');
 
@@ -2189,7 +2189,7 @@ drop table child, parent;
 
 --
 -- Verify behavior of statement triggers on (non-partition)
--- inheritance hierarchy with transition tables /* REPLACED */, similar to the
+-- inheritance hierarchy with transition tables /* REPLACED */ , similar to the
 -- partition case, except there is no rerouting on insertion and child
 -- tables can have extra columns
 --
@@ -2274,14 +2274,14 @@ copy parent (a, b) from stdin;
 AAA	42
 BBB	42
 CCC	42
-\.
+-- \.
 
 -- same behavior for copy if there is an index (interesting because rows are
 -- captured by a different code path in copyfrom.c if there are indexes)
 create index on parent(b);
 copy parent (a, b) from stdin;
 DDD	42
-\.
+-- \.
 
 -- DML affecting parent sees tuples collected from children even if
 -- there is no transition table trigger on the children
@@ -2317,10 +2317,10 @@ create trigger child_row_trig
   after insert on child referencing new table as new_table
   for each row execute procedure dump_insert();
 
--- but now we/* REPLACED */''re not allowed to make it inherit anymore
+-- but now we/* REPLACED */ ''re not allowed to make it inherit anymore
 alter table child inherit parent;
 
--- drop the trigger, and now we/* REPLACED */''re allowed to make it inherit again
+-- drop the trigger, and now we/* REPLACED */ ''re allowed to make it inherit again
 drop trigger child_row_trig on child;
 alter table child inherit parent;
 
@@ -2415,7 +2415,7 @@ insert into iocdu_tt_parted values (3, 'CCC'), (4, 'DDD')
 drop table iocdu_tt_parted;
 
 --
--- Verify that you can/* REPLACED */''t create a trigger with transition tables for
+-- Verify that you can/* REPLACED */ ''t create a trigger with transition tables for
 -- more than one event.
 --
 
@@ -2424,7 +2424,7 @@ create trigger my_table_multievent_trig
   for each statement execute procedure dump_insert();
 
 --
--- Verify that you can/* REPLACED */''t create a trigger with transition tables with
+-- Verify that you can/* REPLACED */ ''t create a trigger with transition tables with
 -- a column list.
 --
 
@@ -2662,7 +2662,7 @@ create table trigger_parted_p2_2 partition of trigger_parted_p2 for values in (2
 alter table only trigger_parted_p2 disable trigger aft_row;
 alter table trigger_parted_p2_2 enable always trigger aft_row;
 
--- verify transition table conversion slot/* REPLACED */''s lifetime
+-- verify transition table conversion slot/* REPLACED */ ''s lifetime
 -- https://postgr.es/m/39a71864-b120-5a5c-8cc5-c632b6f16761@amazon.com
 create table convslot_test_parent (col1 text primary key);
 create table convslot_test_child (col1 text primary key,
@@ -2730,8 +2730,8 @@ drop function convslot_trig1();
 drop function convslot_trig2();
 drop function convslot_trig3();
 
--- Bug #17607: variant of above in which trigger function raises an error /* REPLACED */,
--- we don/* REPLACED */''t see any ill effects unless trigger tuple requires mapping
+-- Bug #17607: variant of above in which trigger function raises an error /* REPLACED */ ,
+-- we don/* REPLACED */ ''t see any ill effects unless trigger tuple requires mapping
 
 create table convslot_test_parent (id int primary key, val int)
 partition by range (id);
@@ -2778,7 +2778,7 @@ select tgrelid::regclass, tgname,
 from pg_trigger where tgrelid in (select relid from pg_partition_tree('grandparent'))
 order by tgname, tgrelid::regclass::text COLLATE "C";
 alter trigger a on only grandparent rename to b;	-- ONLY not supported
-alter trigger b on middle rename to c;	-- can/* REPLACED */''t rename trigger on partition
+alter trigger b on middle rename to c;	-- can/* REPLACED */ ''t rename trigger on partition
 create trigger c after insert on middle
 for each row execute procedure f();
 alter trigger b on grandparent rename to c;

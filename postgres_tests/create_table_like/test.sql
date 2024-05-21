@@ -65,7 +65,7 @@ INSERT INTO test_like_gen_3 (a) VALUES (1);
 SELECT * FROM test_like_gen_3;
 DROP TABLE test_like_gen_1, test_like_gen_2, test_like_gen_3;
 
--- also test generated column with a /* REPLACED */''forward/* REPLACED */'' reference (bug #16342)
+-- also test generated column with a /* REPLACED */ ''forward/* REPLACED */ '' reference (bug #16342)
 CREATE TABLE test_like_4 (b int DEFAULT 42,
   c int GENERATED ALWAYS AS (a * 2) STORED,
   a int CHECK (a > 0));
@@ -170,12 +170,12 @@ SELECT s.stxname, objsubid, description FROM pg_description, pg_statistic_ext s 
 CREATE TABLE inh_error1 () INHERITS (ctlt1, ctlt4);
 CREATE TABLE inh_error2 (LIKE ctlt4 INCLUDING STORAGE) INHERITS (ctlt1);
 
--- Check that LIKE isn/* REPLACED */''t confused by a system catalog of the same name
+-- Check that LIKE isn/* REPLACED */ ''t confused by a system catalog of the same name
 CREATE TABLE pg_attrdef (LIKE ctlt1 INCLUDING ALL);
 -- \d+ public.pg_attrdef
 DROP TABLE public.pg_attrdef;
 
--- Check that LIKE isn/* REPLACED */''t confused when new table masks the old, either
+-- Check that LIKE isn/* REPLACED */ ''t confused when new table masks the old, either
 BEGIN;
 CREATE SCHEMA ctl_schema;
 SET LOCAL search_path = ctl_schema, public;
@@ -190,7 +190,7 @@ CREATE TABLE noinh_con_copy (a int CHECK (a > 0) NO INHERIT);
 CREATE TABLE noinh_con_copy1 (LIKE noinh_con_copy INCLUDING CONSTRAINTS);
 -- \d noinh_con_copy1
 
--- fail, as partitioned tables don/* REPLACED */''t allow NO INHERIT constraints
+-- fail, as partitioned tables don/* REPLACED */ ''t allow NO INHERIT constraints
 CREATE TABLE noinh_con_copy1_parted (LIKE noinh_con_copy INCLUDING ALL)
   PARTITION BY LIST (a);
 

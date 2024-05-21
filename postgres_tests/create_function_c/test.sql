@@ -7,18 +7,18 @@
 -- test script that needs them.  All that remains here is error cases.
 
 -- directory path and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 --
 -- Check LOAD command.  (The alternative of implicitly loading the library
 -- is checked in many other test scripts.)
 --
-LOAD /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so';
+LOAD /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX;
 
--- Things that shouldn/* REPLACED */''t work:
+-- Things that shouldn/* REPLACED */ ''t work:
 
 CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
     AS 'nosuchfile';
@@ -27,7 +27,7 @@ CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
 -- of the regresslib file out of the error message in this test.
 -- \set VERBOSITY sqlstate
 CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'nosuchsymbol';
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'nosuchsymbol';
 -- \set VERBOSITY default
 SELECT regexp_replace(:'LAST_ERROR_MESSAGE', 'file ".*"', 'file "..."');
 

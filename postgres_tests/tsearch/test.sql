@@ -1,5 +1,5 @@
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 --
 -- Sanity checks for text search catalogs
@@ -7,7 +7,7 @@
 -- NB: we assume the oidjoins test will have caught any dangling links,
 -- that is OID or REGPROC fields that are not zero and do not match some
 -- row in the linked-to table.  However, if we want to enforce that a link
--- field can/* REPLACED */''t be 0, we have to check it here.
+-- field can/* REPLACED */ ''t be 0, we have to check it here.
 
 -- Find unexpected zero link entries
 
@@ -33,7 +33,7 @@ SELECT mapcfg, maptokentype, mapseqno
 FROM pg_ts_config_map
 WHERE mapcfg = 0 OR mapdict = 0;
 
--- Look for pg_ts_config_map entries that aren/* REPLACED */''t one of parser/* REPLACED */''s token types
+-- Look for pg_ts_config_map entries that aren/* REPLACED */ ''t one of parser/* REPLACED */ ''s token types
 SELECT * FROM
   ( SELECT oid AS cfgid, (ts_token_type(cfgparser)).tokid AS tokid
     FROM pg_ts_config ) AS tt
@@ -48,8 +48,8 @@ CREATE TABLE test_tsvector(
 	a tsvector
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tsearch.data'
-COPY test_tsvector FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tsearch.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tsearch.data'
+COPY test_tsvector FROM /* REPLACED */ PG_ABS_SRCDIR '/data/tsearch.data';
 
 ANALYZE test_tsvector;
 
@@ -650,14 +650,14 @@ SELECT ts_headline('english',
 
 CREATE TABLE test_tsquery (txtkeyword TEXT, txtsample TEXT);
 -- \set ECHO none
-\copy test_tsquery from stdin
+-- \copy test_tsquery from stdin
 'New York'	new <-> york | big <-> apple | nyc
 Moscow	moskva | moscow
 'Sanct Peter'	Peterburg | peter | 'Sanct Peterburg'
 foo & bar & qq	foo & (bar | qq) & city
 1 & (2 <-> 3)	2 <-> 4
 5 <-> 6	5 <-> 7
-\.
+-- \.
 -- \set ECHO all
 
 ALTER TABLE test_tsquery ADD COLUMN keyword tsquery;
@@ -768,7 +768,7 @@ SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
 
 -- Test inlining of immutable constant functions
 
--- to_tsquery(text) is not immutable, so it won/* REPLACED */''t be inlined
+-- to_tsquery(text) is not immutable, so it won/* REPLACED */ ''t be inlined
 explain (costs off)
 select * from test_tsquery, to_tsquery('new') q where txtsample @@ q;
 
@@ -777,7 +777,7 @@ select * from test_tsquery, to_tsquery('new') q where txtsample @@ q;
 explain (costs off)
 select * from test_tsquery, to_tsquery('english', 'new') q where txtsample @@ q;
 
--- test finding items in GIN/* REPLACED */''s pending list
+-- test finding items in GIN/* REPLACED */ ''s pending list
 create temp table pendtest (ts tsvector);
 create index pendtest_idx on pendtest using gin(ts);
 insert into pendtest values (to_tsvector('Lore ipsam'));

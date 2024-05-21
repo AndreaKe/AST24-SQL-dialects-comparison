@@ -8,7 +8,7 @@ SELECT 1 AS zero WHERE 1 NOT IN (SELECT 1);
 
 SELECT 1 AS zero WHERE 1 IN (SELECT 2);
 
--- Check grammar/* REPLACED */''s handling of extra parens in assorted contexts
+-- Check grammar/* REPLACED */ ''s handling of extra parens in assorted contexts
 
 SELECT * FROM (SELECT 1 AS x) ss;
 SELECT * FROM ((SELECT 1 AS x)) ss;
@@ -110,7 +110,7 @@ SELECT * FROM (SELECT * FROM (SELECT abs(f1) AS a1 FROM int4_tbl)),
 
 SELECT * FROM view_unnamed_ss;
 
-\sv view_unnamed_ss
+-- \sv view_unnamed_ss
 
 DROP VIEW view_unnamed_ss;
 
@@ -121,7 +121,7 @@ SELECT * FROM (SELECT * FROM int4_tbl), int8_tbl AS unnamed_subquery
   WHERE f1 = q1
   FOR UPDATE OF unnamed_subquery;
 
-\sv view_unnamed_ss_locking
+-- \sv view_unnamed_ss_locking
 
 DROP VIEW view_unnamed_ss_locking;
 
@@ -142,7 +142,7 @@ from int8_tbl group by q1 order by q1;
 SELECT *, pg_typeof(f1) FROM
   (SELECT 'foo' AS f1 FROM generate_series(1,3)) ss ORDER BY 1;
 
--- ... unless there/* REPLACED */''s context to suggest differently
+-- ... unless there/* REPLACED */ ''s context to suggest differently
 
 explain (verbose, costs off) select '42' union all select '43';
 explain (verbose, costs off) select '42' union all select 43;
@@ -185,7 +185,7 @@ select count(distinct ss.ten) from
 
 --
 -- Test cases to check for overenthusiastic optimization of
--- /* REPLACED */''IN (SELECT DISTINCT ...)/* REPLACED */'' and related cases.  Per example from
+-- /* REPLACED */ ''IN (SELECT DISTINCT ...)/* REPLACED */ '' and related cases.  Per example from
 -- Luca Pireddu and Michael Fuhr.
 --
 
@@ -388,7 +388,7 @@ select
 from tc;
 
 --
--- Test case for 8.3 /* REPLACED */''failed to locate grouping columns/* REPLACED */'' bug
+-- Test case for 8.3 /* REPLACED */ ''failed to locate grouping columns/* REPLACED */ '' bug
 --
 
 create temp table t1 (f1 numeric(14,0), f2 varchar(30));
@@ -413,7 +413,7 @@ select (select (select view_a)) from view_a;
 select (select (a.*)::text) from view_a a;
 
 --
--- Check that whole-row Vars reading the result of a subselect don/* REPLACED */''t include
+-- Check that whole-row Vars reading the result of a subselect don/* REPLACED */ ''t include
 -- any junk columns therein
 --
 
@@ -426,7 +426,7 @@ with q as (select max(f1) from int4_tbl group by f1 order by f1)
 -- inherited update/delete query
 --
 
-begin;  --  this shouldn/* REPLACED */''t delete anything, but be safe
+begin;  --  this shouldn/* REPLACED */ ''t delete anything, but be safe
 
 delete from road
 where exists (
@@ -509,8 +509,8 @@ select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
 select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
 
 --
--- Test that we don/* REPLACED */''t try to hash nested records (bug #17363)
--- (Hashing could be supported, but for now we don/* REPLACED */''t)
+-- Test that we don/* REPLACED */ ''t try to hash nested records (bug #17363)
+-- (Hashing could be supported, but for now we don/* REPLACED */ ''t)
 --
 
 explain (verbose, costs off)
@@ -525,8 +525,8 @@ select row(row(row(1))) = any (select row(row(1)));
 select '1'::text in (select '1'::name union all select '1'::name);
 
 --
--- Test that we don/* REPLACED */''t try to use a hashed subplan if the simplified
--- testexpr isn/* REPLACED */''t of the right shape
+-- Test that we don/* REPLACED */ ''t try to use a hashed subplan if the simplified
+-- testexpr isn/* REPLACED */ ''t of the right shape
 --
 
 -- this fails by default, of course
@@ -554,7 +554,7 @@ select * from int8_tbl where q1 in (select c1 from inner_text);
 select * from int8_tbl where q1 in (select c1 from inner_text);
 
 -- inlining of this function causes LHS and RHS to be switched,
--- which we can/* REPLACED */''t cope with, so hashing should be abandoned
+-- which we can/* REPLACED */ ''t cope with, so hashing should be abandoned
 create or replace function bogus_int8_text_eq(int8, text) returns boolean
 language sql as 'select $2 = $1::text';
 
@@ -581,7 +581,7 @@ select count(*) from tenk1 t
 where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0)
   and thousand = 1;
 
--- It/* REPLACED */''s possible for the same EXISTS to get resolved both ways
+-- It/* REPLACED */ ''s possible for the same EXISTS to get resolved both ways
 create temp table exists_tbl (c1 int, c2 int, c3 int) partition by list (c1);
 create temp table exists_tbl_null partition of exists_tbl for values in (null);
 create temp table exists_tbl_def partition of exists_tbl default;
@@ -684,7 +684,7 @@ select sum(o.four), sum(ss.a) from
 where o.ten = 1;
 
 --
--- Check we don/* REPLACED */''t misoptimize a NOT IN where the subquery returns no rows.
+-- Check we don/* REPLACED */ ''t misoptimize a NOT IN where the subquery returns no rows.
 --
 create temp table notinouter (a int);
 create temp table notininner (b int not null);
@@ -753,7 +753,7 @@ select (select q from
 from int4_tbl;
 
 --
--- Check for sane handling of a lateral reference in a subquery/* REPLACED */''s quals
+-- Check for sane handling of a lateral reference in a subquery/* REPLACED */ ''s quals
 -- (most of the complication here is to prevent the test case from being
 -- flattened too much)
 --
@@ -779,7 +779,7 @@ select * from
 where b and f1 >= 0;
 
 --
--- Check that volatile quals aren/* REPLACED */''t pushed down past a DISTINCT:
+-- Check that volatile quals aren/* REPLACED */ ''t pushed down past a DISTINCT:
 -- nextval() should not be called more than the nominal number of times
 --
 create temp sequence ts1;
@@ -792,8 +792,8 @@ select * from
 select nextval('ts1');
 
 --
--- Check that volatile quals aren/* REPLACED */''t pushed down past a set-returning function /* REPLACED */,
--- while a nonvolatile qual can be, if it doesn/* REPLACED */''t reference the SRF.
+-- Check that volatile quals aren/* REPLACED */ ''t pushed down past a set-returning function /* REPLACED */ ,
+-- while a nonvolatile qual can be, if it doesn/* REPLACED */ ''t reference the SRF.
 --
 create function tattle(x int, y int) returns bool
 volatile language plpgsql as $$
@@ -811,7 +811,7 @@ select * from
   (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
   where tattle(x, 8);
 
--- if we pretend it/* REPLACED */''s stable, we get different results:
+-- if we pretend it/* REPLACED */ ''s stable, we get different results:
 alter function tattle(x int, y int) stable;
 
 explain (verbose, costs off)
@@ -875,7 +875,7 @@ drop function explain_sq_limit();
 drop table sq_limit;
 
 --
--- Ensure that backward scan direction isn/* REPLACED */''t propagated into
+-- Ensure that backward scan direction isn/* REPLACED */ ''t propagated into
 -- expression subqueries (bug #15336)
 --
 
@@ -928,7 +928,7 @@ explain (verbose, costs off)
 with x as not materialized (select * from (select f1, now() as n from subselect_tbl) ss)
 select * from x, x x2 where x.n = x2.n;
 
--- Multiply-referenced CTEs can/* REPLACED */''t be inlined if they contain outer self-refs
+-- Multiply-referenced CTEs can/* REPLACED */ ''t be inlined if they contain outer self-refs
 explain (verbose, costs off)
 with recursive x(a) as
   ((values ('a'), ('b'))

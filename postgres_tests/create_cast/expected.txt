@@ -8,7 +8,7 @@ QUERY:
 -- Create some types to test with
 CREATE TYPE casttesttype;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -19,7 +19,7 @@ CREATE FUNCTION casttesttype_in(cstring)
    AS 'textin'
    LANGUAGE internal STRICT IMMUTABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -29,7 +29,7 @@ CREATE FUNCTION casttesttype_out(casttesttype)
    AS 'textout'
    LANGUAGE internal STRICT IMMUTABLE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -42,7 +42,7 @@ CREATE TYPE casttesttype (
    alignment = int4
 );
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -52,7 +52,7 @@ QUERY:
 CREATE FUNCTION casttestfunc(casttesttype) RETURNS int4 LANGUAGE SQL AS
 $$ SELECT 1; $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -60,7 +60,7 @@ QUERY:
 
 SELECT casttestfunc('foo'::text);
 RESULT:
-	postgres: function casttestfunc(text) does not exist
+	ERROR - function casttestfunc(text) does not exist
 LINE 3: SELECT casttestfunc('foo'::text);
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -68,19 +68,19 @@ HINT:  No function matches the given name and argument types. You might need to 
 
 -----------
 QUERY:
- -- fails, as there/* REPLACED */''s no cast
+ -- fails, as there/* REPLACED */ ''s no cast
 
 -- Try binary coercion cast
 CREATE CAST (text AS casttesttype) WITHOUT FUNCTION;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT casttestfunc('foo'::text);
 RESULT:
-	postgres: function casttestfunc(text) does not exist
+	ERROR - function casttestfunc(text) does not exist
 LINE 2: SELECT casttestfunc('foo'::text);
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -88,17 +88,17 @@ HINT:  No function matches the given name and argument types. You might need to 
 
 -----------
 QUERY:
- -- doesn/* REPLACED */''t work, as the cast is explicit
+ -- doesn/* REPLACED */ ''t work, as the cast is explicit
 SELECT casttestfunc('foo'::text::casttesttype);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
  -- should work
 DROP CAST (text AS casttesttype);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -107,14 +107,14 @@ QUERY:
 -- Try IMPLICIT binary coercion cast
 CREATE CAST (text AS casttesttype) WITHOUT FUNCTION AS IMPLICIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT casttestfunc('foo'::text);
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
@@ -123,7 +123,7 @@ QUERY:
 -- Try I/O conversion cast.
 SELECT 1234::int4::casttesttype;
 RESULT:
-	postgres: cannot cast type integer to casttesttype
+	ERROR - cannot cast type integer to casttesttype
 LINE 4: SELECT 1234::int4::casttesttype;
                          ^
 
@@ -134,14 +134,14 @@ QUERY:
 
 CREATE CAST (int4 AS casttesttype) WITH INOUT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 1234::int4::casttesttype;
 RESULT:
-	postgres: [('1234',)]
+	[('1234',)]
 
 -----------
 QUERY:
@@ -149,7 +149,7 @@ QUERY:
 
 DROP CAST (int4 AS casttesttype);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -160,7 +160,7 @@ QUERY:
 CREATE FUNCTION int4_casttesttype(int4) RETURNS casttesttype LANGUAGE SQL AS
 $$ SELECT ('foo'::text || $1::text)::casttesttype; $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -168,14 +168,14 @@ QUERY:
 
 CREATE CAST (int4 AS casttesttype) WITH FUNCTION int4_casttesttype(int4) AS IMPLICIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 1234::int4::casttesttype;
 RESULT:
-	postgres: [('foo1234',)]
+	[('foo1234',)]
 
 -----------
 QUERY:
@@ -183,7 +183,7 @@ QUERY:
 
 DROP FUNCTION int4_casttesttype(int4) CASCADE;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -194,7 +194,7 @@ QUERY:
 CREATE FUNCTION bar_int4_text(int4) RETURNS text LANGUAGE SQL AS
 $$ SELECT ('bar'::text || $1::text); $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -202,14 +202,14 @@ QUERY:
 
 CREATE CAST (int4 AS casttesttype) WITH FUNCTION bar_int4_text(int4) AS IMPLICIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 1234::int4::casttesttype;
 RESULT:
-	postgres: [('bar1234',)]
+	[('bar1234',)]
 
 -----------
 QUERY:
@@ -226,4 +226,4 @@ WHERE classid = 'pg_cast'::regclass AND
                  AND casttarget = 'casttesttype'::regtype)
 ORDER BY refclassid;
 RESULT:
-	postgres: [('cast from integer to casttesttype', 'type casttesttype', 'n'), ('cast from integer to casttesttype', 'function bar_int4_text(integer)', 'n'), ('cast from integer to casttesttype', 'cast from text to casttesttype', 'n')]
+	[('cast from integer to casttesttype', 'type casttesttype', 'n'), ('cast from integer to casttesttype', 'function bar_int4_text(integer)', 'n'), ('cast from integer to casttesttype', 'cast from text to casttesttype', 'n')]

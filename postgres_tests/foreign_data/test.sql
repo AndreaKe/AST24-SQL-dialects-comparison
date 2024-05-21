@@ -3,19 +3,19 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION test_fdw_handler()
     RETURNS fdw_handler
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_fdw_handler'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_fdw_handler'
     LANGUAGE C;
 
 -- Clean up in case a prior regression run failed
 
--- Suppress NOTICE messages when roles don/* REPLACED */''t exist
+-- Suppress NOTICE messages when roles don/* REPLACED */ ''t exist
 SET client_min_messages TO 'warning';
 
 DROP ROLE IF EXISTS regress_foreign_data_user, regress_test_role, regress_test_role2, regress_test_role_super, regress_test_indirect, regress_unprivileged_role;
@@ -404,7 +404,7 @@ ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 SET (n_distinct = 100);
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET STATISTICS -1;
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET STORAGE PLAIN;
 -- \d+ ft1
--- can/* REPLACED */''t change the column type if it/* REPLACED */''s used elsewhere
+-- can/* REPLACED */ ''t change the column type if it/* REPLACED */ ''s used elsewhere
 CREATE TABLE use_ft1_column_type (x ft1);
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 SET DATA TYPE integer;	-- ERROR
 DROP TABLE use_ft1_column_type;
@@ -715,7 +715,7 @@ CREATE FOREIGN TABLE ft2 (
 	c2 text,
 	c3 date
 ) SERVER s0 OPTIONS (delimiter ',', quote '"', "be quoted" 'value');
--- child must have parent/* REPLACED */''s INHERIT constraints
+-- child must have parent/* REPLACED */ ''s INHERIT constraints
 ALTER FOREIGN TABLE ft2 INHERIT fd_pt1;                            -- ERROR
 ALTER FOREIGN TABLE ft2 ADD CONSTRAINT fd_pt1chk2 CHECK (c2 <> '');
 ALTER FOREIGN TABLE ft2 INHERIT fd_pt1;
@@ -803,7 +803,7 @@ ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 -- cannot add column to a partition
 ALTER TABLE fd_pt2_1 ADD c4 char;
 
--- ok to have a partition/* REPLACED */''s own constraints though
+-- ok to have a partition/* REPLACED */ ''s own constraints though
 ALTER TABLE fd_pt2_1 ALTER c3 SET NOT NULL;
 ALTER TABLE fd_pt2_1 ADD CONSTRAINT p21chk CHECK (c2 <> '');
 -- \d+ fd_pt2
@@ -812,7 +812,7 @@ ALTER TABLE fd_pt2_1 ADD CONSTRAINT p21chk CHECK (c2 <> '');
 -- cannot drop inherited NOT NULL constraint from a partition
 ALTER TABLE fd_pt2_1 ALTER c1 DROP NOT NULL;
 
--- partition must have parent/* REPLACED */''s constraints
+-- partition must have parent/* REPLACED */ ''s constraints
 ALTER TABLE fd_pt2 DETACH PARTITION fd_pt2_1;
 ALTER TABLE fd_pt2 ALTER c2 SET NOT NULL;
 -- \d+ fd_pt2
@@ -857,7 +857,7 @@ DROP ROLE regress_unprivileged_role;
 DROP ROLE regress_test_role2;
 DROP FOREIGN DATA WRAPPER postgresql CASCADE;
 DROP FOREIGN DATA WRAPPER dummy CASCADE;
-\c
+-- \c
 DROP ROLE regress_foreign_data_user;
 
 -- At this point we should have no wrappers, no servers, and no mappings.

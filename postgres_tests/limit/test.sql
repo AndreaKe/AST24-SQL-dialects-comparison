@@ -144,7 +144,7 @@ order by s2 desc;
 select generate_series(0,2) as s1, generate_series((random()*.1)::int,2) as s2
 order by s2 desc;
 
--- test for failure to set all aggregates/* REPLACED */'' aggtranstype
+-- test for failure to set all aggregates/* REPLACED */ '' aggtranstype
 explain (verbose, costs off)
 select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
   from tenk1 group by thousand order by thousand limit 3;
@@ -197,5 +197,3 @@ CREATE VIEW limit_thousand_v_3 AS SELECT thousand FROM onek WHERE thousand < 995
 -- \d+ limit_thousand_v_3
 CREATE VIEW limit_thousand_v_4 AS SELECT thousand FROM onek WHERE thousand < 995
 		ORDER BY thousand FETCH FIRST NULL ROWS ONLY;
--- \d+ limit_thousand_v_4
--- leave these views

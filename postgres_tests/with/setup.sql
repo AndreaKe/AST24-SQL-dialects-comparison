@@ -4,11 +4,11 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 --
 -- synchronous_commit=off delays when hint bits may be set. Some plans change
@@ -31,8 +31,8 @@ CREATE TABLESPACE regress_tblspace LOCATION '';
 --
 -- These tables have traditionally been referenced by many tests,
 -- so create and populate them.  Insert only non-error values here.
--- (Some subsequent tests try to insert erroneous values.  That/* REPLACED */''s okay
--- because the table won/* REPLACED */''t actually change.  Do not change the contents
+-- (Some subsequent tests try to insert erroneous values.  That/* REPLACED */ ''s okay
+-- because the table won/* REPLACED */ ''t actually change.  Do not change the contents
 -- of these tables in later tests, as it may affect other tests.)
 --
 
@@ -98,7 +98,7 @@ INSERT INTO POINT_TBL(f1) VALUES
   ('(Inf,1e+300)'),  -- Transposed
   (' ( Nan , NaN ) '),
   ('10.0,10.0');
--- We intentionally don/* REPLACED */''t vacuum point_tbl here /* REPLACED */, geometry depends on that
+-- We intentionally don/* REPLACED */ ''t vacuum point_tbl here /* REPLACED */ , geometry depends on that
 
 CREATE TABLE TEXT_TBL (f1 text);
 
@@ -135,8 +135,8 @@ CREATE TABLE onek (
 	string4		name
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/onek.data'
-COPY onek FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/onek.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/onek.data'
+COPY onek FROM /* REPLACED */ PG_ABS_SRCDIR '/data/onek.data';
 VACUUM ANALYZE onek;
 
 CREATE TABLE onek2 AS SELECT * FROM onek;
@@ -161,8 +161,8 @@ CREATE TABLE tenk1 (
 	string4		name
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
-COPY tenk1 FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data'
+COPY tenk1 FROM /* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data';
 VACUUM ANALYZE tenk1;
 
 CREATE TABLE tenk2 AS SELECT * FROM tenk1;
@@ -174,8 +174,8 @@ CREATE TABLE person (
 	location 	point
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/person.data'
-COPY person FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/person.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/person.data'
+COPY person FROM /* REPLACED */ PG_ABS_SRCDIR '/data/person.data';
 VACUUM ANALYZE person;
 
 CREATE TABLE emp (
@@ -183,24 +183,24 @@ CREATE TABLE emp (
 	manager 	name
 ) INHERITS (person);
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/emp.data'
-COPY emp FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/emp.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/emp.data'
+COPY emp FROM /* REPLACED */ PG_ABS_SRCDIR '/data/emp.data';
 VACUUM ANALYZE emp;
 
 CREATE TABLE student (
 	gpa 		float8
 ) INHERITS (person);
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/student.data'
-COPY student FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/student.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/student.data'
+COPY student FROM /* REPLACED */ PG_ABS_SRCDIR '/data/student.data';
 VACUUM ANALYZE student;
 
 CREATE TABLE stud_emp (
 	percent 	int4
 ) INHERITS (emp, student);
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/stud_emp.data'
-COPY stud_emp FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/stud_emp.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/stud_emp.data'
+COPY stud_emp FROM /* REPLACED */ PG_ABS_SRCDIR '/data/stud_emp.data';
 VACUUM ANALYZE stud_emp;
 
 CREATE TABLE road (
@@ -208,8 +208,8 @@ CREATE TABLE road (
 	thepath 	path
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/streets.data'
-COPY road FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/streets.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/streets.data'
+COPY road FROM /* REPLACED */ PG_ABS_SRCDIR '/data/streets.data';
 VACUUM ANALYZE road;
 
 CREATE TABLE ihighway () INHERITS (road);
@@ -250,12 +250,12 @@ create type textrange as range (subtype = text, collation = "C");
 
 CREATE FUNCTION binary_coercible(oid, oid)
     RETURNS bool
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'binary_coercible'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'binary_coercible'
     LANGUAGE C STRICT STABLE PARALLEL SAFE;
 
 CREATE FUNCTION ttdummy ()
     RETURNS trigger
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
     LANGUAGE C;
 
 -- Use hand-rolled hash functions and operator classes to get predictable
@@ -304,7 +304,7 @@ SELECT pg_catalog.set_config('search_path', 'public', false);
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 --
 -- BTREE
@@ -370,8 +370,8 @@ CREATE TABLE fast_emp4000 (
 	home_base	 box
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/rect.data'
-COPY slow_emp4000 FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/rect.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/rect.data'
+COPY slow_emp4000 FROM /* REPLACED */ PG_ABS_SRCDIR '/data/rect.data';
 
 INSERT INTO fast_emp4000 SELECT * FROM slow_emp4000;
 
@@ -568,8 +568,8 @@ CREATE TABLE array_index_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
-COPY array_index_op_test FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/array.data'
+COPY array_index_op_test FROM /* REPLACED */ PG_ABS_SRCDIR '/data/array.data';
 ANALYZE array_index_op_test;
 
 SELECT * FROM array_index_op_test WHERE i = '{NULL}' ORDER BY seqno;
@@ -650,7 +650,7 @@ SELECT COUNT(*) FROM array_gin_test WHERE a @> '{2}';
 DROP TABLE array_gin_test;
 
 --
--- Test GIN index/* REPLACED */''s reloptions
+-- Test GIN index/* REPLACED */ ''s reloptions
 --
 CREATE INDEX gin_relopts_test ON array_index_op_test USING gin (i)
   WITH (FASTUPDATE=on, GIN_PENDING_LIST_LIMIT=128);
@@ -663,7 +663,7 @@ CREATE UNLOGGED TABLE unlogged_hash_table (id int4);
 CREATE INDEX unlogged_hash_index ON unlogged_hash_table USING hash (id int4_ops);
 DROP TABLE unlogged_hash_table;
 
--- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops) /* REPLACED */,
+-- CREATE INDEX hash_ovfl_index ON hash_ovfl_heap USING hash (x int4_ops) /* REPLACED */ ,
 
 -- Test hash index build tuplesorting.  Force hash tuplesort using low
 -- maintenance_work_mem setting and fillfactor:
@@ -724,10 +724,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn/* REPLACED */''t:
+-- but this shouldn/* REPLACED */ ''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we/* REPLACED */''re here, see that the metadata looks sane
+-- while we/* REPLACED */ ''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -744,10 +744,10 @@ INSERT INTO func_index_heap VALUES('AB','CDEFG');
 INSERT INTO func_index_heap VALUES('QWE','RTY');
 -- this should fail because of unique index:
 INSERT INTO func_index_heap VALUES('ABCD', 'EF');
--- but this shouldn/* REPLACED */''t:
+-- but this shouldn/* REPLACED */ ''t:
 INSERT INTO func_index_heap VALUES('QWERTY');
 
--- while we/* REPLACED */''re here, see that the metadata looks sane
+-- while we/* REPLACED */ ''re here, see that the metadata looks sane
 -- \d func_index_heap
 -- \d func_index_index
 
@@ -765,7 +765,7 @@ INSERT INTO covering_index_heap VALUES(1,1,'AAA');
 INSERT INTO covering_index_heap VALUES(1,2,'AAA');
 -- this should fail because of unique index on f1,f2:
 INSERT INTO covering_index_heap VALUES(1,2,'BBB');
--- and this shouldn/* REPLACED */''t:
+-- and this shouldn/* REPLACED */ ''t:
 INSERT INTO covering_index_heap VALUES(1,4,'AAA');
 -- Try to build index on table that already contains data
 CREATE UNIQUE INDEX covering_pkey on covering_index_heap (f1,f2) INCLUDE(f3);
@@ -798,7 +798,7 @@ CREATE INDEX CONCURRENTLY concur_index4 on concur_heap(f2) WHERE f1='a';
 CREATE INDEX CONCURRENTLY concur_index5 on concur_heap(f2) WHERE f1='x';
 -- here we also check that you can default the index name
 CREATE INDEX CONCURRENTLY on concur_heap((f2||f1));
--- You can/* REPLACED */''t do a concurrent index build in a transaction
+-- You can/* REPLACED */ ''t do a concurrent index build in a transaction
 BEGIN;
 CREATE INDEX CONCURRENTLY concur_index7 ON concur_heap(f1);
 COMMIT;
@@ -901,7 +901,7 @@ ALTER TABLE cwi_test DROP CONSTRAINT cwi_uniq_idx,
 -- \d cwi_test
 -- \d cwi_replaced_pkey
 
-DROP INDEX cwi_replaced_pkey;	-- Should fail /* REPLACED */, a constraint depends on it
+DROP INDEX cwi_replaced_pkey;	-- Should fail /* REPLACED */ , a constraint depends on it
 
 -- Check that non-default index options are rejected
 CREATE UNIQUE INDEX cwi_uniq3_idx ON cwi_test(a desc);
@@ -1805,7 +1805,7 @@ UPDATE f_star SET f = 10;
 
 ALTER TABLE e_star* ADD COLUMN e int4;
 
---UPDATE e_star* SET e = 42 /* REPLACED */,
+--UPDATE e_star* SET e = 42 /* REPLACED */ ,
 
 SELECT * FROM e_star*;
 
@@ -1818,8 +1818,8 @@ SELECT relname, reltoastrelid <> 0 AS has_toast_table
    ORDER BY 1;
 
 --UPDATE b_star*
---   SET a = text /* REPLACED */''gazpacho/* REPLACED */''
---   WHERE aa > 4 /* REPLACED */,
+--   SET a = text /* REPLACED */ ''gazpacho/* REPLACED */ ''
+--   WHERE aa > 4 /* REPLACED */ ,
 
 SELECT class, aa, a FROM a_star*;
 -- END setup from create_misc 

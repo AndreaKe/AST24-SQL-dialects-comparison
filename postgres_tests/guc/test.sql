@@ -1,5 +1,5 @@
--- pg_regress should ensure that this default value applies /* REPLACED */, however
--- we can/* REPLACED */''t rely on any specific default value of vacuum_cost_delay
+-- pg_regress should ensure that this default value applies /* REPLACED */ , however
+-- we can/* REPLACED */ ''t rely on any specific default value of vacuum_cost_delay
 SHOW datestyle;
 
 -- SET to some nondefault value
@@ -135,7 +135,7 @@ SELECT '2006-08-13 12:34:56'::timestamptz;
 
 --
 -- Test RESET.  We use datestyle because the reset value is forced by
--- pg_regress, so it doesn/* REPLACED */''t depend on the installation/* REPLACED */''s configuration.
+-- pg_regress, so it doesn/* REPLACED */ ''t depend on the installation/* REPLACED */ ''s configuration.
 --
 SET datestyle = iso, ymd;
 SHOW datestyle;
@@ -149,7 +149,7 @@ SET seq_page_cost TO 'NaN';
 SET vacuum_cost_delay TO '10s';
 SET no_such_variable TO 42;
 
--- Test /* REPLACED */''custom/* REPLACED */'' GUCs created on the fly (which aren/* REPLACED */''t really an
+-- Test /* REPLACED */ ''custom/* REPLACED */ '' GUCs created on the fly (which aren/* REPLACED */ ''t really an
 -- intended feature, but many people use them).
 SHOW custom.my_guc;  -- error, not known yet
 SET custom.my_guc = 42;
@@ -163,11 +163,11 @@ SHOW custom."bad-guc";
 SET special."weird name" = 'foo';  -- could be allowed, but we choose not to
 SHOW special."weird name";
 
--- Check what happens when you try to set a /* REPLACED */''custom/* REPLACED */'' GUC within the
+-- Check what happens when you try to set a /* REPLACED */ ''custom/* REPLACED */ '' GUC within the
 -- namespace of an extension.
 SET plpgsql.extra_foo_warnings = true;  -- allowed if plpgsql is not loaded yet
 LOAD 'plpgsql';  -- this will throw a warning and delete the variable
-SET plpgsql.extra_foo_warnings = true;  -- now, it/* REPLACED */''s an error
+SET plpgsql.extra_foo_warnings = true;  -- now, it/* REPLACED */ ''s an error
 SHOW plpgsql.extra_foo_warnings;
 
 --
@@ -257,7 +257,7 @@ select myfunc(0), current_setting('work_mem');
 
 set work_mem = '3MB';
 
--- but SET isn/* REPLACED */''t
+-- but SET isn/* REPLACED */ ''t
 create or replace function myfunc(int) returns text as $$
 begin
   set work_mem = '2MB';
@@ -284,13 +284,13 @@ select myfunc(0);
 select current_setting('work_mem');
 select myfunc(1), current_setting('work_mem');
 
--- check current_setting()/* REPLACED */''s behavior with invalid setting name
+-- check current_setting()/* REPLACED */ ''s behavior with invalid setting name
 
 select current_setting('nosuch.setting');  -- FAIL
 select current_setting('nosuch.setting', false);  -- FAIL
 select current_setting('nosuch.setting', true) is null;
 
--- after this, all three cases should yield /* REPLACED */''nada/* REPLACED */''
+-- after this, all three cases should yield /* REPLACED */ ''nada/* REPLACED */ ''
 set nosuch.setting = 'nada';
 
 select current_setting('nosuch.setting');
@@ -298,7 +298,7 @@ select current_setting('nosuch.setting', false);
 select current_setting('nosuch.setting', true);
 
 -- Normally, CREATE FUNCTION should complain about invalid values in
--- function SET options /* REPLACED */, but not if check_function_bodies is off,
+-- function SET options /* REPLACED */ , but not if check_function_bodies is off,
 -- because that creates ordering hazards for pg_dump
 
 create function func_with_bad_set() returns int as $$ select 1 $$

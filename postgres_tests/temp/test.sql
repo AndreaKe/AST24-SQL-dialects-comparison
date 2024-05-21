@@ -47,7 +47,7 @@ DROP TABLE temptest;
 
 CREATE TEMP TABLE temptest(col int);
 
-\c
+-- \c
 
 SELECT * FROM temptest;
 
@@ -55,7 +55,7 @@ SELECT * FROM temptest;
 
 CREATE TEMP TABLE temptest(col int) ON COMMIT DELETE ROWS;
 
--- while we/* REPLACED */''re here, verify successful truncation of index with SQL function
+-- while we/* REPLACED */ ''re here, verify successful truncation of index with SQL function
 CREATE INDEX ON temptest(bit_length(''));
 
 BEGIN;
@@ -138,7 +138,7 @@ CREATE TEMP TABLE temptest3(col int PRIMARY KEY) ON COMMIT DELETE ROWS;
 CREATE TEMP TABLE temptest4(col int REFERENCES temptest3);
 COMMIT;
 
--- Test manipulation of temp schema/* REPLACED */''s placement in search path
+-- Test manipulation of temp schema/* REPLACED */ ''s placement in search path
 
 create table public.whereami (f1 text);
 insert into public.whereami values ('public');
@@ -156,7 +156,7 @@ create function pg_temp.whoami() returns text
 select * from whereami;
 select whoami();
 
--- can list temp first explicitly, but it still doesn/* REPLACED */''t affect functions
+-- can list temp first explicitly, but it still doesn/* REPLACED */ ''t affect functions
 set search_path = pg_temp, public;
 select * from whereami;
 select whoami();
@@ -306,7 +306,7 @@ prepare transaction 'twophase_tab';
 -- Corner case: current_schema may create a temporary schema if namespace
 -- creation is pending, so check after that.  First reset the connection
 -- to remove the temporary namespace.
-\c -
+-- \c -
 SET search_path TO 'pg_temp';
 BEGIN;
 SELECT current_schema() ~ 'pg_temp' AS is_temp_schema;

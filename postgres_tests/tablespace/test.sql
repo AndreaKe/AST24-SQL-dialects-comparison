@@ -243,7 +243,7 @@ SET default_tablespace TO '';
 CREATE TABLE testschema.dflt2 (a int PRIMARY KEY) PARTITION BY LIST (a);
 DROP TABLE testschema.dflt, testschema.dflt2;
 
--- check that default_tablespace doesn/* REPLACED */''t affect ALTER TABLE index rebuilds
+-- check that default_tablespace doesn/* REPLACED */ ''t affect ALTER TABLE index rebuilds
 CREATE TABLE testschema.test_default_tab(id bigint) TABLESPACE regress_tblspace;
 INSERT INTO testschema.test_default_tab VALUES (1);
 CREATE INDEX test_index1 on testschema.test_default_tab (id);
@@ -287,7 +287,7 @@ ALTER TABLE testschema.test_default_tab ALTER id TYPE bigint;
 -- \d testschema.test_index4
 DROP TABLE testschema.test_default_tab;
 
--- check that default_tablespace doesn/* REPLACED */''t affect ALTER TABLE index rebuilds
+-- check that default_tablespace doesn/* REPLACED */ ''t affect ALTER TABLE index rebuilds
 -- (this time with a partitioned table)
 CREATE TABLE testschema.test_default_tab_p(id bigint, val bigint)
     PARTITION BY LIST (id) TABLESPACE regress_tblspace;
@@ -364,7 +364,7 @@ ALTER TABLE testschema.test_tab ALTER b TYPE bigint, ADD UNIQUE (c);
 -- \d testschema.test_tab_b_idx
 DROP TABLE testschema.test_tab;
 
--- let/* REPLACED */''s try moving a table from one place to another
+-- let/* REPLACED */ ''s try moving a table from one place to another
 CREATE TABLE testschema.atable AS VALUES (1), (2);
 CREATE UNIQUE INDEX anindex ON testschema.atable(column1);
 
@@ -378,7 +378,7 @@ INSERT INTO testschema.atable VALUES(3);	-- ok
 INSERT INTO testschema.atable VALUES(1);	-- fail (checks index)
 SELECT COUNT(*) FROM testschema.atable;		-- checks heap
 
--- let/* REPLACED */''s try moving a materialized view from one place to another
+-- let/* REPLACED */ ''s try moving a materialized view from one place to another
 CREATE MATERIALIZED VIEW testschema.amv AS SELECT * FROM testschema.atable;
 ALTER MATERIALIZED VIEW testschema.amv SET TABLESPACE regress_tblspace;
 REFRESH MATERIALIZED VIEW testschema.amv;

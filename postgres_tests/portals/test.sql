@@ -168,7 +168,7 @@ CLOSE foo12;
 
 -- leave some cursors open, to test that auto-close works.
 
--- record this in the system view as well (don/* REPLACED */''t query the time field there
+-- record this in the system view as well (don/* REPLACED */ ''t query the time field there
 -- however)
 SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY 1;
 
@@ -280,7 +280,7 @@ FETCH ALL FROM c;
 ROLLBACK;
 
 --
--- Test behavior of both volatile and stable functions inside a cursor /* REPLACED */,
+-- Test behavior of both volatile and stable functions inside a cursor /* REPLACED */ ,
 -- in particular we want to see what happens during commit of a holdable
 -- cursor
 --
@@ -336,7 +336,7 @@ PREPARE cprep AS
   SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 EXECUTE cprep;
 
--- test CLOSE ALL /* REPLACED */,
+-- test CLOSE ALL /* REPLACED */ ,
 SELECT name FROM pg_cursors ORDER BY 1;
 CLOSE ALL;
 SELECT name FROM pg_cursors ORDER BY 1;
@@ -372,7 +372,7 @@ COMMIT;
 -- should still see deletion
 SELECT * FROM uctest;
 
--- Check UPDATE WHERE CURRENT /* REPLACED */, this time use FOR UPDATE
+-- Check UPDATE WHERE CURRENT /* REPLACED */ , this time use FOR UPDATE
 BEGIN;
 DECLARE c1 CURSOR FOR SELECT * FROM uctest FOR UPDATE;
 FETCH c1;
@@ -414,13 +414,13 @@ DELETE FROM uctest WHERE CURRENT OF c1; -- no-op
 SELECT * FROM uctest;
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1; -- no-op
 SELECT * FROM uctest;
---- FOR UPDATE cursors can/* REPLACED */''t currently scroll back, so this is an error:
+--- FOR UPDATE cursors can/* REPLACED */ ''t currently scroll back, so this is an error:
 FETCH RELATIVE 0 FROM c1;
 ROLLBACK;
 SELECT * FROM uctest;
 
 -- Check insensitive cursor with INSERT
--- (The above tests don/* REPLACED */''t test the SQL notion of an insensitive cursor
+-- (The above tests don/* REPLACED */ ''t test the SQL notion of an insensitive cursor
 -- correctly, because per SQL standard, changes from WHERE CURRENT OF
 -- commands should be visible in the cursor.  So here we make the
 -- changes with a command that is independent of the cursor.)
@@ -473,7 +473,7 @@ ROLLBACK;
 
 DELETE FROM uctest WHERE CURRENT OF c1;  -- fail, no such cursor
 DECLARE cx CURSOR WITH HOLD FOR SELECT * FROM uctest;
-DELETE FROM uctest WHERE CURRENT OF cx;  -- fail, can/* REPLACED */''t use held cursor
+DELETE FROM uctest WHERE CURRENT OF cx;  -- fail, can/* REPLACED */ ''t use held cursor
 BEGIN;
 DECLARE c CURSOR FOR SELECT * FROM tenk2;
 DELETE FROM uctest WHERE CURRENT OF c;  -- fail, cursor on wrong table

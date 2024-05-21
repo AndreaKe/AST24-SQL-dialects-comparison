@@ -10,7 +10,7 @@ QUERY:
 -- Create and populate a test table with a GIN index.
 create table gin_test_tbl(i int4[]) with (autovacuum_enabled = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -18,21 +18,21 @@ QUERY:
 create index gin_test_idx on gin_test_tbl using gin (i)
   with (fastupdate = on, gin_pending_list_limit = 4096);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 20000) g;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -40,7 +40,7 @@ QUERY:
 
 select gin_clean_pending_list('gin_test_idx')>10 as many;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -48,7 +48,7 @@ QUERY:
 
 insert into gin_test_tbl select array[3, 1, g] from generate_series(1, 1000) g;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -56,7 +56,7 @@ QUERY:
 
 vacuum gin_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -64,7 +64,7 @@ QUERY:
 
 select gin_clean_pending_list('gin_test_idx');
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -73,14 +73,14 @@ QUERY:
 -- Test vacuuming
 delete from gin_test_tbl where i @> array[2];
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 vacuum gin_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -92,7 +92,7 @@ QUERY:
 -- recompression codepaths.
 alter index gin_test_idx set (fastupdate = off);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -100,14 +100,14 @@ QUERY:
 
 insert into gin_test_tbl select array[1, 2, g] from generate_series(1, 1000) g;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 insert into gin_test_tbl select array[1, 3, g] from generate_series(1, 1000) g;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -115,24 +115,24 @@ QUERY:
 
 delete from gin_test_tbl where i @> array[2];
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 vacuum gin_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- Test for /* REPLACED */''rare && frequent/* REPLACED */'' searches
+-- Test for /* REPLACED */ ''rare && frequent/* REPLACED */ '' searches
 explain (costs off)
 select count(*) from gin_test_tbl where i @> array[1, 999];
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on gin_test_tbl',), ("        Recheck Cond: (i @> '{1,999}'::integer[])",), ('        ->  Bitmap Index Scan on gin_test_idx',), ("              Index Cond: (i @> '{1,999}'::integer[])",)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on gin_test_tbl',), ("        Recheck Cond: (i @> '{1,999}'::integer[])",), ('        ->  Bitmap Index Scan on gin_test_idx',), ("              Index Cond: (i @> '{1,999}'::integer[])",)]
 
 -----------
 QUERY:
@@ -140,7 +140,7 @@ QUERY:
 
 select count(*) from gin_test_tbl where i @> array[1, 999];
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
@@ -149,7 +149,7 @@ QUERY:
 -- Very weak test for gin_fuzzy_search_limit
 set gin_fuzzy_search_limit = 1000;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -158,7 +158,7 @@ QUERY:
 explain (costs off)
 select count(*) > 0 as ok from gin_test_tbl where i @> array[1];
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on gin_test_tbl',), ("        Recheck Cond: (i @> '{1}'::integer[])",), ('        ->  Bitmap Index Scan on gin_test_idx',), ("              Index Cond: (i @> '{1}'::integer[])",)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on gin_test_tbl',), ("        Recheck Cond: (i @> '{1}'::integer[])",), ('        ->  Bitmap Index Scan on gin_test_idx',), ("              Index Cond: (i @> '{1}'::integer[])",)]
 
 -----------
 QUERY:
@@ -166,7 +166,7 @@ QUERY:
 
 select count(*) > 0 as ok from gin_test_tbl where i @> array[1];
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -174,7 +174,7 @@ QUERY:
 
 reset gin_fuzzy_search_limit;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -183,14 +183,14 @@ QUERY:
 -- Test optimization of empty queries
 create temp table t_gin_test_tbl(i int4[], j int4[]);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create index on t_gin_test_tbl using gin (i, j);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -208,7 +208,7 @@ values
   ('{1,3}', '{}'),
   ('{1,1}', '{10}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -216,7 +216,7 @@ QUERY:
 
 set enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -224,21 +224,21 @@ QUERY:
 explain (costs off)
 select * from t_gin_test_tbl where array[0] <@ i;
 RESULT:
-	postgres: [('Bitmap Heap Scan on t_gin_test_tbl',), ("  Recheck Cond: ('{0}'::integer[] <@ i)",), ('  ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("        Index Cond: (i @> '{0}'::integer[])",)]
+	[('Bitmap Heap Scan on t_gin_test_tbl',), ("  Recheck Cond: ('{0}'::integer[] <@ i)",), ('  ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("        Index Cond: (i @> '{0}'::integer[])",)]
 
 -----------
 QUERY:
 
 select * from t_gin_test_tbl where array[0] <@ i;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
 
 select * from t_gin_test_tbl where array[0] <@ i and '{}'::int4[] <@ j;
 RESULT:
-	postgres: []
+	[]
 
 -----------
 QUERY:
@@ -247,14 +247,14 @@ QUERY:
 explain (costs off)
 select * from t_gin_test_tbl where i @> '{}';
 RESULT:
-	postgres: [('Bitmap Heap Scan on t_gin_test_tbl',), ("  Recheck Cond: (i @> '{}'::integer[])",), ('  ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("        Index Cond: (i @> '{}'::integer[])",)]
+	[('Bitmap Heap Scan on t_gin_test_tbl',), ("  Recheck Cond: (i @> '{}'::integer[])",), ('  ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("        Index Cond: (i @> '{}'::integer[])",)]
 
 -----------
 QUERY:
 
 select * from t_gin_test_tbl where i @> '{}';
 RESULT:
-	postgres: [([], None), ([1], None), ([1, 2], None), ([1, 2], [10]), ([2], [10]), ([1, 3], []), ([1, 1], [10])]
+	[([], None), ([1], None), ([1, 2], None), ([1, 2], [10]), ([2], [10]), ([1, 3], []), ([1, 1], [10])]
 
 -----------
 QUERY:
@@ -271,7 +271,7 @@ begin
 end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -289,7 +289,7 @@ begin
 end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -307,7 +307,7 @@ begin
 end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -336,7 +336,7 @@ from
   lateral execute_text_query_index($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_index,
   lateral execute_text_query_heap($$select string_agg((i, j)::text, ' ') from t_gin_test_tbl where $$ || query) res_heap;
 RESULT:
-	postgres: [(" i @> '{}' ", 7, 0, True), (" j @> '{}' ", 6, 0, True), (" i @> '{}' and j @> '{}' ", 4, 0, True), (" i @> '{1}' ", 5, 0, True), (" i @> '{1}' and j @> '{}' ", 3, 0, True), (" i @> '{1}' and i @> '{}' and j @> '{}' ", 3, 0, True), (" j @> '{10}' ", 4, 0, True), (" j @> '{10}' and i @> '{}' ", 3, 0, True), (" j @> '{10}' and j @> '{}' and i @> '{}' ", 3, 0, True), (" i @> '{1}' and j @> '{10}' ", 2, 0, True)]
+	[(" i @> '{}' ", 7, 0, True), (" j @> '{}' ", 6, 0, True), (" i @> '{}' and j @> '{}' ", 4, 0, True), (" i @> '{1}' ", 5, 0, True), (" i @> '{1}' and j @> '{}' ", 3, 0, True), (" i @> '{1}' and i @> '{}' and j @> '{}' ", 3, 0, True), (" j @> '{10}' ", 4, 0, True), (" j @> '{10}' and i @> '{}' ", 3, 0, True), (" j @> '{10}' and j @> '{}' and i @> '{}' ", 3, 0, True), (" i @> '{1}' and j @> '{10}' ", 2, 0, True)]
 
 -----------
 QUERY:
@@ -344,14 +344,14 @@ QUERY:
 
 reset enable_seqscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 reset enable_bitmapscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -361,7 +361,7 @@ QUERY:
 insert into t_gin_test_tbl select array[1, g, g/10], array[2, g, g/10]
   from generate_series(1, 20000) g;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -369,7 +369,7 @@ QUERY:
 
 select gin_clean_pending_list('t_gin_test_tbl_i_j_idx') is not null;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -377,7 +377,7 @@ QUERY:
 
 analyze t_gin_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -385,14 +385,14 @@ QUERY:
 
 set enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_bitmapscan = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -401,14 +401,14 @@ QUERY:
 explain (costs off)
 select count(*) from t_gin_test_tbl where j @> array[50];
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on t_gin_test_tbl',), ("        Recheck Cond: (j @> '{50}'::integer[])",), ('        ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("              Index Cond: (j @> '{50}'::integer[])",)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on t_gin_test_tbl',), ("        Recheck Cond: (j @> '{50}'::integer[])",), ('        ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("              Index Cond: (j @> '{50}'::integer[])",)]
 
 -----------
 QUERY:
 
 select count(*) from t_gin_test_tbl where j @> array[50];
 RESULT:
-	postgres: [(11,)]
+	[(11,)]
 
 -----------
 QUERY:
@@ -416,14 +416,14 @@ QUERY:
 explain (costs off)
 select count(*) from t_gin_test_tbl where j @> array[2];
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on t_gin_test_tbl',), ("        Recheck Cond: (j @> '{2}'::integer[])",), ('        ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("              Index Cond: (j @> '{2}'::integer[])",)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on t_gin_test_tbl',), ("        Recheck Cond: (j @> '{2}'::integer[])",), ('        ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("              Index Cond: (j @> '{2}'::integer[])",)]
 
 -----------
 QUERY:
 
 select count(*) from t_gin_test_tbl where j @> array[2];
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -431,14 +431,14 @@ QUERY:
 explain (costs off)
 select count(*) from t_gin_test_tbl where j @> '{}'::int[];
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Bitmap Heap Scan on t_gin_test_tbl',), ("        Recheck Cond: (j @> '{}'::integer[])",), ('        ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("              Index Cond: (j @> '{}'::integer[])",)]
+	[('Aggregate',), ('  ->  Bitmap Heap Scan on t_gin_test_tbl',), ("        Recheck Cond: (j @> '{}'::integer[])",), ('        ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx',), ("              Index Cond: (j @> '{}'::integer[])",)]
 
 -----------
 QUERY:
 
 select count(*) from t_gin_test_tbl where j @> '{}'::int[];
 RESULT:
-	postgres: [(20006,)]
+	[(20006,)]
 
 -----------
 QUERY:
@@ -447,14 +447,14 @@ QUERY:
 -- test vacuuming of posting trees
 delete from t_gin_test_tbl where j @> array[2];
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 vacuum t_gin_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -462,21 +462,21 @@ QUERY:
 
 select count(*) from t_gin_test_tbl where j @> array[50];
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 select count(*) from t_gin_test_tbl where j @> array[2];
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 select count(*) from t_gin_test_tbl where j @> '{}'::int[];
 RESULT:
-	postgres: [(6,)]
+	[(6,)]
 
 -----------
 QUERY:
@@ -484,14 +484,14 @@ QUERY:
 
 reset enable_seqscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 reset enable_bitmapscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -499,7 +499,7 @@ QUERY:
 
 drop table t_gin_test_tbl;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -508,14 +508,14 @@ QUERY:
 -- test an unlogged table, mostly to get coverage of ginbuildempty
 create unlogged table t_gin_test_tbl(i int4[], j int4[]);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create index on t_gin_test_tbl using gin (i, j);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -526,11 +526,11 @@ values
   ('{}',    null),
   ('{1}',   '{2,3}');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 drop table t_gin_test_tbl;
 RESULT:
-	postgres: None
+	[]

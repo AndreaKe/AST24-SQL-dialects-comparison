@@ -8,10 +8,10 @@ INSERT INTO delete_test (a) VALUES (10);
 INSERT INTO delete_test (a, b) VALUES (50, repeat('x', 10000));
 INSERT INTO delete_test (a) VALUES (100);
 
--- allow an alias to be specified for DELETE/* REPLACED */''s target table
+-- allow an alias to be specified for DELETE/* REPLACED */ ''s target table
 DELETE FROM delete_test AS dt WHERE dt.a > 75;
 
--- if an alias is specified, don/* REPLACED */''t allow the original table name
+-- if an alias is specified, don/* REPLACED */ ''t allow the original table name
 -- to be referenced
 DELETE FROM delete_test dt WHERE delete_test.a > 25;
 

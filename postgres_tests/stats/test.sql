@@ -11,7 +11,7 @@ SHOW track_counts;  -- must be on
 -- ensure that both seqscan and indexscan plans are allowed
 SET enable_seqscan TO on;
 SET enable_indexscan TO on;
--- for the moment, we don/* REPLACED */''t want index-only scans here
+-- for the moment, we don/* REPLACED */ ''t want index-only scans here
 SET enable_indexonlyscan TO off;
 -- not enabled by default, but we want to test it...
 SET track_functions TO 'all';
@@ -45,7 +45,7 @@ INSERT INTO trunc_stats_test DEFAULT VALUES;
 INSERT INTO trunc_stats_test DEFAULT VALUES;
 TRUNCATE trunc_stats_test;
 
--- test involving a truncate in a transaction /* REPLACED */, 4 ins but only 1 live
+-- test involving a truncate in a transaction /* REPLACED */ , 4 ins but only 1 live
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
@@ -174,7 +174,7 @@ SELECT funcname, calls FROM pg_stat_user_functions WHERE funcid = :stats_test_fu
 BEGIN;
 SELECT funcname, calls FROM pg_stat_user_functions WHERE funcid = :stats_test_func1_oid;
 DROP FUNCTION stats_test_func1();
--- shouldn/* REPLACED */''t be visible via view
+-- shouldn/* REPLACED */ ''t be visible via view
 SELECT funcname, calls FROM pg_stat_user_functions WHERE funcid = :stats_test_func1_oid;
 -- but still via oid access
 SELECT pg_stat_get_function_calls(:stats_test_func1_oid);
@@ -224,7 +224,7 @@ SELECT pg_stat_get_live_tuples(:drop_stats_test_oid);
 SELECT pg_stat_get_xact_tuples_inserted(:drop_stats_test_oid);
 
 -- check that rollback protects against having stats dropped and that local
--- modifications don/* REPLACED */''t pose a problem
+-- modifications don/* REPLACED */ ''t pose a problem
 SELECT pg_stat_get_live_tuples(:drop_stats_test_xact_oid);
 SELECT pg_stat_get_tuples_inserted(:drop_stats_test_xact_oid);
 SELECT pg_stat_get_xact_tuples_inserted(:drop_stats_test_xact_oid);
@@ -293,9 +293,9 @@ DROP TABLE prevstats;
 -----
 -- Test that last_seq_scan, last_idx_scan are correctly maintained
 --
--- Perform test using a temporary table. That way autovacuum etc won/* REPLACED */''t
+-- Perform test using a temporary table. That way autovacuum etc won/* REPLACED */ ''t
 -- interfere. To be able to check that timestamps increase, we sleep for 100ms
--- between tests, assuming that there aren/* REPLACED */''t systems with a coarser timestamp
+-- between tests, assuming that there aren/* REPLACED */ ''t systems with a coarser timestamp
 -- granularity.
 -----
 
@@ -401,11 +401,11 @@ SELECT (n_tup_ins + n_tup_upd) > 0 AS has_data FROM pg_stat_all_tables
   WHERE relid = 'pg_shdescription'::regclass;
 
 -- set back comment
-\if :{?description_before}
+-- \if :{?description_before}
   COMMENT ON DATABASE :"datname" IS :'description_before';
-\else
+-- \else
   COMMENT ON DATABASE :"datname" IS NULL;
-\endif
+-- \endif
 
 -----
 -- Test that various stats views are being properly populated
@@ -413,7 +413,7 @@ SELECT (n_tup_ins + n_tup_upd) > 0 AS has_data FROM pg_stat_all_tables
 
 -- Test that sessions is incremented when a new session is started in pg_stat_database
 SELECT sessions AS db_stat_sessions FROM pg_stat_database WHERE datname = (SELECT current_database()) \gset
-\c
+-- \c
 SELECT pg_stat_force_next_flush();
 SELECT sessions > :db_stat_sessions FROM pg_stat_database WHERE datname = (SELECT current_database());
 
@@ -427,7 +427,7 @@ CREATE TEMP TABLE test_stats_temp AS SELECT 17;
 DROP TABLE test_stats_temp;
 
 -- Checkpoint twice: The checkpointer reports stats after reporting completion
--- of the checkpoint. But after a second checkpoint we/* REPLACED */''ll see at least the
+-- of the checkpoint. But after a second checkpoint we/* REPLACED */ ''ll see at least the
 -- results of the first.
 CHECKPOINT;
 CHECKPOINT;
@@ -640,7 +640,7 @@ SELECT sum(reads) AS io_sum_shared_before_reads
 BEGIN;
 ALTER TABLE test_io_shared SET TABLESPACE regress_tblspace;
 -- SELECT from the table so that the data is read into shared buffers and
--- context /* REPLACED */''normal/* REPLACED */'', object /* REPLACED */''relation/* REPLACED */'' reads are counted.
+-- context /* REPLACED */ ''normal/* REPLACED */ '', object /* REPLACED */ ''relation/* REPLACED */ '' reads are counted.
 SELECT COUNT(*) FROM test_io_shared;
 COMMIT;
 SELECT pg_stat_force_next_flush();
@@ -652,7 +652,7 @@ SELECT sum(hits) AS io_sum_shared_before_hits
   FROM pg_stat_io WHERE context = 'normal' AND object = 'relation' \gset
 -- Select from the table again to count hits.
 -- Ensure we generate hits by forcing a nested loop self-join with no
--- materialize node. The outer side/* REPLACED */''s buffer will stay pinned, preventing its
+-- materialize node. The outer side/* REPLACED */ ''s buffer will stay pinned, preventing its
 -- eviction, while we loop through the inner side and generate hits.
 BEGIN;
 SET LOCAL enable_nestloop TO on; SET LOCAL enable_mergejoin TO off;
@@ -677,7 +677,7 @@ DROP TABLE test_io_shared;
 -- Set temp_buffers to its minimum so that we can trigger writes with fewer
 -- inserted tuples. Do so in a new session in case temporary tables have been
 -- accessed by previous tests in this session.
-\c
+-- \c
 SET temp_buffers TO 100;
 CREATE TEMPORARY TABLE test_io_local(a int, b TEXT);
 SELECT sum(extends) AS extends, sum(evictions) AS evictions, sum(writes) AS writes
@@ -768,7 +768,7 @@ SELECT sum(evictions) + sum(reuses) + sum(extends) + sum(fsyncs) + sum(reads) + 
 SELECT :io_stats_post_reset < :io_stats_pre_reset;
 
 
--- test BRIN index doesn/* REPLACED */''t block HOT update
+-- test BRIN index doesn/* REPLACED */ ''t block HOT update
 CREATE TABLE brin_hot (
   id  integer PRIMARY KEY,
   val integer NOT NULL
@@ -782,7 +782,7 @@ DECLARE
   start_time timestamptz := clock_timestamp();
   updated bool;
 BEGIN
-  -- we don/* REPLACED */''t want to wait forever /* REPLACED */, loop will exit after 30 seconds
+  -- we don/* REPLACED */ ''t want to wait forever /* REPLACED */ , loop will exit after 30 seconds
   FOR i IN 1 .. 300 LOOP
     SELECT (pg_stat_get_tuples_hot_updated('brin_hot'::regclass::oid) > 0) INTO updated;
     EXIT WHEN updated;
@@ -792,7 +792,7 @@ BEGIN
     -- reset stats snapshot so we can test again
     PERFORM pg_stat_clear_snapshot();
   END LOOP;
-  -- report time waited in postmaster log (where it won/* REPLACED */''t change test output)
+  -- report time waited in postmaster log (where it won/* REPLACED */ ''t change test output)
   RAISE log 'wait_for_hot_stats delayed % seconds',
     EXTRACT(epoch FROM clock_timestamp() - start_time);
 END
@@ -800,13 +800,13 @@ $$ LANGUAGE plpgsql;
 
 UPDATE brin_hot SET val = -3 WHERE id = 42;
 
--- We can/* REPLACED */''t just call wait_for_hot_stats() at this point, because we only
--- transmit stats when the session goes idle, and we probably didn/* REPLACED */''t
+-- We can/* REPLACED */ ''t just call wait_for_hot_stats() at this point, because we only
+-- transmit stats when the session goes idle, and we probably didn/* REPLACED */ ''t
 -- transmit the last couple of counts yet thanks to the rate-limiting logic
--- in pgstat_report_stat().  But instead of waiting for the rate limiter/* REPLACED */''s
--- timeout to elapse, let/* REPLACED */''s just start a new session.  The old one will
+-- in pgstat_report_stat().  But instead of waiting for the rate limiter/* REPLACED */ ''s
+-- timeout to elapse, let/* REPLACED */ ''s just start a new session.  The old one will
 -- then send its stats before dying.
-\c -
+-- \c -
 
 SELECT wait_for_hot_stats();
 SELECT pg_stat_get_tuples_hot_updated('brin_hot'::regclass::oid);
@@ -848,5 +848,3 @@ SELECT COUNT(*) FROM brin_hot_3 WHERE a = 2;
 DROP TABLE brin_hot_3;
 
 SET enable_seqscan = on;
-
--- End of Stats Test

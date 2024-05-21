@@ -7,7 +7,7 @@ QUERY:
 
 CREATE TYPE rainbow AS ENUM ('red', 'orange', 'yellow', 'green', 'blue', 'purple');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -18,7 +18,7 @@ QUERY:
 --
 SELECT COUNT(*) FROM pg_enum WHERE enumtypid = 'rainbow'::regtype;
 RESULT:
-	postgres: [(6,)]
+	[(6,)]
 
 -----------
 QUERY:
@@ -29,14 +29,14 @@ QUERY:
 --
 SELECT 'red'::rainbow;
 RESULT:
-	postgres: [('red',)]
+	[('red',)]
 
 -----------
 QUERY:
 
 SELECT 'mauve'::rainbow;
 RESULT:
-	postgres: invalid input value for enum rainbow: "mauve"
+	ERROR - invalid input value for enum rainbow: "mauve"
 LINE 2: SELECT 'mauve'::rainbow;
                ^
 
@@ -48,37 +48,34 @@ QUERY:
 -- Also try it with non-error-throwing API
 SELECT pg_input_is_valid('red', 'rainbow');
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT pg_input_is_valid('mauve', 'rainbow');
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT * FROM pg_input_error_info('mauve', 'rainbow');
 RESULT:
-	postgres: [('invalid input value for enum rainbow: "mauve"', None, None, '22P02')]
+	[('invalid input value for enum rainbow: "mauve"', None, None, '22P02')]
 
 -----------
 QUERY:
 
-\x
+-- \x
 SELECT * FROM pg_input_error_info(repeat('too_long', 32), 'rainbow');
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 2: \x
-        ^
-
+	[('invalid input value for enum rainbow: "too_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_longtoo_long"', None, None, '22P02')]
 
 -----------
 QUERY:
 
-\x
+-- \x
 
 --
 -- adding new values
@@ -86,10 +83,7 @@ QUERY:
 
 CREATE TYPE planets AS ENUM ( 'venus', 'earth', 'mars' );
 RESULT:
-	postgres: syntax error at or near "\"
-LINE 2: \x
-        ^
-
+	[]
 
 -----------
 QUERY:
@@ -100,10 +94,7 @@ FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY 2;
 RESULT:
-	postgres: type "planets" does not exist
-LINE 5: WHERE enumtypid = 'planets'::regtype
-                          ^
-
+	[('venus', 1.0), ('earth', 2.0), ('mars', 3.0)]
 
 -----------
 QUERY:
@@ -111,8 +102,7 @@ QUERY:
 
 ALTER TYPE planets ADD VALUE 'uranus';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
@@ -123,10 +113,7 @@ FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY 2;
 RESULT:
-	postgres: type "planets" does not exist
-LINE 5: WHERE enumtypid = 'planets'::regtype
-                          ^
-
+	[('venus', 1.0), ('earth', 2.0), ('mars', 3.0), ('uranus', 4.0)]
 
 -----------
 QUERY:
@@ -134,32 +121,28 @@ QUERY:
 
 ALTER TYPE planets ADD VALUE 'mercury' BEFORE 'venus';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE planets ADD VALUE 'saturn' BEFORE 'uranus';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE planets ADD VALUE 'jupiter' AFTER 'mars';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE planets ADD VALUE 'neptune' AFTER 'uranus';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
@@ -170,10 +153,7 @@ FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY 2;
 RESULT:
-	postgres: type "planets" does not exist
-LINE 5: WHERE enumtypid = 'planets'::regtype
-                          ^
-
+	[('mercury', 0.0), ('venus', 1.0), ('earth', 2.0), ('mars', 3.0), ('jupiter', 3.25), ('saturn', 3.5), ('uranus', 4.0), ('neptune', 5.0)]
 
 -----------
 QUERY:
@@ -184,10 +164,7 @@ FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY enumlabel::planets;
 RESULT:
-	postgres: type "planets" does not exist
-LINE 5: WHERE enumtypid = 'planets'::regtype
-                          ^
-
+	[('mercury', 0.0), ('venus', 1.0), ('earth', 2.0), ('mars', 3.0), ('jupiter', 3.25), ('saturn', 3.5), ('uranus', 4.0), ('neptune', 5.0)]
 
 -----------
 QUERY:
@@ -197,7 +174,8 @@ QUERY:
 ALTER TYPE planets ADD VALUE
   'plutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutopluto';
 RESULT:
-	postgres: type "planets" does not exist
+	ERROR - invalid enum label "plutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutopluto"
+DETAIL:  Labels must be 63 bytes or less.
 
 
 -----------
@@ -206,7 +184,7 @@ QUERY:
 
 ALTER TYPE planets ADD VALUE 'pluto' AFTER 'zeus';
 RESULT:
-	postgres: type "planets" does not exist
+	ERROR - "zeus" is not an existing enum label
 
 
 -----------
@@ -218,7 +196,7 @@ QUERY:
 --  existing value gives error
 ALTER TYPE planets ADD VALUE 'mercury';
 RESULT:
-	postgres: type "planets" does not exist
+	ERROR - enum label "mercury" already exists
 
 
 -----------
@@ -228,8 +206,7 @@ QUERY:
 -- unless IF NOT EXISTS is specified
 ALTER TYPE planets ADD VALUE IF NOT EXISTS 'mercury';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
@@ -238,10 +215,7 @@ QUERY:
 -- should be neptune, not mercury
 SELECT enum_last(NULL::planets);
 RESULT:
-	postgres: type "planets" does not exist
-LINE 4: SELECT enum_last(NULL::planets);
-                               ^
-
+	[('neptune',)]
 
 -----------
 QUERY:
@@ -249,8 +223,7 @@ QUERY:
 
 ALTER TYPE planets ADD VALUE IF NOT EXISTS 'pluto';
 RESULT:
-	postgres: type "planets" does not exist
-
+	[]
 
 -----------
 QUERY:
@@ -259,10 +232,7 @@ QUERY:
 -- should be pluto, i.e. the new value
 SELECT enum_last(NULL::planets);
 RESULT:
-	postgres: type "planets" does not exist
-LINE 4: SELECT enum_last(NULL::planets);
-                               ^
-
+	[('pluto',)]
 
 -----------
 QUERY:
@@ -274,7 +244,7 @@ QUERY:
 
 create type insenum as enum ('L1', 'L2');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -282,210 +252,210 @@ QUERY:
 
 alter type insenum add value 'i1' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i2' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i3' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i4' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i5' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i6' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i7' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i8' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i9' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i10' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i11' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i12' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i13' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i14' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i15' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i16' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i17' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i18' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i19' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i20' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i21' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i22' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i23' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i24' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i25' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i26' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i27' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i28' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i29' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i30' before 'L2';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -493,7 +463,7 @@ QUERY:
 
 -- The exact values of enumsortorder will now depend on the local properties
 -- of float4, but in any reasonable implementation we should get at least
--- 20 splits before having to renumber /* REPLACED */, so only hide values > 20.
+-- 20 splits before having to renumber /* REPLACED */ , so only hide values > 20.
 
 SELECT enumlabel,
        case when enumsortorder > 20 then null else enumsortorder end as so
@@ -501,7 +471,7 @@ FROM pg_enum
 WHERE enumtypid = 'insenum'::regtype
 ORDER BY enumsortorder;
 RESULT:
-	postgres: [('L1', 1.0), ('i1', 2.0), ('i2', 3.0), ('i3', 4.0), ('i4', 5.0), ('i5', 6.0), ('i6', 7.0), ('i7', 8.0), ('i8', 9.0), ('i9', 10.0), ('i10', 11.0), ('i11', 12.0), ('i12', 13.0), ('i13', 14.0), ('i14', 15.0), ('i15', 16.0), ('i16', 17.0), ('i17', 18.0), ('i18', 19.0), ('i19', 20.0), ('i20', None), ('i21', None), ('i22', None), ('i23', None), ('i24', None), ('i25', None), ('i26', None), ('i27', None), ('i28', None), ('i29', None), ('i30', None), ('L2', None)]
+	[('L1', 1.0), ('i1', 2.0), ('i2', 3.0), ('i3', 4.0), ('i4', 5.0), ('i5', 6.0), ('i6', 7.0), ('i7', 8.0), ('i8', 9.0), ('i9', 10.0), ('i10', 11.0), ('i11', 12.0), ('i12', 13.0), ('i13', 14.0), ('i14', 15.0), ('i15', 16.0), ('i16', 17.0), ('i17', 18.0), ('i18', 19.0), ('i19', 20.0), ('i20', None), ('i21', None), ('i22', None), ('i23', None), ('i24', None), ('i25', None), ('i26', None), ('i27', None), ('i28', None), ('i29', None), ('i30', None), ('L2', None)]
 
 -----------
 QUERY:
@@ -512,31 +482,31 @@ QUERY:
 --
 CREATE TABLE enumtest (col rainbow);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest values ('red'), ('orange'), ('yellow'), ('green');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COPY enumtest FROM stdin;
 RESULT:
-	postgres: can't execute COPY FROM: use the copy_from() method instead
+	ERROR - can't execute COPY FROM: use the copy_from() method instead
 
 -----------
 QUERY:
 
 blue
 purple
-\.
+-- \.
 SELECT * FROM enumtest;
 RESULT:
-	postgres: syntax error at or near "blue"
+	ERROR - syntax error at or near "blue"
 LINE 2: blue
         ^
 
@@ -550,42 +520,42 @@ QUERY:
 --
 SELECT * FROM enumtest WHERE col = 'orange';
 RESULT:
-	postgres: [('orange',)]
+	[('orange',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
 RESULT:
-	postgres: [('red',), ('yellow',), ('green',)]
+	[('red',), ('yellow',), ('green',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;
 RESULT:
-	postgres: [('green',)]
+	[('green',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col >= 'yellow' ORDER BY col;
 RESULT:
-	postgres: [('yellow',), ('green',)]
+	[('yellow',), ('green',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col < 'green' ORDER BY col;
 RESULT:
-	postgres: [('red',), ('orange',), ('yellow',)]
+	[('red',), ('orange',), ('yellow',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <= 'green' ORDER BY col;
 RESULT:
-	postgres: [('red',), ('orange',), ('yellow',), ('green',)]
+	[('red',), ('orange',), ('yellow',), ('green',)]
 
 -----------
 QUERY:
@@ -596,14 +566,14 @@ QUERY:
 --
 SELECT 'red'::rainbow::text || 'hithere';
 RESULT:
-	postgres: [('redhithere',)]
+	[('redhithere',)]
 
 -----------
 QUERY:
 
 SELECT 'red'::text::rainbow = 'red'::rainbow;
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -614,21 +584,21 @@ QUERY:
 --
 SELECT min(col) FROM enumtest;
 RESULT:
-	postgres: [('red',)]
+	[('red',)]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest;
 RESULT:
-	postgres: [('green',)]
+	[('green',)]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest WHERE col < 'green';
 RESULT:
-	postgres: [('yellow',)]
+	[('yellow',)]
 
 -----------
 QUERY:
@@ -639,14 +609,14 @@ QUERY:
 --
 SET enable_seqscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_bitmapscan = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -657,77 +627,77 @@ QUERY:
 --
 CREATE UNIQUE INDEX enumtest_btree ON enumtest USING btree (col);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col = 'orange';
 RESULT:
-	postgres: [('orange',)]
+	[('orange',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
 RESULT:
-	postgres: [('red',), ('yellow',), ('green',)]
+	[('red',), ('yellow',), ('green',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;
 RESULT:
-	postgres: [('green',)]
+	[('green',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col >= 'yellow' ORDER BY col;
 RESULT:
-	postgres: [('yellow',), ('green',)]
+	[('yellow',), ('green',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col < 'green' ORDER BY col;
 RESULT:
-	postgres: [('red',), ('orange',), ('yellow',)]
+	[('red',), ('orange',), ('yellow',)]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <= 'green' ORDER BY col;
 RESULT:
-	postgres: [('red',), ('orange',), ('yellow',), ('green',)]
+	[('red',), ('orange',), ('yellow',), ('green',)]
 
 -----------
 QUERY:
 
 SELECT min(col) FROM enumtest;
 RESULT:
-	postgres: [('red',)]
+	[('red',)]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest;
 RESULT:
-	postgres: [('green',)]
+	[('green',)]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest WHERE col < 'green';
 RESULT:
-	postgres: [('yellow',)]
+	[('yellow',)]
 
 -----------
 QUERY:
 
 DROP INDEX enumtest_btree;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -738,21 +708,21 @@ QUERY:
 --
 CREATE INDEX enumtest_hash ON enumtest USING hash (col);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col = 'orange';
 RESULT:
-	postgres: [('orange',)]
+	[('orange',)]
 
 -----------
 QUERY:
 
 DROP INDEX enumtest_hash;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -763,14 +733,14 @@ QUERY:
 --
 RESET enable_seqscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 RESET enable_bitmapscan;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -781,21 +751,21 @@ QUERY:
 --
 CREATE DOMAIN rgb AS rainbow CHECK (VALUE IN ('red', 'green', 'blue'));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 'red'::rgb;
 RESULT:
-	postgres: [('red',)]
+	[('red',)]
 
 -----------
 QUERY:
 
 SELECT 'purple'::rgb;
 RESULT:
-	postgres: value for domain rgb violates check constraint "rgb_check"
+	ERROR - value for domain rgb violates check constraint "rgb_check"
 
 
 -----------
@@ -803,7 +773,7 @@ QUERY:
 
 SELECT 'purple'::rainbow::rgb;
 RESULT:
-	postgres: value for domain rgb violates check constraint "rgb_check"
+	ERROR - value for domain rgb violates check constraint "rgb_check"
 
 
 -----------
@@ -811,7 +781,7 @@ QUERY:
 
 DROP DOMAIN rgb;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -822,42 +792,42 @@ QUERY:
 --
 SELECT '{red,green,blue}'::rainbow[];
 RESULT:
-	postgres: [('{red,green,blue}',)]
+	[('{red,green,blue}',)]
 
 -----------
 QUERY:
 
 SELECT ('{red,green,blue}'::rainbow[])[2];
 RESULT:
-	postgres: [('green',)]
+	[('green',)]
 
 -----------
 QUERY:
 
 SELECT 'red' = ANY ('{red,green,blue}'::rainbow[]);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 SELECT 'yellow' = ANY ('{red,green,blue}'::rainbow[]);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT 'red' = ALL ('{red,green,blue}'::rainbow[]);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 SELECT 'red' = ALL ('{red,red}'::rainbow[]);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
@@ -868,56 +838,56 @@ QUERY:
 --
 SELECT enum_first(NULL::rainbow);
 RESULT:
-	postgres: [('red',)]
+	[('red',)]
 
 -----------
 QUERY:
 
 SELECT enum_last('green'::rainbow);
 RESULT:
-	postgres: [('purple',)]
+	[('purple',)]
 
 -----------
 QUERY:
 
 SELECT enum_range(NULL::rainbow);
 RESULT:
-	postgres: [('{red,orange,yellow,green,blue,purple}',)]
+	[('{red,orange,yellow,green,blue,purple}',)]
 
 -----------
 QUERY:
 
 SELECT enum_range('orange'::rainbow, 'green'::rainbow);
 RESULT:
-	postgres: [('{orange,yellow,green}',)]
+	[('{orange,yellow,green}',)]
 
 -----------
 QUERY:
 
 SELECT enum_range(NULL, 'green'::rainbow);
 RESULT:
-	postgres: [('{red,orange,yellow,green}',)]
+	[('{red,orange,yellow,green}',)]
 
 -----------
 QUERY:
 
 SELECT enum_range('orange'::rainbow, NULL);
 RESULT:
-	postgres: [('{orange,yellow,green,blue,purple}',)]
+	[('{orange,yellow,green,blue,purple}',)]
 
 -----------
 QUERY:
 
 SELECT enum_range(NULL::rainbow, NULL);
 RESULT:
-	postgres: [('{red,orange,yellow,green,blue,purple}',)]
+	[('{red,orange,yellow,green,blue,purple}',)]
 
 -----------
 QUERY:
 
 
 --
--- User functions, can/* REPLACED */''t test perl/python etc here since may not be compiled.
+-- User functions, can/* REPLACED */ ''t test perl/python etc here since may not be compiled.
 --
 CREATE FUNCTION echo_me(anyenum) RETURNS text AS $$
 BEGIN
@@ -925,14 +895,14 @@ RETURN $1::text || 'omg';
 END
 $$ LANGUAGE plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT echo_me('red'::rainbow);
 RESULT:
-	postgres: [('redomg',)]
+	[('redomg',)]
 
 -----------
 QUERY:
@@ -946,39 +916,39 @@ RETURN $1::text || 'wtf';
 END
 $$ LANGUAGE plpgsql;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT echo_me('red'::rainbow);
 RESULT:
-	postgres: [('redwtf',)]
+	[('redwtf',)]
 
 -----------
 QUERY:
 
 --
--- If we drop the original generic one, we don/* REPLACED */''t have to qualify the type
--- anymore, since there/* REPLACED */''s only one match
+-- If we drop the original generic one, we don/* REPLACED */ ''t have to qualify the type
+-- anymore, since there/* REPLACED */ ''s only one match
 --
 DROP FUNCTION echo_me(anyenum);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT echo_me('red');
 RESULT:
-	postgres: [('redwtf',)]
+	[('redwtf',)]
 
 -----------
 QUERY:
 
 DROP FUNCTION echo_me(rainbow);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -989,35 +959,35 @@ QUERY:
 --
 CREATE TABLE enumtest_parent (id rainbow PRIMARY KEY);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE enumtest_child (parent rainbow REFERENCES enumtest_parent);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest_parent VALUES ('red');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest_child VALUES ('red');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest_child VALUES ('blue');
 RESULT:
-	postgres: insert or update on table "enumtest_child" violates foreign key constraint "enumtest_child_parent_fkey"
+	ERROR - insert or update on table "enumtest_child" violates foreign key constraint "enumtest_child_parent_fkey"
 DETAIL:  Key (parent)=(blue) is not present in table "enumtest_parent".
 
 
@@ -1026,7 +996,7 @@ QUERY:
   -- fail
 DELETE FROM enumtest_parent;
 RESULT:
-	postgres: update or delete on table "enumtest_parent" violates foreign key constraint "enumtest_child_parent_fkey" on table "enumtest_child"
+	ERROR - update or delete on table "enumtest_parent" violates foreign key constraint "enumtest_child_parent_fkey" on table "enumtest_child"
 DETAIL:  Key (id)=(red) is still referenced from table "enumtest_child".
 
 
@@ -1038,14 +1008,14 @@ QUERY:
 --
 CREATE TYPE bogus AS ENUM('good', 'bad', 'ugly');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE enumtest_bogus_child(parent bogus REFERENCES enumtest_parent);
 RESULT:
-	postgres: foreign key constraint "enumtest_bogus_child_parent_fkey" cannot be implemented
+	ERROR - foreign key constraint "enumtest_bogus_child_parent_fkey" cannot be implemented
 DETAIL:  Key columns "parent" and "id" are of incompatible types: bogus and rainbow.
 
 
@@ -1054,7 +1024,7 @@ QUERY:
 
 DROP TYPE bogus;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1063,7 +1033,7 @@ QUERY:
 -- check renaming a value
 ALTER TYPE rainbow RENAME VALUE 'red' TO 'crimson';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1073,7 +1043,7 @@ FROM pg_enum
 WHERE enumtypid = 'rainbow'::regtype
 ORDER BY 2;
 RESULT:
-	postgres: [('crimson', 1.0), ('orange', 2.0), ('yellow', 3.0), ('green', 4.0), ('blue', 5.0), ('purple', 6.0)]
+	[('crimson', 1.0), ('orange', 2.0), ('yellow', 3.0), ('green', 4.0), ('blue', 5.0), ('purple', 6.0)]
 
 -----------
 QUERY:
@@ -1081,7 +1051,7 @@ QUERY:
 -- check that renaming a non-existent value fails
 ALTER TYPE rainbow RENAME VALUE 'red' TO 'crimson';
 RESULT:
-	postgres: "red" is not an existing enum label
+	ERROR - "red" is not an existing enum label
 
 
 -----------
@@ -1090,7 +1060,7 @@ QUERY:
 -- check that renaming to an existent value fails
 ALTER TYPE rainbow RENAME VALUE 'blue' TO 'green';
 RESULT:
-	postgres: enum label "green" already exists
+	ERROR - enum label "green" already exists
 
 
 -----------
@@ -1102,38 +1072,38 @@ QUERY:
 --
 CREATE TYPE bogus AS ENUM('good');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- check that we can add new values to existing enums in a transaction
--- but we can/* REPLACED */''t use them
+-- but we can/* REPLACED */ ''t use them
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus ADD VALUE 'new';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SAVEPOINT x;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 'new'::bogus;
 RESULT:
-	postgres: unsafe use of new value "new" of enum type bogus
+	ERROR - unsafe use of new value "new" of enum type bogus
 LINE 2: SELECT 'new'::bogus;
                ^
 HINT:  New enum values must be committed before they can be used.
@@ -1144,21 +1114,21 @@ QUERY:
   -- unsafe
 ROLLBACK TO x;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT enum_first(null::bogus);
 RESULT:
-	postgres: [('good',)]
+	[('good',)]
 
 -----------
 QUERY:
   -- safe
 SELECT enum_last(null::bogus);
 RESULT:
-	postgres: unsafe use of new value "new" of enum type bogus
+	ERROR - unsafe use of new value "new" of enum type bogus
 HINT:  New enum values must be committed before they can be used.
 
 
@@ -1167,14 +1137,14 @@ QUERY:
   -- unsafe
 ROLLBACK TO x;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT enum_range(null::bogus);
 RESULT:
-	postgres: unsafe use of new value "new" of enum type bogus
+	ERROR - unsafe use of new value "new" of enum type bogus
 HINT:  New enum values must be committed before they can be used.
 
 
@@ -1183,21 +1153,21 @@ QUERY:
   -- unsafe
 ROLLBACK TO x;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 COMMIT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 'new'::bogus;
 RESULT:
-	postgres: [('new',)]
+	[('new',)]
 
 -----------
 QUERY:
@@ -1207,38 +1177,38 @@ FROM pg_enum
 WHERE enumtypid = 'bogus'::regtype
 ORDER BY 2;
 RESULT:
-	postgres: [('good', 1.0), ('new', 2.0)]
+	[('good', 1.0), ('new', 2.0)]
 
 -----------
 QUERY:
 
 
 -- check that we recognize the case where the enum already existed but was
--- modified in the current txn /* REPLACED */, this should not be considered safe
+-- modified in the current txn /* REPLACED */ , this should not be considered safe
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME TO bogon;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogon ADD VALUE 'bad';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 'bad'::bogon;
 RESULT:
-	postgres: unsafe use of new value "bad" of enum type bogon
+	ERROR - unsafe use of new value "bad" of enum type bogon
 LINE 2: SELECT 'bad'::bogon;
                ^
 HINT:  New enum values must be committed before they can be used.
@@ -1249,7 +1219,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1258,28 +1228,28 @@ QUERY:
 -- but a renamed value is safe to use later in same transaction
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME VALUE 'good' to 'bad';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT 'bad'::bogus;
 RESULT:
-	postgres: [('bad',)]
+	[('bad',)]
 
 -----------
 QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1287,7 +1257,7 @@ QUERY:
 
 DROP TYPE bogus;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1296,80 +1266,80 @@ QUERY:
 -- check that values created during CREATE TYPE can be used in any case
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TYPE bogus AS ENUM('good','bad','ugly');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME TO bogon;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select enum_range(null::bogon);
 RESULT:
-	postgres: [('{good,bad,ugly}',)]
+	[('{good,bad,ugly}',)]
 
 -----------
 QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- ideally, we/* REPLACED */''d allow this usage /* REPLACED */, but it requires keeping track of whether
+-- ideally, we/* REPLACED */ ''d allow this usage /* REPLACED */ , but it requires keeping track of whether
 -- the enum type was created in the current transaction, which is expensive
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TYPE bogus AS ENUM('good');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME TO bogon;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogon ADD VALUE 'bad';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 ALTER TYPE bogon ADD VALUE 'ugly';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 select enum_range(null::bogon);
 RESULT:
-	postgres: unsafe use of new value "bad" of enum type bogon
+	ERROR - unsafe use of new value "bad" of enum type bogon
 HINT:  New enum values must be committed before they can be used.
 
 
@@ -1378,7 +1348,7 @@ QUERY:
   -- fails
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1389,28 +1359,28 @@ QUERY:
 --
 DROP TABLE enumtest_child;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE enumtest_parent;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TABLE enumtest;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 DROP TYPE rainbow;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1421,7 +1391,7 @@ QUERY:
 --
 SELECT COUNT(*) FROM pg_type WHERE typname = 'rainbow';
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1429,4 +1399,4 @@ QUERY:
 SELECT * FROM pg_enum WHERE NOT EXISTS
   (SELECT 1 FROM pg_type WHERE pg_type.oid = enumtypid);
 RESULT:
-	postgres: []
+	[]

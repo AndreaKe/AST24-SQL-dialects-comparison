@@ -55,7 +55,7 @@ GROUP BY aic.article_id, aic.category_id;
 
 -- JOIN syntax
 
--- group by left table/* REPLACED */''s primary key (OK)
+-- group by left table/* REPLACED */ ''s primary key (OK)
 SELECT a.id, a.keywords, a.title, a.body, a.created
 FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
 WHERE aic.category_id in (14,62,70,53,138)
@@ -67,13 +67,13 @@ FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
 WHERE aic.category_id in (14,62,70,53,138)
 GROUP BY aic.article_id, aic.category_id;
 
--- group by right table/* REPLACED */''s (composite) primary key (OK)
+-- group by right table/* REPLACED */ ''s (composite) primary key (OK)
 SELECT aic.changed
 FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
 WHERE aic.category_id in (14,62,70,53,138)
 GROUP BY aic.category_id, aic.article_id;
 
--- group by right table/* REPLACED */''s partial primary key (fail)
+-- group by right table/* REPLACED */ ''s partial primary key (fail)
 SELECT aic.changed
 FROM articles AS a JOIN articles_in_category AS aic ON a.id = aic.article_id
 WHERE aic.category_id in (14,62,70,53,138)
@@ -207,4 +207,4 @@ EXECUTE foo;
 
 ALTER TABLE articles DROP CONSTRAINT articles_pkey RESTRICT;
 
-EXECUTE foo;  -- fail
+EXECUTE foo;

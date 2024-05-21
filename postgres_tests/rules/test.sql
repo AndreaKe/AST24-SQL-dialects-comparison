@@ -1,6 +1,6 @@
 --
 -- RULES
--- From Jan/* REPLACED */''s original setup_ruletest.sql and run_ruletest.sql
+-- From Jan/* REPLACED */ ''s original setup_ruletest.sql and run_ruletest.sql
 -- - thomas 1998-09-13
 --
 
@@ -185,8 +185,8 @@ select * from rtest_v1;
 ** Remember the delete rule on rtest_v1: It says
 ** DO INSTEAD DELETE FROM rtest_t1 WHERE a = old.a
 ** So this time both rows with a = 2 must get deleted
-\p
-\r
+-- \p
+-- \r
 delete from rtest_v1 where b = 12;
 select * from rtest_v1;
 delete from rtest_v1;
@@ -602,7 +602,7 @@ SELECT * FROM shoe_ready WHERE total_avail >= 2 ORDER BY 1;
         log_when   timestamp      -- when
     );
 
--- Want /* REPLACED */''log_who/* REPLACED */'' to be CURRENT_USER,
+-- Want /* REPLACED */ ''log_who/* REPLACED */ '' to be CURRENT_USER,
 -- but that is non-portable for the regression test
 -- - thomas 1999-02-21
 
@@ -773,7 +773,7 @@ drop table cchild;
 --
 
 -- temporarily disable fancy output, so view changes create less diff noise
-\a\t
+-- \a\t
 
 SELECT viewname, definition FROM pg_views
 WHERE schemaname = 'pg_catalog'
@@ -784,7 +784,7 @@ WHERE schemaname = 'pg_catalog'
 ORDER BY tablename, rulename;
 
 -- restore normal output mode
-\a\t
+-- \a\t
 
 --
 -- CREATE OR REPLACE RULE
@@ -876,7 +876,7 @@ insert into rule_and_refint_t3 values (1, 11, 13, 'row7');
 insert into rule_and_refint_t3 values (1, 13, 11, 'row8');
 
 --
--- disallow dropping a view/* REPLACED */''s rule (bug #5072)
+-- disallow dropping a view/* REPLACED */ ''s rule (bug #5072)
 --
 
 create view rules_fooview as select 'rules_foo'::text;
@@ -884,7 +884,7 @@ drop rule "_RETURN" on rules_fooview;
 drop view rules_fooview;
 
 --
--- We used to allow converting a table to a view by creating a /* REPLACED */''_RETURN/* REPLACED */''
+-- We used to allow converting a table to a view by creating a /* REPLACED */ ''_RETURN/* REPLACED */ ''
 -- rule for it, but no more.
 --
 
@@ -1084,7 +1084,7 @@ SELECT * FROM rule_v1;
 --
 -- error conditions for alter rename rule
 --
-ALTER RULE InsertRule ON rule_v1 RENAME TO NewInsertRule; -- doesn/* REPLACED */''t exist
+ALTER RULE InsertRule ON rule_v1 RENAME TO NewInsertRule; -- doesn/* REPLACED */ ''t exist
 ALTER RULE NewInsertRule ON rule_v1 RENAME TO "_RETURN"; -- already exists
 ALTER RULE "_RETURN" ON rule_v1 RENAME TO abc; -- ON SELECT rule cannot be renamed
 
@@ -1336,7 +1336,7 @@ RETURNING
    merge_action() AS action, *;
 END;
 
-\sf merge_sf_test
+-- \sf merge_sf_test
 
 DROP FUNCTION merge_sf_test;
 DROP TABLE sf_target;
@@ -1369,7 +1369,7 @@ DROP TABLE ruletest2;
 
 --
 -- Test non-SELECT rule on security invoker view.
--- Should use view owner/* REPLACED */''s permissions.
+-- Should use view owner/* REPLACED */ ''s permissions.
 --
 CREATE USER regress_rule_user1;
 
@@ -1387,8 +1387,8 @@ INSERT INTO ruletest_v1 VALUES (1);
 
 RESET SESSION AUTHORIZATION;
 
--- Test that main query/* REPLACED */''s relation/* REPLACED */''s permissions are checked before
--- the rule action/* REPLACED */''s relation/* REPLACED */''s.
+-- Test that main query/* REPLACED */ ''s relation/* REPLACED */ ''s permissions are checked before
+-- the rule action/* REPLACED */ ''s relation/* REPLACED */ ''s.
 CREATE TABLE ruletest_t3 (x int);
 CREATE RULE rule2 AS ON UPDATE TO ruletest_t1
     DO INSTEAD INSERT INTO ruletest_t2 VALUES (OLD.*);

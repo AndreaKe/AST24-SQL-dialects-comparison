@@ -41,7 +41,7 @@ SELECT * FROM pred_tab t WHERE t.b IS NULL;
 EXPLAIN (COSTS OFF)
 SELECT * FROM pred_tab t WHERE t.a IS NOT NULL OR t.b = 1;
 
--- Ensure the OR clause is not ignored for NullTests that can/* REPLACED */''t be proven
+-- Ensure the OR clause is not ignored for NullTests that can/* REPLACED */ ''t be proven
 -- always true
 EXPLAIN (COSTS OFF)
 SELECT * FROM pred_tab t WHERE t.b IS NOT NULL OR t.a = 1;
@@ -60,7 +60,7 @@ SELECT * FROM pred_tab t WHERE t.b IS NULL OR t.c IS NULL;
 -- Test join clauses
 --
 
--- Ensure the IS_NOT_NULL qual is ignored, since a) it/* REPLACED */''s on a NOT NULL column,
+-- Ensure the IS_NOT_NULL qual is ignored, since a) it/* REPLACED */ ''s on a NOT NULL column,
 -- and b) its Var is not nullable by any outer joins
 EXPLAIN (COSTS OFF)
 SELECT * FROM pred_tab t1
@@ -74,7 +74,7 @@ SELECT * FROM pred_tab t1
     LEFT JOIN pred_tab t2 ON t1.a = 1
     LEFT JOIN pred_tab t3 ON t2.a IS NOT NULL;
 
--- Ensure the IS_NULL qual is reduced to constant-FALSE, since a) it/* REPLACED */''s on a NOT
+-- Ensure the IS_NULL qual is reduced to constant-FALSE, since a) it/* REPLACED */ ''s on a NOT
 -- NULL column, and b) its Var is not nullable by any outer joins
 EXPLAIN (COSTS OFF)
 SELECT * FROM pred_tab t1

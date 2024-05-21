@@ -14,7 +14,7 @@ SELECT relname, nspname
                      AND indkey[0] = a.attnum AND indnatts = 1
                      AND indisunique AND indimmediate);
 
--- check that relations without storage don/* REPLACED */''t have relfilenode
+-- check that relations without storage don/* REPLACED */ ''t have relfilenode
 SELECT relname, relkind
   FROM pg_class
  WHERE relkind IN ('v', 'c', 'f', 'p', 'I')

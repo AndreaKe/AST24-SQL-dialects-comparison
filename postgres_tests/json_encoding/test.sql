@@ -6,9 +6,9 @@
 -- and for SQL_ASCII (json_encoding_1.out).  Skip otherwise.
 SELECT getdatabaseencoding() NOT IN ('UTF8', 'SQL_ASCII')
        AS skip_test \gset
-\if :skip_test
-\quit
-\endif
+-- \if :skip_test
+-- \quit
+-- \endif
 
 SELECT getdatabaseencoding();           -- just to label the results files
 
@@ -50,8 +50,8 @@ SELECT '"\u"'::jsonb;			-- ERROR, incomplete escape
 SELECT '"\u00"'::jsonb;			-- ERROR, incomplete escape
 SELECT '"\u000g"'::jsonb;		-- ERROR, g is not a hex digit
 SELECT '"\u0045"'::jsonb;		-- OK, legal escape
-SELECT '"\u0000"'::jsonb;		-- ERROR, we don/* REPLACED */''t support U+0000
--- use octet_length here so we don/* REPLACED */''t get an odd unicode char in the
+SELECT '"\u0000"'::jsonb;		-- ERROR, we don/* REPLACED */ ''t support U+0000
+-- use octet_length here so we don/* REPLACED */ ''t get an odd unicode char in the
 -- output
 SELECT octet_length('"\uaBcD"'::jsonb::text); -- OK, uppercase and lower case both OK
 

@@ -1,12 +1,12 @@
 --
--- Tests for the planner/* REPLACED */''s /* REPLACED */''equivalence class/* REPLACED */'' mechanism
+-- Tests for the planner/* REPLACED */ ''s /* REPLACED */ ''equivalence class/* REPLACED */ '' mechanism
 --
 
--- One thing that/* REPLACED */''s not tested well during normal querying is the logic
--- for handling /* REPLACED */''broken/* REPLACED */'' ECs.  This is because an EC can only become broken
--- if its underlying btree operator family doesn/* REPLACED */''t include a complete set
+-- One thing that/* REPLACED */ ''s not tested well during normal querying is the logic
+-- for handling /* REPLACED */ ''broken/* REPLACED */ '' ECs.  This is because an EC can only become broken
+-- if its underlying btree operator family doesn/* REPLACED */ ''t include a complete set
 -- of cross-type equality operators.  There are not (and should not be)
--- any such families built into Postgres /* REPLACED */, so we have to hack things up
+-- any such families built into Postgres /* REPLACED */ , so we have to hack things up
 -- to create one.  We do this by making two alias types that are really
 -- int8 (so we need no new C code) and adding only some operators for them
 -- into the standard integer_ops opfamily.
@@ -107,8 +107,8 @@ set enable_hashjoin = off;
 set enable_mergejoin = off;
 
 --
--- Note that for cases where there/* REPLACED */''s a missing operator, we don/* REPLACED */''t care so
--- much whether the plan is ideal as that we don/* REPLACED */''t fail or generate an
+-- Note that for cases where there/* REPLACED */ ''s a missing operator, we don/* REPLACED */ ''t care so
+-- much whether the plan is ideal as that we don/* REPLACED */ ''t fail or generate an
 -- outright incorrect plan.
 --
 
@@ -173,7 +173,7 @@ explain (costs off)
      select ff + 4 as x from ec1) as ss2
   where ss1.x = ec1.f1 and ss1.x = ss2.x and ec1.ff = 42::int8;
 
--- let/* REPLACED */''s try that as a mergejoin
+-- let/* REPLACED */ ''s try that as a mergejoin
 set enable_mergejoin = on;
 set enable_nestloop = off;
 
@@ -209,7 +209,7 @@ explain (costs off)
      select ff + 4 as x from ec1) as ss1
   where ss1.x = ec1.f1 and ec1.ff = 42::int8;
 
--- let/* REPLACED */''s try that as a mergejoin
+-- let/* REPLACED */ ''s try that as a mergejoin
 set enable_mergejoin = on;
 set enable_nestloop = off;
 
@@ -234,7 +234,7 @@ create user regress_user_ectest;
 grant select on ec0 to regress_user_ectest;
 grant select on ec1 to regress_user_ectest;
 
--- without any RLS, we/* REPLACED */''ll treat {a.ff, b.ff, 43} as an EquivalenceClass
+-- without any RLS, we/* REPLACED */ ''ll treat {a.ff, b.ff, 43} as an EquivalenceClass
 explain (costs off)
   select * from ec0 a, ec1 b
   where a.ff = b.ff and a.ff = 43::bigint::int8alias1;
@@ -242,7 +242,7 @@ explain (costs off)
 set session authorization regress_user_ectest;
 
 -- with RLS active, the non-leakproof a.ff = 43 clause is not treated
--- as a suitable source for an EquivalenceClass /* REPLACED */, currently, this is true
+-- as a suitable source for an EquivalenceClass /* REPLACED */ , currently, this is true
 -- even though the RLS clause has nothing to do directly with the EC
 explain (costs off)
   select * from ec0 a, ec1 b
@@ -260,7 +260,7 @@ explain (costs off)
   select * from tenk1 where unique1 = unique1 and unique2 = unique2;
 
 -- Test that broken ECs are processed correctly during self join removal.
--- Disable merge joins so that we don/* REPLACED */''t get an error about missing commutator.
+-- Disable merge joins so that we don/* REPLACED */ ''t get an error about missing commutator.
 -- Test both orientations of the join clause, because only one of them breaks
 -- the EC.
 set enable_mergejoin to off;
@@ -275,7 +275,7 @@ explain (costs off)
 
 reset enable_mergejoin;
 
--- this could be converted, but isn/* REPLACED */''t at present
+-- this could be converted, but isn/* REPLACED */ ''t at present
 explain (costs off)
   select * from tenk1 where unique1 = unique1 or unique2 = unique2;
 

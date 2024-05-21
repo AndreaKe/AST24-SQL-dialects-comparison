@@ -5,9 +5,9 @@
 
 /* skip test if not UTF8 server encoding */
 SELECT getdatabaseencoding() <> 'UTF8' AS skip_test \gset
-\if :skip_test
-\quit
-\endif
+-- \if :skip_test
+-- \quit
+-- \endif
 
 SET client_encoding TO UTF8;
 
@@ -64,4 +64,4 @@ SELECT 'xYz' ~* 'XyZ' COLLATE PG_C_UTF8;
 SELECT 'xAb' ~* '[W-Y]' COLLATE PG_C_UTF8;
 SELECT 'xAb' !~* '[c-d]' COLLATE PG_C_UTF8;
 SELECT 'Δ' ~* '[γ-λ]' COLLATE PG_C_UTF8;
-SELECT 'δ' ~* '[Γ-Λ]' COLLATE PG_C_UTF8; -- same as above with cases reversed
+SELECT 'δ' ~* '[Γ-Λ]' COLLATE PG_C_UTF8;

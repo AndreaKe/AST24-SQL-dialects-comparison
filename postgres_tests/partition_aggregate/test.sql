@@ -2,7 +2,7 @@
 -- PARTITION_AGGREGATE
 -- Test partitionwise aggregation on partitioned tables
 --
--- Note: to ensure plan stability, it/* REPLACED */''s a good idea to make the partitions of
+-- Note: to ensure plan stability, it/* REPLACED */ ''s a good idea to make the partitions of
 -- any one partitioned table in this test all have different numbers of rows.
 --
 
@@ -25,12 +25,12 @@ CREATE TABLE pagg_tab_p3 PARTITION OF pagg_tab FOR VALUES IN ('0009', '0010', '0
 INSERT INTO pagg_tab SELECT i % 20, i % 30, to_char(i % 12, 'FM0000'), i % 30 FROM generate_series(0, 2999) i;
 ANALYZE pagg_tab;
 
--- When GROUP BY clause matches /* REPLACED */, full aggregation is performed for each partition.
+-- When GROUP BY clause matches /* REPLACED */ , full aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT c, sum(a), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY c HAVING avg(d) < 15 ORDER BY 1, 2, 3;
 SELECT c, sum(a), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY c HAVING avg(d) < 15 ORDER BY 1, 2, 3;
 
--- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+-- When GROUP BY clause does not match /* REPLACED */ , partial aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY a HAVING avg(d) < 15 ORDER BY 1, 2, 3;
 SELECT a, sum(b), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY a HAVING avg(d) < 15 ORDER BY 1, 2, 3;
@@ -61,7 +61,7 @@ EXPLAIN (COSTS OFF)
 SELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
 SELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
 
--- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+-- When GROUP BY clause does not match /* REPLACED */ , partial aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
 SELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
@@ -81,12 +81,12 @@ EXPLAIN (COSTS OFF)
 SELECT c, sum(a) FROM pagg_tab GROUP BY rollup(c) ORDER BY 1, 2;
 
 -- ORDERED SET within the aggregate.
--- Full aggregation /* REPLACED */, since all the rows that belong to the same group come
--- from the same partition, having an ORDER BY within the aggregate doesn/* REPLACED */''t
+-- Full aggregation /* REPLACED */ , since all the rows that belong to the same group come
+-- from the same partition, having an ORDER BY within the aggregate doesn/* REPLACED */ ''t
 -- make any difference.
 EXPLAIN (COSTS OFF)
 SELECT c, sum(b order by a) FROM pagg_tab GROUP BY c ORDER BY 1, 2;
--- Since GROUP BY clause does not match with PARTITION KEY /* REPLACED */, we need to do
+-- Since GROUP BY clause does not match with PARTITION KEY /* REPLACED */ , we need to do
 -- partial aggregation. However, ORDERED SET are not partial safe and thus
 -- partitionwise aggregation plan is not generated.
 EXPLAIN (COSTS OFF)
@@ -111,12 +111,12 @@ INSERT INTO pagg_tab2 SELECT i % 20, i % 30 FROM generate_series(0, 299, 3) i;
 ANALYZE pagg_tab1;
 ANALYZE pagg_tab2;
 
--- When GROUP BY clause matches /* REPLACED */, full aggregation is performed for each partition.
+-- When GROUP BY clause matches /* REPLACED */ , full aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT t1.x, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
 SELECT t1.x, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
 
--- Check with whole-row reference /* REPLACED */, partitionwise aggregation does not apply
+-- Check with whole-row reference /* REPLACED */ , partitionwise aggregation does not apply
 EXPLAIN (COSTS OFF)
 SELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
 SELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t1.x ORDER BY 1, 2, 3;
@@ -125,7 +125,7 @@ SELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t
 EXPLAIN (COSTS OFF)
 SELECT t2.y, sum(t1.y), count(*) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t2.y GROUP BY t2.y ORDER BY 1, 2, 3;
 
--- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+-- When GROUP BY clause does not match /* REPLACED */ , partial aggregation is performed for each partition.
 -- Also test GroupAggregate paths by disabling hash aggregates.
 SET enable_hashagg TO false;
 EXPLAIN (COSTS OFF)
@@ -300,12 +300,12 @@ INSERT INTO pagg_tab_para SELECT i % 30, i % 20 FROM generate_series(0, 29999) i
 
 ANALYZE pagg_tab_para;
 
--- When GROUP BY clause matches /* REPLACED */, full aggregation is performed for each partition.
+-- When GROUP BY clause matches /* REPLACED */ , full aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
 SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
 
--- When GROUP BY clause does not match /* REPLACED */, partial aggregation is performed for each partition.
+-- When GROUP BY clause does not match /* REPLACED */ , partial aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVING avg(x) < 12 ORDER BY 1, 2, 3;
 SELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVING avg(x) < 12 ORDER BY 1, 2, 3;

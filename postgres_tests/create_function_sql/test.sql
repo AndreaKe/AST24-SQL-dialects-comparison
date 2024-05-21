@@ -387,7 +387,7 @@ SELECT * FROM voidtest5(3);
 
 -- Regression tests for bugs:
 
--- Check that arguments that are R/W expanded datums aren/* REPLACED */''t corrupted by
+-- Check that arguments that are R/W expanded datums aren/* REPLACED */ ''t corrupted by
 -- multiple uses.  This test knows that array_append() returns a R/W datum
 -- and will modify a R/W array input in-place.  We use SETOF to prevent
 -- inlining of the SQL function.
@@ -398,7 +398,7 @@ $$ SELECT array_append($1, $2) || array_append($1, $2) $$;
 SELECT double_append(array_append(ARRAY[q1], q2), q3)
   FROM (VALUES(1,2,3), (4,5,6)) v(q1,q2,q3);
 
--- Things that shouldn/* REPLACED */''t work:
+-- Things that shouldn/* REPLACED */ ''t work:
 
 CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
     AS 'SELECT ''not an integer'';';

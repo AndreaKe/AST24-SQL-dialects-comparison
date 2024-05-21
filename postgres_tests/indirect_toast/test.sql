@@ -3,14 +3,14 @@
 --
 
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 CREATE FUNCTION make_tuple_indirect (record)
         RETURNS record
-        AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+        AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
         LANGUAGE C STRICT;
 
 -- Other compression algorithms may cause the compressed data to be stored
@@ -39,7 +39,7 @@ UPDATE indtoasttest SET cnt = cnt +1, f1 = f1||'' RETURNING substring(indtoastte
 UPDATE indtoasttest SET cnt = cnt +1, f1 = '-'||f1||'-' RETURNING substring(indtoasttest::text, 1, 200);
 
 SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
--- check we didn/* REPLACED */''t screw with main/toast tuple visibility
+-- check we didn/* REPLACED */ ''t screw with main/toast tuple visibility
 VACUUM FREEZE indtoasttest;
 SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
 
@@ -72,7 +72,7 @@ UPDATE indtoasttest SET cnt = cnt +1, f1 = '-'||f1||'-' RETURNING substring(indt
 INSERT INTO indtoasttest(descr, f1, f2) VALUES('one-toasted,one-null, via indirect', repeat('1234567890',30000), NULL);
 
 SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
--- check we didn/* REPLACED */''t screw with main/toast tuple visibility
+-- check we didn/* REPLACED */ ''t screw with main/toast tuple visibility
 VACUUM FREEZE indtoasttest;
 SELECT substring(indtoasttest::text, 1, 200) FROM indtoasttest;
 

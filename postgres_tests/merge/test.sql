@@ -149,7 +149,7 @@ ON target2.tid = source.sid
 WHEN NOT MATCHED THEN
 	INSERT DEFAULT VALUES;
 
--- check if the target can be accessed from source relation subquery /* REPLACED */, we should
+-- check if the target can be accessed from source relation subquery /* REPLACED */ , we should
 -- not be able to do so
 MERGE INTO target t
 USING (SELECT * FROM source WHERE t.tid > sid) s
@@ -661,7 +661,7 @@ DROP TRIGGER merge_skip ON target;
 DROP FUNCTION skip_merge_op();
 
 -- test from PL/pgSQL
--- make sure MERGE INTO isn/* REPLACED */''t interpreted to mean returning variables like SELECT INTO
+-- make sure MERGE INTO isn/* REPLACED */ ''t interpreted to mean returning variables like SELECT INTO
 BEGIN;
 DO LANGUAGE plpgsql $$
 BEGIN

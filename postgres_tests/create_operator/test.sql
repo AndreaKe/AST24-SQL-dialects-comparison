@@ -47,7 +47,7 @@ CREATE OPERATOR !=- (
    procedure = factorial
 );
 SELECT !=- 10;
--- postfix operators don/* REPLACED */''t work anymore
+-- postfix operators don/* REPLACED */ ''t work anymore
 SELECT 10 !=-;
 -- make sure lexer returns != as <> even in edge cases
 SELECT 2 !=/**/ 1, 2 !=/**/ 2;
@@ -238,7 +238,7 @@ CREATE OPERATOR ===!!! (
 );
 ROLLBACK;
 
--- test that we can/* REPLACED */''t use part of an existing commutator or negator pair
+-- test that we can/* REPLACED */ ''t use part of an existing commutator or negator pair
 -- as a commutator or negator
 CREATE OPERATOR === (
     leftarg = integer,

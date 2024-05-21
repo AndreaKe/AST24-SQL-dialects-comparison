@@ -75,7 +75,7 @@ select relname, relpartbound from pg_class
 alter table idxpart_c detach partition idxpart1_c;
 drop table idxpart;
 
--- If a partition already has an index, don/* REPLACED */''t create a duplicative one
+-- If a partition already has an index, don/* REPLACED */ ''t create a duplicative one
 create table idxpart (a int, b int) partition by range (a, b);
 create table idxpart1 partition of idxpart for values from (0, 0) to (10, 10);
 create index on idxpart1 (a, b);
@@ -138,11 +138,11 @@ alter index idxpart_a_b_idx attach partition idxpart1_a_b_idx; -- quiet
 create index idxpart1_2_a_b on idxpart1 (a, b);
 alter index idxpart_a_b_idx attach partition idxpart1_2_a_b;
 drop table idxpart;
--- make sure everything/* REPLACED */''s gone
+-- make sure everything/* REPLACED */ ''s gone
 select indexrelid::regclass, indrelid::regclass
   from pg_index where indexrelid::regclass::text like 'idxpart%';
 
--- Don/* REPLACED */''t auto-attach incompatible indexes
+-- Don/* REPLACED */ ''t auto-attach incompatible indexes
 create table idxpart (a int, b int) partition by range (a);
 create table idxpart1 (a int, b int);
 create index on idxpart1 using hash (a);
@@ -154,8 +154,8 @@ alter table idxpart attach partition idxpart1 for values from (0) to (1000);
 -- \d idxpart1
 drop table idxpart;
 
--- If CREATE INDEX ONLY, don/* REPLACED */''t create indexes on partitions /* REPLACED */, and existing
--- indexes on partitions don/* REPLACED */''t change parent.  ALTER INDEX ATTACH can change
+-- If CREATE INDEX ONLY, don/* REPLACED */ ''t create indexes on partitions /* REPLACED */ , and existing
+-- indexes on partitions don/* REPLACED */ ''t change parent.  ALTER INDEX ATTACH can change
 -- the parent after the fact.
 create table idxpart (a int) partition by range (a);
 create table idxpart1 partition of idxpart for values from (0) to (100);
@@ -167,7 +167,7 @@ create index on idxpart22 (a);
 create index on only idxpart2 (a);
 create index on idxpart (a);
 -- Here we expect that idxpart1 and idxpart2 have a new index, but idxpart21
--- does not /* REPLACED */, also, idxpart22 is not attached.
+-- does not /* REPLACED */ , also, idxpart22 is not attached.
 -- \d idxpart1
 -- \d idxpart2
 -- \d idxpart21
@@ -191,7 +191,7 @@ drop table idxpart;
 
 -- When a table is attached a partition and it already has an index, a
 -- duplicate index should not get created, but rather the index becomes
--- attached to the parent/* REPLACED */''s index.
+-- attached to the parent/* REPLACED */ ''s index.
 create table idxpart (a int, b int, c text, d bool) partition by range (a);
 create index idxparti on idxpart (a);
 create index idxparti2 on idxpart (b, c);
@@ -467,7 +467,7 @@ create table idxpart (a int primary key, b int) partition by range (a);
 -- multiple primary key on child should fail
 create table failpart partition of idxpart (b primary key) for values from (0) to (100);
 drop table idxpart;
--- primary key on child is okay if there/* REPLACED */''s no PK in the parent, though
+-- primary key on child is okay if there/* REPLACED */ ''s no PK in the parent, though
 create table idxpart (a int) partition by range (a);
 create table idxpart1pk partition of idxpart (a primary key) for values from (0) to (100);
 -- \d idxpart1pk
@@ -595,8 +595,8 @@ select conname, contype, conrelid::regclass, conindid::regclass, conkey
   order by conname;
 drop table idxpart;
 
--- If a partitioned table has a unique/PK constraint, then it/* REPLACED */''s not possible
--- to drop the corresponding constraint in the children /* REPLACED */, nor it/* REPLACED */''s possible
+-- If a partitioned table has a unique/PK constraint, then it/* REPLACED */ ''s not possible
+-- to drop the corresponding constraint in the children /* REPLACED */ , nor it/* REPLACED */ ''s possible
 -- to drop the indexes individually.  Dropping the constraint in the parent
 -- gets rid of the lot.
 create table idxpart (i int) partition by hash (i);
@@ -624,7 +624,7 @@ select indrelid::regclass, indexrelid::regclass, inhparent::regclass, indisvalid
 drop table idxpart;
 
 -- If the partition to be attached already has a primary key, fail if
--- it doesn/* REPLACED */''t match the parent/* REPLACED */''s PK.
+-- it doesn/* REPLACED */ ''t match the parent/* REPLACED */ ''s PK.
 CREATE TABLE idxpart (c1 INT PRIMARY KEY, c2 INT, c3 VARCHAR(10)) PARTITION BY RANGE(c1);
 CREATE TABLE idxpart1 (LIKE idxpart);
 ALTER TABLE idxpart1 ADD PRIMARY KEY (c1, c2);
@@ -661,7 +661,7 @@ select indrelid::regclass, indexrelid::regclass, inhparent::regclass, indisvalid
   order by indexrelid::regclass::text collate "C";
 drop table idxpart;
 
--- Related to the above scenario: ADD PRIMARY KEY on the parent mustn/* REPLACED */''t
+-- Related to the above scenario: ADD PRIMARY KEY on the parent mustn/* REPLACED */ ''t
 -- automatically propagate NOT NULL to child columns.
 create table idxpart (a int) partition by range (a);
 create table idxpart0 (like idxpart);
@@ -676,7 +676,7 @@ alter table idxpart0 alter column a drop not null;  -- fail, pkey needs it
 drop table idxpart;
 
 -- if a partition has a unique index without a constraint, does not attach
--- automatically /* REPLACED */, creates a new index instead.
+-- automatically /* REPLACED */ , creates a new index instead.
 create table idxpart (a int, b int) partition by range (a);
 create table idxpart1 (a int not null, b int);
 create unique index on idxpart1 (a);
@@ -690,7 +690,7 @@ select indrelid::regclass, indexrelid::regclass, inhparent::regclass, indisvalid
   order by indexrelid::regclass::text collate "C";
 drop table idxpart;
 
--- Can/* REPLACED */''t attach an index without a corresponding constraint
+-- Can/* REPLACED */ ''t attach an index without a corresponding constraint
 create table idxpart (a int, b int) partition by range (a);
 create table idxpart1 (a int not null, b int);
 create unique index on idxpart1 (a);
@@ -757,7 +757,7 @@ create table idxpart32 partition of idxpart3 for values from (1200) to (1400);
 alter table idxpart attach partition idxpart3 for values from (1000) to (2000);
 
 -- More objects intentionally left behind, to verify some pg_dump/pg_upgrade
--- behavior /* REPLACED */, see https://postgr.es/m/20190321204928.GA17535@alvherre.pgsql
+-- behavior /* REPLACED */ , see https://postgr.es/m/20190321204928.GA17535@alvherre.pgsql
 create schema regress_indexing;
 set search_path to regress_indexing;
 create table pk (a int primary key) partition by range (a);

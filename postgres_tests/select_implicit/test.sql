@@ -1,8 +1,8 @@
 --
 -- SELECT_IMPLICIT
 -- Test cases for queries with ordering terms missing from the target list.
--- This used to be called /* REPLACED */''junkfilter.sql/* REPLACED */''.
--- The parser uses the term /* REPLACED */''resjunk/* REPLACED */'' to handle these cases.
+-- This used to be called /* REPLACED */ ''junkfilter.sql/* REPLACED */ ''.
+-- The parser uses the term /* REPLACED */ ''resjunk/* REPLACED */ '' to handle these cases.
 -- - thomas 1998-07-09
 --
 

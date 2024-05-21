@@ -6,7 +6,7 @@
 -- concerned with testing EXPLAIN in its own right.
 --
 
--- To produce stable regression test output, it/* REPLACED */''s usually necessary to
+-- To produce stable regression test output, it/* REPLACED */ ''s usually necessary to
 -- ignore details such as exact costs or row counts.  These filter
 -- functions replace changeable output details with fixed strings.
 
@@ -18,14 +18,14 @@ declare
 begin
     for ln in execute $1
     loop
-        -- Replace any numeric word with just /* REPLACED */''N/* REPLACED */''
+        -- Replace any numeric word with just /* REPLACED */ ''N/* REPLACED */ ''
         ln := regexp_replace(ln, '-?\m\d+\M', 'N', 'g');
-        -- In sort output, the above won/* REPLACED */''t match units-suffixed numbers
+        -- In sort output, the above won/* REPLACED */ ''t match units-suffixed numbers
         ln := regexp_replace(ln, '\m\d+kB', 'NkB', 'g');
         -- Ignore text-mode buffers output because it varies depending
         -- on the system state
         CONTINUE WHEN (ln ~ ' +Buffers: .*');
-        -- Ignore text-mode /* REPLACED */''Planning:/* REPLACED */'' line because whether it/* REPLACED */''s output
+        -- Ignore text-mode /* REPLACED */ ''Planning:/* REPLACED */ '' line because whether it/* REPLACED */ ''s output
         -- varies depending on the system state
         CONTINUE WHEN (ln = 'Planning:');
         return next ln;
@@ -33,7 +33,7 @@ begin
 end;
 $$;
 
--- To produce valid JSON output, replace numbers with /* REPLACED */''0/* REPLACED */'' or /* REPLACED */''0.0/* REPLACED */'' not /* REPLACED */''N/* REPLACED */''
+-- To produce valid JSON output, replace numbers with /* REPLACED */ ''0/* REPLACED */ '' or /* REPLACED */ ''0.0/* REPLACED */ '' not /* REPLACED */ ''N/* REPLACED */ ''
 create function explain_filter_to_json(text) returns jsonb
 language plpgsql as
 $$
@@ -43,7 +43,7 @@ declare
 begin
     for ln in execute $1
     loop
-        -- Replace any numeric word with just /* REPLACED */''0/* REPLACED */''
+        -- Replace any numeric word with just /* REPLACED */ ''0/* REPLACED */ ''
         ln := regexp_replace(ln, '\m\d+\M', '0', 'g');
         data := data || ln;
     end loop;
@@ -51,7 +51,7 @@ begin
 end;
 $$;
 
--- Disable JIT, or we/* REPLACED */''ll get different output on machines where that/* REPLACED */''s been
+-- Disable JIT, or we/* REPLACED */ ''ll get different output on machines where that/* REPLACED */ ''s been
 -- forced on
 set jit = off;
 
@@ -78,7 +78,7 @@ set track_io_timing = off;
 
 -- SETTINGS option
 -- We have to ignore other settings that might be imposed by the environment,
--- so printing the whole Settings field unfortunately won/* REPLACED */''t do.
+-- so printing the whole Settings field unfortunately won/* REPLACED */ ''t do.
 
 begin;
 set local plan_cache_mode = force_generic_plan;
@@ -125,8 +125,8 @@ drop table gen_part;
 --
 -- Test production of per-worker data
 --
--- Unfortunately, because we don/* REPLACED */''t know how many worker processes we/* REPLACED */''ll
--- actually get (maybe none at all), we can/* REPLACED */''t examine the /* REPLACED */''Workers/* REPLACED */'' output
+-- Unfortunately, because we don/* REPLACED */ ''t know how many worker processes we/* REPLACED */ ''ll
+-- actually get (maybe none at all), we can/* REPLACED */ ''t examine the /* REPLACED */ ''Workers/* REPLACED */ '' output
 -- in any detail.  We can check that it parses correctly as JSON, and then
 -- remove it from the displayed results.
 
@@ -140,11 +140,11 @@ set max_parallel_workers_per_gather=4;
 select jsonb_pretty(
   explain_filter_to_json('explain (analyze, verbose, buffers, format json)
                          select * from tenk1 order by tenthous')
-  -- remove /* REPLACED */''Workers/* REPLACED */'' node of the Seq Scan plan node
+  -- remove /* REPLACED */ ''Workers/* REPLACED */ '' node of the Seq Scan plan node
   #- '{0,Plan,Plans,0,Plans,0,Workers}'
-  -- remove /* REPLACED */''Workers/* REPLACED */'' node of the Sort plan node
+  -- remove /* REPLACED */ ''Workers/* REPLACED */ '' node of the Sort plan node
   #- '{0,Plan,Plans,0,Workers}'
-  -- Also remove its sort-type fields, as those aren/* REPLACED */''t 100% stable
+  -- Also remove its sort-type fields, as those aren/* REPLACED */ ''t 100% stable
   #- '{0,Plan,Plans,0,Sort Method}'
   #- '{0,Plan,Plans,0,Sort Space Type}'
 );

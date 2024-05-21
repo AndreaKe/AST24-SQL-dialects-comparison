@@ -7,7 +7,7 @@ QUERY:
 
 begin;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -15,28 +15,28 @@ QUERY:
 
 set local min_parallel_table_scan_size = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local parallel_setup_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_hashjoin = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- Extract bucket and batch counts from an explain analyze plan.  In
--- general we can/* REPLACED */''t make assertions about how many batches (or
+-- general we can/* REPLACED */ ''t make assertions about how many batches (or
 -- buckets) will be required because it can vary, but we can in some
 -- special cases and we can check for growth.
 create or replace function find_hash(node json)
@@ -62,7 +62,7 @@ begin
 end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -86,7 +86,7 @@ begin
 end;
 $$;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -97,21 +97,21 @@ QUERY:
 create table simple as
   select generate_series(1, 20000) AS id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table simple set (parallel_workers = 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 analyze simple;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -122,35 +122,35 @@ QUERY:
 create table bigger_than_it_looks as
   select generate_series(1, 20000) as id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table bigger_than_it_looks set (autovacuum_enabled = 'false');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table bigger_than_it_looks set (parallel_workers = 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 analyze bigger_than_it_looks;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 update pg_class set reltuples = 1000 where relname = 'bigger_than_it_looks';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -161,28 +161,28 @@ QUERY:
 -- 2 rows, but actually there are 20,000 rows with the same key.
 create table extremely_skewed (id int, t text);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table extremely_skewed set (autovacuum_enabled = 'false');
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table extremely_skewed set (parallel_workers = 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 analyze extremely_skewed;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -191,7 +191,7 @@ insert into extremely_skewed
   select 42 as id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   from generate_series(1, 20000);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -200,7 +200,7 @@ update pg_class
   set reltuples = 2, relpages = pg_relation_size('extremely_skewed') / 8192
   where relname = 'extremely_skewed';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -209,48 +209,48 @@ QUERY:
 -- Make a relation with a couple of enormous tuples.
 create table wide as select generate_series(1, 2) as id, rpad('', 320000, 'x') as t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table wide set (parallel_workers = 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- The /* REPLACED */''optimal/* REPLACED */'' case: the hash table fits in memory /* REPLACED */, we plan for 1
+-- The /* REPLACED */ ''optimal/* REPLACED */ '' case: the hash table fits in memory /* REPLACED */ , we plan for 1
 -- batch, we stick to that number, and peak memory usage stays within
 -- our work_mem budget
 
 -- non-parallel
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '4MB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -258,14 +258,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
+	[('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -276,14 +276,14 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(False, False)]
+	[(False, False)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -292,35 +292,35 @@ QUERY:
 -- parallel with parallel-oblivious hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '4MB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -328,14 +328,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Hash',), ('                          ->  Seq Scan on simple s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Hash',), ('                          ->  Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -346,14 +346,14 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(False, False)]
+	[(False, False)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -362,35 +362,35 @@ QUERY:
 -- parallel with parallel-aware hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '4MB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -398,14 +398,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -416,48 +416,48 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(False, False)]
+	[(False, False)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- The /* REPLACED */''good/* REPLACED */'' case: batches required, but we plan the right number /* REPLACED */, we
+-- The /* REPLACED */ ''good/* REPLACED */ '' case: batches required, but we plan the right number /* REPLACED */ , we
 -- plan for some number of batches, and we stick to that number, and
 -- peak memory usage says within our work_mem budget
 
 -- non-parallel
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -465,14 +465,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
+	[('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -483,14 +483,14 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(True, False)]
+	[(True, False)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -499,35 +499,35 @@ QUERY:
 -- parallel with parallel-oblivious hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -535,14 +535,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Hash',), ('                          ->  Seq Scan on simple s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Hash',), ('                          ->  Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -553,14 +553,14 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(True, False)]
+	[(True, False)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -569,35 +569,35 @@ QUERY:
 -- parallel with parallel-aware hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '192kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -605,14 +605,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -623,7 +623,7 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(True, False)]
+	[(True, False)]
 
 -----------
 QUERY:
@@ -631,49 +631,49 @@ QUERY:
 -- parallel full multi-batch hash join
 select count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- The /* REPLACED */''bad/* REPLACED */'' case: during execution we need to increase number of
--- batches /* REPLACED */, in this case we plan for 1 batch, and increase at least a
+-- The /* REPLACED */ ''bad/* REPLACED */ '' case: during execution we need to increase number of
+-- batches /* REPLACED */ , in this case we plan for 1 batch, and increase at least a
 -- couple of times, and peak memory usage stays within our work_mem
 -- budget
 
 -- non-parallel
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -681,14 +681,14 @@ QUERY:
 explain (costs off)
   select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on bigger_than_it_looks s',)]
+	[('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on bigger_than_it_looks s',)]
 
 -----------
 QUERY:
 
 select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -699,14 +699,14 @@ $$
   select count(*) FROM simple r JOIN bigger_than_it_looks s USING (id);
 $$);
 RESULT:
-	postgres: [(False, True)]
+	[(False, True)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -715,35 +715,35 @@ QUERY:
 -- parallel with parallel-oblivious hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -751,14 +751,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join bigger_than_it_looks s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Hash',), ('                          ->  Seq Scan on bigger_than_it_looks s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Hash',), ('                          ->  Seq Scan on bigger_than_it_looks s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join bigger_than_it_looks s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -769,14 +769,14 @@ $$
   select count(*) from simple r join bigger_than_it_looks s using (id);
 $$);
 RESULT:
-	postgres: [(False, True)]
+	[(False, True)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -785,35 +785,35 @@ QUERY:
 -- parallel with parallel-aware hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '192kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -821,14 +821,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join bigger_than_it_looks s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 1',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on bigger_than_it_looks s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 1',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on bigger_than_it_looks s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join bigger_than_it_looks s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -839,50 +839,50 @@ $$
   select count(*) from simple r join bigger_than_it_looks s using (id);
 $$);
 RESULT:
-	postgres: [(False, True)]
+	[(False, True)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- The /* REPLACED */''ugly/* REPLACED */'' case: increasing the number of batches during execution
--- doesn/* REPLACED */''t help, so stop trying to fit in work_mem and hope for the
--- best /* REPLACED */, in this case we plan for 1 batch, increases just once and
--- then stop increasing because that didn/* REPLACED */''t help at all, so we blow
+-- The /* REPLACED */ ''ugly/* REPLACED */ '' case: increasing the number of batches during execution
+-- doesn/* REPLACED */ ''t help, so stop trying to fit in work_mem and hope for the
+-- best /* REPLACED */ , in this case we plan for 1 batch, increases just once and
+-- then stop increasing because that didn/* REPLACED */ ''t help at all, so we blow
 -- right through the work_mem budget and hope for the best...
 
 -- non-parallel
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -890,14 +890,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join extremely_skewed s using (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on extremely_skewed s',)]
+	[('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on extremely_skewed s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join extremely_skewed s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -907,14 +907,14 @@ $$
   select count(*) from simple r join extremely_skewed s using (id);
 $$);
 RESULT:
-	postgres: [(1, 2)]
+	[(1, 2)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -923,35 +923,35 @@ QUERY:
 -- parallel with parallel-oblivious hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -959,14 +959,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join extremely_skewed s using (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Hash Join',), ('              Hash Cond: (r.id = s.id)',), ('              ->  Parallel Seq Scan on simple r',), ('              ->  Hash',), ('                    ->  Seq Scan on extremely_skewed s',)]
+	[('Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Hash Join',), ('              Hash Cond: (r.id = s.id)',), ('              ->  Parallel Seq Scan on simple r',), ('              ->  Hash',), ('                    ->  Seq Scan on extremely_skewed s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join extremely_skewed s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -976,14 +976,14 @@ $$
   select count(*) from simple r join extremely_skewed s using (id);
 $$);
 RESULT:
-	postgres: [(1, 2)]
+	[(1, 2)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -992,35 +992,35 @@ QUERY:
 -- parallel with parallel-aware hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1028,14 +1028,14 @@ QUERY:
 explain (costs off)
   select count(*) from simple r join extremely_skewed s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 1',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on extremely_skewed s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 1',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on extremely_skewed s',)]
 
 -----------
 QUERY:
 
 select count(*) from simple r join extremely_skewed s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
@@ -1045,14 +1045,14 @@ $$
   select count(*) from simple r join extremely_skewed s using (id);
 $$);
 RESULT:
-	postgres: [(1, 4)]
+	[(1, 4)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1060,38 +1060,38 @@ QUERY:
 
 -- A couple of other hash join tests unrelated to work_mem management.
 
--- Check that EXPLAIN ANALYZE has data even if the leader doesn/* REPLACED */''t participate
+-- Check that EXPLAIN ANALYZE has data even if the leader doesn/* REPLACED */ ''t participate
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local work_mem = '4MB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local parallel_leader_participation = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1101,46 +1101,46 @@ $$
   select count(*) from simple r join simple s using (id);
 $$);
 RESULT:
-	postgres: [(1, 1)]
+	[(1, 1)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
--- Exercise rescans.  We/* REPLACED */''ll turn off parallel_leader_participation so
+-- Exercise rescans.  We/* REPLACED */ ''ll turn off parallel_leader_participation so
 -- that we can check that instrumentation comes back correctly.
 
 create table join_foo as select generate_series(1, 3) as id, 'xxxxx'::text as t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table join_foo set (parallel_workers = 0);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 create table join_bar as select generate_series(1, 10000) as id, 'xxxxx'::text as t;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 alter table join_bar set (parallel_workers = 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1149,77 +1149,77 @@ QUERY:
 -- multi-batch with rescan, parallel-oblivious
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_leader_participation = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set min_parallel_table_scan_size = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_setup_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_tuple_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_material = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_mergejoin = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set work_mem = '64kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1229,7 +1229,7 @@ explain (costs off)
     left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Hash',), ('                          ->  Seq Scan on join_bar b2',)]
+	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Hash',), ('                          ->  Seq Scan on join_bar b2',)]
 
 -----------
 QUERY:
@@ -1238,7 +1238,7 @@ select count(*) from join_foo
   left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
   on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
@@ -1251,14 +1251,14 @@ $$
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 $$);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1267,77 +1267,77 @@ QUERY:
 -- single-batch with rescan, parallel-oblivious
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_leader_participation = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set min_parallel_table_scan_size = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_setup_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_tuple_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_material = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_mergejoin = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set work_mem = '4MB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1347,7 +1347,7 @@ explain (costs off)
     left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Hash',), ('                          ->  Seq Scan on join_bar b2',)]
+	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Hash',), ('                          ->  Seq Scan on join_bar b2',)]
 
 -----------
 QUERY:
@@ -1356,7 +1356,7 @@ select count(*) from join_foo
   left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
   on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
@@ -1369,14 +1369,14 @@ $$
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 $$);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1385,77 +1385,77 @@ QUERY:
 -- multi-batch with rescan, parallel-aware
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_leader_participation = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set min_parallel_table_scan_size = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_setup_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_tuple_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_material = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_mergejoin = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set work_mem = '64kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1465,7 +1465,7 @@ explain (costs off)
     left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on join_bar b2',)]
+	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on join_bar b2',)]
 
 -----------
 QUERY:
@@ -1474,7 +1474,7 @@ select count(*) from join_foo
   left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
   on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
@@ -1487,14 +1487,14 @@ $$
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 $$);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1503,77 +1503,77 @@ QUERY:
 -- single-batch with rescan, parallel-aware
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_leader_participation = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set min_parallel_table_scan_size = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_setup_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set parallel_tuple_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_material = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_mergejoin = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set work_mem = '4MB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1583,7 +1583,7 @@ explain (costs off)
     left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on join_bar b2',)]
+	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((join_foo.id < (b1.id + 1)) AND (join_foo.id > (b1.id - 1)))',), ('        ->  Seq Scan on join_foo',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Parallel Hash Join',), ('                    Hash Cond: (b1.id = b2.id)',), ('                    ->  Parallel Seq Scan on join_bar b1',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on join_bar b2',)]
 
 -----------
 QUERY:
@@ -1592,7 +1592,7 @@ select count(*) from join_foo
   left join (select b1.id, b1.t from join_bar b1 join join_bar b2 using (id)) ss
   on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 RESULT:
-	postgres: [(3,)]
+	[(3,)]
 
 -----------
 QUERY:
@@ -1605,14 +1605,14 @@ $$
     on join_foo.id < ss.id + 1 and join_foo.id > ss.id - 1;
 $$);
 RESULT:
-	postgres: [(False,)]
+	[(False,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1623,14 +1623,14 @@ QUERY:
 -- non-parallel
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1638,21 +1638,21 @@ QUERY:
 explain (costs off)
      select  count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
+	[('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select  count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1661,21 +1661,21 @@ QUERY:
 -- parallelism not possible with parallel-oblivious full hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1683,21 +1683,21 @@ QUERY:
 explain (costs off)
      select  count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
+	[('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: (r.id = s.id)',), ('        ->  Seq Scan on simple r',), ('        ->  Hash',), ('              ->  Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select  count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1706,14 +1706,14 @@ QUERY:
 -- parallelism is possible with parallel-aware full hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1721,21 +1721,21 @@ QUERY:
 explain (costs off)
      select  count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Full Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple s',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Full Join',), ('                    Hash Cond: (r.id = s.id)',), ('                    ->  Parallel Seq Scan on simple r',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple s',)]
 
 -----------
 QUERY:
 
 select  count(*) from simple r full outer join simple s using (id);
 RESULT:
-	postgres: [(20000,)]
+	[(20000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1746,14 +1746,14 @@ QUERY:
 -- non-parallel
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1761,21 +1761,21 @@ QUERY:
 explain (costs off)
      select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: ((0 - s.id) = r.id)',), ('        ->  Seq Scan on simple s',), ('        ->  Hash',), ('              ->  Seq Scan on simple r',)]
+	[('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: ((0 - s.id) = r.id)',), ('        ->  Seq Scan on simple s',), ('        ->  Hash',), ('              ->  Seq Scan on simple r',)]
 
 -----------
 QUERY:
 
 select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
 RESULT:
-	postgres: [(40000,)]
+	[(40000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1784,21 +1784,21 @@ QUERY:
 -- parallelism not possible with parallel-oblivious full hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1806,21 +1806,21 @@ QUERY:
 explain (costs off)
      select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
 RESULT:
-	postgres: [('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: ((0 - s.id) = r.id)',), ('        ->  Seq Scan on simple s',), ('        ->  Hash',), ('              ->  Seq Scan on simple r',)]
+	[('Aggregate',), ('  ->  Hash Full Join',), ('        Hash Cond: ((0 - s.id) = r.id)',), ('        ->  Seq Scan on simple s',), ('        ->  Hash',), ('              ->  Seq Scan on simple r',)]
 
 -----------
 QUERY:
 
 select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
 RESULT:
-	postgres: [(40000,)]
+	[(40000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1829,14 +1829,14 @@ QUERY:
 -- parallelism is possible with parallel-aware full hash join
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1844,21 +1844,21 @@ QUERY:
 explain (costs off)
      select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Full Join',), ('                    Hash Cond: ((0 - s.id) = r.id)',), ('                    ->  Parallel Seq Scan on simple s',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple r',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Full Join',), ('                    Hash Cond: ((0 - s.id) = r.id)',), ('                    ->  Parallel Seq Scan on simple s',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on simple r',)]
 
 -----------
 QUERY:
 
 select  count(*) from simple r full outer join simple s on (r.id = 0 - s.id);
 RESULT:
-	postgres: [(40000,)]
+	[(40000,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1870,38 +1870,38 @@ QUERY:
 -- the hash table)
 
 -- parallel with parallel-aware hash join (hits ExecParallelHashLoadTuple and
--- sts_puttuple oversized tuple cases because it/* REPLACED */''s multi-batch)
+-- sts_puttuple oversized tuple cases because it/* REPLACED */ ''s multi-batch)
 savepoint settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set max_parallel_workers_per_gather = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set work_mem = '128kB';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set hash_mem_multiplier = 1.0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1910,7 +1910,7 @@ explain (costs off)
   select length(max(s.t))
   from wide left join (select id, coalesce(t, '') || '' as t from wide) s using (id);
 RESULT:
-	postgres: [('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Left Join',), ('                    Hash Cond: (wide.id = wide_1.id)',), ('                    ->  Parallel Seq Scan on wide',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on wide wide_1',)]
+	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Parallel Hash Left Join',), ('                    Hash Cond: (wide.id = wide_1.id)',), ('                    ->  Parallel Seq Scan on wide',), ('                    ->  Parallel Hash',), ('                          ->  Parallel Seq Scan on wide wide_1',)]
 
 -----------
 QUERY:
@@ -1918,7 +1918,7 @@ QUERY:
 select length(max(s.t))
 from wide left join (select id, coalesce(t, '') || '' as t from wide) s using (id);
 RESULT:
-	postgres: [(320000,)]
+	[(320000,)]
 
 -----------
 QUERY:
@@ -1930,14 +1930,14 @@ $$
   from wide left join (select id, coalesce(t, '') || '' as t from wide) s using (id);
 $$);
 RESULT:
-	postgres: [(True,)]
+	[(True,)]
 
 -----------
 QUERY:
 
 rollback to settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -1950,72 +1950,72 @@ QUERY:
 -- hashtable.
 SAVEPOINT settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_parallel_hash = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET min_parallel_table_scan_size = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET parallel_setup_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET parallel_tuple_cost = 0;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE hjtest_matchbits_t1(id int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE hjtest_matchbits_t2(id int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO hjtest_matchbits_t1 VALUES (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 INSERT INTO hjtest_matchbits_t2 VALUES (2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
--- Update should create a HOT tuple. If this status bit isn/* REPLACED */''t cleared, we won/* REPLACED */''t
+-- Update should create a HOT tuple. If this status bit isn/* REPLACED */ ''t cleared, we won/* REPLACED */ ''t
 -- correctly emit the NULL-extended unmatching tuple in full hash join.
 UPDATE hjtest_matchbits_t2 set id = 2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2023,7 +2023,7 @@ QUERY:
 SELECT * FROM hjtest_matchbits_t1 t1 FULL JOIN hjtest_matchbits_t2 t2 ON t1.id = t2.id
   ORDER BY t1.id;
 RESULT:
-	postgres: [(1, None), (None, 2)]
+	[(1, None), (None, 2)]
 
 -----------
 QUERY:
@@ -2034,28 +2034,28 @@ QUERY:
 -- hash joins are only supported with shared hashtables.
 RESET parallel_setup_cost;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET enable_parallel_hash = off;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SELECT * FROM hjtest_matchbits_t1 t1 FULL JOIN hjtest_matchbits_t2 t2 ON t1.id = t2.id;
 RESULT:
-	postgres: [(1, None), (None, 2)]
+	[(1, None), (None, 2)]
 
 -----------
 QUERY:
 
 ROLLBACK TO settings;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2063,17 +2063,17 @@ QUERY:
 
 rollback;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 
 -- Verify that hash key expressions reference the correct
--- nodes. Hashjoin/* REPLACED */''s hashkeys need to reference its outer plan, Hash/* REPLACED */''s
--- need to reference Hash/* REPLACED */''s outer plan (which is below HashJoin/* REPLACED */''s
--- inner plan). It/* REPLACED */''s not trivial to verify that the references are
--- correct (we don/* REPLACED */''t display the hashkeys themselves), but if the
+-- nodes. Hashjoin/* REPLACED */ ''s hashkeys need to reference its outer plan, Hash/* REPLACED */ ''s
+-- need to reference Hash/* REPLACED */ ''s outer plan (which is below HashJoin/* REPLACED */ ''s
+-- inner plan). It/* REPLACED */ ''s not trivial to verify that the references are
+-- correct (we don/* REPLACED */ ''t display the hashkeys themselves), but if the
 -- hashkeys contain subplan references, those will be displayed. Force
 -- subplans to appear just about everywhere.
 --
@@ -2082,21 +2082,21 @@ QUERY:
 --
 BEGIN;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 SET LOCAL enable_sort = OFF;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- avoid mergejoins
 SET LOCAL from_collapse_limit = 1;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2104,14 +2104,14 @@ QUERY:
 
 CREATE TABLE hjtest_1 (a text, b int, id int, c bool);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 CREATE TABLE hjtest_2 (a bool, id int, b text, c int);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2119,28 +2119,28 @@ QUERY:
 
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 2, 1, false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- matches
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 1, 2, false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- fails id join condition
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 20, 1, false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- fails < 50
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 1, 1, false);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2148,39 +2148,39 @@ QUERY:
 
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 2);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- matches
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 3, 'another', 7);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- fails id join condition
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 90);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
   -- fails < 55
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 3);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
  -- fails (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'text', 1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
- --  fails hjtest_1.a <> hjtest_2.b /* REPLACED */,
+ --  fails hjtest_1.a <> hjtest_2.b /* REPLACED */ ,
 
 EXPLAIN (COSTS OFF, VERBOSE)
 SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2
@@ -2192,7 +2192,7 @@ WHERE
     AND (SELECT hjtest_2.c * 5) < 55
     AND hjtest_1.a <> hjtest_2.b;
 RESULT:
-	postgres: [('Hash Join',), ('  Output: hjtest_1.a, hjtest_2.a, (hjtest_1.tableoid)::regclass, (hjtest_2.tableoid)::regclass',), ('  Hash Cond: ((hjtest_1.id = (SubPlan 1)) AND ((SubPlan 2) = (SubPlan 3)))',), ('  Join Filter: (hjtest_1.a <> hjtest_2.b)',), ('  ->  Seq Scan on public.hjtest_1',), ('        Output: hjtest_1.a, hjtest_1.tableoid, hjtest_1.id, hjtest_1.b',), ('        Filter: ((SubPlan 4) < 50)',), ('        SubPlan 4',), ('          ->  Result',), ('                Output: (hjtest_1.b * 5)',), ('  ->  Hash',), ('        Output: hjtest_2.a, hjtest_2.tableoid, hjtest_2.id, hjtest_2.c, hjtest_2.b',), ('        ->  Seq Scan on public.hjtest_2',), ('              Output: hjtest_2.a, hjtest_2.tableoid, hjtest_2.id, hjtest_2.c, hjtest_2.b',), ('              Filter: ((SubPlan 5) < 55)',), ('              SubPlan 5',), ('                ->  Result',), ('                      Output: (hjtest_2.c * 5)',), ('        SubPlan 1',), ('          ->  Result',), ('                Output: 1',), ('                One-Time Filter: (hjtest_2.id = 1)',), ('        SubPlan 3',), ('          ->  Result',), ('                Output: (hjtest_2.c * 5)',), ('  SubPlan 2',), ('    ->  Result',), ('          Output: (hjtest_1.b * 5)',)]
+	[('Hash Join',), ('  Output: hjtest_1.a, hjtest_2.a, (hjtest_1.tableoid)::regclass, (hjtest_2.tableoid)::regclass',), ('  Hash Cond: ((hjtest_1.id = (SubPlan 1)) AND ((SubPlan 2) = (SubPlan 3)))',), ('  Join Filter: (hjtest_1.a <> hjtest_2.b)',), ('  ->  Seq Scan on public.hjtest_1',), ('        Output: hjtest_1.a, hjtest_1.tableoid, hjtest_1.id, hjtest_1.b',), ('        Filter: ((SubPlan 4) < 50)',), ('        SubPlan 4',), ('          ->  Result',), ('                Output: (hjtest_1.b * 5)',), ('  ->  Hash',), ('        Output: hjtest_2.a, hjtest_2.tableoid, hjtest_2.id, hjtest_2.c, hjtest_2.b',), ('        ->  Seq Scan on public.hjtest_2',), ('              Output: hjtest_2.a, hjtest_2.tableoid, hjtest_2.id, hjtest_2.c, hjtest_2.b',), ('              Filter: ((SubPlan 5) < 55)',), ('              SubPlan 5',), ('                ->  Result',), ('                      Output: (hjtest_2.c * 5)',), ('        SubPlan 1',), ('          ->  Result',), ('                Output: 1',), ('                One-Time Filter: (hjtest_2.id = 1)',), ('        SubPlan 3',), ('          ->  Result',), ('                Output: (hjtest_2.c * 5)',), ('  SubPlan 2',), ('    ->  Result',), ('          Output: (hjtest_1.b * 5)',)]
 
 -----------
 QUERY:
@@ -2207,7 +2207,7 @@ WHERE
     AND (SELECT hjtest_2.c * 5) < 55
     AND hjtest_1.a <> hjtest_2.b;
 RESULT:
-	postgres: [('text', True, 'hjtest_1', 'hjtest_2')]
+	[('text', True, 'hjtest_1', 'hjtest_2')]
 
 -----------
 QUERY:
@@ -2223,7 +2223,7 @@ WHERE
     AND (SELECT hjtest_2.c * 5) < 55
     AND hjtest_1.a <> hjtest_2.b;
 RESULT:
-	postgres: [('Hash Join',), ('  Output: hjtest_1.a, hjtest_2.a, (hjtest_1.tableoid)::regclass, (hjtest_2.tableoid)::regclass',), ('  Hash Cond: (((SubPlan 1) = hjtest_1.id) AND ((SubPlan 3) = (SubPlan 2)))',), ('  Join Filter: (hjtest_1.a <> hjtest_2.b)',), ('  ->  Seq Scan on public.hjtest_2',), ('        Output: hjtest_2.a, hjtest_2.tableoid, hjtest_2.id, hjtest_2.c, hjtest_2.b',), ('        Filter: ((SubPlan 5) < 55)',), ('        SubPlan 5',), ('          ->  Result',), ('                Output: (hjtest_2.c * 5)',), ('  ->  Hash',), ('        Output: hjtest_1.a, hjtest_1.tableoid, hjtest_1.id, hjtest_1.b',), ('        ->  Seq Scan on public.hjtest_1',), ('              Output: hjtest_1.a, hjtest_1.tableoid, hjtest_1.id, hjtest_1.b',), ('              Filter: ((SubPlan 4) < 50)',), ('              SubPlan 4',), ('                ->  Result',), ('                      Output: (hjtest_1.b * 5)',), ('        SubPlan 2',), ('          ->  Result',), ('                Output: (hjtest_1.b * 5)',), ('  SubPlan 1',), ('    ->  Result',), ('          Output: 1',), ('          One-Time Filter: (hjtest_2.id = 1)',), ('  SubPlan 3',), ('    ->  Result',), ('          Output: (hjtest_2.c * 5)',)]
+	[('Hash Join',), ('  Output: hjtest_1.a, hjtest_2.a, (hjtest_1.tableoid)::regclass, (hjtest_2.tableoid)::regclass',), ('  Hash Cond: (((SubPlan 1) = hjtest_1.id) AND ((SubPlan 3) = (SubPlan 2)))',), ('  Join Filter: (hjtest_1.a <> hjtest_2.b)',), ('  ->  Seq Scan on public.hjtest_2',), ('        Output: hjtest_2.a, hjtest_2.tableoid, hjtest_2.id, hjtest_2.c, hjtest_2.b',), ('        Filter: ((SubPlan 5) < 55)',), ('        SubPlan 5',), ('          ->  Result',), ('                Output: (hjtest_2.c * 5)',), ('  ->  Hash',), ('        Output: hjtest_1.a, hjtest_1.tableoid, hjtest_1.id, hjtest_1.b',), ('        ->  Seq Scan on public.hjtest_1',), ('              Output: hjtest_1.a, hjtest_1.tableoid, hjtest_1.id, hjtest_1.b',), ('              Filter: ((SubPlan 4) < 50)',), ('              SubPlan 4',), ('                ->  Result',), ('                      Output: (hjtest_1.b * 5)',), ('        SubPlan 2',), ('          ->  Result',), ('                Output: (hjtest_1.b * 5)',), ('  SubPlan 1',), ('    ->  Result',), ('          Output: 1',), ('          One-Time Filter: (hjtest_2.id = 1)',), ('  SubPlan 3',), ('    ->  Result',), ('          Output: (hjtest_2.c * 5)',)]
 
 -----------
 QUERY:
@@ -2238,7 +2238,7 @@ WHERE
     AND (SELECT hjtest_2.c * 5) < 55
     AND hjtest_1.a <> hjtest_2.b;
 RESULT:
-	postgres: [('text', True, 'hjtest_1', 'hjtest_2')]
+	[('text', True, 'hjtest_1', 'hjtest_2')]
 
 -----------
 QUERY:
@@ -2246,7 +2246,7 @@ QUERY:
 
 ROLLBACK;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2257,14 +2257,14 @@ QUERY:
 -- re-use of the inner hash table across rescans.
 begin;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
 
 set local enable_hashjoin = on;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
@@ -2276,7 +2276,7 @@ int8_tbl i8,
 lateral (select t1.fivethous, i4.f1 from tenk1 t1 join int4_tbl i4
          on t1.fivethous = i4.f1+i8.q2 order by 1,2) ss;
 RESULT:
-	postgres: [('Nested Loop',), ('  ->  Seq Scan on int8_tbl i8',), ('  ->  Sort',), ('        Sort Key: t1.fivethous, i4.f1',), ('        ->  Hash Join',), ('              Hash Cond: (t1.fivethous = (i4.f1 + i8.q2))',), ('              ->  Seq Scan on tenk1 t1',), ('              ->  Hash',), ('                    ->  Seq Scan on int4_tbl i4',)]
+	[('Nested Loop',), ('  ->  Seq Scan on int8_tbl i8',), ('  ->  Sort',), ('        Sort Key: t1.fivethous, i4.f1',), ('        ->  Hash Join',), ('              Hash Cond: ((i4.f1 + i8.q2) = t1.fivethous)',), ('              ->  Seq Scan on int4_tbl i4',), ('              ->  Hash',), ('                    ->  Seq Scan on tenk1 t1',)]
 
 -----------
 QUERY:
@@ -2287,7 +2287,7 @@ int8_tbl i8,
 lateral (select t1.fivethous, i4.f1 from tenk1 t1 join int4_tbl i4
          on t1.fivethous = i4.f1+i8.q2 order by 1,2) ss;
 RESULT:
-	postgres: [(456, 456, 0), (456, 456, 0), (123, 123, 0), (123, 123, 0)]
+	[]
 
 -----------
 QUERY:
@@ -2295,4 +2295,4 @@ QUERY:
 
 rollback;
 RESULT:
-	postgres: None
+	[]

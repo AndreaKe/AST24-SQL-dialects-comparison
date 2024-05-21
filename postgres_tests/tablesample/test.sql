@@ -1,5 +1,5 @@
 CREATE TABLE test_tablesample (id int, name text) WITH (fillfactor=10);
--- use fillfactor so we don/* REPLACED */''t have to load too much data to get multiple pages
+-- use fillfactor so we don/* REPLACED */ ''t have to load too much data to get multiple pages
 
 INSERT INTO test_tablesample
   SELECT i, repeat(i::text, 200) FROM generate_series(0, 9) s(i);
@@ -22,7 +22,7 @@ CREATE VIEW test_tablesample_v2 AS
 -- \d+ test_tablesample_v1
 -- \d+ test_tablesample_v2
 
--- check a sampled query doesn/* REPLACED */''t affect cursor in progress
+-- check a sampled query doesn/* REPLACED */ ''t affect cursor in progress
 BEGIN;
 DECLARE tablesample_cur SCROLL CURSOR FOR
   SELECT id FROM test_tablesample TABLESAMPLE SYSTEM (50) REPEATABLE (0);

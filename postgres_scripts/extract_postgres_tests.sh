@@ -29,7 +29,7 @@ for filepath in $(find $srcTestPath -name '*.sql'); do
     mkdir $currTestFolder
     cp $filepath $currTestFolder/test.sql
     #cp $srcTestPath/test_setup.sql $currTestFolder/setup.sql - this is not sufficient! -> done in a dedicated python script
-    cp $srcExpectedPath/$filename.out $currTestFolder/result.txt
+    cp $srcExpectedPath/$filename.out $currTestFolder/original_result.txt
 done
 
 echo 'Extraction finished'

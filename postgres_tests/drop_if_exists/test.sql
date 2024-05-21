@@ -296,7 +296,7 @@ DROP ROUTINE IF EXISTS test_ambiguous_procname;
 DROP PROCEDURE test_ambiguous_procname(int);
 DROP PROCEDURE test_ambiguous_procname(text);
 
--- This test checks both the functionality of /* REPLACED */''if exists/* REPLACED */'' and the syntax
+-- This test checks both the functionality of /* REPLACED */ ''if exists/* REPLACED */ '' and the syntax
 -- of the drop database command.
 drop database test_database_exists (force);
 drop database test_database_exists with (force);

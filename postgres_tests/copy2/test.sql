@@ -29,18 +29,18 @@ FOR EACH ROW EXECUTE PROCEDURE fn_x_before();
 COPY x (a, b, c, d, e) from stdin;
 9999	\N	\\N	\NN	\N
 10000	21	31	41	51
-\.
+-- \.
 
 COPY x (b, d) from stdin;
 1	test_1
-\.
+-- \.
 
 COPY x (b, d) from stdin;
 2	test_2
 3	test_3
 4	test_4
 5	test_5
-\.
+-- \.
 
 COPY x (a, b, c, d, e) from stdin;
 10001	22	32	42	52
@@ -48,7 +48,7 @@ COPY x (a, b, c, d, e) from stdin;
 10003	24	34	44	54
 10004	25	35	45	55
 10005	26	36	46	56
-\.
+-- \.
 
 -- non-existent column in column list: should fail
 COPY x (xyz) from stdin;
@@ -87,29 +87,29 @@ COPY x (a, b, c, d, e, d, c) from stdin;
 -- missing data: should fail
 COPY x from stdin;
 
-\.
+-- \.
 COPY x from stdin;
 2000	230	23	23
-\.
+-- \.
 COPY x from stdin;
 2001	231	\N	\N
-\.
+-- \.
 
 -- extra data: should fail
 COPY x from stdin;
 2002	232	40	50	60	70	80
-\.
+-- \.
 
 -- various COPY options: delimiters, oids, NULL string, encoding
 COPY x (b, c, d, e) from stdin delimiter ',' null 'x';
 x,45,80,90
 x,\x,\\x,\\\x
 x,\,,\\\,,\\
-\.
+-- \.
 
 COPY x from stdin WITH DELIMITER AS ';' NULL AS '';
 3000;;c;;
-\.
+-- \.
 
 COPY x from stdin WITH DELIMITER AS ':' NULL AS E'\\X' ENCODING 'sql_ascii';
 4000:\X:C:\X:\X
@@ -121,14 +121,14 @@ COPY x from stdin WITH DELIMITER AS ':' NULL AS E'\\X' ENCODING 'sql_ascii';
 4006:6:BackslashN:\\N:\\N
 4007:7:XX:\XX:\XX
 4008:8:Delimiter:\::\:
-\.
+-- \.
 
 COPY x TO stdout WHERE a = 1;
 COPY x from stdin WHERE a = 50004;
 50003	24	34	44	54
 50004	25	35	45	55
 50005	26	36	46	56
-\.
+-- \.
 
 COPY x from stdin WHERE a > 60003;
 60001	22	32	42	52
@@ -136,7 +136,7 @@ COPY x from stdin WHERE a > 60003;
 60003	24	34	44	54
 60004	25	35	45	55
 60005	26	36	46	56
-\.
+-- \.
 
 COPY x from stdin WHERE f > 60003;
 
@@ -178,10 +178,10 @@ COPY y TO stdout (FORMAT CSV, QUOTE '''', DELIMITER '|');
 COPY y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E'\\');
 COPY y TO stdout (FORMAT CSV, FORCE_QUOTE *);
 
-\copy y TO stdout (FORMAT CSV)
-\copy y TO stdout (FORMAT CSV, QUOTE '''', DELIMITER '|')
-\copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E'\\')
-\copy y TO stdout (FORMAT CSV, FORCE_QUOTE *)
+-- \copy y TO stdout (FORMAT CSV)
+-- \copy y TO stdout (FORMAT CSV, QUOTE /* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ '', DELIMITER /* REPLACED */ ''|/* REPLACED */ '')
+-- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E/* REPLACED */ ''\\/* REPLACED */ '')
+-- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE *)
 
 --test that we read consecutive LFs properly
 
@@ -191,17 +191,17 @@ COPY testnl FROM stdin CSV;
 1,"a field with two LFs
 
 inside",2
-\.
+-- \.
 
 -- test end of copy marker
 CREATE TEMP TABLE testeoc (a text);
 
 COPY testeoc FROM stdin CSV;
 a\.
-\.b
+-- \.b
 c\.d
 "\."
-\.
+-- \.
 
 COPY testeoc TO stdout CSV;
 
@@ -214,8 +214,8 @@ COPY testnull TO stdout WITH NULL AS E'\\0';
 
 COPY testnull FROM stdin WITH NULL AS E'\\0';
 42	\\0
-\0	\0
-\.
+-- \0	\0
+-- \.
 
 SELECT * FROM testnull;
 
@@ -224,7 +224,7 @@ CREATE TABLE vistest (LIKE testeoc);
 COPY vistest FROM stdin CSV;
 a0
 b
-\.
+-- \.
 COMMIT;
 SELECT * FROM vistest;
 BEGIN;
@@ -232,14 +232,14 @@ TRUNCATE vistest;
 COPY vistest FROM stdin CSV;
 a1
 b
-\.
+-- \.
 SELECT * FROM vistest;
 SAVEPOINT s1;
 TRUNCATE vistest;
 COPY vistest FROM stdin CSV;
 d1
 e
-\.
+-- \.
 SELECT * FROM vistest;
 COMMIT;
 SELECT * FROM vistest;
@@ -249,14 +249,14 @@ TRUNCATE vistest;
 COPY vistest FROM stdin CSV FREEZE;
 a2
 b
-\.
+-- \.
 SELECT * FROM vistest;
 SAVEPOINT s1;
 TRUNCATE vistest;
 COPY vistest FROM stdin CSV FREEZE;
 d2
 e
-\.
+-- \.
 SELECT * FROM vistest;
 COMMIT;
 SELECT * FROM vistest;
@@ -266,21 +266,21 @@ TRUNCATE vistest;
 COPY vistest FROM stdin CSV FREEZE;
 x
 y
-\.
+-- \.
 SELECT * FROM vistest;
 COMMIT;
 TRUNCATE vistest;
 COPY vistest FROM stdin CSV FREEZE;
 p
 g
-\.
+-- \.
 BEGIN;
 TRUNCATE vistest;
 SAVEPOINT s1;
 COPY vistest FROM stdin CSV FREEZE;
 m
 k
-\.
+-- \.
 COMMIT;
 BEGIN;
 INSERT INTO vistest VALUES ('z');
@@ -290,7 +290,7 @@ ROLLBACK TO SAVEPOINT s1;
 COPY vistest FROM stdin CSV FREEZE;
 d3
 e
-\.
+-- \.
 COMMIT;
 CREATE FUNCTION truncate_in_subxact() RETURNS VOID AS
 $$
@@ -307,7 +307,7 @@ SELECT truncate_in_subxact();
 COPY vistest FROM stdin CSV FREEZE;
 d4
 e
-\.
+-- \.
 SELECT * FROM vistest;
 COMMIT;
 SELECT * FROM vistest;
@@ -319,66 +319,66 @@ CREATE TEMP TABLE forcetest (
     d TEXT,
     e TEXT
 );
-\pset null NULL
--- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+-- \pset null NULL
+-- should succeed with no effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string, /* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(b), FORCE_NULL(c));
 1,,""
-\.
+-- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 1;
 -- should succeed, FORCE_NULL and FORCE_NOT_NULL can be both specified
 BEGIN;
 COPY forcetest (a, b, c, d) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(c,d), FORCE_NULL(c,d));
 2,'a',,""
-\.
+-- \.
 COMMIT;
 SELECT c, d FROM forcetest WHERE a = 2;
 -- should fail with not-null constraint violation
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL(b), FORCE_NOT_NULL(c));
 3,,""
-\.
+-- \.
 ROLLBACK;
--- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''not referenced by COPY/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (d, e) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL(b));
 ROLLBACK;
--- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''not referenced by COPY/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (d, e) FROM STDIN WITH (FORMAT csv, FORCE_NULL(b));
 ROLLBACK;
--- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with no effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string, /* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *, FORCE_NULL *);
 4,,""
-\.
+-- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 4;
--- should succeed with effect (/* REPLACED */''b/* REPLACED */'' remains an empty string)
+-- should succeed with effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *);
 5,,""
-\.
+-- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 5;
--- should succeed with effect (/* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with effect (/* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL *);
 6,"b",""
-\.
+-- \.
 COMMIT;
 SELECT b, c FROM forcetest WHERE a = 6;
--- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''conflicting or redundant options/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NOT_NULL *, FORCE_NOT_NULL(b));
 ROLLBACK;
--- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''conflicting or redundant options/* REPLACED */ '' error
 BEGIN;
 COPY forcetest (a, b, c) FROM STDIN WITH (FORMAT csv, FORCE_NULL *, FORCE_NULL(b));
 ROLLBACK;
 
-\pset null ''
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
 
 -- test case with whole-row Var in a check constraint
 create table check_con_tbl (f1 int);
@@ -391,11 +391,11 @@ alter table check_con_tbl add check (check_con_function(check_con_tbl.*));
 -- \d+ check_con_tbl
 copy check_con_tbl from stdin;
 1
-\N
-\.
+-- \N
+-- \.
 copy check_con_tbl from stdin;
 0
-\.
+-- \.
 select * from check_con_tbl;
 
 -- test with RLS enabled.
@@ -408,7 +408,7 @@ COPY rls_t1 (a, b, c) from stdin;
 2	3	2
 3	2	3
 4	1	4
-\.
+-- \.
 
 CREATE POLICY p1 ON rls_t1 FOR SELECT USING (a % 2 = 0);
 ALTER TABLE rls_t1 ENABLE ROW LEVEL SECURITY;
@@ -464,7 +464,7 @@ CREATE VIEW instead_of_insert_tbl_view AS SELECT ''::text AS str;
 
 COPY instead_of_insert_tbl_view FROM stdin; -- fail
 test1
-\.
+-- \.
 
 CREATE FUNCTION fun_instead_of_insert_tbl() RETURNS trigger AS $$
 BEGIN
@@ -478,7 +478,7 @@ CREATE TRIGGER trig_instead_of_insert_tbl_view
 
 COPY instead_of_insert_tbl_view FROM stdin;
 test1
-\.
+-- \.
 
 SELECT * FROM instead_of_insert_tbl;
 
@@ -493,7 +493,7 @@ CREATE TRIGGER trig_instead_of_insert_tbl_view_2
 
 COPY instead_of_insert_tbl_view_2 FROM stdin;
 test1
-\.
+-- \.
 
 SELECT * FROM instead_of_insert_tbl;
 COMMIT;
@@ -507,7 +507,7 @@ a	{2}	2
 4	{a, 4}	4
 
 5	{5}	5
-\.
+-- \.
 COPY check_ign_err FROM STDIN WITH (on_error ignore);
 1	{1}	1
 a	{2}	2
@@ -518,24 +518,24 @@ a	{2}	2
 6	a
 7	{7}	a
 8	{8}	8
-\.
+-- \.
 SELECT * FROM check_ign_err;
 
--- test datatype error that can/* REPLACED */''t be handled as soft: should fail
+-- test datatype error that can/* REPLACED */ ''t be handled as soft: should fail
 CREATE TABLE hard_err(foo widget);
 COPY hard_err FROM STDIN WITH (on_error ignore);
 1
-\.
+-- \.
 
 -- test missing data: should fail
 COPY check_ign_err FROM STDIN WITH (on_error ignore);
 1	{1}
-\.
+-- \.
 
 -- test extra data: should fail
 COPY check_ign_err FROM STDIN WITH (on_error ignore);
 1	{1}	3	abc
-\.
+-- \.
 
 -- clean up
 DROP TABLE forcetest;
@@ -568,7 +568,7 @@ create temp table copy_default (
 copy copy_default from stdin;
 1	value	'2022-07-04'
 2	\D	'2022-07-05'
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 
@@ -577,7 +577,7 @@ truncate copy_default;
 copy copy_default from stdin with (format csv);
 1,value,2022-07-04
 2,\D,2022-07-05
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 
@@ -601,21 +601,21 @@ copy copy_default from stdin with (default '\N');
 
 -- cannot use DEFAULT marker in column that has no DEFAULT value
 copy copy_default from stdin with (default '\D');
-\D	value	'2022-07-04'
+-- \D	value	/* REPLACED */ ''2022-07-04/* REPLACED */ ''
 2	\D	'2022-07-05'
-\.
+-- \.
 
 copy copy_default from stdin with (format csv, default '\D');
-\D,value,2022-07-04
+-- \D,value,2022-07-04
 2,\D,2022-07-05
-\.
+-- \.
 
--- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */''s not recognized
+-- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */ ''s not recognized
 copy copy_default from stdin with (default '\D');
 1	\D	'2022-07-04'
 2	\\D	'2022-07-04'
 3	"\D"	'2022-07-04'
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 
@@ -625,7 +625,7 @@ copy copy_default from stdin with (format csv, default '\D');
 1,\D,2022-07-04
 2,\\D,2022-07-04
 3,"\D",2022-07-04
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 
@@ -636,7 +636,7 @@ copy copy_default from stdin with (default '\D');
 1	value	'2022-07-04'
 2	\D	'2022-07-03'
 3	\D	\D
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 
@@ -646,7 +646,7 @@ copy copy_default from stdin with (format csv, default '\D');
 1,value,2022-07-04
 2,\D,2022-07-03
 3,\D,\D
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 

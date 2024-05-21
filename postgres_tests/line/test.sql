@@ -3,7 +3,7 @@
 -- Infinite lines
 --
 
---DROP TABLE LINE_TBL /* REPLACED */,
+--DROP TABLE LINE_TBL /* REPLACED */ ,
 CREATE TABLE LINE_TBL (s line);
 
 INSERT INTO LINE_TBL VALUES ('{0,-1,5}');	-- A == 0

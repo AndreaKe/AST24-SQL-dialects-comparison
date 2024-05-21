@@ -504,7 +504,7 @@ ALTER TABLE vtype
       ALTER c TYPE text USING c::text;
 SELECT * FROM vtype;
 
--- also check the case that doesn/* REPLACED */''t rewrite the table
+-- also check the case that doesn/* REPLACED */ ''t rewrite the table
 
 CREATE TABLE vtype2 (a int);
 INSERT INTO vtype2 VALUES (1);
@@ -524,7 +524,7 @@ CREATE TABLE t();
 INSERT INTO t DEFAULT VALUES;
 ALTER TABLE t ADD COLUMN a int DEFAULT 1;
 CREATE INDEX ON t(a);
--- set column with a default 1 to NULL, due to a bug that wasn/* REPLACED */''t
+-- set column with a default 1 to NULL, due to a bug that wasn/* REPLACED */ ''t
 -- noticed has heap_getattr buggily returned NULL for default columns
 UPDATE t SET a = NULL;
 
@@ -535,7 +535,7 @@ SET LOCAL enable_seqscan = false;
 SELECT * FROM t WHERE a IS NULL;
 ROLLBACK;
 
--- verify that a default set on a non-plain table doesn/* REPLACED */''t set a missing
+-- verify that a default set on a non-plain table doesn/* REPLACED */ ''t set a missing
 -- value on the attribute
 CREATE FOREIGN DATA WRAPPER dummy;
 CREATE SERVER s0 FOREIGN DATA WRAPPER dummy;

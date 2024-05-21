@@ -92,7 +92,7 @@ SELECT 1_000.5e_1;
 --
 -- Test implicit type conversions
 -- This fails for Postgres v6.1 (and earlier?)
---  so let/* REPLACED */''s try explicit conversions for now - tgl 97/05/07
+--  so let/* REPLACED */ ''s try explicit conversions for now - tgl 97/05/07
 --
 
 CREATE TABLE TEMP_FLOAT (f1 FLOAT8);

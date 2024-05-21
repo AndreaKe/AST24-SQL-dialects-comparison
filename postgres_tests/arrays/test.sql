@@ -3,7 +3,7 @@
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 CREATE TABLE arrtest (
 	a 			int2[],
@@ -21,12 +21,12 @@ CREATE TABLE array_op_test (
 	t			text[]
 );
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/array.data'
-COPY array_op_test FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/array.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/array.data'
+COPY array_op_test FROM /* REPLACED */ PG_ABS_SRCDIR '/data/array.data';
 ANALYZE array_op_test;
 
 --
--- only the /* REPLACED */''e/* REPLACED */'' array is 0-based, the others are 1-based.
+-- only the /* REPLACED */ ''e/* REPLACED */ '' array is 0-based, the others are 1-based.
 --
 
 INSERT INTO arrtest (a[1:5], b[1:1][1:2][1:2], c, d, f, g)
@@ -433,8 +433,8 @@ insert into arr_pk_tbl(pk, f1[1:2]) values (1, '{6,7,8}') on conflict (pk)
     f1[3] = excluded.f1[3]
   returning pk, f1;
 
--- note: if above selects don/* REPLACED */''t produce the expected tuple order,
--- then you didn/* REPLACED */''t get an indexscan plan, and something is busted.
+-- note: if above selects don/* REPLACED */ ''t produce the expected tuple order,
+-- then you didn/* REPLACED */ ''t get an indexscan plan, and something is busted.
 reset enable_seqscan;
 reset enable_bitmapscan;
 
@@ -561,7 +561,7 @@ create table comptable (c1 comptype, c2 comptype[]);
 insert into comptable
   values (row(1,'foo'), array[row(2,'bar')::comptype, row(3,'baz')::comptype]);
 
--- check that implicitly named array type _comptype isn/* REPLACED */''t a problem
+-- check that implicitly named array type _comptype isn/* REPLACED */ ''t a problem
 create type _comptype as enum('fooey');
 
 select * from comptable;
@@ -824,4 +824,4 @@ SELECT array_length(array_sample('{1,2,3,4,5,6}'::int[], 3), 1);
 SELECT array_dims(array_sample('[-1:2][2:3]={{1,2},{3,NULL},{5,6},{7,8}}'::int[], 3));
 SELECT array_dims(array_sample('{{{1,2},{3,NULL}},{{5,6},{7,8}},{{9,10},{11,12}}}'::int[], 2));
 SELECT array_sample('{1,2,3,4,5,6}'::int[], -1); -- fail
-SELECT array_sample('{1,2,3,4,5,6}'::int[], 7); --fail
+SELECT array_sample('{1,2,3,4,5,6}'::int[], 7);
