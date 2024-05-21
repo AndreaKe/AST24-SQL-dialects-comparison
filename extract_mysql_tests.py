@@ -101,7 +101,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
         if l.startswith(b"SHOW") or l.startswith(b"show"):
             f.write(b'SELECT "2024_AST_SHOW";\n')
         if (l.startswith(b"LET") or l.startswith(b"let")) and \
-            ((b"SELECT" in l or b"select" in l) or (b"SET" in l or b"set" in l)):
+            ((b"SELECT " in l or b"select " in l) or (b"SET " in l or b"set " in l)):
             f.write(b'SELECT "2024_AST_LET";\n')
         if oldCheckIsError:
             if l.startswith(b"--eval"):
