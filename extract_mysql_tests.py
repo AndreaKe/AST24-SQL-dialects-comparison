@@ -30,8 +30,11 @@ def isBeginningOfLogFile(l):
 def getNextLine(f, currLine):
     l = f.readline()
     if b'SELECT "2024_AST_LET"' in l:
+        l_prev = f.readline()
         l = f.readline()
-        l = f.readline()
+        while re.sub(b'^.*Query\t', b'', l_prev) in l:
+            l_prev = l
+            l = f.readline()
     isLet = b'SELECT "2024_AST_LET"' in l
     while l and  (isBeginningOfLogFile(l) \
         or re.match(b'.*Query\t$', l) \
@@ -40,7 +43,11 @@ def getNextLine(f, currLine):
         or b"Connect\t" in l):
         l = f.readline()
         if isLet:
+            l_prev = l
             l = f.readline()
+            while re.sub(b'^.*Query\t', b'', l_prev) in l:
+                l_prev = l
+                l = f.readline()
         isLet = b'SELECT "2024_AST_LET"' in l
     if b'SELECT "2024_AST_SHOW"' in l:
         return f.readline()
