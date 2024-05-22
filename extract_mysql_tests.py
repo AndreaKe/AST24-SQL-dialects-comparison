@@ -78,16 +78,17 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
     mlQuery = b""
     for l in file_bytes_lines:
         is_wait_until_connected = wait_until_connected_pattern.match(l)
-        if re.match(b"--source .*$", l) and not is_wait_until_connected:
+        if re.match(b"--source .*$", l) and not is_wait_until_connected \
+            and not (b'$MYSQLTEST_VARDIR' in l) and not (b'$MYSQL_TMP_DIR' in l):
             source_file_path = (re.sub(b"--source\s", b"", l)).decode()
-            source_file_path = (Path(MYSQL_TEST_SUITE_PATH).parent / source_file_path.strip()).absolute() if "/" in source_file_path \
-                    else f"{MYSQL_TEST_SUITE_PATH}/{source_file_path.strip()}"
-            #print("Source file path ##############")
-            #print(source_file_path)
+            if "/" in source_file_path:
+                source_file_path = (Path(MYSQL_TEST_SUITE_PATH).parent / source_file_path.strip()).absolute()
+            else:
+                source_file_path = f"{MYSQL_TEST_SUITE_PATH}/{source_file_path.strip()}"
             with open(source_file_path, "rb") as f3:
                 source_file_bytes_lines = f3.readlines()
-                #print(source_file_bytes_lines)
                 rewrite_test_case(f, log_file_path, source_file_bytes_lines, prepend_lines)
+            continue
         if set_general_log_file_off_pattern.match(l):
             f.write(b'SELECT "2024_AST_GENERAL_LOG_OFF";\n')
             oldCheckIsError = False
@@ -111,7 +112,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
             (b"SELECT " in l or b"select " in l):
             f.write(b'SELECT "2024_AST_LET";\n')
         if oldCheckIsError:
-            if l.startswith(b"--eval"):
+            if l.startswith(b"--"):
                 f.write(prev_line)
                 f.write(l)
                 oldCheckIsError = False
@@ -176,8 +177,8 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
         if SKIP_EXISTING and test_path.is_dir():
             test_num += 1
             continue
-        if filepath.suffix == '.test' and isIncludedTestCase(filename) \
-            and filename == 'filesort_debug.test': # TODO 
+        if filepath.suffix == '.test' and isIncludedTestCase(filename):
+            #and filename == 'mysqlpump_partial_bkp.test': # TODO 
             print(filepath)
             test_num += 1
             print(f"Extracting test ({test_num}\{total_num_tests})")
@@ -195,7 +196,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                     rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines)
                     f.close()
             os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --debug-server > /dev/null") #  --fast  TODO: Ensure it is executed on one thread, log output?
-            #os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
+            os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
             test_path.mkdir(exist_ok=True, parents=True)
             setup_path = test_path / 'setup.sql'
             with open(setup_path.resolve(), 'wb+') as setup_f:
