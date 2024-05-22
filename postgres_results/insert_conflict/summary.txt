@@ -5,7 +5,7 @@ QUERY:
 -- insert...on conflict do unique index inference
 --
 create table insertconflicttest(key int4, fruit text);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -16,25 +16,25 @@ QUERY:
 -- named collations
 --
 create unique index op_index_key on insertconflicttest(key, fruit text_pattern_ops);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index collation_index_key on insertconflicttest(key, fruit collate "C");
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index both_index_key on insertconflicttest(key, fruit collate "C" text_pattern_ops);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index both_index_expr_key on insertconflicttest(key, lower(fruit) collate "C" text_pattern_ops);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -42,13 +42,13 @@ QUERY:
 
 -- fails
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do nothing;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit) do nothing;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -56,26 +56,26 @@ QUERY:
 
 -- succeeds
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit, key) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit), key, lower(fruit), key) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do update set fruit = excluded.fruit
   where exists (select 1 from insertconflicttest ii where ii.key = excluded.key);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -84,7 +84,7 @@ QUERY:
 -- supplying them merely *limits* matches to indexes with matching opclasses
 -- used for relevant indexes
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit text_pattern_ops) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -92,7 +92,7 @@ QUERY:
 -- Okay, arbitrates using both index where text_pattern_ops opclass does and
 -- does not appear.
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit collate "C") do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -100,7 +100,7 @@ QUERY:
 -- Okay, but only accepts the single index where both opclass and collation are
 -- specified
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit collate "C" text_pattern_ops, key) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -108,7 +108,7 @@ QUERY:
 -- Okay, but only accepts the single index where both opclass and collation are
 -- specified (plus expression variant)
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C", key, key) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -128,38 +128,38 @@ QUERY:
 -- cases.  It rolls with unique indexes where attributes redundantly appear
 -- multiple times, too (which is not tested here).
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit text_pattern_ops, key) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C" text_pattern_ops, key, key) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop index op_index_key;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop index collation_index_key;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop index both_index_key;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop index both_index_expr_key;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -169,7 +169,7 @@ QUERY:
 -- Make sure that cross matching of attribute opclass/collation does not occur
 --
 create unique index cross_match on insertconflicttest(lower(fruit) collate "C", upper(fruit) text_pattern_ops);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -177,21 +177,21 @@ QUERY:
 
 -- fails:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) text_pattern_ops, upper(fruit) collate "C") do nothing;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 -- works:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C", upper(fruit) text_pattern_ops) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop index cross_match;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -201,7 +201,7 @@ QUERY:
 -- Single key tests
 --
 create unique index key_index on insertconflicttest(key);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -211,28 +211,28 @@ QUERY:
 -- Explain tests
 --
 explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- Should display qual actually attributable to internal sequential scan:
 explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Cawesh';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- With EXCLUDED.* expression in scan node:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do update set fruit = excluded.fruit where excluded.fruit != 'Elderberry';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
--- Does the same, but JSON format shows /* REPLACED */''Conflict Arbiter Index/* REPLACED */'' as JSON array:
+-- Does the same, but JSON format shows /* REPLACED */ ''Conflict Arbiter Index/* REPLACED */ '' as JSON array:
 explain (costs off, format json) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Lime' returning *;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -240,7 +240,7 @@ QUERY:
 
 -- Fails (no unique index inference specification, required for do update variant):
 insert into insertconflicttest values (1, 'Apple') on conflict do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -248,13 +248,13 @@ QUERY:
 
 -- inference succeeds:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (2, 'Orange') on conflict (key, key, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -264,7 +264,7 @@ QUERY:
 insert into insertconflicttest
 values (1, 'Apple'), (2, 'Orange')
 on conflict (key) do update set (fruit, key) = (excluded.fruit, excluded.key);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -273,7 +273,7 @@ QUERY:
 -- Give good diagnostic message when EXCLUDED.* spuriously referenced from
 -- RETURNING:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruit RETURNING excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -281,7 +281,7 @@ QUERY:
 
 -- Only suggest <table>.* column when inference element misspelled:
 insert into insertconflicttest values (1, 'Apple') on conflict (keyy) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -289,7 +289,7 @@ QUERY:
 
 -- Have useful HINT for EXCLUDED.* RTE within UPDATE:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruitt;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -297,25 +297,25 @@ QUERY:
 
 -- inference fails:
 insert into insertconflicttest values (3, 'Kiwi') on conflict (key, fruit) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (4, 'Mango') on conflict (fruit, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (5, 'Lemon') on conflict (fruit) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (6, 'Passionfruit') on conflict (lower(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -323,19 +323,19 @@ QUERY:
 
 -- Check the target relation can be aliased
 insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok, no reference to target table
 insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = ict.fruit;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok, alias
 insert into insertconflicttest AS ict values (6, 'Passionfruit') on conflict (key) do update set fruit = insertconflicttest.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -343,14 +343,14 @@ QUERY:
 
 -- Check helpful hint when qualifying set column with target table
 insert into insertconflicttest values (3, 'Kiwi') on conflict (key, fruit) do update set insertconflicttest.fruit = 'Mango';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 drop index key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -360,7 +360,7 @@ QUERY:
 -- Composite key tests
 --
 create unique index comp_key_index on insertconflicttest(key, fruit);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -368,13 +368,13 @@ QUERY:
 
 -- inference succeeds:
 insert into insertconflicttest values (7, 'Raspberry') on conflict (key, fruit) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (8, 'Lime') on conflict (fruit, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -382,32 +382,32 @@ QUERY:
 
 -- inference fails:
 insert into insertconflicttest values (9, 'Banana') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (10, 'Blueberry') on conflict (key, key, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (11, 'Cherry') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (12, 'Date') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 drop index comp_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -417,13 +417,13 @@ QUERY:
 -- Partial index tests, no inference predicate specified
 --
 create unique index part_comp_key_index on insertconflicttest(key, fruit) where key < 5;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index expr_part_comp_key_index on insertconflicttest(key, lower(fruit)) where key < 5;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -431,50 +431,50 @@ QUERY:
 
 -- inference fails:
 insert into insertconflicttest values (13, 'Grape') on conflict (key, fruit) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (14, 'Raisin') on conflict (fruit, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (15, 'Cranberry') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (16, 'Melon') on conflict (key, key, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (17, 'Mulberry') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (18, 'Pineapple') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 drop index part_comp_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop index expr_part_comp_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -484,7 +484,7 @@ QUERY:
 -- Expression index tests
 --
 create unique index expr_key_index on insertconflicttest(lower(fruit));
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -492,13 +492,13 @@ QUERY:
 
 -- inference succeeds:
 insert into insertconflicttest values (20, 'Quince') on conflict (lower(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (21, 'Pomegranate') on conflict (lower(fruit), lower(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -506,20 +506,20 @@ QUERY:
 
 -- inference fails:
 insert into insertconflicttest values (22, 'Apricot') on conflict (upper(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 drop index expr_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -529,13 +529,13 @@ QUERY:
 -- Expression index tests (with regular column)
 --
 create unique index expr_comp_key_index on insertconflicttest(key, lower(fruit));
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index tricky_expr_comp_key_index on insertconflicttest(key, lower(fruit), upper(fruit));
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -543,20 +543,20 @@ QUERY:
 
 -- inference succeeds:
 insert into insertconflicttest values (24, 'Plum') on conflict (key, lower(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (25, 'Peach') on conflict (lower(fruit), key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
--- Should not infer /* REPLACED */''tricky_expr_comp_key_index/* REPLACED */'' index:
+-- Should not infer /* REPLACED */ ''tricky_expr_comp_key_index/* REPLACED */ '' index:
 explain (costs off) insert into insertconflicttest values (26, 'Fig') on conflict (lower(fruit), key, lower(fruit), key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -564,32 +564,32 @@ QUERY:
 
 -- inference fails:
 insert into insertconflicttest values (27, 'Prune') on conflict (key, upper(fruit)) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (28, 'Redcurrant') on conflict (fruit, key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (29, 'Nectarine') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 drop index expr_comp_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop index tricky_expr_comp_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -599,50 +599,50 @@ QUERY:
 -- Non-spurious duplicate violation tests
 --
 create unique index key_index on insertconflicttest(key);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index fruit_index on insertconflicttest(fruit);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- succeeds, since UPDATE happens to update /* REPLACED */''fruit/* REPLACED */'' to existing value:
+-- succeeds, since UPDATE happens to update /* REPLACED */ ''fruit/* REPLACED */ '' to existing value:
 insert into insertconflicttest values (26, 'Fig') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
--- fails, since UPDATE is to row with key value 26, and we/* REPLACED */''re updating /* REPLACED */''fruit/* REPLACED */''
--- to a value that happens to exist in another row (/* REPLACED */''peach/* REPLACED */''):
+-- fails, since UPDATE is to row with key value 26, and we/* REPLACED */ ''re updating /* REPLACED */ ''fruit/* REPLACED */ ''
+-- to a value that happens to exist in another row (/* REPLACED */ ''peach/* REPLACED */ ''):
 insert into insertconflicttest values (26, 'Peach') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
--- succeeds, since /* REPLACED */''key/* REPLACED */'' isn/* REPLACED */''t repeated/referenced in UPDATE, and /* REPLACED */''fruit/* REPLACED */''
--- arbitrates that statement updates existing /* REPLACED */''Fig/* REPLACED */'' row:
+-- succeeds, since /* REPLACED */ ''key/* REPLACED */ '' isn/* REPLACED */ ''t repeated/referenced in UPDATE, and /* REPLACED */ ''fruit/* REPLACED */ ''
+-- arbitrates that statement updates existing /* REPLACED */ ''Fig/* REPLACED */ '' row:
 insert into insertconflicttest values (25, 'Fig') on conflict (fruit) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop index key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop index fruit_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -652,7 +652,7 @@ QUERY:
 -- Test partial unique index inference
 --
 create unique index partial_key_index on insertconflicttest(key) where fruit like '%berry';
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -660,13 +660,13 @@ QUERY:
 
 -- Succeeds
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into insertconflicttest as t values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and t.fruit = 'inconsequential' do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -674,36 +674,36 @@ QUERY:
 
 -- fails
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) do update set fruit = excluded.fruit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' or fruit = 'consequential' do nothing;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into insertconflicttest values (23, 'Blackberry') on conflict (fruit) where fruit like '%berry' do update set fruit = excluded.fruit;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 drop index partial_key_index;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 --
--- Test that wholerow references to ON CONFLICT/* REPLACED */''s EXCLUDED work
+-- Test that wholerow references to ON CONFLICT/* REPLACED */ ''s EXCLUDED work
 --
 create unique index plain on insertconflicttest(key);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -712,7 +712,7 @@ QUERY:
 -- Succeeds, updates existing row:
 insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
   where i.* != excluded.* returning *;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -720,7 +720,7 @@ QUERY:
 -- No update this time, though:
 insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
   where i.* != excluded.* returning *;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -728,7 +728,7 @@ QUERY:
 -- Predicate changed to require match rather than non-match, so updates once more:
 insert into insertconflicttest as i values (23, 'Jackfruit') on conflict (key) do update set fruit = excluded.fruit
   where i.* = excluded.* returning *;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -736,27 +736,27 @@ QUERY:
 -- Assign:
 insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text
   returning *;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- deparse whole row var in WHERE and SET clauses:
 explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.fruit where excluded.* is null;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop index plain;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -764,7 +764,7 @@ QUERY:
 
 -- Cleanup
 drop table insertconflicttest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -773,29 +773,29 @@ QUERY:
 
 --
 -- Verify that EXCLUDED does not allow system column references. These
--- do not make sense because EXCLUDED isn/* REPLACED */''t an already stored tuple
--- (and thus doesn/* REPLACED */''t have a ctid etc).
+-- do not make sense because EXCLUDED isn/* REPLACED */ ''t an already stored tuple
+-- (and thus doesn/* REPLACED */ ''t have a ctid etc).
 --
 create table syscolconflicttest(key int4, data text);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into syscolconflicttest values (1);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into syscolconflicttest values (1) on conflict (key) do update set data = excluded.ctid::text;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 drop table syscolconflicttest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -806,14 +806,14 @@ QUERY:
 -- planner preprocessing ...
 --
 create table insertconflict (a bigint, b bigint);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 create unique index insertconflicti1 on insertconflict(coalesce(a, 0));
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -821,7 +821,7 @@ QUERY:
 
 create unique index insertconflicti2 on insertconflict(b)
   where coalesce(a, 1) > 0;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -829,7 +829,7 @@ QUERY:
 
 insert into insertconflict values (1, 2)
 on conflict (coalesce(a, 0)) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -837,7 +837,7 @@ QUERY:
 
 insert into insertconflict values (1, 2)
 on conflict (b) where coalesce(a, 1) > 0 do nothing;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -845,14 +845,14 @@ QUERY:
 
 insert into insertconflict values (1, 2)
 on conflict (b) where coalesce(a, 1) > 1 do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop table insertconflict;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -863,14 +863,14 @@ QUERY:
 --
 
 create table insertconflict (f1 int primary key, f2 text);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 create view insertconflictv as
   select * from insertconflict with cascaded check option;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -878,39 +878,39 @@ QUERY:
 
 insert into insertconflictv values (1,'foo')
   on conflict (f1) do update set f2 = excluded.f2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select * from insertconflict;
-RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
 
 insert into insertconflictv values (1,'bar')
   on conflict (f1) do update set f2 = excluded.f2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select * from insertconflict;
-RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
 
 
 drop view insertconflictv;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 drop table insertconflict;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -927,7 +927,7 @@ create table cities (
 	population	float8,
 	altitude	int		-- (in ft)
 );
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -936,7 +936,7 @@ QUERY:
 create table capitals (
 	state		char(2)
 ) inherits (cities);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -946,13 +946,13 @@ QUERY:
 -- uniqueness is only enforced per-relation.  Unique index inference
 -- specification will do the right thing, though.
 create unique index cities_names_unique on cities (name);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index capitals_names_unique on capitals (name);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -960,32 +960,32 @@ QUERY:
 
 -- prepopulate the tables.
 insert into cities values ('San Francisco', 7.24E+5, 63);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into cities values ('Las Vegas', 2.583E+5, 2174);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 insert into cities values ('Mariposa', 1200, 1953);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 insert into capitals values ('Sacramento', 3.694E+5, 30, 'CA');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into capitals values ('Madison', 1.913E+5, 845, 'WI');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -993,7 +993,7 @@ QUERY:
 
 -- Tests proper for inheritance:
 select * from capitals;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1001,72 +1001,72 @@ QUERY:
 
 -- Succeeds:
 insert into cities values ('Las Vegas', 2.583E+5, 2174) on conflict do nothing;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into capitals values ('Sacramento', 4664.E+5, 30, 'CA') on conflict (name) do update set population = excluded.population;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
--- Wrong /* REPLACED */''Sacramento/* REPLACED */'', so do nothing:
+-- Wrong /* REPLACED */ ''Sacramento/* REPLACED */ '', so do nothing:
 insert into capitals values ('Sacramento', 50, 2267, 'NE') on conflict (name) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select * from capitals;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into cities values ('Las Vegas', 5.83E+5, 2001) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 select tableoid::regclass, * from cities;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into capitals values ('Las Vegas', 5.83E+5, 2222, 'NV') on conflict (name) do update set population = excluded.population;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- Capitals will contain new capital, Las Vegas:
 select * from capitals;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
--- Cities contains two instances of /* REPLACED */''Las Vegas/* REPLACED */'', since unique constraints don/* REPLACED */''t
+-- Cities contains two instances of /* REPLACED */ ''Las Vegas/* REPLACED */ '', since unique constraints don/* REPLACED */ ''t
 -- work across inheritance:
 select tableoid::regclass, * from cities;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
--- This only affects /* REPLACED */''cities/* REPLACED */'' version of /* REPLACED */''Las Vegas/* REPLACED */'':
+-- This only affects /* REPLACED */ ''cities/* REPLACED */ '' version of /* REPLACED */ ''Las Vegas/* REPLACED */ '':
 insert into cities values ('Las Vegas', 5.86E+5, 2223) on conflict (name) do update set population = excluded.population, altitude = excluded.altitude;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 select tableoid::regclass, * from cities;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1074,13 +1074,13 @@ QUERY:
 
 -- clean up
 drop table capitals;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop table cities;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1089,41 +1089,41 @@ QUERY:
 
 -- Make sure a table named excluded is handled properly
 create table excluded(key int primary key, data text);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into excluded values(1, '1');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- error, ambiguous
 insert into excluded values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 -- ok, aliased
 insert into excluded AS target values(1, '2') on conflict (key) do update set data = excluded.data RETURNING *;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- ok, aliased
 insert into excluded AS target values(1, '2') on conflict (key) do update set data = target.data RETURNING *;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
--- make sure excluded isn/* REPLACED */''t a problem in returning clause
+-- make sure excluded isn/* REPLACED */ ''t a problem in returning clause
 insert into excluded values(1, '2') on conflict (key) do update set data = 3 RETURNING excluded.*;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1131,7 +1131,7 @@ QUERY:
 
 -- clean up
 drop table excluded;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1140,13 +1140,13 @@ QUERY:
 
 -- check that references to columns after dropped columns are handled correctly
 create table dropcol(key int primary key, drop1 int, keep1 text, drop2 numeric, keep2 float);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 1, '1', '1', 1);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1157,13 +1157,13 @@ insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 2, '2', '2', 2) o
     where excluded.drop1 is not null and excluded.keep1 is not null and excluded.drop2 is not null and excluded.keep2 is not null
           and dropcol.drop1 is not null and dropcol.keep1 is not null and dropcol.drop2 is not null and dropcol.keep2 is not null
     returning *;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 ;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -1172,19 +1172,19 @@ QUERY:
 insert into dropcol(key, drop1, keep1, drop2, keep2) values(1, 3, '3', '3', 3) on conflict(key)
     do update set drop1 = dropcol.drop1, keep1 = dropcol.keep1, drop2 = dropcol.drop2, keep2 = dropcol.keep2
     returning *;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 ;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 alter table dropcol drop column drop1, drop column drop2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1195,13 +1195,13 @@ insert into dropcol(key, keep1, keep2) values(1, '4', 4) on conflict(key)
     where excluded.keep1 is not null and excluded.keep2 is not null
           and dropcol.keep1 is not null and dropcol.keep2 is not null
     returning *;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 ;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -1210,20 +1210,20 @@ QUERY:
 insert into dropcol(key, keep1, keep2) values(1, '5', 5) on conflict(key)
     do update set keep1 = dropcol.keep1, keep2 = dropcol.keep2
     returning *;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 ;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 DROP TABLE dropcol;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1233,51 +1233,51 @@ QUERY:
 
 create table twoconstraints (f1 int unique, f2 box,
                              exclude using gist(f2 with &&));
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into twoconstraints values(1, '((0,0),(1,1))');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into twoconstraints values(1, '((2,2),(3,3))');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fail on f1
 insert into twoconstraints values(2, '((0,0),(1,2))');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fail on f2
 insert into twoconstraints values(2, '((0,0),(1,2))')
   on conflict on constraint twoconstraints_f1_key do nothing;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fail on f2
 insert into twoconstraints values(2, '((0,0),(1,2))')
   on conflict on constraint twoconstraints_f2_excl do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
   -- do nothing
 select * from twoconstraints;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop table twoconstraints;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1286,135 +1286,135 @@ QUERY:
 -- check handling of self-conflicts at various isolation levels
 
 create table selfconflict (f1 int primary key, f2 int);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 begin transaction isolation level read committed;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into selfconflict values (1,1), (1,2) on conflict do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 commit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 begin transaction isolation level repeatable read;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into selfconflict values (2,1), (2,2) on conflict do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 commit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 begin transaction isolation level serializable;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into selfconflict values (3,1), (3,2) on conflict do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 commit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 begin transaction isolation level read committed;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into selfconflict values (4,1), (4,2) on conflict(f1) do update set f2 = 0;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 commit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 begin transaction isolation level repeatable read;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into selfconflict values (5,1), (5,2) on conflict(f1) do update set f2 = 0;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 commit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 begin transaction isolation level serializable;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into selfconflict values (6,1), (6,2) on conflict(f1) do update set f2 = 0;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 commit;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 select * from selfconflict;
-RESULT: [duckdb: DIFFERENT, mySQL: DIFFERENT]
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
 
 
 drop table selfconflict;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1422,13 +1422,13 @@ QUERY:
 
 -- check ON CONFLICT handling with partitioned tables
 create table parted_conflict_test (a int unique, b char) partition by list (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_test_1 partition of parted_conflict_test (b unique) for values in (1, 2);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1436,7 +1436,7 @@ QUERY:
 
 -- no indexes required here
 insert into parted_conflict_test values (1, 'a') on conflict do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1444,13 +1444,13 @@ QUERY:
 
 -- index on a required, which does exist in parent
 insert into parted_conflict_test values (1, 'a') on conflict (a) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test values (1, 'a') on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1458,21 +1458,21 @@ QUERY:
 
 -- targeting partition directly will work
 insert into parted_conflict_test_1 values (1, 'a') on conflict (a) do nothing;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test_1 values (1, 'b') on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- index on b required, which doesn/* REPLACED */''t exist in parent
+-- index on b required, which doesn/* REPLACED */ ''t exist in parent
 insert into parted_conflict_test values (2, 'b') on conflict (b) do update set a = excluded.a;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1480,15 +1480,15 @@ QUERY:
 
 -- targeting partition directly will work
 insert into parted_conflict_test_1 values (2, 'b') on conflict (b) do update set a = excluded.a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- should see (2, /* REPLACED */''b/* REPLACED */'')
+-- should see (2, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1497,79 +1497,79 @@ QUERY:
 -- now check that DO UPDATE works correctly for target partition with
 -- different attribute numbers
 create table parted_conflict_test_2 (b char, a int unique);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 alter table parted_conflict_test attach partition parted_conflict_test_2 for values in (3);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 truncate parted_conflict_test;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test values (3, 'a') on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test values (3, 'b') on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- should see (3, /* REPLACED */''b/* REPLACED */'')
+-- should see (3, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- case where parent will have a dropped column, but the partition won/* REPLACED */''t
+-- case where parent will have a dropped column, but the partition won/* REPLACED */ ''t
 alter table parted_conflict_test drop b, add b char;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_test_3 partition of parted_conflict_test for values in (4);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 truncate parted_conflict_test;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (4, 'a') on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (4, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- should see (4, /* REPLACED */''b/* REPLACED */'')
+-- should see (4, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1577,39 +1577,39 @@ QUERY:
 
 -- case with multi-level partitioning
 create table parted_conflict_test_4 partition of parted_conflict_test for values in (5) partition by list (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_test_4_1 partition of parted_conflict_test_4 for values in (5);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 truncate parted_conflict_test;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (5, 'a') on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (5, 'b') on conflict (a) do update set b = excluded.b where parted_conflict_test.b = 'a';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- should see (5, /* REPLACED */''b/* REPLACED */'')
+-- should see (5, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1617,34 +1617,34 @@ QUERY:
 
 -- test with multiple rows
 truncate parted_conflict_test;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (1, 'a'), (2, 'a'), (4, 'a') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_test (a, b) values (1, 'b'), (2, 'c'), (4, 'b') on conflict (a) do update set b = excluded.b where excluded.b = 'b';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- should see (1, /* REPLACED */''b/* REPLACED */''), (2, /* REPLACED */''a/* REPLACED */''), (4, /* REPLACED */''b/* REPLACED */'')
+-- should see (1, /* REPLACED */ ''b/* REPLACED */ ''), (2, /* REPLACED */ ''a/* REPLACED */ ''), (4, /* REPLACED */ ''b/* REPLACED */ '')
 select * from parted_conflict_test order by a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop table parted_conflict_test;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1653,96 +1653,96 @@ QUERY:
 -- test behavior of inserting a conflicting tuple into an intermediate
 -- partitioning level
 create table parted_conflict (a int primary key, b text) partition by range (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_1_1 partition of parted_conflict_1 for values from (0) to (500);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict values (40, 'forty');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_1 values (40, 'cuarenta')
   on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop table parted_conflict;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- same thing, but this time try to use an index that/* REPLACED */''s created not in the
+-- same thing, but this time try to use an index that/* REPLACED */ ''s created not in the
 -- partition
 create table parted_conflict (a int, b text) partition by range (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_1 partition of parted_conflict for values from (0) to (1000) partition by range (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_1_1 partition of parted_conflict_1 for values from (0) to (500);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index on only parted_conflict_1 (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create unique index on only parted_conflict (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter index parted_conflict_a_idx attach partition parted_conflict_1_a_idx;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict values (40, 'forty');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict_1 values (40, 'cuarenta')
   on conflict (a) do update set b = excluded.b;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 drop table parted_conflict;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1750,43 +1750,43 @@ QUERY:
 
 -- test whole-row Vars in ON CONFLICT expressions
 create table parted_conflict (a int, b text, c int) partition by range (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 create table parted_conflict_1 (drp text, c int, a int, b text);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 alter table parted_conflict_1 drop column drp;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 create unique index on parted_conflict (a, b);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter table parted_conflict attach partition parted_conflict_1 for values from (0) to (1000);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 truncate parted_conflict;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 insert into parted_conflict values (50, 'cincuenta', 1);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1795,15 +1795,15 @@ insert into parted_conflict values (50, 'cincuenta', 2)
   on conflict (a, b) do update set (a, b, c) = row(excluded.*)
   where parted_conflict = (50, text 'cincuenta', 1) and
         excluded = (50, text 'cincuenta', 2);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- should see (50, /* REPLACED */''cincuenta/* REPLACED */'', 2)
+-- should see (50, /* REPLACED */ ''cincuenta/* REPLACED */ '', 2)
 select * from parted_conflict order by a;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1820,7 +1820,7 @@ begin
  return new;
 end;
 $$ language plpgsql;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1831,21 +1831,21 @@ create trigger parted_conflict_update
     referencing new table as inserted
     for each statement
     execute procedure parted_conflict_update_func();
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 truncate parted_conflict;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 insert into parted_conflict values (0, 'cero', 1);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1853,20 +1853,20 @@ QUERY:
 
 insert into parted_conflict values(0, 'cero', 1)
   on conflict (a,b) do update set c = parted_conflict.c + 1;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 drop table parted_conflict;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 drop function parted_conflict_update_func();
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 =========================================
 Summary for test case insert_conflict/test.sql of postgres
 =========================================
@@ -1878,7 +1878,7 @@ DIFFERENT: 6 queries, which is 2.33%
 ERROR: 151 queries, which is 58.75%
 
 =================
-Results for mySQL
+Results for mysql
 SAME: 68 queries, which is 26.46%
 DIFFERENT: 3 queries, which is 1.17%
 ERROR: 186 queries, which is 72.37%

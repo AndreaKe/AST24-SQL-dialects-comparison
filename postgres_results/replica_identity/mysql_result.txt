@@ -1,0 +1,538 @@
+
+-----------
+QUERY:
+CREATE TABLE test_replica_identity (
+       id serial primary key,
+       keya text not null,
+       keyb text not null,
+       nonkey text,
+       CONSTRAINT test_replica_identity_unique_defer UNIQUE (keya, keyb) DEFERRABLE,
+       CONSTRAINT test_replica_identity_unique_nondefer UNIQUE (keya, keyb)
+) ;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DEFERRABLE,\n       CONSTRAINT test_replica_identity_unique_nondefer UNIQUE (keya' at line 6")
+
+-----------
+QUERY:
+
+
+CREATE TABLE test_replica_identity_othertable (id serial primary key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE TABLE test_replica_identity_t3 (id serial constraint pk primary key deferrable);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'primary key deferrable)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE INDEX test_replica_identity_keyab ON test_replica_identity (keya, keyb);
+RESULT:
+	ERROR - (1146, "Table 'test.test_replica_identity' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX test_replica_identity_keyab_key ON test_replica_identity (keya, keyb);
+RESULT:
+	ERROR - (1146, "Table 'test.test_replica_identity' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX test_replica_identity_nonkey ON test_replica_identity (keya, nonkey);
+RESULT:
+	ERROR - (1146, "Table 'test.test_replica_identity' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE INDEX test_replica_identity_hash ON test_replica_identity USING hash (nonkey);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING hash (nonkey)' at line 1")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX test_replica_identity_expr ON test_replica_identity (keya, keyb, (3));
+RESULT:
+	ERROR - (1146, "Table 'test.test_replica_identity' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX test_replica_identity_partial ON test_replica_identity (keya, keyb) WHERE keyb != '3';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WHERE keyb != '3'' at line 1")
+
+-----------
+QUERY:
+
+
+-- default is /* REPLACED */ ''d/* REPLACED */ ''/DEFAULT for user created tables
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 2")
+
+-----------
+QUERY:
+
+-- but /* REPLACED */ ''none/* REPLACED */ '' for system tables
+SELECT relreplident FROM pg_class WHERE oid = 'pg_class'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 2")
+
+-----------
+QUERY:
+
+SELECT relreplident FROM pg_class WHERE oid = 'pg_constraint'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+
+----
+-- Make sure we detect ineligible indexes
+----
+
+-- fail, not unique
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '----\n-- Make sure we detect ineligible indexes\n----\n\n-- fail, not unique\nALTER T' at line 1")
+
+-----------
+QUERY:
+
+-- fail, not a candidate key, nullable column
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_nonkey;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_nonkey' at line 2")
+
+-----------
+QUERY:
+
+-- fail, hash indexes cannot do uniqueness
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_hash;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_hash' at line 2")
+
+-----------
+QUERY:
+
+-- fail, expression index
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_expr;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_expr' at line 2")
+
+-----------
+QUERY:
+
+-- fail, partial index
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_partial;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_partial' at line 2")
+
+-----------
+QUERY:
+
+-- fail, not our index
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_othertable_pkey;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_othertable_pkey' at line 2")
+
+-----------
+QUERY:
+
+-- fail, deferrable
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_defer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_unique_defer' at line 2")
+
+-----------
+QUERY:
+
+-- fail, deferrable
+ALTER TABLE test_replica_identity_t3 REPLICA IDENTITY USING INDEX pk;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX pk' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+
+----
+-- Make sure index cases succeed
+----
+
+-- succeed, primary key
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_pkey;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '----\n-- Make sure index cases succeed\n----\n\n-- succeed, primary key\nALTER TABLE ' at line 1")
+
+-----------
+QUERY:
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_replica_identity
+
+-- succeed, nondeferrable unique constraint over nonnullable cols
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_nondefer;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_unique_nondefer' at line 4")
+
+-----------
+QUERY:
+
+
+-- succeed unique index over nonnullable cols
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key' at line 2")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key' at line 1")
+
+-----------
+QUERY:
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_replica_identity
+SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND indisreplident' at line 2")
+
+-----------
+QUERY:
+
+
+----
+-- Make sure non index cases work
+----
+ALTER TABLE test_replica_identity REPLICA IDENTITY DEFAULT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '----\n-- Make sure non index cases work\n----\nALTER TABLE test_replica_identity RE' at line 1")
+
+-----------
+QUERY:
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass AND indisreplident' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER TABLE test_replica_identity REPLICA IDENTITY FULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY FULL' at line 1")
+
+-----------
+QUERY:
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ test_replica_identity
+ALTER TABLE test_replica_identity REPLICA IDENTITY NOTHING;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY NOTHING' at line 2")
+
+-----------
+QUERY:
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass' at line 1")
+
+-----------
+QUERY:
+
+
+---
+-- Test that ALTER TABLE rewrite preserves nondefault replica identity
+---
+
+-- constraint variant
+CREATE TABLE test_replica_identity2 (id int UNIQUE NOT NULL);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '---\n-- Test that ALTER TABLE rewrite preserves nondefault replica identity\n---\n\n' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity2 REPLICA IDENTITY USING INDEX test_replica_identity2_id_key;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity2_id_key' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_replica_identity2
+ALTER TABLE test_replica_identity2 ALTER COLUMN id TYPE bigint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE bigint' at line 2")
+
+-----------
+QUERY:
+
+-- \d test_replica_identity2
+
+-- straight index variant
+CREATE TABLE test_replica_identity3 (id int NOT NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX test_replica_identity3_id_key ON test_replica_identity3 (id);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity3 REPLICA IDENTITY USING INDEX test_replica_identity3_id_key;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity3_id_key' at line 1")
+
+-----------
+QUERY:
+
+-- \d test_replica_identity3
+ALTER TABLE test_replica_identity3 ALTER COLUMN id TYPE bigint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE bigint' at line 2")
+
+-----------
+QUERY:
+
+-- \d test_replica_identity3
+
+-- ALTER TABLE DROP NOT NULL is not allowed for columns part of an index
+-- used as replica identity.
+ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NOT NULL' at line 5")
+
+-----------
+QUERY:
+
+-- but it/* REPLACED */ ''s OK when the identity is FULL
+ALTER TABLE test_replica_identity3 REPLICA IDENTITY FULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY FULL' at line 2")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NOT NULL' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Test that replica identity can be set on an index that/* REPLACED */ ''s not yet valid.
+-- (This matches the way pg_dump will try to dump a partitioned table.)
+--
+CREATE TABLE test_replica_identity4(id integer NOT NULL) PARTITION BY LIST (id);
+RESULT:
+	ERROR - (1492, 'For LIST partitions each partition must be defined')
+
+-----------
+QUERY:
+
+CREATE TABLE test_replica_identity4_1(id integer NOT NULL);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE ONLY test_replica_identity4
+  ATTACH PARTITION test_replica_identity4_1 FOR VALUES IN (1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_replica_identity4\n  ATTACH PARTITION test_replica_identity4_1 FOR VALUES IN' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE ONLY test_replica_identity4
+  ADD CONSTRAINT test_replica_identity4_pkey PRIMARY KEY (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_replica_identity4\n  ADD CONSTRAINT test_replica_identity4_pkey PRIMARY KEY ' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE ONLY test_replica_identity4
+  REPLICA IDENTITY USING INDEX test_replica_identity4_pkey;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_replica_identity4\n  REPLICA IDENTITY USING INDEX test_replica_identity4_pke' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE ONLY test_replica_identity4_1
+  ADD CONSTRAINT test_replica_identity4_1_pkey PRIMARY KEY (id);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_replica_identity4_1\n  ADD CONSTRAINT test_replica_identity4_1_pkey PRIMARY ' at line 1")
+
+-----------
+QUERY:
+
+-- \d+ test_replica_identity4
+ALTER INDEX test_replica_identity4_pkey
+  ATTACH PARTITION test_replica_identity4_1_pkey;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INDEX test_replica_identity4_pkey\n  ATTACH PARTITION test_replica_identity4_1_pk' at line 2")
+
+-----------
+QUERY:
+
+-- \d+ test_replica_identity4
+
+-- Dropping the primary key is not allowed if that would leave the replica
+-- identity as nullable
+CREATE TABLE test_replica_identity5 (a int not null, b int, c int,
+	PRIMARY KEY (b, c));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE UNIQUE INDEX test_replica_identity5_a_b_key ON test_replica_identity5 (a, b);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity5 REPLICA IDENTITY USING INDEX test_replica_identity5_a_b_key;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'REPLICA IDENTITY USING INDEX test_replica_identity5_a_b_key' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey;
+RESULT:
+	ERROR - (3940, "Constraint 'test_replica_identity5_pkey' does not exist.")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity5 ALTER b SET NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NOT NULL' at line 1")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey;
+RESULT:
+	ERROR - (3940, "Constraint 'test_replica_identity5_pkey' does not exist.")
+
+-----------
+QUERY:
+
+ALTER TABLE test_replica_identity5 ALTER b DROP NOT NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NOT NULL' at line 1")
+
+-----------
+QUERY:
+
+
+DROP TABLE test_replica_identity;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_replica_identity'")
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_replica_identity2'")
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity3;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity4;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_replica_identity4'")
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity_othertable;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity_t3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.test_replica_identity_t3'")

@@ -21,7 +21,7 @@ logging.debug("PG_LIBDIR={}".format(PG_LIBDIR))
 logging.debug("PG_DLSUFFIX={}".format(PG_DLSUFFIX))
 logging.debug("PG_ABS_BUILDDIR={}".format(PG_ABS_BUILDDIR))
 
-EXCLUDED_TESTS = ['generated', 'collate.windows.win1252', 'data', 'typed_table', 'with']
+EXCLUDED_TESTS = ['generated', 'collate.windows.win1252', 'data', 'typed_table', 'with', 'psql']
 
 TEST_PATH = PG_ABS_SRCDIR
 RESULT_PATH = PG_ABS_BUILDDIR 
@@ -29,6 +29,7 @@ COMPARE_TO_EXPECTED_RESULT = False
 GENERATE_EXPECTED = False
 PURGE_TESTS = False
 FLOAT_TOLERANCE=0.001
+MySQL_PW = ""
 
 arguments = sys.argv[1:]
 arg_idx = 0
@@ -45,6 +46,9 @@ while arg_idx < len(arguments):
         arg_idx = arg_idx+1
     elif arguments[arg_idx] in ("--tol") and arg_idx < len(arguments)-1:
         FLOAT_TOLERANCE = float(arguments[arg_idx+1])
+        arg_idx = arg_idx+1
+    elif arguments[arg_idx] in ("--mysql_password", "--mysql_pw") and arg_idx < len(arguments)-1:
+        MySQL_PW = str(arguments[arg_idx+1])
         arg_idx = arg_idx+1
     elif arguments[arg_idx] in ("--purge", "-p"):
         PURGE_TESTS = True
@@ -81,11 +85,16 @@ class TestResult(object):
     dbms = ""
     compatibility = None
     test = ""
+    percentages = []
 
-    def __init__(self, dbms, compatibility, test_name):
+    def __init__(self, dbms, compatibility: CompatibilityCase, test_name, percentages):
         self.dbms = dbms
         self.compatibility = compatibility
         self.test = test_name
+        self.percentages = percentages
+
+    def get_summary_string(self)->str:
+        return f"{self.dbms}: {self.compatibility.name} ({self.percentages})"
 
 
     def __str__(self):
@@ -167,16 +176,16 @@ class SQLDialectWrapper(object):
     def close_result_file(self):
         pass
 
-    def exec_query(self, query):
+    def exec_query(self, query: str) -> QueryResult:
         pass
 
-    def create_query_result(self, status, result, error):
+    def create_query_result(self, status, result, error) -> QueryResult:
         return QueryResult(self.name, status, result, error)
     
-    def create_empty_query_result(self):
+    def create_empty_query_result(self) -> QueryResult:
         return self.create_query_result(QueryStatus.PASS, [], None)
     
-    def create_error_query_result(self, e):
+    def create_error_query_result(self, e) -> QueryResult:
         return self.create_query_result(QueryStatus.ERROR, None, e)
 
 
@@ -208,7 +217,7 @@ class DuckDB(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_query(self, query):
+    def exec_query(self, query: str) -> QueryResult:
         try:
             result = self.db_conn.sql(query)
             if result == None:
@@ -281,8 +290,10 @@ class PostgreSQL(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_query(self, query):
+    def exec_query(self, query: str) -> QueryResult:
         try:
+            if re.search(r"copy\s+[^\s]*\s+from\s+", query, re.IGNORECASE) != None:
+                self.db_cursor.copy_from(query)
             self.db_cursor.execute(query)
             result = self.db_cursor.fetchall()
             return self.create_query_result(QueryStatus.PASS, result, None)
@@ -314,7 +325,7 @@ class MySQL(SQLDialectWrapper):
 
     def setup_clean_db(self):
         logging.debug("MYSQL: Setup clean database {} with user {} at {}:{}".format(self.DATABASE_NAME, self.DATABASE_USER, self.HOST, self.PORT))
-        con = pymysql.connect(user=self.DATABASE_USER, password="sao", host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
+        con = pymysql.connect(user=self.DATABASE_USER, password=MySQL_PW, host=self.HOST, port=self.PORT, client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS)
         # con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         self.db_conn = con
         cur = con.cursor()
@@ -331,7 +342,7 @@ class MySQL(SQLDialectWrapper):
 
     def setup_connection(self):
         logging.info("MYSQL: Connecting to database {} at {}:{}".format(self.DATABASE_NAME, self.HOST, self.PORT))
-        con = pymysql.connect(user=self.DATABASE_USER, password="sao", host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
+        con = pymysql.connect(user=self.DATABASE_USER, password=MySQL_PW, host=self.HOST, port=self.PORT, database=self.DATABASE_NAME)
         #con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         self.db_conn = con
         cur = con.cursor()
@@ -353,7 +364,7 @@ class MySQL(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
-    def exec_query(self, query):
+    def exec_query(self, query: str) -> QueryResult:
         try:
             self.db_cursor.execute(query)
             result = self.db_cursor.fetchall()
@@ -371,14 +382,23 @@ class MySQL(SQLDialectWrapper):
         except pymysql.Error as e:
             return self.create_error_query_result(e)      
 
-def get_guest_dbms(file_path):
+
+def init_dialects(guest_dbms: str) -> list[SQLDialectWrapper]:
+    if GENERATE_EXPECTED:
+        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB(), MySQL()]
+        return [d for d in all_dbms if d.name == guest_dbms]
+    return [PostgreSQL('regression', None, None), DuckDB(), MySQL()] 
+
+# determines and returns the guest dbms based on the file path
+def get_guest_dbms(file_path: str) -> str:
     return file_path.split("/")[-3].replace("_tests", "")
 
-def is_guest_dbms(dbms: SQLDialectWrapper, guest_dbms):
+
+def is_guest_dbms(dbms: SQLDialectWrapper, guest_dbms: str) -> bool:
     return dbms.name == guest_dbms
 
 
-def compare_elements(elem1, elem2, tolerance=FLOAT_TOLERANCE):
+def compare_elements(elem1, elem2, tolerance=FLOAT_TOLERANCE) -> bool:
     if isinstance(elem1, (int, float)) and isinstance(elem2, (int, float)):
         if math.isnan(elem1) and math.isnan(elem2):
             return True
@@ -393,8 +413,10 @@ def compare_elements(elem1, elem2, tolerance=FLOAT_TOLERANCE):
         return all(compare_elements(elem1[key], elem2[key], tolerance) for key in elem1)
     else:
         return elem1 == elem2
-    
-def is_result_identical(guest_result, host_result, is_ordered)-> bool:
+
+# compares two query results
+# returns True iff the results are identical
+def is_result_identical(guest_result, host_result, is_ordered: bool)-> bool:
     logging.debug("is_result_identical")
     if guest_result == None or host_result == None:
         return guest_result == None and host_result == None
@@ -413,7 +435,13 @@ def is_result_identical(guest_result, host_result, is_ordered)-> bool:
             other_list = host_result
         return compare_elements(sorted(self_list, key=lambda x: [(val is None, val) for val in x]), sorted(other_list, key=lambda x: [(val is None, val) for val in x]))
 
-def compare_single_result(guest_result: QueryResult, host_result: QueryResult, is_ordered=False):
+# returns True iff the query contains an order by clause
+def is_ordered(query: str)-> bool:
+    pattern = re.compile(r'[\s\(;\[\)\]]{}[\s\(;\[\)\]]'.format(re.escape("order by"), re.IGNORECASE))
+    return re.search(pattern, query) is not None
+
+# compares two query results and returns the compatibility case
+def compare_single_result(guest_result: QueryResult, host_result: QueryResult, is_ordered=False) -> CompatibilityCase:
     try:
         if guest_result.status !=  host_result.status:
             return CompatibilityCase.ERROR
@@ -427,11 +455,9 @@ def compare_single_result(guest_result: QueryResult, host_result: QueryResult, i
         logging.error(f"Could not compare results. {e}")
         return CompatibilityCase.ERROR
 
-def is_ordered(query: str)-> bool:
-    pattern = re.compile(r'[\s\(;\[\)\]]{}[\s\(;\[\)\]]'.format(re.escape("order by"), re.IGNORECASE))
-    return re.search(pattern, query) is not None
-
-def compare_results(results, guest_dbms, is_ordered):
+# compares results of a single query executed on many DBMSs to the guest DBMS result
+# returns a list of compatibility cases
+def compare_results(results: list[QueryResult], guest_dbms: str, is_ordered: bool) -> list[CompatibilityCaseWrapper]:
     guest_results = [r for r in results if r.dbms == guest_dbms]
     hosts_results = [r for r in results if r.dbms != guest_dbms]
 
@@ -448,45 +474,79 @@ def compare_results(results, guest_dbms, is_ordered):
         comp_cases.append(CompatibilityCaseWrapper(h.dbms, cc))
     return comp_cases
 
+# compares the guest result file to the expected.txt (both files need to exist already!)
+# returns True iff the files are identical
+def compare_to_expected_result(guest_result_file_name: str, expected_result_file_name: str, summary_file) -> bool:
+    try:
+        guest_result_file = open(guest_result_file_name, 'r')
+        expected_result_file_name = expected_result_file_name.replace('test.sql', 'expected.txt')
+        expected_result_file = open(expected_result_file_name, 'r')
+        logging.debug(f"Comparing {guest_result_file_name} to {expected_result_file_name}")
+        guest_results = guest_result_file.readlines() 
+        expected_results = expected_result_file.readlines()
+        guest_result_file.close()
+        expected_result_file.close()
 
-def compute_summary(all_results, dialects, summary_file, test_name, guest_dbms):
-    logging.debug("Computing summary...")
-    logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
+        if len(guest_results) != len(expected_results):
+            logging.error(f"Different to expected results: {guest_result_file_name}")
+            write_to_summary_file(summary_file, "Different to expected results")
+            return False
 
-    overall_compatibility = []
-
-    write_to_summary_file(summary_file, "=========================================\n")
-    write_to_summary_file(summary_file, "Summary for test case {} of {}\n".format(test_name, guest_dbms))
-    write_to_summary_file(summary_file, "=========================================\n")  
-
-    print("=========================================")
-    print("Summary for test case {} of {}".format(test_name, guest_dbms))
-    print("=========================================")  
-
-    for d in dialects:
-        d_results = [cc for row in all_results for cc in row if cc.dbms == d.name]
-        logging.debug("dialect {}, d_results: {}".format(d.name, [str(r_) for r_ in d_results]))
-        num_results = len(d_results)
+        for i in range(len(guest_results)):
+            if guest_results[i] != expected_results[i]:
+                logging.error(f"Guest results are different to expected results at line {i}")
+                write_to_summary_file(summary_file, "Guest results are different to expected results")
+                return False
+        logging.info("Guest results are identical to expected results")
+        write_to_summary_file(summary_file, "Guest results are identical to expected results")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to compare to expected file. {e}")
+        write_to_summary_file(summary_file, f"Failed to compare to expected file. {e}")
+        return False
         
-        if num_results == 0:
-            continue
-        
-        print("\n=================\nResults for {}\n".format(d.name))
-        write_to_summary_file(summary_file, "\n=================\nResults for {}\n".format(d.name))
-        curr_comp_case = CompatibilityCase.SAME
-        for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
-            num = len([r for r in d_results if r.result == cc])
-            if num > 0:
-                curr_comp_case = cc
-            percentage = num/num_results * 100
-            print("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
-            write_to_summary_file(summary_file, "{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
-    
-        overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name))
-    return overall_compatibility
+
+# returns the next query
+def get_query_string(query_iter) -> str:
+    query = next(query_iter)
+    dollar_count = query.count('$$')
+    double_quotes_count = query.count('"') - query.count("\"")
+    single_quotes_count = query.count("'") - query.count("\'")
+
+    while dollar_count % 2 != 0 or  double_quotes_count % 2 != 0 or single_quotes_count % 2 != 0:
+        try:
+            query = query + ";" + next(query_iter)
+            dollar_count = query.count('$$')
+            double_quotes_count = query.count('"') - query.count("\"")
+            single_quotes_count = query.count("'") - query.count("\'")
+        except StopIteration as e:
+            logging.error(f"Index out of bounds. Query: {query}")
+            raise e
+
+    try:
+        peek = next(query_iter)
+        query_iter = itertools.chain([peek], query_iter)
+        return f"{query};", query_iter
+    except StopIteration:
+        return f"{query}", query_iter # no semicolon here
+
+# transforms a query string read from setup.sql or test.sql to an executable query by
+# replacing some variables by the correct values (e.g. paths that we do not want to hard-code)
+def transform_to_executable_query(query: str) -> str:
+    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
+                vars = ['PG_ABS_SRCDIR', 'PG_LIBDIR', 'PG_DLSUFFIX', 'PG_ABS_BUILDDIR']
+                for v in vars:
+                    query = re.sub(r'\'\s+{}'.format(re.escape(v)), f'\' || {v}', query)
+                    query = re.sub(r'{}\s+\''.format(re.escape(v)), f'{v} || \'', query)
+                query = query.replace('PG_ABS_SRCDIR', " '" + PG_ABS_SRCDIR + "'")
+                query = query.replace('PG_LIBDIR', " '" + PG_LIBDIR + "'")
+                query = query.replace('PG_DLSUFFIX', " '" + PG_DLSUFFIX + "'")
+                query = query.replace('PG_ABS_BUILDDIR', " '" + PG_ABS_BUILDDIR + "'")
+                query = re.sub(r'\'\s+{}\s+\''.format(re.escape('||')), '', query)
+    return query
 
 
-def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
+def execute_setup_sql(sql_dialects: list[SQLDialectWrapper], sql_file: str, result_folder: str, writeToFile=True):
     logging.debug(f"Executing setup {sql_file}")
     if writeToFile:
         # We write the results to a file such that results can be compare without needing to rerun the tests all the time
@@ -529,8 +589,7 @@ def execute_setup_sql(sql_dialects, sql_file, result_folder, writeToFile=True):
         for dialect in sql_dialects:
             dialect.close_result_file()
 
-
-def execute_test_sql(sql_dialects, sql_file, result_folder, compute_summary_enabled=True):
+def execute_test_sql(sql_dialects: list[SQLDialectWrapper], sql_file: str, result_folder: str, compute_summary_enabled=True) -> list[TestResult]:
     logging.debug(f"Executing setup {sql_file}")
     # We write the results to a file such that results can be compare without needing to rerun the tests all the time
     for dialect in sql_dialects:
@@ -590,74 +649,8 @@ def execute_test_sql(sql_dialects, sql_file, result_folder, compute_summary_enab
         summary_file.close() 
     return overall_compatibility
  
-
-def compare_to_expected_result(guest_result_file_name, expected_result_file_name, summary_file):
-    try:
-        guest_result_file = open(guest_result_file_name, 'r')
-        expected_result_file_name = expected_result_file_name.replace('test.sql', 'expected.txt')
-        expected_result_file = open(expected_result_file_name, 'r')
-        logging.debug(f"Comparing {guest_result_file_name} to {expected_result_file_name}")
-        guest_results = guest_result_file.readlines() 
-        expected_results = expected_result_file.readlines()
-        guest_result_file.close()
-        expected_result_file.close()
-
-        if len(guest_results) != len(expected_results):
-            logging.error(f"Different to expected results: {guest_result_file_name}")
-            write_to_summary_file(summary_file, "Different to expected results")
-            return False
-
-        for i in range(len(guest_results)):
-            if guest_results[i] != expected_results[i]:
-                logging.error(f"Guest results are different to expected results at line {i}")
-                write_to_summary_file(summary_file, "Guest results are different to expected results")
-                return False
-        logging.info("Guest results are identical to expected results")
-        write_to_summary_file(summary_file, "Guest results are identical to expected results")
-        return True
-    except Exception as e:
-        logging.error(f"Failed to compare to expected file. {e}")
-        write_to_summary_file(summary_file, f"Failed to compare to expected file. {e}")
-        return False
-        
-
-def get_query_string(query_iter):
-    query = next(query_iter)
-    dollar_count = query.count('$$')
-    double_quotes_count = query.count('"') - query.count("\"")
-    single_quotes_count = query.count("'") - query.count("\'")
-
-    while dollar_count % 2 != 0 or  double_quotes_count % 2 != 0 or single_quotes_count % 2 != 0:
-        try:
-            query = query + ";" + next(query_iter)
-            dollar_count = query.count('$$')
-            double_quotes_count = query.count('"') - query.count("\"")
-            single_quotes_count = query.count("'") - query.count("\'")
-        except StopIteration as e:
-            logging.error(f"Index out of bounds. Query: {query}")
-            raise e
-
-    try:
-        peek = next(query_iter)
-        query_iter = itertools.chain([peek], query_iter)
-        return f"{query};", query_iter
-    except StopIteration:
-        return f"{query}", query_iter # no semicolon here
-
-def transform_to_executable_query(query: str) -> str:
-    if 'PG_ABS_SRCDIR' in query or 'PG_LIBDIR' in query or 'PG_DLSUFFIX' in query or 'PG_ABS_BUILDDIR' in query:
-                vars = ['PG_ABS_SRCDIR', 'PG_LIBDIR', 'PG_DLSUFFIX', 'PG_ABS_BUILDDIR']
-                for v in vars:
-                    query = re.sub(r'\'\s+{}'.format(re.escape(v)), f'\' || {v}', query)
-                    query = re.sub(r'{}\s+\''.format(re.escape(v)), f'{v} || \'', query)
-                query = query.replace('PG_ABS_SRCDIR', " '" + PG_ABS_SRCDIR + "'")
-                query = query.replace('PG_LIBDIR', " '" + PG_LIBDIR + "'")
-                query = query.replace('PG_DLSUFFIX', " '" + PG_DLSUFFIX + "'")
-                query = query.replace('PG_ABS_BUILDDIR', " '" + PG_ABS_BUILDDIR + "'")
-                query = re.sub(r'\'\s+{}\s+\''.format(re.escape('||')), '', query)
-    return query
-
-def execute_single_test(test_folder, result_folder):
+# executes a single tests by setting up the databases, calling the execute setup and test methods and cleanin up afterwards
+def execute_single_test(test_folder: str, result_folder: str):
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
 
@@ -677,8 +670,50 @@ def execute_single_test(test_folder, result_folder):
 
     return test_result
 
+# computes the summary of a single test
+# The summary contains the percentage of each compatibility case of each host DBMS
+# The summary is written to stdout and the test's summary file
+# returns a list of TestResults that contains, for each host DBMS, the overall test compatibility and the percentages
+def compute_summary(all_results: list[list[CompatibilityCaseWrapper]], dialects: list[SQLDialectWrapper], summary_file, test_name: str, guest_dbms: str) -> list[TestResult]:
+    logging.debug("Computing summary...")
+    logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
 
-def is_readonly_query(query: str):
+    overall_compatibility = []
+
+    write_to_summary_file(summary_file, "=========================================\n")
+    write_to_summary_file(summary_file, "Summary for test case {} of {}\n".format(test_name, guest_dbms))
+    write_to_summary_file(summary_file, "=========================================\n")  
+
+    print("=========================================")
+    print("Summary for test case {} of {}".format(test_name, guest_dbms))
+    print("=========================================")  
+
+    for d in dialects:
+        d_results = [cc for row in all_results for cc in row if cc.dbms == d.name]
+        logging.debug("dialect {}, d_results: {}".format(d.name, [str(r_) for r_ in d_results]))
+        num_results = len(d_results)
+        
+        if num_results == 0:
+            continue
+        
+        print("\n=================\nResults for {}\n".format(d.name))
+        write_to_summary_file(summary_file, "\n=================\nResults for {}\n".format(d.name))
+        curr_comp_case = CompatibilityCase.SAME
+        percentages = []
+        for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
+            num = len([r for r in d_results if r.result == cc])
+            if num > 0:
+                curr_comp_case = cc
+            percentage = num/num_results * 100
+            percentages.append((cc, percentage))
+            print("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
+            write_to_summary_file(summary_file, "{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
+    
+        overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name, percentages))
+    return overall_compatibility
+
+# functions related to purging
+def is_readonly_query(query: str) -> bool:
     for line in query.splitlines():
         line = line.strip()
         if line == '' or line.startswith('--'):
@@ -689,8 +724,8 @@ def is_readonly_query(query: str):
         else:
             return False
 
-
-def extract_unused_names(setup_file, test_file):
+# determines and returns tables, functions, types,... that are created in setup.sql but do not appear in test.sql
+def extract_unused_names(setup_file: str, test_file: str) -> list[str]:
     setup_file_stream = open(setup_file, 'r')
     setup_string = setup_file_stream.read()
     setup_file_stream.close()
@@ -712,7 +747,7 @@ def extract_unused_names(setup_file, test_file):
     return list(set(unused_names))
 
 
-def is_create_unused_name(query, unused_names):
+def is_create_unused_name(query: str, unused_names: list[str]) -> bool:
     for name in unused_names:
         pattern = re.compile(r'CREATE\s+(?:TABLE|ROLE|FUNCTION|TYPE)\s+{}[\s\(;\[]'.format(re.escape(name)), re.IGNORECASE)
         test = re.search(pattern, query)
@@ -721,7 +756,12 @@ def is_create_unused_name(query, unused_names):
     return False
 
 
-def purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove):
+# Purges the setup.sql by 
+#   - removing read-only queries
+#   - removing all create table/function/... statements of names_to_remove
+#   - removing all errornous statements
+# returns True iff the setup.sql has changed.
+def purge_setup_sql(dialect: SQLDialectWrapper, setup_file: str, setup_tmp_file: str, names_to_remove: list[str]) -> bool:
     logging.debug(f"Purge setup {setup_file}")
 
     test_file_stream = open(setup_file, 'r')
@@ -765,7 +805,9 @@ def purge_setup_sql(dialect, setup_file, setup_tmp_file, names_to_remove):
     return has_changed
 
 
-def purge_test_sql(dialect, sql_file, expected_file):
+# purges the test.sql by removing all non-deterministic queries
+# returns True iff the test.sql has changed.
+def purge_test_sql(dialect: SQLDialectWrapper, sql_file: str, expected_file: str) -> bool:
     logging.warning(f"Purge test {sql_file}")
     
     test_file_stream = open(sql_file, 'r')
@@ -828,7 +870,13 @@ def purge_test_sql(dialect, sql_file, expected_file):
     return has_changed
  
 
-def purge_single_test(test_folder):
+# Purges test.sql and
+# minimizes the setup.sql by 
+#   - removing read-only queries
+#   - removing all create table/function/... statements of unused names
+#   - removing all errornous statements
+#   This is done step-by-step and changes are only applied when the test.sql returns the expected results.
+def purge_single_test(test_folder: str):
     print("==============================================\n")
     print(f"purge single test {test_folder}\n")
     setup_file = test_folder + "/setup.sql"
@@ -928,7 +976,46 @@ def purge_single_test(test_folder):
     print("Removed names (not required by test): ", names_to_remove)
 
 
-def execute_tests_in_folder_rec(test_folder, result_folder):
+def write_to_summary_file(summary_file, text: str):
+    if not GENERATE_EXPECTED and not summary_file is None:
+        summary_file.write(text)
+
+# computes the overall summary (e.g. percentage for each compatibility case for each DBMS)
+# summary as printed to std and writen to the overall_summary.txt
+def compute_overall_summary(all_results: list[list[TestResult]], result_folder: str):
+    summary_file = open(os.path.join(result_folder, "summary_overall.txt"),  'w')
+    if len(all_results) == 0:
+        logging.error("No results found")
+        return
+    logging.debug("Computing overall summary...")
+    logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
+    logging.debug(f"all_results[0] {str(all_results[0])}")
+
+    dialects = [r.dbms for r in all_results[0]]
+    
+    for row in all_results:
+        summary_file.write(f"\n=====\n{row[0].test}\n")
+        for tr in row:
+            summary_file.write(tr.get_summary_string()+"\n")
+
+    for d in dialects:
+        d_results = [cc for row in all_results for cc in row if cc.dbms == d]
+        logging.debug("dialect {}, d_results: {}".format(d, [str(res) for res in d_results]))
+        num_results = len(d_results)
+        
+        print(f"\n=================\nOverall results for {d}\n")
+        summary_file.write(f"\n=================\nOverall results for {d}\n")
+        for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
+            num = len([r for r in d_results if r.compatibility == cc])
+            
+            percentage = num/num_results * 100
+            print("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
+            summary_file.write("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
+    
+    summary_file.close()
+
+# iterates through the test folder and executes/purges all tests
+def execute_tests_in_folder_rec(test_folder: str, result_folder: str)-> list[list[TestResult]]:
     logging.info(f"Execute ALL tests in {test_folder} (and all subfolders) and storing results in {result_folder}")
     all_results = []
     items = os.listdir(test_folder)
@@ -953,46 +1040,6 @@ def execute_tests_in_folder_rec(test_folder, result_folder):
                 purge_single_test(test_folder)
             return all_results # we assume there are no subfolders with tests
     return all_results
-
-
-def init_dialects(guest_dbms):
-    if GENERATE_EXPECTED:
-        all_dbms = [PostgreSQL('regression', None, 'expected.txt'), DuckDB(), MySQL()] # TODO other SQL dialects here
-        return [d for d in all_dbms if d.name == guest_dbms]
-    return [PostgreSQL('regression', None, None), DuckDB(), MySQL()] 
-
-
-def compute_overall_summary(all_results, result_folder):
-    summary_file = open(os.path.join(result_folder, "summary_overall.txt"),  'w')
-    if len(all_results) == 0:
-        logging.error("No results found")
-        return
-    logging.debug("Computing overall summary...")
-    logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
-    logging.debug(f"all_results[0] {str(all_results[0])}")
-
-    dialects = [r.dbms for r in all_results[0]]
-
-    for d in dialects:
-        d_results = [cc for row in all_results for cc in row if cc.dbms == d]
-        logging.debug("dialect {}, d_results: {}".format(d, [str(res) for res in d_results]))
-        num_results = len(d_results)
-        
-        print(f"\n=================\nOverall results for {d}\n")
-        summary_file.write(f"\n=================\nOverall results for {d}\n")
-        for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
-            num = len([r for r in d_results if r.compatibility == cc])
-            
-            percentage = num/num_results * 100
-            print("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
-            summary_file.write("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
-    
-    summary_file.close()
-
-
-def write_to_summary_file(summary_file, text):
-    if not GENERATE_EXPECTED and not summary_file is None:
-        summary_file.write(text)
 
 
 all_results = execute_tests_in_folder_rec(TEST_PATH, RESULT_PATH)

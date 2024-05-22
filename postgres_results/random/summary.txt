@@ -16,11 +16,13 @@ QUERY:
 -- of failure, per https://en.wikipedia.org/wiki/Birthday_problem)
 SELECT r, count(*)
 FROM (SELECT random() r FROM generate_series(1, 1000)) ss
-GROUP BY r HAVING count(*) > 1
-RESULT: ['duckdb: SAME']
+GROUP BY r HAVING count(*) > 1;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- The range should be [0, 1).  We can expect that at least one out of 2000
 -- random values is in the lowest or highest 1% of the range with failure
 -- probability less than about 1e-9.
@@ -28,11 +30,13 @@ QUERY:
 SELECT count(*) FILTER (WHERE r < 0 OR r >= 1) AS out_of_range,
        (count(*) FILTER (WHERE r < 0.01)) > 0 AS has_small,
        (count(*) FILTER (WHERE r > 0.99)) > 0 AS has_large
-FROM (SELECT random() r FROM generate_series(1, 2000)) ss
-RESULT: ['duckdb: SAME']
+FROM (SELECT random() r FROM generate_series(1, 2000)) ss;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- Check for uniform distribution using the Kolmogorov-Smirnov test.
 
 CREATE FUNCTION ks_test_uniform_random()
@@ -54,47 +58,56 @@ BEGIN
   RETURN ok;
 END
 $$
-LANGUAGE plpgsql
-RESULT: ['duckdb: ERROR']
+LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- As written, ks_test_uniform_random() returns true about 99.9%
 -- of the time.  To get down to a roughly 1e-9 test failure rate,
 -- just run it 3 times and accept if any one of them passes.
 SELECT ks_test_uniform_random() OR
        ks_test_uniform_random() OR
-       ks_test_uniform_random() AS uniform
-RESULT: ['duckdb: ERROR']
+       ks_test_uniform_random() AS uniform;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- now test random_normal()
 
 -- As above, there should be no duplicates in 1000 random_normal() values.
 SELECT r, count(*)
 FROM (SELECT random_normal() r FROM generate_series(1, 1000)) ss
-GROUP BY r HAVING count(*) > 1
-RESULT: ['duckdb: ERROR']
+GROUP BY r HAVING count(*) > 1;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- ... unless we force the range (standard deviation) to zero.
 -- This is a good place to check that the mean input does something, too.
 SELECT r, count(*)
 FROM (SELECT random_normal(10, 0) r FROM generate_series(1, 100)) ss
-GROUP BY r
-RESULT: ['duckdb: ERROR']
+GROUP BY r;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 SELECT r, count(*)
 FROM (SELECT random_normal(-10, 0) r FROM generate_series(1, 100)) ss
-GROUP BY r
-RESULT: ['duckdb: ERROR']
+GROUP BY r;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- Check standard normal distribution using the Kolmogorov-Smirnov test.
 
 CREATE FUNCTION ks_test_normal_random()
@@ -117,47 +130,58 @@ BEGIN
   RETURN ok;
 END
 $$
-LANGUAGE plpgsql
-RESULT: ['duckdb: ERROR']
+LANGUAGE plpgsql;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- As above, ks_test_normal_random() returns true about 99.9%
 -- of the time, so try it 3 times and accept if any test passes.
 SELECT ks_test_normal_random() OR
        ks_test_normal_random() OR
-       ks_test_normal_random() AS standard_normal
-RESULT: ['duckdb: ERROR']
+       ks_test_normal_random() AS standard_normal;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- setseed() should produce a reproducible series of random() values.
 
-SELECT setseed(0.5)
-RESULT: ['duckdb: DIFFERENT']
+SELECT setseed(0.5);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT random() FROM generate_series(1, 10)
-RESULT: ['duckdb: DIFFERENT']
+
+
+SELECT random() FROM generate_series(1, 10);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
--- Likewise for random_normal() /* REPLACED */, however, since its implementation relies
+
+
+-- Likewise for random_normal() /* REPLACED */ , however, since its implementation relies
 -- on libm functions that have different roundoff behaviors on different
 -- machines, we have to round off the results a bit to get consistent output.
-SET extra_float_digits = -1
-RESULT: ['duckdb: ERROR']
+SET extra_float_digits = -1;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT random_normal() FROM generate_series(1, 10)
-RESULT: ['duckdb: ERROR']
+
+
+SELECT random_normal() FROM generate_series(1, 10);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT random_normal(mean => 1, stddev => 0.1) r FROM generate_series(1, 10)
-RESULT: ['duckdb: ERROR']
+
+SELECT random_normal(mean => 1, stddev => 0.1) r FROM generate_series(1, 10);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 =========================================
 Summary for test case random/test.sql of postgres
 =========================================
@@ -167,4 +191,9 @@ Results for duckdb
 SAME: 2 queries, which is 14.29%
 DIFFERENT: 2 queries, which is 14.29%
 ERROR: 10 queries, which is 71.43%
-Guest results are identical to expected results
+
+=================
+Results for mysql
+SAME: 0 queries, which is 0.00%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 14 queries, which is 100.00%

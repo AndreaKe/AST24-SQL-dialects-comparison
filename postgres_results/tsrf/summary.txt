@@ -7,7 +7,7 @@ QUERY:
 
 -- simple srf
 SELECT generate_series(1, 3);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -15,7 +15,7 @@ QUERY:
 
 -- parallel iteration
 SELECT generate_series(1, 3), generate_series(3,5);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -23,7 +23,7 @@ QUERY:
 
 -- parallel iteration, different number of rows
 SELECT generate_series(1, 2), generate_series(1,4);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -31,15 +31,15 @@ QUERY:
 
 -- srf, with SRF argument
 SELECT generate_series(1, generate_series(1, 3));
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- but we/* REPLACED */''ve traditionally rejected the same in FROM
+-- but we/* REPLACED */ ''ve traditionally rejected the same in FROM
 SELECT * FROM generate_series(1, generate_series(1, 3));
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -47,7 +47,7 @@ QUERY:
 
 -- srf, with two SRF arguments
 SELECT generate_series(generate_series(1,3), generate_series(2, 4));
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -56,26 +56,26 @@ QUERY:
 -- check proper nesting of SRFs in different expressions
 explain (verbose, costs off)
 SELECT generate_series(1, generate_series(1, 3)), generate_series(2, 4);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT generate_series(1, generate_series(1, 3)), generate_series(2, 4);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 CREATE TABLE few(id int, dataa text, datab text);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 INSERT INTO few VALUES(1, 'a', 'foo'),(2, 'a', 'bar'),(3, 'b', 'bar');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -84,30 +84,30 @@ QUERY:
 -- SRF with a provably-dummy relation
 explain (verbose, costs off)
 SELECT unnest(ARRAY[1, 2]) FROM few WHERE false;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT unnest(ARRAY[1, 2]) FROM few WHERE false;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- SRF shouldn/* REPLACED */''t prevent upper query from recognizing lower as dummy
+-- SRF shouldn/* REPLACED */ ''t prevent upper query from recognizing lower as dummy
 explain (verbose, costs off)
 SELECT * FROM few f1,
   (SELECT unnest(ARRAY[1,2]) FROM few f2 WHERE false OFFSET 0) ss;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM few f1,
   (SELECT unnest(ARRAY[1,2]) FROM few f2 WHERE false OFFSET 0) ss;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -115,7 +115,7 @@ QUERY:
 
 -- SRF output order of sorting is maintained, if SRF is not referenced
 SELECT few.id, generate_series(1,3) g FROM few ORDER BY id DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -123,21 +123,21 @@ QUERY:
 
 -- but SRFs can be referenced in sort
 SELECT few.id, generate_series(1,3) g FROM few ORDER BY id, g DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT few.id, generate_series(1,3) g FROM few ORDER BY id, generate_series(1,3) DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- it/* REPLACED */''s weird to have ORDER BYs that increase the number of results
+-- it/* REPLACED */ ''s weird to have ORDER BYs that increase the number of results
 SELECT few.id FROM few ORDER BY id, generate_series(1,3) DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -145,32 +145,32 @@ QUERY:
 
 -- SRFs are computed after aggregation
 SET enable_hashagg TO 0;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- stable output order
 SELECT few.dataa, count(*), min(id), max(id), unnest('{1,1,3}'::int[]) FROM few WHERE few.id = 1 GROUP BY few.dataa;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- unless referenced in GROUP BY clause
 SELECT few.dataa, count(*), min(id), max(id), unnest('{1,1,3}'::int[]) FROM few WHERE few.id = 1 GROUP BY few.dataa, unnest('{1,1,3}'::int[]);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT few.dataa, count(*), min(id), max(id), unnest('{1,1,3}'::int[]) FROM few WHERE few.id = 1 GROUP BY few.dataa, 5;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 RESET enable_hashagg;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -178,41 +178,41 @@ QUERY:
 
 -- check HAVING works when GROUP BY does [not] reference SRF output
 SELECT dataa, generate_series(1,1), count(*) FROM few GROUP BY 1 HAVING count(*) > 1;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, generate_series(1,1), count(*) FROM few GROUP BY 1, 2 HAVING count(*) > 1;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- it/* REPLACED */''s weird to have GROUP BYs that increase the number of results
+-- it/* REPLACED */ ''s weird to have GROUP BYs that increase the number of results
 SELECT few.dataa, count(*) FROM few WHERE dataa = 'a' GROUP BY few.dataa ORDER BY 2;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT few.dataa, count(*) FROM few WHERE dataa = 'a' GROUP BY few.dataa, unnest('{1,1,3}'::int[]) ORDER BY 2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- SRFs are not allowed if they/* REPLACED */''d need to be conditionally executed
+-- SRFs are not allowed if they/* REPLACED */ ''d need to be conditionally executed
 SELECT q1, case when q1 > 0 then generate_series(1,3) else 0 end FROM int8_tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT q1, coalesce(generate_series(1,3), 0) FROM int8_tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -220,15 +220,15 @@ QUERY:
 
 -- SRFs are not allowed in aggregate arguments
 SELECT min(generate_series(1, 3)) FROM few;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
--- ... unless they/* REPLACED */''re within a sub-select
+-- ... unless they/* REPLACED */ ''re within a sub-select
 SELECT sum((3 = ANY(SELECT generate_series(1,4)))::int);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -236,7 +236,7 @@ QUERY:
 
 SELECT sum((3 = ANY(SELECT lag(x) over(order by x)
                     FROM generate_series(1,4) x))::int);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -244,7 +244,7 @@ QUERY:
 
 -- SRFs are not allowed in window function arguments, either
 SELECT min(generate_series(1, 3)) OVER() FROM few;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -252,14 +252,14 @@ QUERY:
 
 -- SRFs are normally computed after window functions
 SELECT id,lag(id) OVER(), count(*) OVER(), generate_series(1,3) FROM few;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- unless referencing SRFs
 SELECT SUM(count(*)) OVER(PARTITION BY generate_series(1,3) ORDER BY generate_series(1,3)), generate_series(1,3) g FROM few GROUP BY g;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -267,7 +267,7 @@ QUERY:
 
 -- sorting + grouping
 SELECT few.dataa, count(*), min(id), max(id), generate_series(1,3) FROM few GROUP BY few.dataa ORDER BY 5, 1;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -275,49 +275,49 @@ QUERY:
 
 -- grouping sets are a bit special, they produce NULLs in columns not actually NULL
 set enable_hashagg = false;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, datab b, generate_series(1,2) g, count(*) FROM few GROUP BY CUBE(dataa, datab);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, datab b, generate_series(1,2) g, count(*) FROM few GROUP BY CUBE(dataa, datab) ORDER BY dataa;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, datab b, generate_series(1,2) g, count(*) FROM few GROUP BY CUBE(dataa, datab) ORDER BY g;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, datab b, generate_series(1,2) g, count(*) FROM few GROUP BY CUBE(dataa, datab, g);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, datab b, generate_series(1,2) g, count(*) FROM few GROUP BY CUBE(dataa, datab, g) ORDER BY dataa;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT dataa, datab b, generate_series(1,2) g, count(*) FROM few GROUP BY CUBE(dataa, datab, g) ORDER BY g;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 reset enable_hashagg;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -326,13 +326,13 @@ QUERY:
 -- case with degenerate ORDER BY
 explain (verbose, costs off)
 select 'foo' as f, generate_series(1,2) as g from few order by 1;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select 'foo' as f, generate_series(1,2) as g from few order by 1;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -340,19 +340,19 @@ QUERY:
 
 -- data modification
 CREATE TABLE fewmore AS SELECT generate_series(1,3) AS data;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO fewmore VALUES(generate_series(4,5));
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM fewmore;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -360,7 +360,7 @@ QUERY:
 
 -- SRFs are not allowed in UPDATE (they once were, but it was nonsense)
 UPDATE fewmore SET data = generate_series(4,9);
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -368,7 +368,7 @@ QUERY:
 
 -- SRFs are not allowed in RETURNING
 INSERT INTO fewmore VALUES(1) RETURNING generate_series(1,3);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -376,7 +376,7 @@ QUERY:
 
 -- nor standalone VALUES (but surely this is a bug?)
 VALUES(1, generate_series(1,2));
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -384,13 +384,13 @@ QUERY:
 
 -- We allow tSRFs that are not at top level
 SELECT int4mul(generate_series(1,2), 10);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT generate_series(1,3) IS DISTINCT FROM 2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -398,7 +398,7 @@ QUERY:
 
 -- but SRFs in function RTEs must be at top level (annoying restriction)
 SELECT * FROM int4mul(generate_series(1,2), 10);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -406,12 +406,12 @@ QUERY:
 
 -- DISTINCT ON is evaluated before tSRF evaluation if SRF is not
 -- referenced either in ORDER BY or in the DISTINCT ON list. The ORDER
--- BY reference can be implicitly generated, if there/* REPLACED */''s no other ORDER BY.
+-- BY reference can be implicitly generated, if there/* REPLACED */ ''s no other ORDER BY.
 
 -- implicit reference (via implicit ORDER) to all columns
 SELECT DISTINCT ON (a) a, b, generate_series(1,3) g
 FROM (VALUES (3, 2), (3,1), (1,1), (1,4), (5,3), (5,1)) AS t(a, b);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -421,7 +421,7 @@ QUERY:
 SELECT DISTINCT ON (a) a, b, generate_series(1,3) g
 FROM (VALUES (3, 2), (3,1), (1,1), (1,4), (5,3), (5,1)) AS t(a, b)
 ORDER BY a, b DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -431,7 +431,7 @@ QUERY:
 SELECT DISTINCT ON (a) a, b, generate_series(1,3) g
 FROM (VALUES (3, 2), (3,1), (1,1), (1,4), (5,3), (5,1)) AS t(a, b)
 ORDER BY a, b DESC, g DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -441,7 +441,7 @@ QUERY:
 SELECT DISTINCT ON (a, b, g) a, b, generate_series(1,3) g
 FROM (VALUES (3, 2), (3,1), (1,1), (1,4), (5,3), (5,1)) AS t(a, b)
 ORDER BY a, b DESC, g DESC;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -450,7 +450,7 @@ QUERY:
 -- only SRF mentioned in DISTINCT ON
 SELECT DISTINCT ON (g) a, b, generate_series(1,3) g
 FROM (VALUES (3, 2), (3,1), (1,1), (1,4), (5,3), (5,1)) AS t(a, b);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -458,14 +458,14 @@ QUERY:
 
 -- LIMIT / OFFSET is evaluated after SRF evaluation
 SELECT a, generate_series(1,2) FROM (VALUES(1),(2),(3)) r(a) LIMIT 2 OFFSET 2;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- SRFs are not allowed in LIMIT.
 SELECT 1 LIMIT generate_series(1,3);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -473,14 +473,14 @@ QUERY:
 
 -- tSRF in correlated subquery, referencing table outside
 SELECT (SELECT generate_series(1,3) LIMIT 1 OFFSET few.id) FROM few;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- tSRF in correlated subquery, referencing SRF outside
 SELECT (SELECT generate_series(1,3) LIMIT 1 OFFSET g.i) FROM generate_series(0,3) g(i);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -488,13 +488,13 @@ QUERY:
 
 -- Operators can return sets too
 CREATE OPERATOR |@| (PROCEDURE = unnest, RIGHTARG = ANYARRAY);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT |@|ARRAY[1,2,3];
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -503,26 +503,26 @@ QUERY:
 -- Some fun cases involving duplicate SRF calls
 explain (verbose, costs off)
 select generate_series(1,3) as x, generate_series(1,3) + 1 as xp1;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select generate_series(1,3) as x, generate_series(1,3) + 1 as xp1;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 explain (verbose, costs off)
 select generate_series(1,3)+1 order by generate_series(1,3);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select generate_series(1,3)+1 order by generate_series(1,3);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -531,13 +531,13 @@ QUERY:
 -- Check that SRFs of same nesting level run in lockstep
 explain (verbose, costs off)
 select generate_series(1,3) as x, generate_series(3,6) + 1 as y;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select generate_series(1,3) as x, generate_series(3,6) + 1 as y;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -545,13 +545,13 @@ QUERY:
 
 -- Clean up
 DROP TABLE few;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 DROP TABLE fewmore;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 =========================================
 Summary for test case tsrf/test.sql of postgres
 =========================================
@@ -563,7 +563,7 @@ DIFFERENT: 26 queries, which is 35.14%
 ERROR: 33 queries, which is 44.59%
 
 =================
-Results for mySQL
+Results for mysql
 SAME: 14 queries, which is 18.92%
 DIFFERENT: 0 queries, which is 0.00%
 ERROR: 60 queries, which is 81.08%

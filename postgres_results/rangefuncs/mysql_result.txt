@@ -1,0 +1,3507 @@
+
+-----------
+QUERY:
+CREATE TABLE rngfunc2(rngfuncid int, f2 int);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO rngfunc2 VALUES(1, 11);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO rngfunc2 VALUES(2, 22);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO rngfunc2 VALUES(1, 111);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION rngfunct(int) returns setof rngfunc2 as 'SELECT * FROM rngfunc2 WHERE rngfuncid = $1 ORDER BY f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) returns setof rngfunc2 as 'SELECT * FROM rngfunc2 WHERE rngfuncid = $1 ORDE' at line 1")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+
+-- function with ORDINALITY
+select * from rngfunct(1) with ordinality as z(a,b,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) with ordinality as z(a,b,ord)' at line 2")
+
+-----------
+QUERY:
+
+select * from rngfunct(1) with ordinality as z(a,b,ord) where b > 100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) with ordinality as z(a,b,ord) where b > 100' at line 1")
+
+-----------
+QUERY:
+   -- ordinal 2, not 1
+-- ordinality vs. column names and types
+select a,b,ord from rngfunct(1) with ordinality as z(a,b,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) with ordinality as z(a,b,ord)' at line 3")
+
+-----------
+QUERY:
+
+select a,ord from unnest(array['a','b']) with ordinality as z(a,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['a','b']) with ordinality as z(a,ord)' at line 1")
+
+-----------
+QUERY:
+
+select * from unnest(array['a','b']) with ordinality as z(a,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['a','b']) with ordinality as z(a,ord)' at line 1")
+
+-----------
+QUERY:
+
+select a,ord from unnest(array[1.0::float8]) with ordinality as z(a,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1.0::float8]) with ordinality as z(a,ord)' at line 1")
+
+-----------
+QUERY:
+
+select * from unnest(array[1.0::float8]) with ordinality as z(a,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1.0::float8]) with ordinality as z(a,ord)' at line 1")
+
+-----------
+QUERY:
+
+select row_to_json(s.*) from generate_series(11,14) with ordinality s;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '*) from generate_series(11,14) with ordinality s' at line 1")
+
+-----------
+QUERY:
+
+-- ordinality vs. views
+create temporary view vw_ord as select * from (values (1)) v(n) join rngfunct(1) with ordinality as z(a,b,ord) on (n=ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'view vw_ord as select * from (values (1)) v(n) join rngfunct(1) with ordinality ' at line 2")
+
+-----------
+QUERY:
+
+select * from vw_ord;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_ord' doesn't exist")
+
+-----------
+QUERY:
+
+select definition from pg_views where viewname='vw_ord';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_views' doesn't exist")
+
+-----------
+QUERY:
+
+drop view vw_ord;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_ord'")
+
+-----------
+QUERY:
+
+
+-- multiple functions
+select * from rows from(rngfunct(1),rngfunct(2)) with ordinality as z(a,b,c,d,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rows from(rngfunct(1),rngfunct(2)) with ordinality as z(a,b,c,d,ord)' at line 2")
+
+-----------
+QUERY:
+
+create temporary view vw_ord as select * from (values (1)) v(n) join rows from(rngfunct(1),rngfunct(2)) with ordinality as z(a,b,c,d,ord) on (n=ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'view vw_ord as select * from (values (1)) v(n) join rows from(rngfunct(1),rngfun' at line 1")
+
+-----------
+QUERY:
+
+select * from vw_ord;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_ord' doesn't exist")
+
+-----------
+QUERY:
+
+select definition from pg_views where viewname='vw_ord';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_views' doesn't exist")
+
+-----------
+QUERY:
+
+drop view vw_ord;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_ord'")
+
+-----------
+QUERY:
+
+
+-- expansions of unnest()
+select * from unnest(array[10,20],array['foo','bar'],array[1.0]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[10,20],array['foo','bar'],array[1.0])' at line 2")
+
+-----------
+QUERY:
+
+select * from unnest(array[10,20],array['foo','bar'],array[1.0]) with ordinality as z(a,b,c,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[10,20],array['foo','bar'],array[1.0]) with ordinality as z(a,b,c,ord)' at line 1")
+
+-----------
+QUERY:
+
+select * from rows from(unnest(array[10,20],array['foo','bar'],array[1.0])) with ordinality as z(a,b,c,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rows from(unnest(array[10,20],array['foo','bar'],array[1.0])) with ordinality as' at line 1")
+
+-----------
+QUERY:
+
+select * from rows from(unnest(array[10,20],array['foo','bar']), generate_series(101,102)) with ordinality as z(a,b,c,ord);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rows from(unnest(array[10,20],array['foo','bar']), generate_series(101,102)) wit' at line 1")
+
+-----------
+QUERY:
+
+create temporary view vw_ord as select * from unnest(array[10,20],array['foo','bar'],array[1.0]) as z(a,b,c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'view vw_ord as select * from unnest(array[10,20],array['foo','bar'],array[1.0]) ' at line 1")
+
+-----------
+QUERY:
+
+select * from vw_ord;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_ord' doesn't exist")
+
+-----------
+QUERY:
+
+select definition from pg_views where viewname='vw_ord';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_views' doesn't exist")
+
+-----------
+QUERY:
+
+drop view vw_ord;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_ord'")
+
+-----------
+QUERY:
+
+create temporary view vw_ord as select * from rows from(unnest(array[10,20],array['foo','bar'],array[1.0])) as z(a,b,c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'view vw_ord as select * from rows from(unnest(array[10,20],array['foo','bar'],ar' at line 1")
+
+-----------
+QUERY:
+
+select * from vw_ord;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_ord' doesn't exist")
+
+-----------
+QUERY:
+
+select definition from pg_views where viewname='vw_ord';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_views' doesn't exist")
+
+-----------
+QUERY:
+
+drop view vw_ord;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_ord'")
+
+-----------
+QUERY:
+
+create temporary view vw_ord as select * from rows from(unnest(array[10,20],array['foo','bar']), generate_series(1,2)) as z(a,b,c);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'view vw_ord as select * from rows from(unnest(array[10,20],array['foo','bar']), ' at line 1")
+
+-----------
+QUERY:
+
+select * from vw_ord;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_ord' doesn't exist")
+
+-----------
+QUERY:
+
+select definition from pg_views where viewname='vw_ord';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_views' doesn't exist")
+
+-----------
+QUERY:
+
+drop view vw_ord;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_ord'")
+
+-----------
+QUERY:
+
+
+-- ordinality and multiple functions vs. rewind and reverse scan
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+declare rf_cur scroll cursor for select * from rows from(generate_series(1,5),generate_series(1,2)) with ordinality as g(i,j,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'declare rf_cur scroll cursor for select * from rows from(generate_series(1,5),ge' at line 1")
+
+-----------
+QUERY:
+
+fetch all from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch all from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch backward all from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch backward all from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch all from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch all from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch next from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch next from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch next from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch next from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch prior from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch prior from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch absolute 1 from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch absolute 1 from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch next from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch next from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch next from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch next from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch next from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch next from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch prior from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch prior from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch prior from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch prior from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+fetch prior from rf_cur;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'fetch prior from rf_cur' at line 1")
+
+-----------
+QUERY:
+
+commit;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- function with implicit LATERAL
+select * from rngfunc2, rngfunct(rngfunc2.rngfuncid) z where rngfunc2.f2 = z.f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(rngfunc2.rngfuncid) z where rngfunc2.f2 = z.f2' at line 2")
+
+-----------
+QUERY:
+
+
+-- function with implicit LATERAL and explicit ORDINALITY
+select * from rngfunc2, rngfunct(rngfunc2.rngfuncid) with ordinality as z(rngfuncid,f2,ord) where rngfunc2.f2 = z.f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(rngfunc2.rngfuncid) with ordinality as z(rngfuncid,f2,ord) where rngfunc2.f2 = ' at line 2")
+
+-----------
+QUERY:
+
+
+-- function in subselect
+select * from rngfunc2 where f2 in (select f2 from rngfunct(rngfunc2.rngfuncid) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(rngfunc2.rngfuncid) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2' at line 2")
+
+-----------
+QUERY:
+
+
+-- function in subselect
+select * from rngfunc2 where f2 in (select f2 from rngfunct(1) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2' at line 2")
+
+-----------
+QUERY:
+
+
+-- function in subselect
+select * from rngfunc2 where f2 in (select f2 from rngfunct(rngfunc2.rngfuncid) z where z.rngfuncid = 1) ORDER BY 1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(rngfunc2.rngfuncid) z where z.rngfuncid = 1) ORDER BY 1,2' at line 2")
+
+-----------
+QUERY:
+
+
+-- nested functions
+select rngfunct.rngfuncid, rngfunct.f2 from rngfunct(sin(pi()/2)::int) ORDER BY 1,2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(sin(pi()/2)::int) ORDER BY 1,2' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE TABLE rngfunc (rngfuncid int, rngfuncsubid int, rngfuncname text, primary key(rngfuncid,rngfuncsubid));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO rngfunc VALUES(1,1,'Joe');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO rngfunc VALUES(1,2,'Ed');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO rngfunc VALUES(2,1,'Mary');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- sql, proretset = f, prorettype = b
+CREATE FUNCTION getrngfunc1(int) RETURNS int AS 'SELECT $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int AS 'SELECT $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc1(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc1(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc1(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc1(1) WITH ORDINALITY as t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY as t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- sql, proretset = t, prorettype = b
+CREATE FUNCTION getrngfunc2(int) RETURNS setof int AS 'SELECT rngfuncid FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS setof int AS 'SELECT rngfuncid FROM rngfunc WHERE rngfuncid = $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc2(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc2(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc2(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc2(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- sql, proretset = t, prorettype = b
+CREATE FUNCTION getrngfunc3(int) RETURNS setof text AS 'SELECT rngfuncname FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS setof text AS 'SELECT rngfuncname FROM rngfunc WHERE rngfuncid = $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc3(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc3(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc3(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc3(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- sql, proretset = f, prorettype = c
+CREATE FUNCTION getrngfunc4(int) RETURNS rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc4(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc4(1) WITH ORDINALITY AS t1(a,b,c,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(a,b,c,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc4(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc4(1) WITH ORDINALITY AS t1(a,b,c,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(a,b,c,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- sql, proretset = t, prorettype = c
+CREATE FUNCTION getrngfunc5(int) RETURNS setof rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS setof rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc5(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc5(1) WITH ORDINALITY AS t1(a,b,c,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(a,b,c,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc5(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc5(1) WITH ORDINALITY AS t1(a,b,c,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(a,b,c,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- sql, proretset = f, prorettype = record
+CREATE FUNCTION getrngfunc6(int) RETURNS RECORD AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS RECORD AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc6(1) AS t1(rngfuncid int, rngfuncsubid int, rngfuncname text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1(rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM ROWS FROM( getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text) ) WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROWS FROM( getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc6(1) AS
+(rngfuncid int, rngfuncsubid int, rngfuncname text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS\n(rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS
+  SELECT * FROM ROWS FROM( getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text) )
+                WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROWS FROM( getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- sql, proretset = t, prorettype = record
+CREATE FUNCTION getrngfunc7(int) RETURNS setof record AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS setof record AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1' at line 2")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc7(1) AS t1(rngfuncid int, rngfuncsubid int, rngfuncname text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1(rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM ROWS FROM( getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text) ) WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROWS FROM( getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc7(1) AS
+(rngfuncid int, rngfuncsubid int, rngfuncname text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS\n(rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS
+  SELECT * FROM ROWS FROM( getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text) )
+                WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROWS FROM( getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text)' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- plpgsql, proretset = f, prorettype = b
+CREATE FUNCTION getrngfunc8(int) RETURNS int AS 'DECLARE rngfuncint int;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS int AS 'DECLARE rngfuncint int' at line 2")
+
+-----------
+QUERY:
+ BEGIN SELECT rngfuncid into rngfuncint FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT rngfuncid into rngfuncint FROM rngfunc WHERE rngfuncid = $1' at line 1")
+
+-----------
+QUERY:
+ RETURN rngfuncint;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURN rngfuncint' at line 1")
+
+-----------
+QUERY:
+ END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+' LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE plpgsql' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc8(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc8(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc8(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc8(1) WITH ORDINALITY AS t1(v,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(v,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- plpgsql, proretset = f, prorettype = c
+CREATE FUNCTION getrngfunc9(int) RETURNS rngfunc AS 'DECLARE rngfunctup rngfunc%ROWTYPE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) RETURNS rngfunc AS 'DECLARE rngfunctup rngfunc%ROWTYPE' at line 2")
+
+-----------
+QUERY:
+ BEGIN SELECT * into rngfunctup FROM rngfunc WHERE rngfuncid = $1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SELECT * into rngfunctup FROM rngfunc WHERE rngfuncid = $1' at line 1")
+
+-----------
+QUERY:
+ RETURN rngfunctup;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURN rngfunctup' at line 1")
+
+-----------
+QUERY:
+ END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+' LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE plpgsql' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc9(1) AS t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) AS t1' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM getrngfunc9(1) WITH ORDINALITY AS t1(a,b,c,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(a,b,c,o)' at line 1")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc9(1);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc9(1) WITH ORDINALITY AS t1(a,b,c,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1) WITH ORDINALITY AS t1(a,b,c,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM vw_getrngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_getrngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+DROP VIEW vw_getrngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_getrngfunc'")
+
+-----------
+QUERY:
+
+
+-- mix /* REPLACED */ ''n match kinds, to exercise expandRTE and related logic
+
+select * from rows from(getrngfunc1(1),getrngfunc2(1),getrngfunc3(1),getrngfunc4(1),getrngfunc5(1),
+                    getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text),
+                    getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text),
+                    getrngfunc8(1),getrngfunc9(1))
+              with ordinality as t1(a,b,c,d,e,f,g,h,i,j,k,l,m,o,p,q,r,s,t,u);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rows from(getrngfunc1(1),getrngfunc2(1),getrngfunc3(1),getrngfunc4(1),getrngfunc' at line 3")
+
+-----------
+QUERY:
+
+select * from rows from(getrngfunc9(1),getrngfunc8(1),
+                    getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text),
+                    getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text),
+                    getrngfunc5(1),getrngfunc4(1),getrngfunc3(1),getrngfunc2(1),getrngfunc1(1))
+              with ordinality as t1(a,b,c,d,e,f,g,h,i,j,k,l,m,o,p,q,r,s,t,u);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rows from(getrngfunc9(1),getrngfunc8(1),\n                    getrngfunc7(1) AS (' at line 1")
+
+-----------
+QUERY:
+
+
+create temporary view vw_rngfunc as
+  select * from rows from(getrngfunc9(1),
+                      getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text),
+                      getrngfunc1(1))
+                with ordinality as t1(a,b,c,d,e,f,g,n);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'view vw_rngfunc as\n  select * from rows from(getrngfunc9(1),\n                   ' at line 1")
+
+-----------
+QUERY:
+
+select * from vw_rngfunc;
+RESULT:
+	ERROR - (1146, "Table 'test.vw_rngfunc' doesn't exist")
+
+-----------
+QUERY:
+
+select pg_get_viewdef('vw_rngfunc');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_get_viewdef does not exist')
+
+-----------
+QUERY:
+
+drop view vw_rngfunc;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.vw_rngfunc'")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION getrngfunc1(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc2(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc3(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc4(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc5(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc6(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc7(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc8(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION getrngfunc9(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfunct(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+DROP TABLE rngfunc2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE rngfunc;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- Rescan tests --
+CREATE TEMPORARY SEQUENCE rngfunc_rescan_seq1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE rngfunc_rescan_seq1' at line 2")
+
+-----------
+QUERY:
+
+CREATE TEMPORARY SEQUENCE rngfunc_rescan_seq2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE rngfunc_rescan_seq2' at line 1")
+
+-----------
+QUERY:
+
+CREATE TYPE rngfunc_rescan_t AS (i integer, s bigint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TYPE rngfunc_rescan_t AS (i integer, s bigint)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION rngfunc_sql(int,int) RETURNS setof rngfunc_rescan_t AS 'SELECT i, nextval(''rngfunc_rescan_seq1'') FROM generate_series($1,$2) i;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int,int) RETURNS setof rngfunc_rescan_t AS 'SELECT i, nextval(''rngfunc_rescan_s' at line 1")
+
+-----------
+QUERY:
+' LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE SQL' at line 1")
+
+-----------
+QUERY:
+
+-- plpgsql functions use materialize mode
+CREATE FUNCTION rngfunc_mat(int,int) RETURNS setof rngfunc_rescan_t AS 'begin for i in $1..$2 loop return next (i, nextval(''rngfunc_rescan_seq2''));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int,int) RETURNS setof rngfunc_rescan_t AS 'begin for i in $1..$2 loop return ne' at line 2")
+
+-----------
+QUERY:
+ end loop;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'end loop' at line 1")
+
+-----------
+QUERY:
+ end;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'end' at line 1")
+
+-----------
+QUERY:
+' LANGUAGE plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' LANGUAGE plpgsql' at line 1")
+
+-----------
+QUERY:
+
+
+--invokes ExecReScanFunctionScan - all these cases should materialize the function only once
+-- LEFT JOIN on a condition that the planner can/* REPLACED */ ''t prove to be true is used to ensure the function
+-- is on the inner path of a nestloop join
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--invokes ExecReScanFunctionScan - all these cases should materialize the functi' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN rngfunc_sql(11,13) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN rngfunc_sql(11,13) ON (r+i)<100' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN rngfunc_sql(11,13) WITH ORDINALITY AS f(i,s,o) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN rngfunc_sql(11,13) WITH ORDINALITY AS f(i,s,o) ON (r' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN rngfunc_mat(11,13) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN rngfunc_mat(11,13) ON (r+i)<100' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN rngfunc_mat(11,13) WITH ORDINALITY AS f(i,s,o) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN rngfunc_mat(11,13) WITH ORDINALITY AS f(i,s,o) ON (r' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN ROWS FROM( rngfunc_sql(11,13), rngfunc_mat(11,13) ) WITH ORDINALITY AS f(i1,s1,i2,s2,o) ON (r+i1+i2)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN ROWS FROM( rngfunc_sql(11,13), rngfunc_mat(11,13) ) ' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN generate_series(11,13) f(i) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN generate_series(11,13) f(i) ON (r+i)<100' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN generate_series(11,13) WITH ORDINALITY AS f(i,o) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN generate_series(11,13) WITH ORDINALITY AS f(i,o) ON ' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN unnest(array[10,20,30]) f(i) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN unnest(array[10,20,30]) f(i) ON (r+i)<100' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r) LEFT JOIN unnest(array[10,20,30]) WITH ORDINALITY AS f(i,o) ON (r+i)<100;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r) LEFT JOIN unnest(array[10,20,30]) WITH ORDINALITY AS f(i,o) ON' at line 1")
+
+-----------
+QUERY:
+
+
+--invokes ExecReScanFunctionScan with chgParam != NULL (using implied LATERAL)
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--invokes ExecReScanFunctionScan with chgParam != NULL (using implied LATERAL)\n\n' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_sql(10+r,13);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_sql(10+r,13)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_sql(10+r,13) WITH ORDINALITY AS f(i,s,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_sql(10+r,13) WITH ORDINALITY AS f(i,s,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_sql(11,10+r);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_sql(11,10+r)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_sql(11,10+r) WITH ORDINALITY AS f(i,s,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_sql(11,10+r) WITH ORDINALITY AS f(i,s,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (11,12),(13,15),(16,20)) v(r1,r2), rngfunc_sql(r1,r2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(11,12),(13,15),(16,20)) v(r1,r2), rngfunc_sql(r1,r2)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (11,12),(13,15),(16,20)) v(r1,r2), rngfunc_sql(r1,r2) WITH ORDINALITY AS f(i,s,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(11,12),(13,15),(16,20)) v(r1,r2), rngfunc_sql(r1,r2) WITH ORDINALITY AS f(i,s,o' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_mat(10+r,13);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_mat(10+r,13)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_mat(10+r,13) WITH ORDINALITY AS f(i,s,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_mat(10+r,13) WITH ORDINALITY AS f(i,s,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_mat(11,10+r);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_mat(11,10+r)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), rngfunc_mat(11,10+r) WITH ORDINALITY AS f(i,s,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), rngfunc_mat(11,10+r) WITH ORDINALITY AS f(i,s,o)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (11,12),(13,15),(16,20)) v(r1,r2), rngfunc_mat(r1,r2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(11,12),(13,15),(16,20)) v(r1,r2), rngfunc_mat(r1,r2)' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (11,12),(13,15),(16,20)) v(r1,r2), rngfunc_mat(r1,r2) WITH ORDINALITY AS f(i,s,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(11,12),(13,15),(16,20)) v(r1,r2), rngfunc_mat(r1,r2) WITH ORDINALITY AS f(i,s,o' at line 1")
+
+-----------
+QUERY:
+
+
+-- selective rescan of multiple functions:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), ROWS FROM( rngfunc_sql(11,11), rngfunc_mat(10+r,13) );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), ROWS FROM( rngfunc_sql(11,11), rngfunc_mat(10+r,13) )' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), ROWS FROM( rngfunc_sql(10+r,13), rngfunc_mat(11,11) );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), ROWS FROM( rngfunc_sql(10+r,13), rngfunc_mat(11,11) )' at line 1")
+
+-----------
+QUERY:
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), ROWS FROM( rngfunc_sql(10+r,13), rngfunc_mat(10+r,13) );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), ROWS FROM( rngfunc_sql(10+r,13), rngfunc_mat(10+r,13) )' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT setval('rngfunc_rescan_seq1',1,false),setval('rngfunc_rescan_seq2',1,false);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.setval does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM generate_series(1,2) r1, generate_series(r1,3) r2, ROWS FROM( rngfunc_sql(10+r1,13), rngfunc_mat(10+r2,13) );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,2) r1, generate_series(r1,3) r2, ROWS FROM( rngfunc_sql(10+r1,13), rngfunc_ma' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), generate_series(10+r,20-r) f(i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), generate_series(10+r,20-r) f(i)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), generate_series(10+r,20-r) WITH ORDINALITY AS f(i,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), generate_series(10+r,20-r) WITH ORDINALITY AS f(i,o)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), unnest(array[r*10,r*20,r*30]) f(i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), unnest(array[r*10,r*20,r*30]) f(i)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v(r), unnest(array[r*10,r*20,r*30]) WITH ORDINALITY AS f(i,o);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v(r), unnest(array[r*10,r*20,r*30]) WITH ORDINALITY AS f(i,o)' at line 1")
+
+-----------
+QUERY:
+
+
+-- deep nesting
+
+SELECT * FROM (VALUES (1),(2),(3)) v1(r1),
+              LATERAL (SELECT r1, * FROM (VALUES (10),(20),(30)) v2(r2)
+                                         LEFT JOIN generate_series(21,23) f(i) ON ((r2+i)<100) OFFSET 0) s1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v1(r1),\n              LATERAL (SELECT r1, * FROM (VALUES (10),(20),' at line 3")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v1(r1),
+              LATERAL (SELECT r1, * FROM (VALUES (10),(20),(30)) v2(r2)
+                                         LEFT JOIN generate_series(20+r1,23) f(i) ON ((r2+i)<100) OFFSET 0) s1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v1(r1),\n              LATERAL (SELECT r1, * FROM (VALUES (10),(20),' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v1(r1),
+              LATERAL (SELECT r1, * FROM (VALUES (10),(20),(30)) v2(r2)
+                                         LEFT JOIN generate_series(r2,r2+3) f(i) ON ((r2+i)<100) OFFSET 0) s1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v1(r1),\n              LATERAL (SELECT r1, * FROM (VALUES (10),(20),' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM (VALUES (1),(2),(3)) v1(r1),
+              LATERAL (SELECT r1, * FROM (VALUES (10),(20),(30)) v2(r2)
+                                         LEFT JOIN generate_series(r1,2+r2/5) f(i) ON ((r2+i)<100) OFFSET 0) s1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2),(3)) v1(r1),\n              LATERAL (SELECT r1, * FROM (VALUES (10),(20),' at line 1")
+
+-----------
+QUERY:
+
+
+-- check handling of FULL JOIN with multiple lateral references (bug #15741)
+
+SELECT *
+FROM (VALUES (1),(2)) v1(r1)
+    LEFT JOIN LATERAL (
+        SELECT *
+        FROM generate_series(1, v1.r1) AS gs1
+        LEFT JOIN LATERAL (
+            SELECT *
+            FROM generate_series(1, gs1) AS gs2
+            LEFT JOIN generate_series(1, gs2) AS gs3 ON TRUE
+        ) AS ss1 ON TRUE
+        FULL JOIN generate_series(1, v1.r1) AS gs4 ON FALSE
+    ) AS ss0 ON TRUE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1),(2)) v1(r1)\n    LEFT JOIN LATERAL (\n        SELECT *\n        FROM generate_s' at line 4")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION rngfunc_sql(int,int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int,int)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfunc_mat(int,int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int,int)' at line 1")
+
+-----------
+QUERY:
+
+DROP SEQUENCE rngfunc_rescan_seq1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE rngfunc_rescan_seq1' at line 1")
+
+-----------
+QUERY:
+
+DROP SEQUENCE rngfunc_rescan_seq2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SEQUENCE rngfunc_rescan_seq2' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Test cases involving OUT parameters
+--
+
+CREATE FUNCTION rngfunc(in f1 int, out f2 int)
+AS 'select $1+1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'in f1 int, out f2 int)\nAS 'select $1+1' LANGUAGE sql' at line 5")
+
+-----------
+QUERY:
+
+SELECT rngfunc(42);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.rngfunc does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM rngfunc(42);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(42)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfunc(42) AS p(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(42) AS p(x)' at line 1")
+
+-----------
+QUERY:
+
+
+-- explicit spec of return type is OK
+CREATE OR REPLACE FUNCTION rngfunc(in f1 int, out f2 int) RETURNS int
+AS 'select $1+1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc(in f1 int, out f2 int) RETURNS int\nAS 'select $1+1' LANGUAGE sq' at line 2")
+
+-----------
+QUERY:
+
+-- error, wrong result type
+CREATE OR REPLACE FUNCTION rngfunc(in f1 int, out f2 int) RETURNS float
+AS 'select $1+1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc(in f1 int, out f2 int) RETURNS float\nAS 'select $1+1' LANGUAGE ' at line 2")
+
+-----------
+QUERY:
+
+-- with multiple OUT params you must get a RECORD result
+CREATE OR REPLACE FUNCTION rngfunc(in f1 int, out f2 int, out f3 text) RETURNS int
+AS 'select $1+1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc(in f1 int, out f2 int, out f3 text) RETURNS int\nAS 'select $1+1' at line 2")
+
+-----------
+QUERY:
+
+CREATE OR REPLACE FUNCTION rngfunc(in f1 int, out f2 int, out f3 text)
+RETURNS record
+AS 'select $1+1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc(in f1 int, out f2 int, out f3 text)\nRETURNS record\nAS 'select $' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION rngfuncr(in f1 int, out f2 int, out text)
+AS $$select $1-1, $1::text || 'z'$$ LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfuncr(in f1 int, out f2 int, out text)\nAS $$select $1-1, $1::text ||' at line 1")
+
+-----------
+QUERY:
+
+SELECT f1, rngfuncr(f1) FROM int4_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.int4_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfuncr(42);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(42)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfuncr(42) AS p(a,b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(42) AS p(a,b)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION rngfuncb(in f1 int, inout f2 int, out text)
+AS $$select $2-1, $1::text || 'z'$$ LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfuncb(in f1 int, inout f2 int, out text)\nAS $$select $2-1, $1::text ' at line 1")
+
+-----------
+QUERY:
+
+SELECT f1, rngfuncb(f1, f1/2) FROM int4_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.int4_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfuncb(42, 99);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(42, 99)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfuncb(42, 99) AS p(a,b);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(42, 99) AS p(a,b)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Can reference function with or without OUT params for DROP, etc
+DROP FUNCTION rngfunc(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 2")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfuncr(in f2 int, out f1 int, out text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(in f2 int, out f1 int, out text)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfuncb(in f1 int, inout f2 int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(in f1 int, inout f2 int)' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- For my next trick, polymorphic OUT parameters
+--
+
+CREATE FUNCTION dup (f1 anyelement, f2 out anyelement, f3 out anyarray)
+AS 'select $1, array[$1,$1]' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'anyelement, f2 out anyelement, f3 out anyarray)\nAS 'select $1, array[$1,$1]' LAN' at line 5")
+
+-----------
+QUERY:
+
+SELECT dup(22);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dup does not exist')
+
+-----------
+QUERY:
+
+SELECT dup('xyz');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dup does not exist')
+
+-----------
+QUERY:
+	-- fails
+SELECT dup('xyz'::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text)' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM dup('xyz'::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('xyz'::text)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fails, as we are attempting to rename first argument
+CREATE OR REPLACE FUNCTION dup (inout f2 anyelement, out f3 anyarray)
+AS 'select $1, array[$1,$1]' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION dup (inout f2 anyelement, out f3 anyarray)\nAS 'select $1, array[$1,$1]'' at line 2")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION dup(anyelement);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(anyelement)' at line 1")
+
+-----------
+QUERY:
+
+
+-- equivalent behavior, though different name exposed for input arg
+CREATE OR REPLACE FUNCTION dup (inout f2 anyelement, out f3 anyarray)
+AS 'select $1, array[$1,$1]' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION dup (inout f2 anyelement, out f3 anyarray)\nAS 'select $1, array[$1,$1]'' at line 2")
+
+-----------
+QUERY:
+
+SELECT dup(22);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dup does not exist')
+
+-----------
+QUERY:
+
+
+DROP FUNCTION dup(anyelement);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(anyelement)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fails, no way to deduce outputs
+CREATE FUNCTION bad (f1 int, out f2 anyelement, out f3 anyarray)
+AS 'select $1, array[$1,$1]' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'out f2 anyelement, out f3 anyarray)\nAS 'select $1, array[$1,$1]' LANGUAGE sql' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION dup (f1 anycompatible, f2 anycompatiblearray, f3 out anycompatible, f4 out anycompatiblearray)
+AS 'select $1, $2' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'anycompatible, f2 anycompatiblearray, f3 out anycompatible, f4 out anycompatible' at line 1")
+
+-----------
+QUERY:
+
+SELECT dup(22, array[44]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[44])' at line 1")
+
+-----------
+QUERY:
+
+SELECT dup(4.5, array[44]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[44])' at line 1")
+
+-----------
+QUERY:
+
+SELECT dup(22, array[44::bigint]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[44::bigint])' at line 1")
+
+-----------
+QUERY:
+
+SELECT *, pg_typeof(f3), pg_typeof(f4) FROM dup(22, array[44::bigint]);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(22, array[44::bigint])' at line 1")
+
+-----------
+QUERY:
+
+
+DROP FUNCTION dup(f1 anycompatible, f2 anycompatiblearray);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(f1 anycompatible, f2 anycompatiblearray)' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION dup (f1 anycompatiblerange, f2 out anycompatible, f3 out anycompatiblearray, f4 out anycompatiblerange)
+AS 'select lower($1), array[lower($1), upper($1)], $1' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'anycompatiblerange, f2 out anycompatible, f3 out anycompatiblearray, f4 out anyc' at line 1")
+
+-----------
+QUERY:
+
+SELECT dup(int4range(4,7));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dup does not exist')
+
+-----------
+QUERY:
+
+SELECT dup(numrange(4,7));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dup does not exist')
+
+-----------
+QUERY:
+
+SELECT dup(textrange('aaa', 'bbb'));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.dup does not exist')
+
+-----------
+QUERY:
+
+
+DROP FUNCTION dup(f1 anycompatiblerange);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(f1 anycompatiblerange)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fails, no way to deduce outputs
+CREATE FUNCTION bad (f1 anyarray, out f2 anycompatible, out f3 anycompatiblearray)
+AS 'select $1, array[$1,$1]' LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'anyarray, out f2 anycompatible, out f3 anycompatiblearray)\nAS 'select $1, array[' at line 2")
+
+-----------
+QUERY:
+
+
+--
+-- table functions
+--
+
+CREATE OR REPLACE FUNCTION rngfunc()
+RETURNS TABLE(a int)
+AS $$ SELECT a FROM generate_series(1,5) a(a) $$ LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc()\nRETURNS TABLE(a int)\nAS $$ SELECT a FROM generate_series(1,5)' at line 5")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION rngfunc(int)
+RETURNS TABLE(a int, b int)
+AS $$ SELECT a, b
+         FROM generate_series(1,$1) a(a),
+              generate_series(1,$1) b(b) $$ LANGUAGE sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc(int)\nRETURNS TABLE(a int, b int)\nAS $$ SELECT a, b\n         FRO' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfunc(3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(3)' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfunc(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+
+-- case that causes change of typmod knowledge during inlining
+CREATE OR REPLACE FUNCTION rngfunc()
+RETURNS TABLE(a varchar(5))
+AS $$ SELECT 'hello'::varchar(5) $$ LANGUAGE sql STABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION rngfunc()\nRETURNS TABLE(a varchar(5))\nAS $$ SELECT 'hello'::varchar(5) ' at line 2")
+
+-----------
+QUERY:
+
+SELECT * FROM rngfunc() GROUP BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() GROUP BY 1' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION rngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- some tests on SQL functions with RETURNING
+--
+
+create temp table tt(f1 serial, data text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table tt(f1 serial, data text)' at line 5")
+
+-----------
+QUERY:
+
+
+create function insert_tt(text) returns int as
+$$ insert into tt(data) values($1) returning f1 $$
+language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') returns int as\n$$ insert into tt(data) values($1) returning f1 $$\nlanguage sql' at line 1")
+
+-----------
+QUERY:
+
+
+select insert_tt('foo');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt does not exist')
+
+-----------
+QUERY:
+
+select insert_tt('bar');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt does not exist')
+
+-----------
+QUERY:
+
+select * from tt;
+RESULT:
+	ERROR - (1146, "Table 'test.tt' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- insert will execute to completion even if function needs just 1 row
+create or replace function insert_tt(text) returns int as
+$$ insert into tt(data) values($1),($1||$1) returning f1 $$
+language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function insert_tt(text) returns int as\n$$ insert into tt(data) values($1),($1||' at line 2")
+
+-----------
+QUERY:
+
+
+select insert_tt('fool');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt does not exist')
+
+-----------
+QUERY:
+
+select * from tt;
+RESULT:
+	ERROR - (1146, "Table 'test.tt' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- setof does what/* REPLACED */ ''s expected
+create or replace function insert_tt2(text,text) returns setof int as
+$$ insert into tt(data) values($1),($2) returning f1 $$
+language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function insert_tt2(text,text) returns setof int as\n$$ insert into tt(data) valu' at line 2")
+
+-----------
+QUERY:
+
+
+select insert_tt2('foolish','barrish');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt2 does not exist')
+
+-----------
+QUERY:
+
+select * from insert_tt2('baz','quux');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('baz','quux')' at line 1")
+
+-----------
+QUERY:
+
+select * from tt;
+RESULT:
+	ERROR - (1146, "Table 'test.tt' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- limit doesn/* REPLACED */ ''t prevent execution to completion
+select insert_tt2('foolish','barrish') limit 1;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt2 does not exist')
+
+-----------
+QUERY:
+
+select * from tt;
+RESULT:
+	ERROR - (1146, "Table 'test.tt' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- triggers will fire, too
+create function noticetrigger() returns trigger as $$
+begin
+  raise notice 'noticetrigger % %', new.f1, new.data;
+  return null;
+end $$ language plpgsql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'trigger as $$\nbegin\n  raise notice 'noticetrigger % %', new.f1, new.data;\n  retu' at line 2")
+
+-----------
+QUERY:
+
+create trigger tnoticetrigger after insert on tt for each row
+execute procedure noticetrigger();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'procedure noticetrigger()' at line 2")
+
+-----------
+QUERY:
+
+
+select insert_tt2('foolme','barme') limit 1;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt2 does not exist')
+
+-----------
+QUERY:
+
+select * from tt;
+RESULT:
+	ERROR - (1146, "Table 'test.tt' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- and rules work
+create temp table tt_log(f1 int, data text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table tt_log(f1 int, data text)' at line 2")
+
+-----------
+QUERY:
+
+
+create rule insert_tt_rule as on insert to tt do also
+  insert into tt_log values(new.*);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rule insert_tt_rule as on insert to tt do also\n  insert into tt_log values(new.*' at line 1")
+
+-----------
+QUERY:
+
+
+select insert_tt2('foollog','barlog') limit 1;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.insert_tt2 does not exist')
+
+-----------
+QUERY:
+
+select * from tt;
+RESULT:
+	ERROR - (1146, "Table 'test.tt' doesn't exist")
+
+-----------
+QUERY:
+
+-- note that nextval() gets executed a second time in the rule expansion,
+-- which is expected.
+select * from tt_log;
+RESULT:
+	ERROR - (1146, "Table 'test.tt_log' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- test case for a whole-row-variable bug
+create function rngfunc1(n integer, out a text, out b text)
+  returns setof record
+  language sql
+  as $$ select 'foo ' || i, 'bar ' || i from generate_series(1,$1) i $$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'out a text, out b text)\n  returns setof record\n  language sql\n  as $$ select 'fo' at line 2")
+
+-----------
+QUERY:
+
+
+set work_mem='64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+select t.a, t, t.a from rngfunc1(10000) t limit 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(10000) t limit 1' at line 1")
+
+-----------
+QUERY:
+
+reset work_mem;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'work_mem' at line 1")
+
+-----------
+QUERY:
+
+select t.a, t, t.a from rngfunc1(10000) t limit 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(10000) t limit 1' at line 1")
+
+-----------
+QUERY:
+
+
+drop function rngfunc1(n integer);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(n integer)' at line 1")
+
+-----------
+QUERY:
+
+
+-- test use of SQL functions returning record
+-- this is supported in some cases where the query doesn/* REPLACED */ ''t specify
+-- the actual record type ...
+
+create function array_to_set(anyarray) returns setof record as $$
+  select i AS "index", $1[i] AS "value" from generate_subscripts($1, 1) i
+$$ language sql strict immutable;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \') returns setof record as $$\n  select i AS "index", $1[i] AS "value" from genera\' at line 5')
+
+-----------
+QUERY:
+
+
+select array_to_set(array['one', 'two']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['one', 'two'])' at line 1")
+
+-----------
+QUERY:
+
+select * from array_to_set(array['one', 'two']) as t(f1 int,f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two']) as t(f1 int,f2 text)' at line 1")
+
+-----------
+QUERY:
+
+select * from array_to_set(array['one', 'two']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two'])' at line 1")
+
+-----------
+QUERY:
+ -- fail
+-- after-the-fact coercion of the columns is now possible, too
+select * from array_to_set(array['one', 'two']) as t(f1 numeric(4,2),f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two']) as t(f1 numeric(4,2),f2 text)' at line 3")
+
+-----------
+QUERY:
+
+-- and if it doesn/* REPLACED */ ''t work, you get a compile-time not run-time error
+select * from array_to_set(array['one', 'two']) as t(f1 point,f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two']) as t(f1 point,f2 text)' at line 2")
+
+-----------
+QUERY:
+
+
+-- with /* REPLACED */ ''strict/* REPLACED */ '', this function can/* REPLACED */ ''t be inlined in FROM
+explain (verbose, costs off)
+  select * from array_to_set(array['one', 'two']) as t(f1 numeric(4,2),f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\n  select * from array_to_set(array['one', 'two']) as t(f1 nu' at line 2")
+
+-----------
+QUERY:
+
+
+-- but without, it can be:
+
+create or replace function array_to_set(anyarray) returns setof record as $$
+  select i AS "index", $1[i] AS "value" from generate_subscripts($1, 1) i
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'function array_to_set(anyarray) returns setof record as $$\n  select i AS "index"\' at line 3')
+
+-----------
+QUERY:
+
+
+select array_to_set(array['one', 'two']);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '['one', 'two'])' at line 1")
+
+-----------
+QUERY:
+
+select * from array_to_set(array['one', 'two']) as t(f1 int,f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two']) as t(f1 int,f2 text)' at line 1")
+
+-----------
+QUERY:
+
+select * from array_to_set(array['one', 'two']) as t(f1 numeric(4,2),f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two']) as t(f1 numeric(4,2),f2 text)' at line 1")
+
+-----------
+QUERY:
+
+select * from array_to_set(array['one', 'two']) as t(f1 point,f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['one', 'two']) as t(f1 point,f2 text)' at line 1")
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+  select * from array_to_set(array['one', 'two']) as t(f1 numeric(4,2),f2 text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\n  select * from array_to_set(array['one', 'two']) as t(f1 nu' at line 1")
+
+-----------
+QUERY:
+
+
+create temp table rngfunc(f1 int8, f2 int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table rngfunc(f1 int8, f2 int8)' at line 1")
+
+-----------
+QUERY:
+
+
+create function testrngfunc() returns record as $$
+  insert into rngfunc values (1,2) returning *;
+$$ language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'record as $$\n  insert into rngfunc values (1,2) returning *;\n$$ language sql' at line 1")
+
+-----------
+QUERY:
+
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+select * from testrngfunc() as t(f1 int8,f2 int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() as t(f1 int8,f2 int8)' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+ -- fail
+
+drop function testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 3")
+
+-----------
+QUERY:
+
+
+create function testrngfunc() returns setof record as $$
+  insert into rngfunc values (1,2), (3,4) returning *;
+$$ language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'setof record as $$\n  insert into rngfunc values (1,2), (3,4) returning *;\n$$ lan' at line 1")
+
+-----------
+QUERY:
+
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+select * from testrngfunc() as t(f1 int8,f2 int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() as t(f1 int8,f2 int8)' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+ -- fail
+
+drop function testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 3")
+
+-----------
+QUERY:
+
+
+-- Check that typmod imposed by a composite type is honored
+create type rngfunc_type as (f1 numeric(35,6), f2 numeric(35,2));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rngfunc_type as (f1 numeric(35,6), f2 numeric(35,2))' at line 2")
+
+-----------
+QUERY:
+
+
+create function testrngfunc() returns rngfunc_type as $$
+  select 7.136178319899999964, 7.136178319899999964;
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rngfunc_type as $$\n  select 7.136178319899999964, 7.136178319899999964;\n$$ langu' at line 1")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function testrngfunc() returns rngfunc_type as $$
+  select 7.136178319899999964, 7.136178319899999964;
+$$ language sql volatile;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function testrngfunc() returns rngfunc_type as $$\n  select 7.136178319899999964,' at line 1")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+drop function testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+create function testrngfunc() returns setof rngfunc_type as $$
+  select 7.136178319899999964, 7.136178319899999964;
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'setof rngfunc_type as $$\n  select 7.136178319899999964, 7.136178319899999964;\n$$' at line 1")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function testrngfunc() returns setof rngfunc_type as $$
+  select 7.136178319899999964, 7.136178319899999964;
+$$ language sql volatile;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function testrngfunc() returns setof rngfunc_type as $$\n  select 7.1361783198999' at line 1")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function testrngfunc() returns setof rngfunc_type as $$
+  select 1, 2 union select 3, 4 order by 1;
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function testrngfunc() returns setof rngfunc_type as $$\n  select 1, 2 union sele' at line 1")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select testrngfunc();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.testrngfunc does not exist')
+
+-----------
+QUERY:
+
+explain (verbose, costs off)
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from testrngfunc()' at line 1")
+
+-----------
+QUERY:
+
+select * from testrngfunc();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check a couple of error cases while we/* REPLACED */ ''re here
+select * from testrngfunc() as t(f1 int8,f2 int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() as t(f1 int8,f2 int8)' at line 2")
+
+-----------
+QUERY:
+  -- fail, composite result
+select * from pg_get_keywords() as t(f1 int8,f2 int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() as t(f1 int8,f2 int8)' at line 2")
+
+-----------
+QUERY:
+  -- fail, OUT params
+select * from sin(3) as t(f1 int8,f2 int8);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(3) as t(f1 int8,f2 int8)' at line 2")
+
+-----------
+QUERY:
+  -- fail, scalar result type
+
+drop type rngfunc_type cascade;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rngfunc_type cascade' at line 3")
+
+-----------
+QUERY:
+
+
+--
+-- Check some cases involving added/dropped columns in a rowtype result
+--
+
+create temp table users (userid text, seq int, email text, todrop bool, moredrop int, enabled bool);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table users (userid text, seq int, email text, todrop bool, moredrop int, e' at line 5")
+
+-----------
+QUERY:
+
+insert into users values ('id',1,'email',true,11,true);
+RESULT:
+	ERROR - (1146, "Table 'test.users' doesn't exist")
+
+-----------
+QUERY:
+
+insert into users values ('id2',2,'email2',true,12,true);
+RESULT:
+	ERROR - (1146, "Table 'test.users' doesn't exist")
+
+-----------
+QUERY:
+
+alter table users drop column todrop;
+RESULT:
+	ERROR - (1146, "Table 'test.users' doesn't exist")
+
+-----------
+QUERY:
+
+
+create or replace function get_first_user() returns users as
+$$ SELECT * FROM users ORDER BY userid LIMIT 1; $$
+language sql stable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function get_first_user() returns users as\n$$ SELECT * FROM users ORDER BY useri' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT get_first_user();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.get_first_user does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM get_first_user();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function get_users() returns setof users as
+$$ SELECT * FROM users ORDER BY userid; $$
+language sql stable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function get_users() returns setof users as\n$$ SELECT * FROM users ORDER BY user' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT get_users();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.get_users does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM get_users();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM get_users() WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() WITH ORDINALITY' at line 1")
+
+-----------
+QUERY:
+   -- make sure ordinality copes
+
+-- multiple functions vs. dropped columns
+SELECT * FROM ROWS FROM(generate_series(10,11), get_users()) WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROWS FROM(generate_series(10,11), get_users()) WITH ORDINALITY' at line 4")
+
+-----------
+QUERY:
+
+SELECT * FROM ROWS FROM(get_users(), generate_series(10,11)) WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROWS FROM(get_users(), generate_series(10,11)) WITH ORDINALITY' at line 1")
+
+-----------
+QUERY:
+
+
+-- check that we can cope with post-parsing changes in rowtypes
+create temp view usersview as
+SELECT * FROM ROWS FROM(get_users(), generate_series(10,11)) WITH ORDINALITY;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp view usersview as\nSELECT * FROM ROWS FROM(get_users(), generate_series(10,1' at line 2")
+
+-----------
+QUERY:
+
+
+select * from usersview;
+RESULT:
+	ERROR - (1146, "Table 'test.usersview' doesn't exist")
+
+-----------
+QUERY:
+
+alter table users add column junk text;
+RESULT:
+	ERROR - (1146, "Table 'test.users' doesn't exist")
+
+-----------
+QUERY:
+
+select * from usersview;
+RESULT:
+	ERROR - (1146, "Table 'test.usersview' doesn't exist")
+
+-----------
+QUERY:
+
+
+alter table users drop column moredrop;
+RESULT:
+	ERROR - (1146, "Table 'test.users' doesn't exist")
+
+-----------
+QUERY:
+  -- fail, view has reference
+
+-- We used to have a bug that would allow the above to succeed, posing
+-- hazards for later execution of the view.  Check that the internal
+-- defenses for those hazards haven/* REPLACED */ ''t bit-rotted, in case some other
+-- bug with similar symptoms emerges.
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- destroy the dependency entry that prevents the DROP:
+delete from pg_depend where
+  objid = (select oid from pg_rewrite
+           where ev_class = 'usersview'::regclass and rulename = '_RETURN')
+  and refobjsubid = 5
+returning pg_describe_object(classid, objid, objsubid) as obj,
+          pg_describe_object(refclassid, refobjid, refobjsubid) as ref,
+          deptype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass and rulename = '_RETURN')\n  and refobjsubid = 5\nreturning pg_describe' at line 4")
+
+-----------
+QUERY:
+
+
+alter table users drop column moredrop;
+RESULT:
+	ERROR - (1146, "Table 'test.users' doesn't exist")
+
+-----------
+QUERY:
+
+select * from usersview;
+RESULT:
+	ERROR - (1146, "Table 'test.usersview' doesn't exist")
+
+-----------
+QUERY:
+  -- expect clean failure
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+alter table users alter column seq type numeric;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type numeric' at line 1")
+
+-----------
+QUERY:
+  -- fail, view has reference
+
+-- likewise, check we don/* REPLACED */ ''t crash if the dependency goes wrong
+begin;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- destroy the dependency entry that prevents the ALTER:
+delete from pg_depend where
+  objid = (select oid from pg_rewrite
+           where ev_class = 'usersview'::regclass and rulename = '_RETURN')
+  and refobjsubid = 2
+returning pg_describe_object(classid, objid, objsubid) as obj,
+          pg_describe_object(refclassid, refobjid, refobjsubid) as ref,
+          deptype;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::regclass and rulename = '_RETURN')\n  and refobjsubid = 2\nreturning pg_describe' at line 4")
+
+-----------
+QUERY:
+
+
+alter table users alter column seq type numeric;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type numeric' at line 1")
+
+-----------
+QUERY:
+
+select * from usersview;
+RESULT:
+	ERROR - (1146, "Table 'test.usersview' doesn't exist")
+
+-----------
+QUERY:
+  -- expect clean failure
+rollback;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+drop view usersview;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.usersview'")
+
+-----------
+QUERY:
+
+drop function get_first_user();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+drop function get_users();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+drop table users;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.users'")
+
+-----------
+QUERY:
+
+
+-- check behavior with type coercion required for a set-op
+
+create or replace function rngfuncbar() returns setof text as
+$$ select 'foo'::varchar union all select 'bar'::varchar ; $$
+language sql stable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function rngfuncbar() returns setof text as\n$$ select 'foo'::varchar union all s' at line 3")
+
+-----------
+QUERY:
+
+
+select rngfuncbar();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.rngfuncbar does not exist')
+
+-----------
+QUERY:
+
+select * from rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+-- this function is now inlinable, too:
+explain (verbose, costs off) select * from rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off) select * from rngfuncbar()' at line 2")
+
+-----------
+QUERY:
+
+
+drop function rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+-- check handling of a SQL function with multiple OUT params (bug #5777)
+
+create or replace function rngfuncbar(out integer, out numeric) as
+$$ select (1, 2.1) $$ language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function rngfuncbar(out integer, out numeric) as\n$$ select (1, 2.1) $$ language ' at line 3")
+
+-----------
+QUERY:
+
+
+select * from rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+
+
+create or replace function rngfuncbar(out integer, out numeric) as
+$$ select (1, 2) $$ language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function rngfuncbar(out integer, out numeric) as\n$$ select (1, 2) $$ language sq' at line 1")
+
+-----------
+QUERY:
+
+
+select * from rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+create or replace function rngfuncbar(out integer, out numeric) as
+$$ select (1, 2.1, 3) $$ language sql;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'function rngfuncbar(out integer, out numeric) as\n$$ select (1, 2.1, 3) $$ langua' at line 3")
+
+-----------
+QUERY:
+
+
+select * from rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+drop function rngfuncbar();
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()' at line 3")
+
+-----------
+QUERY:
+
+
+-- check whole-row-Var handling in nested lateral functions (bug #11703)
+
+create function extractq2(t int8_tbl) returns int8 as $$
+  select t.q2
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8_tbl) returns int8 as $$\n  select t.q2\n$$ language sql immutable' at line 3")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select x from int8_tbl, extractq2(int8_tbl) f(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect x from int8_tbl, extractq2(int8_tbl) f(x)' at line 1")
+
+-----------
+QUERY:
+
+
+select x from int8_tbl, extractq2(int8_tbl) f(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8_tbl) f(x)' at line 1")
+
+-----------
+QUERY:
+
+
+create function extractq2_2(t int8_tbl) returns table(ret1 int8) as $$
+  select extractq2(t) offset 0
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8_tbl) returns table(ret1 int8) as $$\n  select extractq2(t) offset 0\n$$ langu' at line 1")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select x from int8_tbl, extractq2_2(int8_tbl) f(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect x from int8_tbl, extractq2_2(int8_tbl) f(x)' at line 1")
+
+-----------
+QUERY:
+
+
+select x from int8_tbl, extractq2_2(int8_tbl) f(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8_tbl) f(x)' at line 1")
+
+-----------
+QUERY:
+
+
+-- without the /* REPLACED */ ''offset 0/* REPLACED */ '', this function gets optimized quite differently
+
+create function extractq2_2_opt(t int8_tbl) returns table(ret1 int8) as $$
+  select extractq2(t)
+$$ language sql immutable;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int8_tbl) returns table(ret1 int8) as $$\n  select extractq2(t)\n$$ language sql i' at line 3")
+
+-----------
+QUERY:
+
+
+explain (verbose, costs off)
+select x from int8_tbl, extractq2_2_opt(int8_tbl) f(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect x from int8_tbl, extractq2_2_opt(int8_tbl) f(x)' at line 1")
+
+-----------
+QUERY:
+
+
+select x from int8_tbl, extractq2_2_opt(int8_tbl) f(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int8_tbl) f(x)' at line 1")
+
+-----------
+QUERY:
+
+
+-- check handling of nulls in SRF results (bug #7808)
+
+create type rngfunc2 as (a integer, b text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rngfunc2 as (a integer, b text)' at line 3")
+
+-----------
+QUERY:
+
+
+select *, row_to_json(u) from unnest(array[(1,'foo')::rngfunc2, null::rngfunc2]) u;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[(1,'foo')::rngfunc2, null::rngfunc2]) u' at line 1")
+
+-----------
+QUERY:
+
+select *, row_to_json(u) from unnest(array[null::rngfunc2, null::rngfunc2]) u;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[null::rngfunc2, null::rngfunc2]) u' at line 1")
+
+-----------
+QUERY:
+
+select *, row_to_json(u) from unnest(array[null::rngfunc2, (1,'foo')::rngfunc2, null::rngfunc2]) u;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[null::rngfunc2, (1,'foo')::rngfunc2, null::rngfunc2]) u' at line 1")
+
+-----------
+QUERY:
+
+select *, row_to_json(u) from unnest(array[]::rngfunc2[]) u;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[]::rngfunc2[]) u' at line 1")
+
+-----------
+QUERY:
+
+
+drop type rngfunc2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type rngfunc2' at line 1")
+
+-----------
+QUERY:
+
+
+-- check handling of functions pulled up into function RTEs (bug #17227)
+
+explain (verbose, costs off)
+select * from
+  (select jsonb_path_query_array(module->'lectures', '$[*]') as lecture
+   from unnest(array['{"lectures": [{"id": "1"}]}'::jsonb])
+        as unnested_modules(module)) as ss,
+  jsonb_to_recordset(ss.lecture) as j (id text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'verbose, costs off)\nselect * from\n  (select jsonb_path_query_array(module->'lect' at line 3")
+
+-----------
+QUERY:
+
+
+select * from
+  (select jsonb_path_query_array(module->'lectures', '$[*]') as lecture
+   from unnest(array['{"lectures": [{"id": "1"}]}'::jsonb])
+        as unnested_modules(module)) as ss,
+  jsonb_to_recordset(ss.lecture) as j (id text);
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'(array[\'{"lectures": [{"id": "1"}]}\'::jsonb])\n        as unnested_modules(module\' at line 3')
+
+-----------
+QUERY:
+
+
+-- check detection of mismatching record types with a const-folded expression
+
+with a(b) as (values (row(1,2,3)))
+select * from a, coalesce(b) as c(d int, e int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1,2,3)))\nselect * from a, coalesce(b) as c(d int, e int)' at line 3")
+
+-----------
+QUERY:
+  -- fail
+with a(b) as (values (row(1,2,3)))
+select * from a, coalesce(b) as c(d int, e int, f int, g int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1,2,3)))\nselect * from a, coalesce(b) as c(d int, e int, f int, g int)' at line 2")
+
+-----------
+QUERY:
+  -- fail
+with a(b) as (values (row(1,2,3)))
+select * from a, coalesce(b) as c(d int, e int, f float);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1,2,3)))\nselect * from a, coalesce(b) as c(d int, e int, f float)' at line 2")

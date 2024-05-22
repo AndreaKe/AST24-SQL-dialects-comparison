@@ -6,12 +6,12 @@ QUERY:
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_builddir PG_ABS_BUILDDIR
 
 -- ensure consistent test output regardless of the default bytea format
 SET bytea_output TO escape;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -19,19 +19,19 @@ QUERY:
 
 -- Test ALTER LARGE OBJECT OWNER
 CREATE ROLE regress_lo_user;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_create(42);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER LARGE OBJECT 42 OWNER TO regress_lo_user;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -39,41 +39,41 @@ QUERY:
 
 -- Test GRANT, COMMENT as non-superuser
 SET SESSION AUTHORIZATION regress_lo_user;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 GRANT SELECT ON LARGE OBJECT 42 TO public;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 COMMENT ON LARGE OBJECT 42 IS 'the ultimate answer';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 RESET SESSION AUTHORIZATION;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- Test psql/* REPLACED */''s \lo_list et al (we assume no other LOs exist yet)
-\lo_list
-\lo_list+
-\lo_unlink 42
+-- Test psql/* REPLACED */ ''s \lo_list et al (we assume no other LOs exist yet)
+-- \lo_list
+-- \lo_list+
+-- \lo_unlink 42
 -- \dl
 
 -- Load a file
 CREATE TABLE lotest_stash_values (loid oid, fd integer);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -82,7 +82,7 @@ QUERY:
 -- The mode arg to lo_creat is unused, some vestigal holdover from ancient times
 -- returns the large object id
 INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -90,7 +90,7 @@ QUERY:
 
 -- NOTE: large objects require transactions
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -103,7 +103,7 @@ QUERY:
 -- The return value is a file descriptor-like value which remains valid for the
 -- transaction.
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -117,7 +117,7 @@ I wandered lonely as a cloud
 That floats on high o''er vales and hills,
 When all at once I saw a crowd,
 A host, of golden daffodils;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -133,7 +133,7 @@ Ten thousand saw I at a glance,
 Tossing their heads in sprightly dance.
 
 The waves beside them danced;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -148,7 +148,7 @@ For oft, when on my couch I lie
 In vacant or in pensive mood,
 They flash upon that inward eye
 Which is the bliss of solitude;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -158,7 +158,7 @@ And dances with the daffodils.
 
          -- William Wordsworth
 ') FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -167,29 +167,29 @@ QUERY:
 -- lo_close(fd integer) returns integer
 -- return value is 0 for success, or <0 for error (actually only -1, but...)
 SELECT lo_close(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 END;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 -- Copy to another large object.
--- Note: we intentionally don/* REPLACED */''t remove the object created here /* REPLACED */,
--- it/* REPLACED */''s left behind to help test pg_dump.
+-- Note: we intentionally don/* REPLACED */ ''t remove the object created here /* REPLACED */ ,
+-- it/* REPLACED */ ''s left behind to help test pg_dump.
 
 SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
-\gset
+-- \gset
 
 -- Add a comment to it, as well, for pg_dump/pg_upgrade testing.
 COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a Cloud';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -197,13 +197,13 @@ QUERY:
 
 -- Read out a portion
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -216,65 +216,56 @@ QUERY:
 --  SEEK_END (= 2) meaning relative to end (offset better be negative)
 -- returns current position in file
 SELECT lo_lseek(fd, 104, 0) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-
--- loread/lowrite names are wonky, different from other functions which are lo_*
--- loread(fd integer, len integer) returns bytea
-SELECT loread(fd, 28) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_lseek(fd, -19, 1) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lowrite(fd, 'n') FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_lseek(fd, -744, 2) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 SELECT loread(fd, 28) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 SELECT lo_close(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 END;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -282,117 +273,117 @@ QUERY:
 
 -- Test resource management
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ABORT;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/invalid/path'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path'
 -- \set dobody 'DECLARE loid oid;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  BEGIN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
-RESULT: [duckdb: SAME, mySQL: SAME]
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  BEGIN ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
-RESULT: [duckdb: SAME, mySQL: SAME]
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
- ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path' ');
-RESULT: [duckdb: SAME, mySQL: SAME]
+ ' 'PERFORM lo_export(loid, ' /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path' ');
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
-RESULT: [duckdb: SAME, mySQL: SAME]
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
-RESULT: [duckdb: SAME, mySQL: SAME]
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
-RESULT: [duckdb: SAME, mySQL: SAME]
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
-RESULT: [duckdb: SAME, mySQL: SAME]
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could not open file, as expected'';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  END'
-DO /* REPLACED */'DECLARE loid oid;
-RESULT: [duckdb: SAME, mySQL: SAME]
+DO /* REPLACED */ 'DECLARE loid oid;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tbl;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
-RESULT: [duckdb: SAME, mySQL: SAME]
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  EXCEPTION WHEN UNDEFINED_FILE THEN RAISE NOTICE ''could not open file, as expected'';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  END';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -400,83 +391,71 @@ QUERY:
 
 -- Test truncation.
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_truncate(fd, 11) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-SELECT loread(fd, 15) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_truncate(fd, 10000) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-SELECT loread(fd, 10) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_truncate(fd, 5000) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_close(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 END;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -484,102 +463,96 @@ QUERY:
 
 -- Test 64-bit large object functions.
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_lseek64(fd, 4294967296, 0) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lowrite(fd, 'offset:4GB') FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_lseek64(fd, -10, 1) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-SELECT loread(fd, 10) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_truncate64(fd, 5000000000) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_truncate64(fd, 3000000000) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_close(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 END;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -588,35 +561,35 @@ QUERY:
 -- lo_unlink(lobjId oid) returns integer
 -- return value appears to always be 1
 SELECT lo_unlink(loid) from lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 TRUNCATE lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
-INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
-RESULT: [duckdb: SAME, mySQL: SAME]
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data'
+INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -624,7 +597,7 @@ QUERY:
 
 -- verify length of large object
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -633,7 +606,7 @@ QUERY:
 -- with the default BLCKSZ, LOBLKSIZE = 2048, so this positions us for a block
 -- edge case
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -642,194 +615,194 @@ QUERY:
 -- this should get half of the value from page 0 and half from page 1 of the
 -- large object
 SELECT loread(fd, 36) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_lseek(fd, -26, 1) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lowrite(fd, 'abcdefghijklmnop') FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT loread(fd, 36) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SELECT lo_close(fd) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 END;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-SELECT lo_export(loid, /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt') FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+SELECT lo_export(loid, /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt') FROM lotest_stash_values;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
-\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid :LASTOID
 
 -- just make sure \lo_export does not barf
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest2.txt'
-\lo_export /* REPLACED */:LASTOID /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest2.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest2.txt'
+-- \lo_export /* REPLACED */ :LASTOID /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest2.txt/* REPLACED */ ''
 
 -- This is a hack to test that export/import are reversible
 -- This uses knowledge about the inner workings of large object mechanism
 -- which should not be used outside it.  This makes it a HACK
 SELECT pageno, data FROM pg_largeobject WHERE loid = (SELECT loid from lotest_stash_values)
 EXCEPT
-SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */:LASTOID;
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */ :LASTOID;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 SELECT lo_unlink(loid) FROM lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 TRUNCATE lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
-\lo_unlink /* REPLACED */:LASTOID
+-- \lo_unlink /* REPLACED */ :LASTOID
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid_1 :LASTOID
 
-SELECT lo_from_bytea(0, lo_get(/* REPLACED */:LASTOID_1)) AS newloid_2
-\gset
+SELECT lo_from_bytea(0, lo_get(/* REPLACED */ :LASTOID_1)) AS newloid_2
+-- \gset
 
-SELECT fipshash(lo_get(/* REPLACED */:LASTOID_1)) = fipshash(lo_get(/* REPLACED */:LASTOID_2));
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf', 'hex'));
-RESULT: [duckdb: SAME, mySQL: SAME]
-
------------
-QUERY:
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT fipshash(lo_get(/* REPLACED */ :LASTOID_1)) = fipshash(lo_get(/* REPLACED */ :LASTOID_2));
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
-SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1);
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 10, 20);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 5, decode('afafafaf', 'hex'));
+RESULT: [duckdb: SAME, mysql: SAME]
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
-\lo_unlink /* REPLACED */:LASTOID_1
-\lo_unlink /* REPLACED */:LASTOID_2
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 4294967310, 'foo');
+RESULT: [duckdb: SAME, mysql: SAME]
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1);
+RESULT: [duckdb: SAME, mysql: SAME]
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 4294967294, 100);
+RESULT: [duckdb: SAME, mysql: SAME]
+
+-----------
+QUERY:
+
+
+-- \lo_unlink /* REPLACED */ :LASTOID_1
+-- \lo_unlink /* REPLACED */ :LASTOID_2
 
 -- This object is left in the database for pg_dump test purposes
 SELECT lo_from_bytea(0, E'\\xdeadbeef') AS newloid
-\gset
+-- \gset
 
 SET bytea_output TO hex;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID);
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT lo_get(/* REPLACED */ :LASTOID);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
--- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */,
+-- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */ ,
 -- this one intentionally has an OID in the system range
 SELECT lo_create(2121);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 COMMENT ON LARGE OBJECT 2121 IS 'testing comments';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -837,198 +810,198 @@ QUERY:
 
 -- Test writes on large objects in read-only transactions
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 -- INV_READ ... ok
 SELECT lo_open(2121, x'40000'::int);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- INV_WRITE ... error
 SELECT lo_open(2121, x'20000'::int);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_create(42);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_creat(42);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_unlink(42);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lowrite(42, 'x');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
-SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt');
-RESULT: [duckdb: SAME, mySQL: SAME]
+SELECT lo_import(/* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt');
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_truncate(42, 0);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_truncate64(42, 0);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_from_bytea(0, 'x');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 START TRANSACTION READ ONLY;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT lo_put(42, 0, 'x');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -1036,26 +1009,26 @@ QUERY:
 
 -- Clean up
 DROP TABLE lotest_stash_values;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 DROP ROLE regress_lo_user;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 =========================================
 Summary for test case largeobject/test.sql of postgres
 =========================================
 
 =================
 Results for duckdb
-SAME: 113 queries, which is 78.47%
+SAME: 65 queries, which is 46.43%
 DIFFERENT: 0 queries, which is 0.00%
-ERROR: 31 queries, which is 21.53%
+ERROR: 75 queries, which is 53.57%
 
 =================
-Results for mySQL
-SAME: 125 queries, which is 86.81%
+Results for mysql
+SAME: 73 queries, which is 52.14%
 DIFFERENT: 0 queries, which is 0.00%
-ERROR: 19 queries, which is 13.19%
+ERROR: 67 queries, which is 47.86%

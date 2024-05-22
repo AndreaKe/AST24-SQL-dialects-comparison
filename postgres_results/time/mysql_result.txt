@@ -1,0 +1,342 @@
+
+-----------
+QUERY:
+--
+-- TIME
+--
+
+CREATE TABLE TIME_TBL (f1 time(2));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+INSERT INTO TIME_TBL VALUES ('00:00');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('01:00');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- as of 7.4, timezone spec should be accepted and ignored
+INSERT INTO TIME_TBL VALUES ('02:03 PST');
+RESULT:
+	ERROR - (1292, "Incorrect time value: '02:03 PST' for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('11:59 EDT');
+RESULT:
+	ERROR - (1292, "Incorrect time value: '11:59 EDT' for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('12:00');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('12:01');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('23:59');
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('11:59:59.99 PM');
+RESULT:
+	ERROR - (1292, "Incorrect time value: '11:59:59.99 PM' for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO TIME_TBL VALUES ('2003-03-07 15:36:39 America/New_York');
+RESULT:
+	ERROR - (1292, "Incorrect time value: '2003-03-07 15:36:39 America/New_York' for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+INSERT INTO TIME_TBL VALUES ('2003-07-07 15:36:39 America/New_York');
+RESULT:
+	ERROR - (1292, "Incorrect time value: '2003-07-07 15:36:39 America/New_York' for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+-- this should fail (the timezone offset is not known)
+INSERT INTO TIME_TBL VALUES ('15:36:39 America/New_York');
+RESULT:
+	ERROR - (1292, "Incorrect time value: '15:36:39 America/New_York' for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+
+
+SELECT f1 AS "Time" FROM TIME_TBL;
+RESULT:
+	((datetime.timedelta(0),), (datetime.timedelta(seconds=3600),), (datetime.timedelta(seconds=43200),), (datetime.timedelta(seconds=43260),), (datetime.timedelta(seconds=86340),))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Three" FROM TIME_TBL WHERE f1 < '05:06:07';
+RESULT:
+	((datetime.timedelta(0),), (datetime.timedelta(seconds=3600),))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Five" FROM TIME_TBL WHERE f1 > '05:06:07';
+RESULT:
+	((datetime.timedelta(seconds=43200),), (datetime.timedelta(seconds=43260),), (datetime.timedelta(seconds=86340),))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "None" FROM TIME_TBL WHERE f1 < '00:00';
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+SELECT f1 AS "Eight" FROM TIME_TBL WHERE f1 >= '00:00';
+RESULT:
+	((datetime.timedelta(0),), (datetime.timedelta(seconds=3600),), (datetime.timedelta(seconds=43200),), (datetime.timedelta(seconds=43260),), (datetime.timedelta(seconds=86340),))
+
+-----------
+QUERY:
+
+
+-- Check edge cases
+SELECT '23:59:59.999999'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+
+SELECT '23:59:59.9999999'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 1")
+
+-----------
+QUERY:
+  -- rounds up
+SELECT '23:59:60'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+  -- rounds up
+SELECT '24:00:00'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+  -- allowed
+SELECT '24:00:00.01'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+  -- not allowed
+SELECT '23:59:60.01'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+  -- not allowed
+SELECT '24:01:00'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+  -- not allowed
+SELECT '25:00:00'::time;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::time' at line 2")
+
+-----------
+QUERY:
+  -- not allowed
+
+-- Test non-error-throwing API
+SELECT pg_input_is_valid('12:00:00', 'time');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('25:00:00', 'time');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT pg_input_is_valid('15:36:39 America/New_York', 'time');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.pg_input_is_valid does not exist')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('25:00:00', 'time');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('25:00:00', 'time')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info('15:36:39 America/New_York', 'time');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('15:36:39 America/New_York', 'time')' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- TIME simple math
+--
+-- We now make a distinction between time and intervals,
+-- and adding two times together makes no sense at all.
+-- Leave in one query to show that it is rejected,
+-- and do the rest of the testing in horology.sql
+-- where we do mixed-type arithmetic. - thomas 2000-12-02
+
+SELECT f1 + time '00:01' AS "Illegal" FROM TIME_TBL;
+RESULT:
+	((Decimal('100.00'),), (Decimal('10100.00'),), (Decimal('120100.00'),), (Decimal('120200.00'),), (Decimal('236000.00'),))
+
+-----------
+QUERY:
+
+
+--
+-- test EXTRACT
+--
+SELECT EXTRACT(MICROSECOND FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT EXTRACT(MILLISECOND FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MILLISECOND FROM TIME '2020-05-26 13:30:25.575401')' at line 1")
+
+-----------
+QUERY:
+
+SELECT EXTRACT(SECOND      FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT EXTRACT(MINUTE      FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT EXTRACT(HOUR        FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT EXTRACT(DAY         FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(FORTNIGHT   FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FORTNIGHT   FROM TIME '2020-05-26 13:30:25.575401')' at line 2")
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(TIMEZONE    FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TIMEZONE    FROM TIME '2020-05-26 13:30:25.575401')' at line 2")
+
+-----------
+QUERY:
+  -- error
+SELECT EXTRACT(EPOCH       FROM TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EPOCH       FROM TIME '2020-05-26 13:30:25.575401')' at line 2")
+
+-----------
+QUERY:
+
+
+-- date_part implementation is mostly the same as extract, so only
+-- test a few cases for additional coverage.
+SELECT date_part('microsecond', TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT date_part('millisecond', TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT date_part('second',      TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")
+
+-----------
+QUERY:
+
+SELECT date_part('epoch',       TIME '2020-05-26 13:30:25.575401');
+RESULT:
+	ERROR - (1525, "Incorrect TIME value: '2020-05-26 13:30:25.575401'")

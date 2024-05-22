@@ -4,9 +4,9 @@ QUERY:
 -- Perform tests on the Memoize node.
 
 -- The cache hits/misses/evictions from the Memoize node can vary between
--- machines.  Let/* REPLACED */''s just replace the number with an /* REPLACED */''N/* REPLACED */''.  In order to allow us
+-- machines.  Let/* REPLACED */ ''s just replace the number with an /* REPLACED */ ''N/* REPLACED */ ''.  In order to allow us
 -- to perform validation when the measure was zero, we replace a zero value
--- with /* REPLACED */''Zero/* REPLACED */''.  All other numbers are replaced with /* REPLACED */''N/* REPLACED */''.
+-- with /* REPLACED */ ''Zero/* REPLACED */ ''.  All other numbers are replaced with /* REPLACED */ ''N/* REPLACED */ ''.
 create function explain_memoize(query text, hide_hitmiss bool) returns setof text
 language plpgsql as
 $$
@@ -86,7 +86,7 @@ SELECT COUNT(*),AVG(t1.unique1) FROM tenk1 t1
 INNER JOIN tenk1 t2 ON t1.unique1 = t2.twenty
 WHERE t2.unique1 < 1000;
 RESULT:
-	[(1000, Decimal('9.5000000000000000'))]
+	[(0, None)]
 
 -----------
 QUERY:
@@ -127,7 +127,7 @@ LATERAL (SELECT t2.unique1 FROM tenk1 t2
          WHERE t1.twenty = t2.unique1 OFFSET 0) t2
 WHERE t1.unique1 < 1000;
 RESULT:
-	[(1000, Decimal('9.5000000000000000'))]
+	[(0, None)]
 
 -----------
 QUERY:
@@ -174,7 +174,7 @@ LATERAL (
 ON t1.two = t2.two
 WHERE t1.unique1 < 10;
 RESULT:
-	[(20, Decimal('0.50000000000000000000'))]
+	[(0, None)]
 
 -----------
 QUERY:
@@ -279,7 +279,7 @@ RESULT:
 -----------
 QUERY:
 
--- Ensure we get some evictions.  We/* REPLACED */''re unable to validate the hits and misses
+-- Ensure we get some evictions.  We/* REPLACED */ ''re unable to validate the hits and misses
 -- here as the number of entries that fit in the cache at once will vary
 -- between different machines.
 SELECT explain_memoize('
@@ -650,7 +650,7 @@ WHERE unique1 < 3
 	INNER JOIN tenk1 t2 ON t1.unique1 = t2.hundred
 	WHERE t0.ten = t1.twenty AND t0.two <> t2.four OFFSET 0);
 RESULT:
-	[('Index Scan using tenk1_unique1 on tenk1 t0',), ('  Index Cond: (unique1 < 3)',), ('  Filter: EXISTS(SubPlan 1)',), ('  SubPlan 1',), ('    ->  Nested Loop',), ('          ->  Index Scan using tenk1_hundred on tenk1 t2',), ('                Filter: (t0.two <> four)',), ('          ->  Memoize',), ('                Cache Key: t2.hundred',), ('                Cache Mode: logical',), ('                ->  Index Scan using tenk1_unique1 on tenk1 t1',), ('                      Index Cond: (unique1 = t2.hundred)',), ('                      Filter: (t0.ten = twenty)',)]
+	[('Index Scan using tenk1_unique1 on tenk1 t0',), ('  Index Cond: (unique1 < 3)',), ('  Filter: EXISTS(SubPlan 1)',), ('  SubPlan 1',), ('    ->  Nested Loop',), ('          Join Filter: (t1.unique1 = t2.hundred)',), ('          ->  Index Scan using tenk1_unique1 on tenk1 t1',), ('                Filter: (t0.ten = twenty)',), ('          ->  Index Scan using tenk1_hundred on tenk1 t2',), ('                Filter: (t0.two <> four)',)]
 
 -----------
 QUERY:
@@ -664,7 +664,7 @@ WHERE unique1 < 3
 	INNER JOIN tenk1 t2 ON t1.unique1 = t2.hundred
 	WHERE t0.ten = t1.twenty AND t0.two <> t2.four OFFSET 0);
 RESULT:
-	[(2,)]
+	[]
 
 -----------
 QUERY:
@@ -749,7 +749,7 @@ SELECT COUNT(*),AVG(t2.unique1) FROM tenk1 t1,
 LATERAL (SELECT t2.unique1 FROM tenk1 t2 WHERE t1.twenty = t2.unique1) t2
 WHERE t1.unique1 < 1000;
 RESULT:
-	[('Finalize Aggregate',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Partial Aggregate',), ('              ->  Nested Loop',), ('                    ->  Parallel Bitmap Heap Scan on tenk1 t1',), ('                          Recheck Cond: (unique1 < 1000)',), ('                          ->  Bitmap Index Scan on tenk1_unique1',), ('                                Index Cond: (unique1 < 1000)',), ('                    ->  Memoize',), ('                          Cache Key: t1.twenty',), ('                          Cache Mode: logical',), ('                          ->  Index Only Scan using tenk1_unique1 on tenk1 t2',), ('                                Index Cond: (unique1 = t1.twenty)',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        Join Filter: (t1.twenty = t2.unique1)',), ('        ->  Seq Scan on tenk1 t1',), ('              Filter: (unique1 < 1000)',), ('        ->  Seq Scan on tenk1 t2',)]
 
 -----------
 QUERY:
@@ -760,7 +760,7 @@ SELECT COUNT(*),AVG(t2.unique1) FROM tenk1 t1,
 LATERAL (SELECT t2.unique1 FROM tenk1 t2 WHERE t1.twenty = t2.unique1) t2
 WHERE t1.unique1 < 1000;
 RESULT:
-	[(1000, Decimal('9.5000000000000000'))]
+	[(0, None)]
 
 -----------
 QUERY:

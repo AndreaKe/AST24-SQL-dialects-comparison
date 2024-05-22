@@ -6,8 +6,8 @@ QUERY:
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_builddir PG_ABS_BUILDDIR
 
 -- ensure consistent test output regardless of the default bytea format
 SET bytea_output TO escape;
@@ -74,19 +74,16 @@ RESULT:
 QUERY:
 
 
--- Test psql/* REPLACED */''s \lo_list et al (we assume no other LOs exist yet)
-\lo_list
-\lo_list+
-\lo_unlink 42
+-- Test psql/* REPLACED */ ''s \lo_list et al (we assume no other LOs exist yet)
+-- \lo_list
+-- \lo_list+
+-- \lo_unlink 42
 -- \dl
 
 -- Load a file
 CREATE TABLE lotest_stash_values (loid oid, fd integer);
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 4: \lo_list
-        ^
-
+	[]
 
 -----------
 QUERY:
@@ -96,10 +93,7 @@ QUERY:
 -- returns the large object id
 INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 5: INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
-                    ^
-
+	[]
 
 -----------
 QUERY:
@@ -122,10 +116,7 @@ QUERY:
 -- transaction.
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 9: UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'200...
-               ^
-
+	[]
 
 -----------
 QUERY:
@@ -226,18 +217,18 @@ QUERY:
 
 
 -- Copy to another large object.
--- Note: we intentionally don/* REPLACED */''t remove the object created here /* REPLACED */,
--- it/* REPLACED */''s left behind to help test pg_dump.
+-- Note: we intentionally don/* REPLACED */ ''t remove the object created here /* REPLACED */ ,
+-- it/* REPLACED */ ''s left behind to help test pg_dump.
 
 SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
-\gset
+-- \gset
 
 -- Add a comment to it, as well, for pg_dump/pg_upgrade testing.
 COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a Cloud';
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 8: \gset
-        ^
+	ERROR - syntax error at or near "ON"
+LINE 11: COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a ...
+                 ^
 
 
 -----------
@@ -254,10 +245,7 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000...
-               ^
-
+	[]
 
 -----------
 QUERY:
@@ -271,19 +259,7 @@ QUERY:
 -- returns current position in file
 SELECT lo_lseek(fd, 104, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
-
------------
-QUERY:
-
-
--- loread/lowrite names are wonky, different from other functions which are lo_*
--- loread(fd integer, len integer) returns bytea
-SELECT loread(fd, 28) FROM lotest_stash_values;
-RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(104,)]
 
 -----------
 QUERY:
@@ -291,8 +267,7 @@ QUERY:
 
 SELECT lo_lseek(fd, -19, 1) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(85,)]
 
 -----------
 QUERY:
@@ -300,8 +275,7 @@ QUERY:
 
 SELECT lowrite(fd, 'n') FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(1,)]
 
 -----------
 QUERY:
@@ -309,8 +283,7 @@ QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(86,)]
 
 -----------
 QUERY:
@@ -318,7 +291,7 @@ QUERY:
 
 SELECT lo_lseek(fd, -744, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
+	ERROR - invalid large object seek target: -658
 
 
 -----------
@@ -361,10 +334,7 @@ QUERY:
 
 SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 2: SELECT lo_open(loid, x'40000'::int) from lotest_stash_values...
-                                                 ^
-
+	[(0,)]
 
 -----------
 QUERY:
@@ -377,7 +347,7 @@ RESULT:
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/invalid/path'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path'
 -- \set dobody 'DECLARE loid oid;
 RESULT:
 	ERROR - can't execute an empty query
@@ -385,10 +355,10 @@ RESULT:
 -----------
 QUERY:
  BEGIN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - syntax error at or near "'
--- \set dobody /* REPLACED */'"
+-- \set dobody /* REPLACED */ '"
 LINE 1:  BEGIN '
                ^
 
@@ -405,10 +375,10 @@ LINE 1:  BEGIN ' 'SELECT tbl.loid INTO loid FROM lotest_stash_values...
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - syntax error at or near "'
--- \set dobody /* REPLACED */'"
+-- \set dobody /* REPLACED */ '"
 LINE 1:  '
          ^
 
@@ -424,20 +394,20 @@ LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
 
 -----------
 QUERY:
- ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path' ');
+ ' 'PERFORM lo_export(loid, ' /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path' ');
 RESULT:
 	ERROR - syntax error at or near "' '"
-LINE 1:  ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/D...
+LINE 1:  ' 'PERFORM lo_export(loid, ' /* REPLACED */  '/home/keuscha...
          ^
 
 
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - syntax error at or near "'
--- \set dobody /* REPLACED */'"
+-- \set dobody /* REPLACED */ '"
 LINE 1:  '
          ^
 
@@ -453,7 +423,7 @@ LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
 	ERROR - syntax error at or near "PERFORM"
 LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
@@ -463,7 +433,7 @@ LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
 -----------
 QUERY:
  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - syntax error at or near "' '"
 LINE 1:  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
@@ -481,7 +451,7 @@ LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
 	ERROR - syntax error at or near "PERFORM"
 LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
@@ -500,10 +470,10 @@ LINE 1:  EXCEPTION WHEN UNDEFINED_FILE THEN ' 'RAISE NOTICE ''could ...
 -----------
 QUERY:
  END'
-DO /* REPLACED */'DECLARE loid oid;
+DO /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - syntax error at or near "'
-DO /* REPLACED */'"
+DO /* REPLACED */ '"
 LINE 1:  END'
             ^
 
@@ -519,7 +489,7 @@ LINE 1:  BEGIN SELECT tbl.loid INTO loid FROM lotest_stash_values tb...
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
 	ERROR - syntax error at or near "PERFORM"
 LINE 1:  PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/...
@@ -558,10 +528,7 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000...
-               ^
-
+	[]
 
 -----------
 QUERY:
@@ -569,16 +536,7 @@ QUERY:
 
 SELECT lo_truncate(fd, 11) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
-
------------
-QUERY:
-
-SELECT loread(fd, 15) FROM lotest_stash_values;
-RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
@@ -586,32 +544,21 @@ QUERY:
 
 SELECT lo_truncate(fd, 10000) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
-
------------
-QUERY:
-
-SELECT loread(fd, 10) FROM lotest_stash_values;
-RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(10000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(10000,)]
 
 -----------
 QUERY:
@@ -619,24 +566,21 @@ QUERY:
 
 SELECT lo_truncate(fd, 5000) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(5000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(5000,)]
 
 -----------
 QUERY:
@@ -644,8 +588,7 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
@@ -668,10 +611,7 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 2: UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'200...
-               ^
-
+	[]
 
 -----------
 QUERY:
@@ -679,24 +619,21 @@ QUERY:
 
 SELECT lo_lseek64(fd, 4294967296, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(4294967296,)]
 
 -----------
 QUERY:
 
 SELECT lowrite(fd, 'offset:4GB') FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(10,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(4294967306,)]
 
 -----------
 QUERY:
@@ -704,24 +641,14 @@ QUERY:
 
 SELECT lo_lseek64(fd, -10, 1) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(4294967296,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
-
------------
-QUERY:
-
-SELECT loread(fd, 10) FROM lotest_stash_values;
-RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(4294967296,)]
 
 -----------
 QUERY:
@@ -729,24 +656,21 @@ QUERY:
 
 SELECT lo_truncate64(fd, 5000000000) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(5000000000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(5000000000,)]
 
 -----------
 QUERY:
@@ -754,24 +678,21 @@ QUERY:
 
 SELECT lo_truncate64(fd, 3000000000) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(3000000000,)]
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(3000000000,)]
 
 -----------
 QUERY:
@@ -779,8 +700,7 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
@@ -797,10 +717,7 @@ QUERY:
 -- return value appears to always be 1
 SELECT lo_unlink(loid) from lotest_stash_values;
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 5: SELECT lo_unlink(loid) from lotest_stash_values;
-                                    ^
-
+	[(1,)]
 
 -----------
 QUERY:
@@ -808,20 +725,16 @@ QUERY:
 
 TRUNCATE lotest_stash_values;
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-
+	[]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
-INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data'
+INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data');
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 4: INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* R...
-                    ^
-
+	[]
 
 -----------
 QUERY:
@@ -836,10 +749,7 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000...
-               ^
-
+	[]
 
 -----------
 QUERY:
@@ -848,8 +758,7 @@ QUERY:
 -- verify length of large object
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(670800,)]
 
 -----------
 QUERY:
@@ -859,8 +768,7 @@ QUERY:
 -- edge case
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(2030,)]
 
 -----------
 QUERY:
@@ -870,8 +778,7 @@ QUERY:
 -- large object
 SELECT loread(fd, 36) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(<memory at 0x7472603de080>,)]
 
 -----------
 QUERY:
@@ -879,8 +786,7 @@ QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(2066,)]
 
 -----------
 QUERY:
@@ -888,8 +794,7 @@ QUERY:
 
 SELECT lo_lseek(fd, -26, 1) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(2040,)]
 
 -----------
 QUERY:
@@ -897,8 +802,7 @@ QUERY:
 
 SELECT lowrite(fd, 'abcdefghijklmnop') FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(16,)]
 
 -----------
 QUERY:
@@ -906,8 +810,7 @@ QUERY:
 
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(2030,)]
 
 -----------
 QUERY:
@@ -915,8 +818,7 @@ QUERY:
 
 SELECT loread(fd, 36) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(<memory at 0x7472603df880>,)]
 
 -----------
 QUERY:
@@ -924,8 +826,7 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - current transaction is aborted, commands ignored until end of transaction block
-
+	[(0,)]
 
 -----------
 QUERY:
@@ -938,36 +839,33 @@ RESULT:
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-SELECT lo_export(loid, /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt') FROM lotest_stash_values;
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+SELECT lo_export(loid, /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt') FROM lotest_stash_values;
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 4: ...arison/postgres_results/results/lotest.txt') FROM lotest_sta...
-                                                             ^
-
+	[(1,)]
 
 -----------
 QUERY:
 
 
-\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid :LASTOID
 
 -- just make sure \lo_export does not barf
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest2.txt'
-\lo_export /* REPLACED */:LASTOID /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest2.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest2.txt'
+-- \lo_export /* REPLACED */ :LASTOID /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest2.txt/* REPLACED */ ''
 
 -- This is a hack to test that export/import are reversible
 -- This uses knowledge about the inner workings of large object mechanism
 -- which should not be used outside it.  This makes it a HACK
 SELECT pageno, data FROM pg_largeobject WHERE loid = (SELECT loid from lotest_stash_values)
 EXCEPT
-SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */:LASTOID;
+SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */ :LASTOID;
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 3: \lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST...
-        ^
+	ERROR - syntax error at or near ":"
+LINE 16: ...ta FROM pg_largeobject WHERE loid = /* REPLACED */ :LASTOID;
+                                                               ^
 
 
 -----------
@@ -976,10 +874,7 @@ QUERY:
 
 SELECT lo_unlink(loid) FROM lotest_stash_values;
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-LINE 3: SELECT lo_unlink(loid) FROM lotest_stash_values;
-                                    ^
-
+	[(1,)]
 
 -----------
 QUERY:
@@ -987,135 +882,134 @@ QUERY:
 
 TRUNCATE lotest_stash_values;
 RESULT:
-	ERROR - relation "lotest_stash_values" does not exist
-
+	[]
 
 -----------
 QUERY:
 
 
-\lo_unlink /* REPLACED */:LASTOID
+-- \lo_unlink /* REPLACED */ :LASTOID
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid_1 :LASTOID
 
-SELECT lo_from_bytea(0, lo_get(/* REPLACED */:LASTOID_1)) AS newloid_2
-\gset
+SELECT lo_from_bytea(0, lo_get(/* REPLACED */ :LASTOID_1)) AS newloid_2
+-- \gset
 
-SELECT fipshash(lo_get(/* REPLACED */:LASTOID_1)) = fipshash(lo_get(/* REPLACED */:LASTOID_2));
-RESULT:
-	ERROR - syntax error at or near "\"
-LINE 3: \lo_unlink /* REPLACED */:LASTOID
-        ^
-
-
------------
-QUERY:
-
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+SELECT fipshash(lo_get(/* REPLACED */ :LASTOID_1)) = fipshash(lo_get(/* REPLACED */ :LASTOID_2));
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 3: SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-                                    ^
+LINE 10: SELECT lo_from_bytea(0, lo_get(/* REPLACED */ :LASTOID_1)) A...
+                                                       ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
-                                    ^
+LINE 3: SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf', 'hex'));
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 10, 20);
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 2: SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf'...
-                                    ^
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1, 10, 20);
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 5, decode('afafafaf', 'hex'));
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-                                    ^
+LINE 2: SELECT lo_put(/* REPLACED */ :LASTOID_1, 5, decode('afafafaf...
+                                     ^
 
 
 -----------
 QUERY:
 
-
-SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 3: SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
-                                    ^
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1);
+
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 4294967310, 'foo');
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1);
-                                    ^
+LINE 3: SELECT lo_put(/* REPLACED */ :LASTOID_1, 4294967310, 'foo');
+                                     ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
+SELECT lo_get(/* REPLACED */ :LASTOID_1);
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
-                                    ^
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1);
+                                     ^
+
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 4294967294, 100);
+RESULT:
+	ERROR - syntax error at or near ":"
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID_1, 4294967294, 100);
+                                     ^
 
 
 -----------
 QUERY:
 
 
-\lo_unlink /* REPLACED */:LASTOID_1
-\lo_unlink /* REPLACED */:LASTOID_2
+-- \lo_unlink /* REPLACED */ :LASTOID_1
+-- \lo_unlink /* REPLACED */ :LASTOID_2
 
 -- This object is left in the database for pg_dump test purposes
 SELECT lo_from_bytea(0, E'\\xdeadbeef') AS newloid
-\gset
+-- \gset
 
 SET bytea_output TO hex;
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 3: \lo_unlink /* REPLACED */:LASTOID_1
-        ^
+	ERROR - syntax error at or near "SET"
+LINE 10: SET bytea_output TO hex;
+         ^
 
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID);
+SELECT lo_get(/* REPLACED */ :LASTOID);
 RESULT:
 	ERROR - syntax error at or near ":"
-LINE 2: SELECT lo_get(/* REPLACED */:LASTOID);
-                                    ^
+LINE 2: SELECT lo_get(/* REPLACED */ :LASTOID);
+                                     ^
 
 
 -----------
 QUERY:
 
 
--- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */,
+-- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */ ,
 -- this one intentionally has an OID in the system range
 SELECT lo_create(2121);
 RESULT:
@@ -1265,7 +1159,7 @@ RESULT:
 -----------
 QUERY:
 
-SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt');
+SELECT lo_import(/* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt');
 RESULT:
 	ERROR - cannot execute lo_import() in a read-only transaction
 
@@ -1376,8 +1270,7 @@ QUERY:
 -- Clean up
 DROP TABLE lotest_stash_values;
 RESULT:
-	ERROR - table "lotest_stash_values" does not exist
-
+	[]
 
 -----------
 QUERY:
