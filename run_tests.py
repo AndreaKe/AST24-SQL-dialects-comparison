@@ -80,7 +80,10 @@ class CompatibilityCase(Enum):
     DIFFERENT = 0
     ERROR = -1
 
-
+# represent the compatibility result of a test executed on a dbms compared to the guest dbms
+# results include the 
+#   - overall compatibility 
+#   - for each compatibility case, the percentage of individual queries labelled as such
 class TestResult(object):
     dbms = ""
     compatibility = None
@@ -94,8 +97,10 @@ class TestResult(object):
         self.percentages = percentages
 
     def get_summary_string(self)->str:
-        return f"{self.dbms}: {self.compatibility.name} ({self.percentages})"
+        return f"{self.dbms}: {self.compatibility.name} ({self.get_percentage_string()})"
 
+    def get_percentage_string(self)->str:
+        return ", ".join([f"{p:.2f}% {cc.name}" for (cc, p) in self.percentages])
 
     def __str__(self):
         return f"{self.test} on {self.dbms} resulted in {self.compatibility.name}"
@@ -103,11 +108,11 @@ class TestResult(object):
     def __repr__(self) -> str:
         return self.__str__()
 
-
+# standardized representation of the result of a query
 class QueryResult(object):
     dbms = ""
     status = ""
-    result = None
+    result = None 
     error = ""
 
     def __init__(self, dbms, status, result, error):
@@ -147,7 +152,8 @@ class CompatibilityCaseWrapper(object):
     def __repr__(self) -> str:
         return f"{self.dbms}: {self.result.name}"
 
-
+# abstract class that wraps all functionality that is specific to a DBMS
+# such as setting up the connection to the database, executing a query and filling the result into a standardized format
 class SQLDialectWrapper(object):
     name = ""
     db_conn = None
