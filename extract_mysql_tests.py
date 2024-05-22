@@ -69,7 +69,7 @@ def getNextLine(f, currLine):
         l = getNextLine(f, l) # two shutdowns after each other does not make sense
         if b"Query\tSET GLOBAL general_log = 'ON'\n" in l:
             return getNextLine(f,l)
-    l = re.sub(b"BY <secret>", '""', l)
+    l = re.sub(b"BY <secret>", b'""', l)
     return l
 
 def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
