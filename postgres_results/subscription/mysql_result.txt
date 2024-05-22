@@ -1,0 +1,1279 @@
+
+-----------
+QUERY:
+--
+-- SUBSCRIPTION
+--
+
+CREATE ROLE regress_subscription_user LOGIN SUPERUSER;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LOGIN SUPERUSER' at line 5")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_subscription_user2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE ROLE regress_subscription_user3 IN ROLE pg_create_subscription;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'IN ROLE pg_create_subscription' at line 1")
+
+-----------
+QUERY:
+
+CREATE ROLE regress_subscription_user_dummy LOGIN NOSUPERUSER;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LOGIN NOSUPERUSER' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION 'regress_subscription_user';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''regress_subscription_user'' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail - no publications
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'foo';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'foo'' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - no connection
+CREATE SUBSCRIPTION regress_testsub PUBLICATION foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub PUBLICATION foo' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - cannot do CREATE SUBSCRIPTION CREATE SLOT inside transaction block
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'testconn' PUBLICATION testpub WITH (create_slot);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'testconn' PUBLICATION testpub WITH (cre' at line 1")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail - invalid connection string
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'testconn' PUBLICATION testpub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'testconn' PUBLICATION testpub' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - duplicate publications
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION foo, testpub, foo WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- ok
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+COMMENT ON SUBSCRIPTION regress_testsub IS 'test subscription';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON SUBSCRIPTION regress_testsub IS 'test subscription'' at line 1")
+
+-----------
+QUERY:
+
+SELECT obj_description(s.oid, 'pg_subscription') FROM pg_subscription s;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_subscription' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check if the subscription stats are created and stats_reset is updated
+-- by pg_stat_reset_subscription_stats().
+SELECT subname, stats_reset IS NULL stats_reset_is_null FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_stat_subscription_stats' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT pg_stat_reset_subscription_stats(oid) FROM pg_subscription WHERE subname = 'regress_testsub';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_subscription' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT subname, stats_reset IS NULL stats_reset_is_null FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_stat_subscription_stats' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Reset the stats again and check if the new reset_stats is updated.
+SELECT stats_reset as prev_stats_reset FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub' \gset
+SELECT pg_stat_reset_subscription_stats(oid) FROM pg_subscription WHERE subname = 'regress_testsub';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\gset\nSELECT pg_stat_reset_subscription_stats(oid) FROM pg_subscription WHERE su' at line 2")
+
+-----------
+QUERY:
+
+SELECT :'prev_stats_reset' < stats_reset FROM pg_stat_subscription_stats WHERE subname = 'regress_testsub';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':'prev_stats_reset' < stats_reset FROM pg_stat_subscription_stats WHERE subname ' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail - name already exists
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - must be superuser
+SET SESSION AUTHORIZATION 'regress_subscription_user2';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''regress_subscription_user2'' at line 2")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION foo WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION 'regress_subscription_user';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''regress_subscription_user'' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail - invalid option combinations
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, copy_data = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 2")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, enabled = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, create_slot = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, failover = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, enabled = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, enabled = false, create_slot = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, enabled = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, create_slot = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 1")
+
+-----------
+QUERY:
+
+
+-- ok - with slot_name = NONE
+CREATE SUBSCRIPTION regress_testsub3 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub3 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 2")
+
+-----------
+QUERY:
+
+-- fail
+ALTER SUBSCRIPTION regress_testsub3 ENABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub3 ENABLE' at line 2")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub3 REFRESH PUBLICATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub3 REFRESH PUBLICATION' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail - origin must be either none or any
+CREATE SUBSCRIPTION regress_testsub4 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, connect = false, origin = foo);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub4 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 2")
+
+-----------
+QUERY:
+
+
+-- now it works
+CREATE SUBSCRIPTION regress_testsub4 CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (slot_name = NONE, connect = false, origin = none);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub4 CONNECTION 'dbname=regress_doesnotexist' PUBLICATI' at line 2")
+
+-----------
+QUERY:
+
+-- \dRs+ regress_testsub4
+ALTER SUBSCRIPTION regress_testsub4 SET (origin = any);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub4 SET (origin = any)' at line 2")
+
+-----------
+QUERY:
+
+-- \dRs+ regress_testsub4
+
+DROP SUBSCRIPTION regress_testsub3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub3' at line 3")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub4;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub4' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail, connection string does not parse
+CREATE SUBSCRIPTION regress_testsub5 CONNECTION 'i_dont_exist=param' PUBLICATION testpub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub5 CONNECTION 'i_dont_exist=param' PUBLICATION testpu' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail, connection string parses, but doesn/* REPLACED */ ''t work (and does so without
+-- connecting, so this is reliable and safe)
+CREATE SUBSCRIPTION regress_testsub5 CONNECTION 'port=-1' PUBLICATION testpub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub5 CONNECTION 'port=-1' PUBLICATION testpub' at line 3")
+
+-----------
+QUERY:
+
+
+-- fail - invalid connection string during ALTER
+ALTER SUBSCRIPTION regress_testsub CONNECTION 'foobar';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'foobar'' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET PUBLICATION testpub2, testpub3 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET PUBLICATION testpub2, testpub3 WITH (refresh = ' at line 3")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist2';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist2'' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = 'newname');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = 'newname')' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (password_required = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (password_required = false)' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (run_as_owner = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (run_as_owner = true)' at line 1")
+
+-----------
+QUERY:
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (password_required = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (password_required = true)' at line 3")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (run_as_owner = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (run_as_owner = false)' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = '');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = '')' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail
+ALTER SUBSCRIPTION regress_doesnotexist CONNECTION 'dbname=regress_doesnotexist2';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_doesnotexist CONNECTION 'dbname=regress_doesnotexist2'' at line 2")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (create_slot = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (create_slot = false)' at line 1")
+
+-----------
+QUERY:
+
+
+-- ok
+ALTER SUBSCRIPTION regress_testsub SKIP (lsn = '0/12345');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SKIP (lsn = '0/12345')' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+-- ok - with lsn = NONE
+ALTER SUBSCRIPTION regress_testsub SKIP (lsn = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SKIP (lsn = NONE)' at line 4")
+
+-----------
+QUERY:
+
+
+-- fail
+ALTER SUBSCRIPTION regress_testsub SKIP (lsn = '0/0');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SKIP (lsn = '0/0')' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub ENABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub ENABLE' at line 1")
+
+-----------
+QUERY:
+
+
+-- \dRs
+
+ALTER SUBSCRIPTION regress_testsub DISABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub DISABLE' at line 3")
+
+-----------
+QUERY:
+
+
+-- \dRs
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- fail - must be owner of subscription
+SET ROLE regress_subscription_user_dummy;
+RESULT:
+	ERROR - (3530, '`regress_subscription_user_dummy`@`%` is not granted to `root`@`localhost`')
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub_dummy;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub RENAME TO regress_testsub_dummy' at line 1")
+
+-----------
+QUERY:
+
+RESET ROLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ROLE' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub_foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub RENAME TO regress_testsub_foo' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = local);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = local)' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = foobar);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub_foo SET (synchronous_commit = foobar)' at line 1")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+-- rename back to keep the rest simple
+ALTER SUBSCRIPTION regress_testsub_foo RENAME TO regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub_foo RENAME TO regress_testsub' at line 4")
+
+-----------
+QUERY:
+
+
+-- ok, we/* REPLACED */ ''re a superuser
+ALTER SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user2' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - cannot do DROP SUBSCRIPTION inside transaction block with slot name
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 1")
+
+-----------
+QUERY:
+
+
+-- now it works
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP SUBSCRIPTION IF EXISTS regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION IF EXISTS regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+  -- fail
+
+-- fail - binary must be boolean
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, binary = foo);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 4")
+
+-----------
+QUERY:
+
+
+-- now it works
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, binary = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (binary = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (binary = false)' at line 3")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 1")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 3")
+
+-----------
+QUERY:
+
+
+-- fail - streaming must be boolean or /* REPLACED */ ''parallel/* REPLACED */ ''
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = foo);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- now it works
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (streaming = parallel);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (streaming = parallel)' at line 3")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (streaming = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (streaming = false)' at line 3")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 1")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+-- fail - publication already exists
+ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub ADD PUBLICATION testpub WITH (refresh = false)' at line 4")
+
+-----------
+QUERY:
+
+
+-- fail - publication used more than once
+ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub1 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub1 WITH (refresh = ' at line 2")
+
+-----------
+QUERY:
+
+
+-- ok - add two publications into subscription
+ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub2 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub2 WITH (refresh = ' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - publications already exist
+ALTER SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub2 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub ADD PUBLICATION testpub1, testpub2 WITH (refresh = ' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+-- fail - publication used more than once
+ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub1, testpub1 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub DROP PUBLICATION testpub1, testpub1 WITH (refresh =' at line 4")
+
+-----------
+QUERY:
+
+
+-- fail - all publications are deleted
+ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub, testpub1, testpub2 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub DROP PUBLICATION testpub, testpub1, testpub2 WITH (' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail - publication does not exist in subscription
+ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub3 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub DROP PUBLICATION testpub3 WITH (refresh = false)' at line 2")
+
+-----------
+QUERY:
+
+
+-- ok - delete publications
+ALTER SUBSCRIPTION regress_testsub DROP PUBLICATION testpub1, testpub2 WITH (refresh = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub DROP PUBLICATION testpub1, testpub2 WITH (refresh =' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION mypub
+       WITH (connect = false, create_slot = false, copy_data = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 1")
+
+-----------
+QUERY:
+
+
+ALTER SUBSCRIPTION regress_testsub ENABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub ENABLE' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail - ALTER SUBSCRIPTION with refresh is not allowed in a transaction
+-- block or function
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET PUBLICATION mypub WITH (refresh = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET PUBLICATION mypub WITH (refresh = true)' at line 1")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub REFRESH PUBLICATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub REFRESH PUBLICATION' at line 1")
+
+-----------
+QUERY:
+
+END;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'END' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE FUNCTION func() RETURNS VOID AS
+$$ ALTER SUBSCRIPTION regress_testsub SET PUBLICATION mypub WITH (refresh = true) $$ LANGUAGE SQL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VOID AS\n$$ ALTER SUBSCRIPTION regress_testsub SET PUBLICATION mypub WITH (refres' at line 1")
+
+-----------
+QUERY:
+
+SELECT func();
+RESULT:
+	ERROR - (1305, 'FUNCTION test.func does not exist')
+
+-----------
+QUERY:
+
+
+ALTER SUBSCRIPTION regress_testsub DISABLE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub DISABLE' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 1")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+DROP FUNCTION func;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.func does not exist')
+
+-----------
+QUERY:
+
+
+-- fail - two_phase must be boolean
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, two_phase = foo);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- now it works
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, two_phase = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+--fail - alter of two_phase option not supported.
+ALTER SUBSCRIPTION regress_testsub SET (two_phase = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--fail - alter of two_phase option not supported.\nALTER SUBSCRIPTION regress_tes' at line 2")
+
+-----------
+QUERY:
+
+
+-- but can alter streaming when two_phase enabled
+ALTER SUBSCRIPTION regress_testsub SET (streaming = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (streaming = true)' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 3")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+
+-- two_phase and streaming are compatible.
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, streaming = true, two_phase = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 3")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail - disable_on_error must be boolean
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, disable_on_error = foo);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- now it works
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, disable_on_error = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (disable_on_error = true);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (disable_on_error = true)' at line 3")
+
+-----------
+QUERY:
+
+
+-- \dRs+
+
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 3")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+
+-- let/* REPLACED */ ''s do some tests with pg_create_subscription rather than superuser
+SET SESSION AUTHORIZATION regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_subscription_user3' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail, not enough privileges
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 2")
+
+-----------
+QUERY:
+
+
+-- fail, must specify password
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DATABASE REGRESSION TO regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail, can/* REPLACED */ ''t set password_required=false
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DATABASE REGRESSION TO regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATION testpub WITH (connect = false, password_required = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist' PUBLICATIO' at line 1")
+
+-----------
+QUERY:
+
+
+-- ok
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+GRANT CREATE ON DATABASE REGRESSION TO regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DATABASE REGRESSION TO regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+CREATE SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist password=regress_fakepassword' PUBLICATION testpub WITH (connect = false);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub CONNECTION 'dbname=regress_doesnotexist password=re' at line 1")
+
+-----------
+QUERY:
+
+
+-- we cannot give the subscription away to some random user
+ALTER SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub OWNER TO regress_subscription_user' at line 2")
+
+-----------
+QUERY:
+
+
+-- but we can rename the subscription we just created
+ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub RENAME TO regress_testsub2' at line 2")
+
+-----------
+QUERY:
+
+
+-- ok, even after losing pg_create_subscription we can still rename it
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+REVOKE pg_create_subscription FROM regress_subscription_user3;
+RESULT:
+	ERROR - (3523, 'Unknown authorization ID `regress_subscription_user3`@`%`')
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub2 RENAME TO regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub2 RENAME TO regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+
+-- fail, after losing CREATE on the database we can/* REPLACED */ ''t rename it any more
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 2")
+
+-----------
+QUERY:
+
+REVOKE CREATE ON DATABASE REGRESSION FROM regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DATABASE REGRESSION FROM regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+SET SESSION AUTHORIZATION regress_subscription_user3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'regress_subscription_user3' at line 1")
+
+-----------
+QUERY:
+
+ALTER SUBSCRIPTION regress_testsub RENAME TO regress_testsub2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub RENAME TO regress_testsub2' at line 1")
+
+-----------
+QUERY:
+
+
+-- ok, owning it is enough for this stuff
+ALTER SUBSCRIPTION regress_testsub SET (slot_name = NONE);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub SET (slot_name = NONE)' at line 2")
+
+-----------
+QUERY:
+
+DROP SUBSCRIPTION regress_testsub;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SUBSCRIPTION regress_testsub' at line 1")
+
+-----------
+QUERY:
+
+
+RESET SESSION AUTHORIZATION;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SESSION AUTHORIZATION' at line 1")
+
+-----------
+QUERY:
+
+DROP ROLE regress_subscription_user;
+RESULT:
+	ERROR - (1396, "Operation DROP ROLE failed for 'regress_subscription_user'@'%'")
+
+-----------
+QUERY:
+
+DROP ROLE regress_subscription_user2;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP ROLE regress_subscription_user3;
+RESULT:
+	ERROR - (1396, "Operation DROP ROLE failed for 'regress_subscription_user3'@'%'")
+
+-----------
+QUERY:
+
+DROP ROLE regress_subscription_user_dummy;
+RESULT:
+	ERROR - (1396, "Operation DROP ROLE failed for 'regress_subscription_user_dummy'@'%'")

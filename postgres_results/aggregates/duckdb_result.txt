@@ -6,7 +6,7 @@ QUERY:
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 -- avoid bit-exact output here because operations may not be bit-exact.
 SET extra_float_digits = 0;
@@ -31,8 +31,8 @@ RESULT:
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/agg.data'
-COPY aggtest FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/agg.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/agg.data'
+COPY aggtest FROM /* REPLACED */ PG_ABS_SRCDIR '/data/agg.data';
 RESULT:
 	[]
 
@@ -1056,7 +1056,7 @@ QUERY:
 1	1	1	1	1	B0101
 3	3	3	null	2	B0100
 7	7	7	3	4	B1100
-\.
+-- \.
 
 SELECT
   BIT_AND(i2) AS "1",
@@ -1168,7 +1168,7 @@ QUERY:
 TRUE	null	FALSE	null
 FALSE	TRUE	null	null
 null	TRUE	FALSE	null
-\.
+-- \.
 
 SELECT
   BOOL_AND(b1)     AS "f",
@@ -1288,7 +1288,7 @@ QUERY:
 
 
 -- the planner may choose a generic aggregate here if parallel query is
--- enabled, since that plan will be parallel safe and the /* REPLACED */''optimized/* REPLACED */''
+-- enabled, since that plan will be parallel safe and the /* REPLACED */ ''optimized/* REPLACED */ ''
 -- plan, which has almost identical cost, will not be.  we want to test
 -- the optimized plan, so temporarily disable parallel query.
 begin;
@@ -1592,7 +1592,7 @@ RESULT:
 QUERY:
 
 
--- DISTINCT doesn/* REPLACED */''t do anything useful here, but it shouldn/* REPLACED */''t fail
+-- DISTINCT doesn/* REPLACED */ ''t do anything useful here, but it shouldn/* REPLACED */ ''t fail
 explain (costs off)
   select distinct min(f1), max(f1) from minmaxtest;
 RESULT:
@@ -1728,7 +1728,7 @@ RESULT:
 QUERY:
 
 
--- Ensure we don/* REPLACED */''t remove any columns when t1 has a child table
+-- Ensure we don/* REPLACED */ ''t remove any columns when t1 has a child table
 explain (costs off) select * from t1 group by a,b,c,d;
 RESULT:
 	ERROR - Not implemented Error: Unimplemented explain type: costs
@@ -1737,7 +1737,7 @@ RESULT:
 QUERY:
 
 
--- Okay to remove columns if we/* REPLACED */''re only querying the parent.
+-- Okay to remove columns if we/* REPLACED */ ''re only querying the parent.
 explain (costs off) select * from only t1 group by a,b,c,d;
 RESULT:
 	ERROR - Not implemented Error: Unimplemented explain type: costs
@@ -1893,7 +1893,7 @@ QUERY:
 
 
 --
--- Test planner/* REPLACED */''s selection of pathkeys for ORDER BY aggregates
+-- Test planner/* REPLACED */ ''s selection of pathkeys for ORDER BY aggregates
 --
 
 -- Ensure we order by four.  This suits the most aggregate functions.
@@ -1907,8 +1907,8 @@ RESULT:
 QUERY:
 
 
--- Ensure we order by two.  It/* REPLACED */''s a tie between ordering by two and four but
--- we tiebreak on the aggregate/* REPLACED */''s position.
+-- Ensure we order by two.  It/* REPLACED */ ''s a tie between ordering by two and four but
+-- we tiebreak on the aggregate/* REPLACED */ ''s position.
 explain (costs off)
 select
   sum(two order by two), max(four order by four),
@@ -1950,7 +1950,7 @@ QUERY:
 
 
 -- Try a case involving a GROUP BY clause where the GROUP BY column is also
--- part of an aggregate/* REPLACED */''s ORDER BY clause.  We want a sort order that works
+-- part of an aggregate/* REPLACED */ ''s ORDER BY clause.  We want a sort order that works
 -- for the GROUP BY along with the first and the last aggregate.
 explain (costs off)
 select
@@ -2060,7 +2060,7 @@ QUERY:
 select array_agg(distinct a)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
 RESULT:
-	[([None, 2, 3, 1],)]
+	[([1, None, 3, 2],)]
 
 -----------
 QUERY:
@@ -2555,14 +2555,6 @@ LINE 3: insert into bytea_test_table values(decode('ff','hex'));
 QUERY:
 
 
-select string_agg(v, '') from bytea_test_table;
-RESULT:
-	[(None,)]
-
------------
-QUERY:
-
-
 insert into bytea_test_table values(decode('aa','hex'));
 RESULT:
 	ERROR - Binder Error: No function matches the given name and argument types 'decode(STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
@@ -2571,31 +2563,6 @@ RESULT:
 
 LINE 3: insert into bytea_test_table values(decode('aa','hex'));
                                             ^
-
------------
-QUERY:
-
-
-select string_agg(v, '') from bytea_test_table;
-RESULT:
-	[(None,)]
-
------------
-QUERY:
-
-select string_agg(v, NULL) from bytea_test_table;
-RESULT:
-	[(None,)]
-
------------
-QUERY:
-
-select string_agg(v, decode('ee', 'hex')) from bytea_test_table;
-RESULT:
-	ERROR - Binder Error: No function matches the given name and argument types 'decode(STRING_LITERAL, STRING_LITERAL)'. You might need to add explicit type casts.
-	Candidate functions:
-	decode(BLOB) -> VARCHAR
-
 
 -----------
 QUERY:
@@ -3231,7 +3198,7 @@ RESULT:
 QUERY:
 
 
--- ordered-set aggs can/* REPLACED */''t use ungrouped vars in direct args:
+-- ordered-set aggs can/* REPLACED */ ''t use ungrouped vars in direct args:
 select rank(x) within group (order by x) from generate_series(1,5) x;
 RESULT:
 	ERROR - Parser Error: Unknown ordered aggregate "rank".
@@ -3240,7 +3207,7 @@ RESULT:
 QUERY:
 
 
--- outer-level agg can/* REPLACED */''t use a grouped arg of a lower level, either:
+-- outer-level agg can/* REPLACED */ ''t use a grouped arg of a lower level, either:
 select array(select percentile_disc(a) within group (order by x)
                from (values (0.3),(0.7)) v(a) group by a)
   from generate_series(1,5) g(x);
@@ -3540,7 +3507,7 @@ Did you mean "avg"?
 QUERY:
 
 
--- shouldn/* REPLACED */''t share states due to the distinctness not matching.
+-- shouldn/* REPLACED */ ''t share states due to the distinctness not matching.
 select my_avg(distinct one),my_sum(one) from (values(1),(3)) t(one);
 RESULT:
 	ERROR - Catalog Error: Scalar Function with name my_avg does not exist!
@@ -3550,7 +3517,7 @@ Did you mean "avg"?
 QUERY:
 
 
--- shouldn/* REPLACED */''t share states due to the filter clause not matching.
+-- shouldn/* REPLACED */ ''t share states due to the filter clause not matching.
 select my_avg(one) filter (where one > 1),my_sum(one) from (values(1),(3)) t(one);
 RESULT:
 	ERROR - Catalog Error: Scalar Function with name my_avg does not exist!
@@ -3593,7 +3560,7 @@ RESULT:
 QUERY:
 
 
--- these can/* REPLACED */''t share state currently
+-- these can/* REPLACED */ ''t share state currently
 select
   rank(4) within group (order by a),
   dense_rank(4) within group (order by a)

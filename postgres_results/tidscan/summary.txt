@@ -3,289 +3,349 @@ Guest DBMS identified: postgres
 QUERY:
 -- tests for tidscans
 
-CREATE TABLE tidscan(id integer)
-RESULT: ['duckdb: SAME']
+CREATE TABLE tidscan(id integer);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
--- only insert a few rows, we don/* REPLACED */''t want to spill onto a second table page
-INSERT INTO tidscan VALUES (1), (2), (3)
-RESULT: ['duckdb: SAME']
+
+
+-- only insert a few rows, we don/* REPLACED */ ''t want to spill onto a second table page
+INSERT INTO tidscan VALUES (1), (2), (3);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
+
+
 -- show ctids
-SELECT ctid, * FROM tidscan
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- ctid equality - implemented as tidscan
 EXPLAIN (COSTS OFF)
-SELECT ctid, * FROM tidscan WHERE ctid = '(0,1)'
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,1)';
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT ctid, * FROM tidscan WHERE ctid = '(0,1)'
-RESULT: ['duckdb: ERROR']
+
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,1)';
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 EXPLAIN (COSTS OFF)
-SELECT ctid, * FROM tidscan WHERE '(0,1)' = ctid
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan WHERE '(0,1)' = ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT ctid, * FROM tidscan WHERE '(0,1)' = ctid
-RESULT: ['duckdb: ERROR']
+
+SELECT ctid, * FROM tidscan WHERE '(0,1)' = ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- OR/* REPLACED */''d clauses
+
+
+-- OR/* REPLACED */ ''d clauses
 EXPLAIN (COSTS OFF)
-SELECT ctid, * FROM tidscan WHERE ctid = '(0,2)' OR '(0,1)' = ctid
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,2)' OR '(0,1)' = ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT ctid, * FROM tidscan WHERE ctid = '(0,2)' OR '(0,1)' = ctid
-RESULT: ['duckdb: ERROR']
+
+SELECT ctid, * FROM tidscan WHERE ctid = '(0,2)' OR '(0,1)' = ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- ctid = ScalarArrayOp - implemented as tidscan
 EXPLAIN (COSTS OFF)
-SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[])
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[]);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[])
-RESULT: ['duckdb: ERROR']
+
+SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[]);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- ctid != ScalarArrayOp - can/* REPLACED */''t be implemented as tidscan
+
+
+-- ctid != ScalarArrayOp - can/* REPLACED */ ''t be implemented as tidscan
 EXPLAIN (COSTS OFF)
-SELECT ctid, * FROM tidscan WHERE ctid != ANY(ARRAY['(0,1)', '(0,2)']::tid[])
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan WHERE ctid != ANY(ARRAY['(0,1)', '(0,2)']::tid[]);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT ctid, * FROM tidscan WHERE ctid != ANY(ARRAY['(0,1)', '(0,2)']::tid[])
-RESULT: ['duckdb: ERROR']
+
+SELECT ctid, * FROM tidscan WHERE ctid != ANY(ARRAY['(0,1)', '(0,2)']::tid[]);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- tid equality extracted from sub-AND clauses
 EXPLAIN (COSTS OFF)
 SELECT ctid, * FROM tidscan
-WHERE (id = 3 AND ctid IN ('(0,2)', '(0,3)')) OR (ctid = '(0,1)' AND id = 1)
-RESULT: ['duckdb: ERROR']
+WHERE (id = 3 AND ctid IN ('(0,2)', '(0,3)')) OR (ctid = '(0,1)' AND id = 1);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 SELECT ctid, * FROM tidscan
-WHERE (id = 3 AND ctid IN ('(0,2)', '(0,3)')) OR (ctid = '(0,1)' AND id = 1)
-RESULT: ['duckdb: ERROR']
+WHERE (id = 3 AND ctid IN ('(0,2)', '(0,3)')) OR (ctid = '(0,1)' AND id = 1);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- nestloop-with-inner-tidscan joins on tid
-SET enable_hashjoin TO off
-RESULT: ['duckdb: ERROR']
+SET enable_hashjoin TO off;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- otherwise hash join might win
+  -- otherwise hash join might win
 EXPLAIN (COSTS OFF)
 SELECT t1.ctid, t1.*, t2.ctid, t2.*
-FROM tidscan t1 JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
-RESULT: ['duckdb: ERROR']
+FROM tidscan t1 JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 SELECT t1.ctid, t1.*, t2.ctid, t2.*
-FROM tidscan t1 JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
-RESULT: ['duckdb: ERROR']
+FROM tidscan t1 JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 EXPLAIN (COSTS OFF)
 SELECT t1.ctid, t1.*, t2.ctid, t2.*
-FROM tidscan t1 LEFT JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
-RESULT: ['duckdb: ERROR']
+FROM tidscan t1 LEFT JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 SELECT t1.ctid, t1.*, t2.ctid, t2.*
-FROM tidscan t1 LEFT JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1
-RESULT: ['duckdb: ERROR']
+FROM tidscan t1 LEFT JOIN tidscan t2 ON t1.ctid = t2.ctid WHERE t1.id = 1;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-RESET enable_hashjoin
-RESULT: ['duckdb: ERROR']
+
+RESET enable_hashjoin;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- exercise backward scan and rewind
-BEGIN
-RESULT: ['duckdb: SAME']
+BEGIN;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
+
 DECLARE c CURSOR FOR
-SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[])
-RESULT: ['duckdb: ERROR']
+SELECT ctid, * FROM tidscan WHERE ctid = ANY(ARRAY['(0,1)', '(0,2)']::tid[]);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-FETCH ALL FROM c
-RESULT: ['duckdb: ERROR']
+
+FETCH ALL FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-FETCH BACKWARD 1 FROM c
-RESULT: ['duckdb: ERROR']
+
+FETCH BACKWARD 1 FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-FETCH FIRST FROM c
-RESULT: ['duckdb: ERROR']
+
+FETCH FIRST FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-ROLLBACK
-RESULT: ['duckdb: SAME']
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
+
+
 -- tidscan via CURRENT OF
-BEGIN
-RESULT: ['duckdb: SAME']
+BEGIN;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-DECLARE c CURSOR FOR SELECT ctid, * FROM tidscan
-RESULT: ['duckdb: ERROR']
+
+DECLARE c CURSOR FOR SELECT ctid, * FROM tidscan;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-FETCH NEXT FROM c
-RESULT: ['duckdb: ERROR']
+
+FETCH NEXT FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- skip one row
-FETCH NEXT FROM c
-RESULT: ['duckdb: ERROR']
+ -- skip one row
+FETCH NEXT FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- perform update
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
-UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *
-RESULT: ['duckdb: ERROR']
+UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-FETCH NEXT FROM c
-RESULT: ['duckdb: ERROR']
+
+FETCH NEXT FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- perform update
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
-UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *
-RESULT: ['duckdb: ERROR']
+UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT * FROM tidscan
-RESULT: ['duckdb: DIFFERENT']
+
+SELECT * FROM tidscan;
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
+
 -- position cursor past any rows
-FETCH NEXT FROM c
-RESULT: ['duckdb: ERROR']
+FETCH NEXT FROM c;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- should error out
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
-UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *
-RESULT: ['duckdb: SAME']
+UPDATE tidscan SET id = -id WHERE CURRENT OF c RETURNING *;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-ROLLBACK
-RESULT: ['duckdb: SAME']
+
+ROLLBACK;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
+
+
 -- bulk joins on CTID
--- (these plans don/* REPLACED */''t use TID scans, but this still seems like an
+-- (these plans don/* REPLACED */ ''t use TID scans, but this still seems like an
 -- appropriate place for these tests)
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
-RESULT: ['duckdb: ERROR']
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
-RESULT: ['duckdb: ERROR']
+
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SET enable_hashjoin TO off
-RESULT: ['duckdb: ERROR']
+
+SET enable_hashjoin TO off;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 EXPLAIN (COSTS OFF)
-SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
-RESULT: ['duckdb: ERROR']
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid
-RESULT: ['duckdb: ERROR']
+
+SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-RESET enable_hashjoin
-RESULT: ['duckdb: ERROR']
+
+RESET enable_hashjoin;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- check predicate lock on CTID
-BEGIN ISOLATION LEVEL SERIALIZABLE
-RESULT: ['duckdb: ERROR']
+BEGIN ISOLATION LEVEL SERIALIZABLE;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT * FROM tidscan WHERE ctid = '(0,1)'
-RESULT: ['duckdb: ERROR']
+
+SELECT * FROM tidscan WHERE ctid = '(0,1)';
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- locktype should be /* REPLACED */''tuple/* REPLACED */''
-SELECT locktype, mode FROM pg_locks WHERE pid = pg_backend_pid() AND mode = 'SIReadLock'
-RESULT: ['duckdb: ERROR']
+
+-- locktype should be /* REPLACED */ ''tuple/* REPLACED */ ''
+SELECT locktype, mode FROM pg_locks WHERE pid = pg_backend_pid() AND mode = 'SIReadLock';
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-ROLLBACK
-RESULT: ['duckdb: ERROR']
+
+ROLLBACK;
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
-DROP TABLE tidscan
-RESULT: ['duckdb: SAME']
+
+
+DROP TABLE tidscan;
+RESULT: [duckdb: SAME, mysql: SAME]
 =========================================
 Summary for test case tidscan/test.sql of postgres
 =========================================
@@ -295,4 +355,9 @@ Results for duckdb
 SAME: 8 queries, which is 16.33%
 DIFFERENT: 1 queries, which is 2.04%
 ERROR: 40 queries, which is 81.63%
-Guest results are identical to expected results
+
+=================
+Results for mysql
+SAME: 9 queries, which is 18.37%
+DIFFERENT: 1 queries, which is 2.04%
+ERROR: 39 queries, which is 79.59%

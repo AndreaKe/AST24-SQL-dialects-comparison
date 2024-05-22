@@ -1,0 +1,678 @@
+
+-----------
+QUERY:
+--
+-- SELECT_DISTINCT
+--
+
+--
+-- awk /* REPLACED */ ''{print $3 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -n | uniq
+--
+SELECT DISTINCT two FROM onek ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.onek' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- awk /* REPLACED */ ''{print $5 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -n | uniq
+--
+SELECT DISTINCT ten FROM onek ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.onek' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- awk /* REPLACED */ ''{print $16 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -d | uniq
+--
+SELECT DISTINCT string4 FROM onek ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.onek' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- awk /* REPLACED */ ''{print $3,$16,$5 /* REPLACED */ ,}/* REPLACED */ '' onek.data | sort -d | uniq |
+-- sort +0n -1 +1d -2 +2n -3
+--
+SELECT DISTINCT two, string4, ten
+   FROM onek
+   ORDER BY two using <, string4 using <, ten using <;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'using <, string4 using <, ten using <' at line 7")
+
+-----------
+QUERY:
+
+
+--
+-- awk /* REPLACED */ ''{print $2 /* REPLACED */ ,}/* REPLACED */ '' person.data |
+-- awk /* REPLACED */ ''{if(NF!=1){print $2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - emp.data |
+-- awk /* REPLACED */ ''{if(NF!=1){print $2 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - student.data |
+-- awk /* REPLACED */ ''BEGIN{FS=/* REPLACED */ ''      /* REPLACED */ '' /* REPLACED */ ,}{if(NF!=1){print $5 /* REPLACED */ ,}else{print /* REPLACED */ ,}}/* REPLACED */ '' - stud_emp.data |
+-- sort -n -r | uniq
+--
+SELECT DISTINCT p.age FROM person* p ORDER BY age using >;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '* p ORDER BY age using >' at line 8")
+
+-----------
+QUERY:
+
+
+--
+-- Check mentioning same column more than once
+--
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT count(*) FROM
+  (SELECT DISTINCT two, four, two FROM tenk1) ss;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VERBOSE, COSTS OFF)\nSELECT count(*) FROM\n  (SELECT DISTINCT two, four, two FROM ' at line 5")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM
+  (SELECT DISTINCT two, four, two FROM tenk1) ss;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Compare results between plans using sorting and plans using hash
+-- aggregation. Force spilling in both cases by setting work_mem low.
+--
+
+SET work_mem='64kB';
+RESULT:
+	ERROR - (1193, "Unknown system variable 'work_mem'")
+
+-----------
+QUERY:
+
+
+-- Produce results with sorting.
+
+SET enable_hashagg=FALSE;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+
+SET jit_above_cost=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'jit_above_cost'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT DISTINCT g%1000 FROM generate_series(0,9999) g' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE distinct_group_1 AS
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0,9999) g' at line 2")
+
+-----------
+QUERY:
+
+
+SET jit_above_cost TO DEFAULT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO DEFAULT' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE distinct_group_2 AS
+SELECT DISTINCT (g%1000)::text FROM generate_series(0,9999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text FROM generate_series(0,9999) g' at line 2")
+
+-----------
+QUERY:
+
+
+SET enable_seqscan = 0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+
+-- Check to see we get an incremental sort plan
+EXPLAIN (costs off)
+SELECT DISTINCT hundred, two FROM tenk1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT DISTINCT hundred, two FROM tenk1' at line 2")
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+
+SET enable_hashagg=TRUE;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+
+-- Produce results with hash aggregation.
+
+SET enable_sort=FALSE;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+
+SET jit_above_cost=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'jit_above_cost'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off)
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT DISTINCT g%1000 FROM generate_series(0,9999) g' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE distinct_hash_1 AS
+SELECT DISTINCT g%1000 FROM generate_series(0,9999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(0,9999) g' at line 2")
+
+-----------
+QUERY:
+
+
+SET jit_above_cost TO DEFAULT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO DEFAULT' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE TABLE distinct_hash_2 AS
+SELECT DISTINCT (g%1000)::text FROM generate_series(0,9999) g;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text FROM generate_series(0,9999) g' at line 2")
+
+-----------
+QUERY:
+
+
+SET enable_sort=TRUE;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+
+SET work_mem TO DEFAULT;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO DEFAULT' at line 1")
+
+-----------
+QUERY:
+
+
+-- Compare results
+
+(SELECT * FROM distinct_hash_1 EXCEPT SELECT * FROM distinct_group_1)
+  UNION ALL
+(SELECT * FROM distinct_group_1 EXCEPT SELECT * FROM distinct_hash_1);
+RESULT:
+	ERROR - (1146, "Table 'test.distinct_hash_1' doesn't exist")
+
+-----------
+QUERY:
+
+
+(SELECT * FROM distinct_hash_1 EXCEPT SELECT * FROM distinct_group_1)
+  UNION ALL
+(SELECT * FROM distinct_group_1 EXCEPT SELECT * FROM distinct_hash_1);
+RESULT:
+	ERROR - (1146, "Table 'test.distinct_hash_1' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE distinct_hash_1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.distinct_hash_1'")
+
+-----------
+QUERY:
+
+DROP TABLE distinct_hash_2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.distinct_hash_2'")
+
+-----------
+QUERY:
+
+DROP TABLE distinct_group_1;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.distinct_group_1'")
+
+-----------
+QUERY:
+
+DROP TABLE distinct_group_2;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.distinct_group_2'")
+
+-----------
+QUERY:
+
+
+-- Test parallel DISTINCT
+SET parallel_tuple_cost=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_tuple_cost'")
+
+-----------
+QUERY:
+
+SET parallel_setup_cost=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+SET min_parallel_table_scan_size=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+SET max_parallel_workers_per_gather=2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+
+-- Ensure we get a parallel plan
+EXPLAIN (costs off)
+SELECT DISTINCT four FROM tenk1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT DISTINCT four FROM tenk1' at line 2")
+
+-----------
+QUERY:
+
+
+-- Ensure the parallel plan produces the correct results
+SELECT DISTINCT four FROM tenk1;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE FUNCTION distinct_func(a INT) RETURNS INT AS $$
+  BEGIN
+    RETURN a;
+  END;
+$$ LANGUAGE plpgsql PARALLEL UNSAFE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION distinct_func(a INT) RETURNS INT AS $$\n  BEGIN\n    RETURN a;\n  END;\n$$ ' at line 1")
+
+-----------
+QUERY:
+
+
+-- Ensure we don/* REPLACED */ ''t do parallel distinct with a parallel unsafe function
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT distinct_func(1) FROM tenk1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT DISTINCT distinct_func(1) FROM tenk1' at line 2")
+
+-----------
+QUERY:
+
+
+-- make the function parallel safe
+CREATE OR REPLACE FUNCTION distinct_func(a INT) RETURNS INT AS $$
+  BEGIN
+    RETURN a;
+  END;
+$$ LANGUAGE plpgsql PARALLEL SAFE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FUNCTION distinct_func(a INT) RETURNS INT AS $$\n  BEGIN\n    RETURN a;\n  END;\n$$ ' at line 2")
+
+-----------
+QUERY:
+
+
+-- Ensure we do parallel distinct now that the function is parallel safe
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT distinct_func(1) FROM tenk1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT DISTINCT distinct_func(1) FROM tenk1' at line 2")
+
+-----------
+QUERY:
+
+
+RESET max_parallel_workers_per_gather;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'max_parallel_workers_per_gather' at line 1")
+
+-----------
+QUERY:
+
+RESET min_parallel_table_scan_size;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'min_parallel_table_scan_size' at line 1")
+
+-----------
+QUERY:
+
+RESET parallel_setup_cost;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'parallel_setup_cost' at line 1")
+
+-----------
+QUERY:
+
+RESET parallel_tuple_cost;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'parallel_tuple_cost' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Test the planner/* REPLACED */ ''s ability to use a LIMIT 1 instead of a Unique node when
+-- all of the distinct_pathkeys have been marked as redundant
+--
+
+-- Ensure we get a plan with a Limit 1
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four FROM tenk1 WHERE four = 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT DISTINCT four FROM tenk1 WHERE four = 0' at line 7")
+
+-----------
+QUERY:
+
+
+-- Ensure the above gives us the correct result
+SELECT DISTINCT four FROM tenk1 WHERE four = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Ensure we get a plan with a Limit 1
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four FROM tenk1 WHERE four = 0 AND two <> 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT DISTINCT four FROM tenk1 WHERE four = 0 AND two <> 0' at line 2")
+
+-----------
+QUERY:
+
+
+-- Ensure no rows are returned
+SELECT DISTINCT four FROM tenk1 WHERE four = 0 AND two <> 0;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Ensure we get a plan with a Limit 1 when the SELECT list contains constants
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four,1,2,3 FROM tenk1 WHERE four = 0;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT DISTINCT four,1,2,3 FROM tenk1 WHERE four = 0' at line 2")
+
+-----------
+QUERY:
+
+
+-- Ensure we only get 1 row
+SELECT DISTINCT four,1,2,3 FROM tenk1 WHERE four = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+SET parallel_setup_cost=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'parallel_setup_cost'")
+
+-----------
+QUERY:
+
+SET min_parallel_table_scan_size=0;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'min_parallel_table_scan_size'")
+
+-----------
+QUERY:
+
+SET max_parallel_workers_per_gather=2;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'max_parallel_workers_per_gather'")
+
+-----------
+QUERY:
+
+
+-- Ensure we get a plan with a Limit 1 in both partial distinct and final
+-- distinct
+EXPLAIN (COSTS OFF)
+SELECT DISTINCT four FROM tenk1 WHERE four = 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT DISTINCT four FROM tenk1 WHERE four = 10' at line 3")
+
+-----------
+QUERY:
+
+
+RESET max_parallel_workers_per_gather;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'max_parallel_workers_per_gather' at line 1")
+
+-----------
+QUERY:
+
+RESET min_parallel_table_scan_size;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'min_parallel_table_scan_size' at line 1")
+
+-----------
+QUERY:
+
+RESET parallel_setup_cost;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'parallel_setup_cost' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Also, some tests of IS DISTINCT FROM, which doesn/* REPLACED */ ''t quite deserve its
+-- very own regression file.
+--
+
+CREATE TEMP TABLE disttable (f1 integer);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE disttable (f1 integer)' at line 6")
+
+-----------
+QUERY:
+
+INSERT INTO DISTTABLE VALUES(1);
+RESULT:
+	ERROR - (1146, "Table 'test.DISTTABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO DISTTABLE VALUES(2);
+RESULT:
+	ERROR - (1146, "Table 'test.DISTTABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO DISTTABLE VALUES(3);
+RESULT:
+	ERROR - (1146, "Table 'test.DISTTABLE' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO DISTTABLE VALUES(NULL);
+RESULT:
+	ERROR - (1146, "Table 'test.DISTTABLE' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- basic cases
+SELECT f1, f1 IS DISTINCT FROM 2 as "not 2" FROM disttable;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM 2 as "not 2" FROM disttable\' at line 2')
+
+-----------
+QUERY:
+
+SELECT f1, f1 IS DISTINCT FROM NULL as "not null" FROM disttable;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM NULL as "not null" FROM disttable\' at line 1')
+
+-----------
+QUERY:
+
+SELECT f1, f1 IS DISTINCT FROM f1 as "false" FROM disttable;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM f1 as "false" FROM disttable\' at line 1')
+
+-----------
+QUERY:
+
+SELECT f1, f1 IS DISTINCT FROM f1+1 as "not null" FROM disttable;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM f1+1 as "not null" FROM disttable\' at line 1')
+
+-----------
+QUERY:
+
+
+-- check that optimizer constant-folds it properly
+SELECT 1 IS DISTINCT FROM 2 as "yes";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM 2 as "yes"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT 2 IS DISTINCT FROM 2 as "no";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM 2 as "no"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 2 IS DISTINCT FROM null as "yes";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM null as "yes"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT null IS DISTINCT FROM null as "no";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM null as "no"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- negated form
+SELECT 1 IS NOT DISTINCT FROM 2 as "no";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM 2 as "no"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT 2 IS NOT DISTINCT FROM 2 as "yes";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM 2 as "yes"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 2 IS NOT DISTINCT FROM null as "no";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM null as "no"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT null IS NOT DISTINCT FROM null as "yes";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'DISTINCT FROM null as "yes"\' at line 1')

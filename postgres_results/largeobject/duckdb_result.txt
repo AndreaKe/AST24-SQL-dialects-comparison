@@ -6,8 +6,8 @@ QUERY:
 --
 
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
--- \getenv abs_builddir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+-- \getenv abs_builddir PG_ABS_BUILDDIR
 
 -- ensure consistent test output regardless of the default bytea format
 SET bytea_output TO escape;
@@ -76,16 +76,16 @@ RESULT:
 QUERY:
 
 
--- Test psql/* REPLACED */''s \lo_list et al (we assume no other LOs exist yet)
-\lo_list
-\lo_list+
-\lo_unlink 42
+-- Test psql/* REPLACED */ ''s \lo_list et al (we assume no other LOs exist yet)
+-- \lo_list
+-- \lo_list+
+-- \lo_unlink 42
 -- \dl
 
 -- Load a file
 CREATE TABLE lotest_stash_values (loid oid, fd integer);
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	[]
 
 -----------
 QUERY:
@@ -95,8 +95,13 @@ QUERY:
 -- returns the large object id
 INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_creat does not exist!
+Did you mean "least"?
+LINE 5: ...creat(mode integer) returns oid
+-- The mode arg to lo_creat is unused, some vestigal holdover from ancient times
+-- returns the large object id
+INSERT INTO lotest_stash_values (loid) SELECT lo_creat(42);
+                                                  ^
 
 -----------
 QUERY:
@@ -119,10 +124,10 @@ QUERY:
 -- transaction.
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_open does not exist!
+Did you mean "len"?
 LINE 9: UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));...
-               ^
+                                            ^
 
 -----------
 QUERY:
@@ -195,8 +200,8 @@ QUERY:
 -- return value is 0 for success, or <0 for error (actually only -1, but...)
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_close does not exist!
+Did you mean "cos"?
 
 -----------
 QUERY:
@@ -211,16 +216,16 @@ QUERY:
 
 
 -- Copy to another large object.
--- Note: we intentionally don/* REPLACED */''t remove the object created here /* REPLACED */,
--- it/* REPLACED */''s left behind to help test pg_dump.
+-- Note: we intentionally don/* REPLACED */ ''t remove the object created here /* REPLACED */ ,
+-- it/* REPLACED */ ''s left behind to help test pg_dump.
 
 SELECT lo_from_bytea(0, lo_get(loid)) AS newloid FROM lotest_stash_values
-\gset
+-- \gset
 
 -- Add a comment to it, as well, for pg_dump/pg_upgrade testing.
 COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a Cloud';
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Parser Error: syntax error at or near "ON"
 
 -----------
 QUERY:
@@ -236,10 +241,10 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loi...
-               ^
+	ERROR - Catalog Error: Scalar Function with name lo_open does not exist!
+Did you mean "len"?
+LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000'...
+                                          ^
 
 -----------
 QUERY:
@@ -253,19 +258,8 @@ QUERY:
 -- returns current position in file
 SELECT lo_lseek(fd, 104, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-
------------
-QUERY:
-
-
--- loread/lowrite names are wonky, different from other functions which are lo_*
--- loread(fd integer, len integer) returns bytea
-SELECT loread(fd, 28) FROM lotest_stash_values;
-RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -273,8 +267,8 @@ QUERY:
 
 SELECT lo_lseek(fd, -19, 1) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -282,8 +276,8 @@ QUERY:
 
 SELECT lowrite(fd, 'n') FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lowrite does not exist!
+Did you mean "lower"?
 
 -----------
 QUERY:
@@ -291,8 +285,8 @@ QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -300,8 +294,8 @@ QUERY:
 
 SELECT lo_lseek(fd, -744, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -309,8 +303,8 @@ QUERY:
 
 SELECT loread(fd, 28) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name loread does not exist!
+Did you mean "ord"?
 
 -----------
 QUERY:
@@ -318,8 +312,8 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_close does not exist!
+Did you mean "cos"?
 
 -----------
 QUERY:
@@ -343,8 +337,8 @@ QUERY:
 
 SELECT lo_open(loid, x'40000'::int) from lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_open does not exist!
+Did you mean "len"?
 
 -----------
 QUERY:
@@ -357,7 +351,7 @@ RESULT:
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/invalid/path'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path'
 -- \set dobody 'DECLARE loid oid;
 RESULT:
 	[]
@@ -365,10 +359,10 @@ RESULT:
 -----------
 QUERY:
  BEGIN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "'
--- \set dobody /* REPLACED */'"
+-- \set dobody /* REPLACED */ '"
 
 -----------
 QUERY:
@@ -379,10 +373,10 @@ RESULT:
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "'
--- \set dobody /* REPLACED */'"
+-- \set dobody /* REPLACED */ '"
 
 -----------
 QUERY:
@@ -392,17 +386,17 @@ RESULT:
 
 -----------
 QUERY:
- ' 'PERFORM lo_export(loid, ' /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path' ');
+ ' 'PERFORM lo_export(loid, ' /* REPLACED */ PG_ABS_BUILDDIR '/results/invalid/path' ');
 RESULT:
 	ERROR - Parser Error: syntax error at or near "' '"
 
 -----------
 QUERY:
  '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "'
--- \set dobody /* REPLACED */'"
+-- \set dobody /* REPLACED */ '"
 
 -----------
 QUERY:
@@ -412,14 +406,14 @@ RESULT:
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
 	ERROR - Parser Error: syntax error at or near "PERFORM"
 
 -----------
 QUERY:
  ' 'EXCEPTION WHEN UNDEFINED_FILE THEN '
--- \set dobody /* REPLACED */'DECLARE loid oid;
+-- \set dobody /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "' '"
 
@@ -431,7 +425,7 @@ RESULT:
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
 	ERROR - Parser Error: syntax error at or near "PERFORM"
 
@@ -444,10 +438,10 @@ RESULT:
 -----------
 QUERY:
  END'
-DO /* REPLACED */'DECLARE loid oid;
+DO /* REPLACED */ 'DECLARE loid oid;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "'
-DO /* REPLACED */'"
+DO /* REPLACED */ '"
 
 -----------
 QUERY:
@@ -457,7 +451,7 @@ RESULT:
 
 -----------
 QUERY:
- PERFORM lo_export(loid, /home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/invalid/path);
+ PERFORM lo_export(loid, ' PG_ABS_BUILDDIR '/results/invalid/path);
 RESULT:
 	ERROR - Parser Error: syntax error at or near "PERFORM"
 
@@ -487,10 +481,10 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loi...
-               ^
+	ERROR - Catalog Error: Scalar Function with name lo_open does not exist!
+Did you mean "len"?
+LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000'...
+                                          ^
 
 -----------
 QUERY:
@@ -498,16 +492,8 @@ QUERY:
 
 SELECT lo_truncate(fd, 11) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-
------------
-QUERY:
-
-SELECT loread(fd, 15) FROM lotest_stash_values;
-RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_truncate does not exist!
+Did you mean "trunc"?
 
 -----------
 QUERY:
@@ -515,32 +501,24 @@ QUERY:
 
 SELECT lo_truncate(fd, 10000) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-
------------
-QUERY:
-
-SELECT loread(fd, 10) FROM lotest_stash_values;
-RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_truncate does not exist!
+Did you mean "trunc"?
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -548,24 +526,24 @@ QUERY:
 
 SELECT lo_truncate(fd, 5000) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_truncate does not exist!
+Did you mean "trunc"?
 
 -----------
 QUERY:
 
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -573,8 +551,8 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_close does not exist!
+Did you mean "cos"?
 
 -----------
 QUERY:
@@ -597,10 +575,10 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-LINE 2: UPDATE lotest_stash_values SET fd = lo_open(l...
-               ^
+	ERROR - Catalog Error: Scalar Function with name lo_open does not exist!
+Did you mean "len"?
+LINE 2: UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000'...
+                                            ^
 
 -----------
 QUERY:
@@ -608,24 +586,24 @@ QUERY:
 
 SELECT lo_lseek64(fd, 4294967296, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek64 does not exist!
+Did you mean "to_base64"?
 
 -----------
 QUERY:
 
 SELECT lowrite(fd, 'offset:4GB') FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lowrite does not exist!
+Did you mean "lower"?
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell64 does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -633,24 +611,16 @@ QUERY:
 
 SELECT lo_lseek64(fd, -10, 1) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek64 does not exist!
+Did you mean "to_base64"?
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-
------------
-QUERY:
-
-SELECT loread(fd, 10) FROM lotest_stash_values;
-RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell64 does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -658,24 +628,24 @@ QUERY:
 
 SELECT lo_truncate64(fd, 5000000000) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_truncate64 does not exist!
+Did you mean "trunc"?
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek64 does not exist!
+Did you mean "to_base64"?
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell64 does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -683,24 +653,24 @@ QUERY:
 
 SELECT lo_truncate64(fd, 3000000000) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_truncate64 does not exist!
+Did you mean "trunc"?
 
 -----------
 QUERY:
 
 SELECT lo_lseek64(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek64 does not exist!
+Did you mean "to_base64"?
 
 -----------
 QUERY:
 
 SELECT lo_tell64(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell64 does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -708,8 +678,8 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_close does not exist!
+Did you mean "cos"?
 
 -----------
 QUERY:
@@ -726,8 +696,8 @@ QUERY:
 -- return value appears to always be 1
 SELECT lo_unlink(loid) from lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_unlink does not exist!
+Did you mean "unbin"?
 
 -----------
 QUERY:
@@ -735,20 +705,19 @@ QUERY:
 
 TRUNCATE lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-LINE 3: TRUNCATE lotest_stash_values;
-                 ^
+	[]
 
 -----------
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/tenk.data'
-INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/tenk.data');
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data'
+INSERT INTO lotest_stash_values (loid) SELECT lo_import(/* REPLACED */ PG_ABS_SRCDIR '/data/tenk.data');
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_import does not exist!
+Did you mean "floor"?
+LINE 4: ...et filename /* REPLACED */  '/home/keuscha/Documents/FS2024/AST/project/AST24-...
+                                                  ^
 
 -----------
 QUERY:
@@ -763,10 +732,10 @@ QUERY:
 
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loi...
-               ^
+	ERROR - Catalog Error: Scalar Function with name lo_open does not exist!
+Did you mean "len"?
+LINE 2: UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000'...
+                                          ^
 
 -----------
 QUERY:
@@ -775,8 +744,8 @@ QUERY:
 -- verify length of large object
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -786,8 +755,8 @@ QUERY:
 -- edge case
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -797,8 +766,8 @@ QUERY:
 -- large object
 SELECT loread(fd, 36) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name loread does not exist!
+Did you mean "ord"?
 
 -----------
 QUERY:
@@ -806,8 +775,8 @@ QUERY:
 
 SELECT lo_tell(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_tell does not exist!
+Did you mean "cot"?
 
 -----------
 QUERY:
@@ -815,8 +784,8 @@ QUERY:
 
 SELECT lo_lseek(fd, -26, 1) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -824,8 +793,8 @@ QUERY:
 
 SELECT lowrite(fd, 'abcdefghijklmnop') FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lowrite does not exist!
+Did you mean "lower"?
 
 -----------
 QUERY:
@@ -833,8 +802,8 @@ QUERY:
 
 SELECT lo_lseek(fd, 2030, 0) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_lseek does not exist!
+Did you mean "to_weeks"?
 
 -----------
 QUERY:
@@ -842,8 +811,8 @@ QUERY:
 
 SELECT loread(fd, 36) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name loread does not exist!
+Did you mean "ord"?
 
 -----------
 QUERY:
@@ -851,8 +820,8 @@ QUERY:
 
 SELECT lo_close(fd) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_close does not exist!
+Did you mean "cos"?
 
 -----------
 QUERY:
@@ -865,32 +834,32 @@ RESULT:
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-SELECT lo_export(loid, /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt') FROM lotest_stash_values;
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+SELECT lo_export(loid, /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt') FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_export does not exist!
+Did you mean "exp"?
 
 -----------
 QUERY:
 
 
-\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid :LASTOID
 
 -- just make sure \lo_export does not barf
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest2.txt'
-\lo_export /* REPLACED */:LASTOID /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest2.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest2.txt'
+-- \lo_export /* REPLACED */ :LASTOID /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest2.txt/* REPLACED */ ''
 
 -- This is a hack to test that export/import are reversible
 -- This uses knowledge about the inner workings of large object mechanism
 -- which should not be used outside it.  This makes it a HACK
 SELECT pageno, data FROM pg_largeobject WHERE loid = (SELECT loid from lotest_stash_values)
 EXCEPT
-SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */:LASTOID;
+SELECT pageno, data FROM pg_largeobject WHERE loid = /* REPLACED */ :LASTOID;
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Parser Error: syntax error at or near ":"
 
 -----------
 QUERY:
@@ -898,8 +867,8 @@ QUERY:
 
 SELECT lo_unlink(loid) FROM lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - Catalog Error: Scalar Function with name lo_unlink does not exist!
+Did you mean "unbin"?
 
 -----------
 QUERY:
@@ -907,55 +876,23 @@ QUERY:
 
 TRUNCATE lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
-LINE 3: TRUNCATE lotest_stash_values;
-                 ^
+	[]
 
 -----------
 QUERY:
 
 
-\lo_unlink /* REPLACED */:LASTOID
+-- \lo_unlink /* REPLACED */ :LASTOID
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results' '/results/lotest.txt'
-\lo_import /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt'
+-- \set filename /* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt'
+-- \lo_import /* REPLACED */ PG_ABS_BUILDDIR /* REPLACED */ ''/results/lotest.txt/* REPLACED */ ''
 
 -- \set newloid_1 :LASTOID
 
-SELECT lo_from_bytea(0, lo_get(/* REPLACED */:LASTOID_1)) AS newloid_2
-\gset
+SELECT lo_from_bytea(0, lo_get(/* REPLACED */ :LASTOID_1)) AS newloid_2
+-- \gset
 
-SELECT fipshash(lo_get(/* REPLACED */:LASTOID_1)) = fipshash(lo_get(/* REPLACED */:LASTOID_2));
-RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
-
------------
-QUERY:
-
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
-RESULT:
-	ERROR - Parser Error: syntax error at or near ":"
-
------------
-QUERY:
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 10, 20);
-RESULT:
-	ERROR - Parser Error: syntax error at or near ":"
-
------------
-QUERY:
-
-SELECT lo_put(/* REPLACED */:LASTOID_1, 5, decode('afafafaf', 'hex'));
-RESULT:
-	ERROR - Parser Error: syntax error at or near ":"
-
------------
-QUERY:
-
-SELECT lo_get(/* REPLACED */:LASTOID_1, 0, 20);
+SELECT fipshash(lo_get(/* REPLACED */ :LASTOID_1)) = fipshash(lo_get(/* REPLACED */ :LASTOID_2));
 RESULT:
 	ERROR - Parser Error: syntax error at or near ":"
 
@@ -963,21 +900,28 @@ RESULT:
 QUERY:
 
 
-SELECT lo_put(/* REPLACED */:LASTOID_1, 4294967310, 'foo');
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
 RESULT:
 	ERROR - Parser Error: syntax error at or near ":"
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1);
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 10, 20);
 RESULT:
 	ERROR - Parser Error: syntax error at or near ":"
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID_1, 4294967294, 100);
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 5, decode('afafafaf', 'hex'));
+RESULT:
+	ERROR - Parser Error: syntax error at or near ":"
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 0, 20);
 RESULT:
 	ERROR - Parser Error: syntax error at or near ":"
 
@@ -985,21 +929,43 @@ RESULT:
 QUERY:
 
 
-\lo_unlink /* REPLACED */:LASTOID_1
-\lo_unlink /* REPLACED */:LASTOID_2
+SELECT lo_put(/* REPLACED */ :LASTOID_1, 4294967310, 'foo');
+RESULT:
+	ERROR - Parser Error: syntax error at or near ":"
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1);
+RESULT:
+	ERROR - Parser Error: syntax error at or near ":"
+
+-----------
+QUERY:
+
+SELECT lo_get(/* REPLACED */ :LASTOID_1, 4294967294, 100);
+RESULT:
+	ERROR - Parser Error: syntax error at or near ":"
+
+-----------
+QUERY:
+
+
+-- \lo_unlink /* REPLACED */ :LASTOID_1
+-- \lo_unlink /* REPLACED */ :LASTOID_2
 
 -- This object is left in the database for pg_dump test purposes
 SELECT lo_from_bytea(0, E'\\xdeadbeef') AS newloid
-\gset
+-- \gset
 
 SET bytea_output TO hex;
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Parser Error: syntax error at or near "SET"
 
 -----------
 QUERY:
 
-SELECT lo_get(/* REPLACED */:LASTOID);
+SELECT lo_get(/* REPLACED */ :LASTOID);
 RESULT:
 	ERROR - Parser Error: syntax error at or near ":"
 
@@ -1007,7 +973,7 @@ RESULT:
 QUERY:
 
 
--- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */,
+-- Create one more object that we leave behind for testing pg_dump/pg_upgrade /* REPLACED */ ,
 -- this one intentionally has an OID in the system range
 SELECT lo_create(2121);
 RESULT:
@@ -1159,7 +1125,7 @@ RESULT:
 -----------
 QUERY:
 
-SELECT lo_import(/* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_results/results/lotest.txt');
+SELECT lo_import(/* REPLACED */ PG_ABS_BUILDDIR '/results/lotest.txt');
 RESULT:
 	ERROR - Catalog Error: Scalar Function with name lo_import does not exist!
 Did you mean "floor"?
@@ -1270,8 +1236,7 @@ QUERY:
 -- Clean up
 DROP TABLE lotest_stash_values;
 RESULT:
-	ERROR - Catalog Error: Table with name lotest_stash_values does not exist!
-Did you mean "TEXT_TBL"?
+	[]
 
 -----------
 QUERY:

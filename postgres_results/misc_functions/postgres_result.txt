@@ -2,10 +2,10 @@
 -----------
 QUERY:
 -- directory paths and dlsuffix are passed to us in environment variables
--- \getenv libdir '/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress'
--- \getenv dlsuffix '.so'
+-- \getenv libdir PG_LIBDIR
+-- \getenv dlsuffix PG_DLSUFFIX
 
--- \set regresslib /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress' '/regress' /* REPLACED */'.so'
+-- \set regresslib /* REPLACED */ PG_LIBDIR '/regress' /* REPLACED */ PG_DLSUFFIX
 
 --
 -- num_nulls()
@@ -185,7 +185,7 @@ QUERY:
 
 CREATE FUNCTION test_canonicalize_path(text)
    RETURNS text
-   AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so'
+   AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX
    LANGUAGE C STRICT IMMUTABLE;
 RESULT:
 	[]
@@ -354,7 +354,7 @@ QUERY:
 --
 -- Memory contexts are logged and they are not returned to the function.
 -- Furthermore, their contents can vary depending on the timing. However,
--- we can at least verify that the code doesn/* REPLACED */''t fail, and that the
+-- we can at least verify that the code doesn/* REPLACED */ ''t fail, and that the
 -- permissions are set properly.
 --
 
@@ -452,17 +452,17 @@ QUERY:
 --
 -- Test some built-in SRFs
 --
--- The outputs of these are variable, so we can/* REPLACED */''t just print their results
--- directly, but we can at least verify that the code doesn/* REPLACED */''t fail.
+-- The outputs of these are variable, so we can/* REPLACED */ ''t just print their results
+-- directly, but we can at least verify that the code doesn/* REPLACED */ ''t fail.
 --
 select setting as segsize
 from pg_settings where name = 'wal_segment_size'
-\gset
+-- \gset
 
 select count(*) > 0 as ok from pg_ls_waldir();
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 11: \gset
+	ERROR - syntax error at or near "select"
+LINE 13: select count(*) > 0 as ok from pg_ls_waldir();
          ^
 
 
@@ -771,21 +771,21 @@ RESULT:
 QUERY:
 
 
--- By default, planner does not think that/* REPLACED */''s selective
+-- By default, planner does not think that/* REPLACED */ ''s selective
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN tenk1 b ON a.unique1 = b.unique1
 WHERE my_int_eq(a.unique2, 42);
 RESULT:
-	[('Hash Join',), ('  Hash Cond: (b.unique1 = a.unique1)',), ('  ->  Seq Scan on tenk1 b',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',), ('              Filter: my_int_eq(unique2, 42)',)]
+	[('Nested Loop',), ('  Join Filter: (a.unique1 = b.unique1)',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: my_int_eq(unique2, 42)',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
 
 
--- With support function that knows it/* REPLACED */''s int4eq, we get a different plan
+-- With support function that knows it/* REPLACED */ ''s int4eq, we get a different plan
 CREATE FUNCTION test_support_func(internal)
     RETURNS internal
-    AS /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/postgresql/src/test/regress/regress.so', 'test_support_func'
+    AS /* REPLACED */ PG_LIBDIR '/regress' PG_DLSUFFIX, 'test_support_func'
     LANGUAGE C STRICT;
 RESULT:
 	[]
@@ -806,7 +806,7 @@ EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN tenk1 b ON a.unique1 = b.unique1
 WHERE my_int_eq(a.unique2, 42);
 RESULT:
-	[('Nested Loop',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: my_int_eq(unique2, 42)',), ('  ->  Index Scan using tenk1_unique1 on tenk1 b',), ('        Index Cond: (unique1 = a.unique1)',)]
+	[('Nested Loop',), ('  Join Filter: (a.unique1 = b.unique1)',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: my_int_eq(unique2, 42)',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -836,7 +836,7 @@ QUERY:
 EXPLAIN (COSTS OFF)
 SELECT * FROM tenk1 a JOIN my_gen_series(1,10) g ON a.unique1 = g;
 RESULT:
-	[('Nested Loop',), ('  ->  Function Scan on my_gen_series g',), ('  ->  Index Scan using tenk1_unique1 on tenk1 a',), ('        Index Cond: (unique1 = g.g)',)]
+	[('Hash Join',), ('  Hash Cond: (g.g = a.unique1)',), ('  ->  Function Scan on my_gen_series g',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',)]
 
 -----------
 QUERY:
@@ -907,13 +907,13 @@ QUERY:
 SELECT setting::int8 AS segment_size
 FROM pg_settings
 WHERE name = 'wal_segment_size'
-\gset
+-- \gset
 SELECT segment_number, file_offset
 FROM pg_walfile_name_offset('0/0'::pg_lsn + :segment_size),
      pg_split_walfile_name(file_name);
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 5: \gset
+	ERROR - syntax error at or near "SELECT"
+LINE 6: SELECT segment_number, file_offset
         ^
 
 
@@ -1020,13 +1020,13 @@ QUERY:
 SELECT t.relname AS toastrel FROM pg_class c
   LEFT JOIN pg_class t ON c.reltoastrelid = t.oid
   WHERE c.relname = 'test_chunk_id'
-\gset
+-- \gset
 SELECT pg_column_toast_chunk_id(a) IS NULL,
   pg_column_toast_chunk_id(b) IN (SELECT chunk_id FROM pg_toast.:toastrel)
   FROM test_chunk_id;
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 5: \gset
+	ERROR - syntax error at or near "SELECT"
+LINE 6: SELECT pg_column_toast_chunk_id(a) IS NULL,
         ^
 
 

@@ -106,7 +106,7 @@ QUERY:
 
 9999	\N	\\N	\NN	\N
 10000	21	31	41	51
-\.
+-- \.
 
 COPY x (b, d) from stdin;
 RESULT:
@@ -116,7 +116,7 @@ RESULT:
 QUERY:
 
 1	test_1
-\.
+-- \.
 
 COPY x (b, d) from stdin;
 RESULT:
@@ -129,7 +129,7 @@ QUERY:
 3	test_3
 4	test_4
 5	test_5
-\.
+-- \.
 
 COPY x (a, b, c, d, e) from stdin;
 RESULT:
@@ -143,7 +143,7 @@ QUERY:
 10003	24	34	44	54
 10004	25	35	45	55
 10005	26	36	46	56
-\.
+-- \.
 
 -- non-existent column in column list: should fail
 COPY x (xyz) from stdin;
@@ -358,16 +358,17 @@ Did you mean "pg_am"?
 QUERY:
 
 
-\.
+-- \.
 COPY x from stdin;
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
 
 -----------
 QUERY:
 
 2000	230	23	23
-\.
+-- \.
 COPY x from stdin;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "2000"
@@ -376,7 +377,7 @@ RESULT:
 QUERY:
 
 2001	231	\N	\N
-\.
+-- \.
 
 -- extra data: should fail
 COPY x from stdin;
@@ -387,7 +388,7 @@ RESULT:
 QUERY:
 
 2002	232	40	50	60	70	80
-\.
+-- \.
 
 -- various COPY options: delimiters, oids, NULL string, encoding
 COPY x (b, c, d, e) from stdin delimiter ',' null 'x';
@@ -400,7 +401,7 @@ QUERY:
 x,45,80,90
 x,\x,\\x,\\\x
 x,\,,\\\,,\\
-\.
+-- \.
 
 COPY x from stdin WITH DELIMITER AS ';
 RESULT:
@@ -440,11 +441,12 @@ RESULT:
 -----------
 QUERY:
 
-\.
+-- \.
 
 COPY x from stdin WITH DELIMITER AS ':' NULL AS E'\\X' ENCODING 'sql_ascii';
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Catalog Error: Table with name x does not exist!
+Did you mean "pg_am"?
 
 -----------
 QUERY:
@@ -458,7 +460,7 @@ QUERY:
 4006:6:BackslashN:\\N:\\N
 4007:7:XX:\XX:\XX
 4008:8:Delimiter:\::\:
-\.
+-- \.
 
 COPY x TO stdout WHERE a = 1;
 RESULT:
@@ -477,7 +479,7 @@ QUERY:
 50003	24	34	44	54
 50004	25	35	45	55
 50005	26	36	46	56
-\.
+-- \.
 
 COPY x from stdin WHERE a > 60003;
 RESULT:
@@ -491,7 +493,7 @@ QUERY:
 60003	24	34	44	54
 60004	25	35	45	55
 60005	26	36	46	56
-\.
+-- \.
 
 COPY x from stdin WHERE f > 60003;
 RESULT:
@@ -663,16 +665,16 @@ RESULT:
 QUERY:
 
 
-\copy y TO stdout (FORMAT CSV)
-\copy y TO stdout (FORMAT CSV, QUOTE '''', DELIMITER '|')
-\copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E'\\')
-\copy y TO stdout (FORMAT CSV, FORCE_QUOTE *)
+-- \copy y TO stdout (FORMAT CSV)
+-- \copy y TO stdout (FORMAT CSV, QUOTE /* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ ''/* REPLACED */ '', DELIMITER /* REPLACED */ ''|/* REPLACED */ '')
+-- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE (col2), ESCAPE E/* REPLACED */ ''\\/* REPLACED */ '')
+-- \copy y TO stdout (FORMAT CSV, FORCE_QUOTE *)
 
 --test that we read consecutive LFs properly
 
 CREATE TEMP TABLE testnl (a int, b text, c int);
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	[]
 
 -----------
 QUERY:
@@ -680,8 +682,7 @@ QUERY:
 
 COPY testnl FROM stdin CSV;
 RESULT:
-	ERROR - Catalog Error: Table with name testnl does not exist!
-Did you mean "TEXT_TBL"?
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
 
 -----------
 QUERY:
@@ -689,7 +690,7 @@ QUERY:
 1,"a field with two LFs
 
 inside",2
-\.
+-- \.
 
 -- test end of copy marker
 CREATE TEMP TABLE testeoc (a text);
@@ -703,16 +704,16 @@ QUERY:
 COPY testeoc FROM stdin CSV;
 RESULT:
 	ERROR - Catalog Error: Table with name testeoc does not exist!
-Did you mean "temp.information_schema.tables"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 a\.
-\.b
+-- \.b
 c\.d
 "\."
-\.
+-- \.
 
 COPY testeoc TO stdout CSV;
 RESULT:
@@ -755,8 +756,8 @@ RESULT:
 QUERY:
 
 42	\\0
-\0	\0
-\.
+-- \0	\0
+-- \.
 
 SELECT * FROM testnull;
 RESULT:
@@ -783,14 +784,14 @@ QUERY:
 COPY vistest FROM stdin CSV;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 a0
 b
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "a0"
@@ -801,7 +802,7 @@ QUERY:
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -816,7 +817,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -826,14 +827,14 @@ QUERY:
 COPY vistest FROM stdin CSV;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 a1
 b
-\.
+-- \.
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "a1"
@@ -851,7 +852,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -861,14 +862,14 @@ QUERY:
 COPY vistest FROM stdin CSV;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 d1
 e
-\.
+-- \.
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "d1"
@@ -886,7 +887,7 @@ QUERY:
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -902,7 +903,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -912,14 +913,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 a2
 b
-\.
+-- \.
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "a2"
@@ -937,7 +938,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -947,14 +948,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 d2
 e
-\.
+-- \.
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "d2"
@@ -972,7 +973,7 @@ QUERY:
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -988,7 +989,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -998,14 +999,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 x
 y
-\.
+-- \.
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "x"
@@ -1023,7 +1024,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -1033,14 +1034,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 p
 g
-\.
+-- \.
 BEGIN;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "p"
@@ -1051,7 +1052,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -1068,14 +1069,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 m
 k
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "m"
@@ -1093,7 +1094,7 @@ QUERY:
 INSERT INTO vistest VALUES ('z');
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -1108,7 +1109,7 @@ QUERY:
 TRUNCATE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 LINE 2: TRUNCATE vistest;
                  ^
 
@@ -1125,14 +1126,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 d3
 e
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "d3"
@@ -1165,7 +1166,7 @@ QUERY:
 INSERT INTO vistest VALUES ('z');
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -1180,14 +1181,14 @@ QUERY:
 COPY vistest FROM stdin CSV FREEZE;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
 
 d4
 e
-\.
+-- \.
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "d4"
@@ -1205,7 +1206,7 @@ QUERY:
 SELECT * FROM vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -1224,11 +1225,11 @@ RESULT:
 -----------
 QUERY:
 
-\pset null NULL
--- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+-- \pset null NULL
+-- should succeed with no effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string, /* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	[]
 
 -----------
 QUERY:
@@ -1241,7 +1242,7 @@ RESULT:
 QUERY:
 
 1,,""
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "1"
@@ -1251,7 +1252,7 @@ QUERY:
 
 SELECT b, c FROM forcetest WHERE a = 1;
 RESULT:
-	[]
+	ERROR - TransactionContext Error: Current transaction is aborted (please ROLLBACK)
 
 -----------
 QUERY:
@@ -1259,7 +1260,8 @@ QUERY:
 -- should succeed, FORCE_NULL and FORCE_NOT_NULL can be both specified
 BEGIN;
 RESULT:
-	[]
+	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
+Error: TransactionContext Error: Current transaction is aborted (please ROLLBACK)
 
 -----------
 QUERY:
@@ -1272,7 +1274,7 @@ RESULT:
 QUERY:
 
 2,'a',,""
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "2"
@@ -1304,7 +1306,7 @@ RESULT:
 QUERY:
 
 3,,""
-\.
+-- \.
 ROLLBACK;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "3"
@@ -1312,7 +1314,7 @@ RESULT:
 -----------
 QUERY:
 
--- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''not referenced by COPY/* REPLACED */ '' error
 BEGIN;
 RESULT:
 	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
@@ -1335,7 +1337,7 @@ RESULT:
 -----------
 QUERY:
 
--- should fail with /* REPLACED */''not referenced by COPY/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''not referenced by COPY/* REPLACED */ '' error
 BEGIN;
 RESULT:
 	[]
@@ -1357,7 +1359,7 @@ RESULT:
 -----------
 QUERY:
 
--- should succeed with no effect (/* REPLACED */''b/* REPLACED */'' remains an empty string, /* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with no effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string, /* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 RESULT:
 	[]
@@ -1373,7 +1375,7 @@ RESULT:
 QUERY:
 
 4,,""
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "4"
@@ -1388,7 +1390,7 @@ RESULT:
 -----------
 QUERY:
 
--- should succeed with effect (/* REPLACED */''b/* REPLACED */'' remains an empty string)
+-- should succeed with effect (/* REPLACED */ ''b/* REPLACED */ '' remains an empty string)
 BEGIN;
 RESULT:
 	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
@@ -1405,7 +1407,7 @@ RESULT:
 QUERY:
 
 5,,""
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "5"
@@ -1420,7 +1422,7 @@ RESULT:
 -----------
 QUERY:
 
--- should succeed with effect (/* REPLACED */''c/* REPLACED */'' remains NULL)
+-- should succeed with effect (/* REPLACED */ ''c/* REPLACED */ '' remains NULL)
 BEGIN;
 RESULT:
 	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
@@ -1437,7 +1439,7 @@ RESULT:
 QUERY:
 
 6,"b",""
-\.
+-- \.
 COMMIT;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "6"
@@ -1452,7 +1454,7 @@ RESULT:
 -----------
 QUERY:
 
--- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''conflicting or redundant options/* REPLACED */ '' error
 BEGIN;
 RESULT:
 	ERROR - Invalid Input Error: Attempting to execute an unsuccessful or closed pending query result
@@ -1475,7 +1477,7 @@ RESULT:
 -----------
 QUERY:
 
--- should fail with /* REPLACED */''conflicting or redundant options/* REPLACED */'' error
+-- should fail with /* REPLACED */ ''conflicting or redundant options/* REPLACED */ '' error
 BEGIN;
 RESULT:
 	[]
@@ -1498,12 +1500,12 @@ RESULT:
 QUERY:
 
 
-\pset null ''
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
 
 -- test case with whole-row Var in a check constraint
 create table check_con_tbl (f1 int);
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	[]
 
 -----------
 QUERY:
@@ -1529,15 +1531,14 @@ QUERY:
 -- \d+ check_con_tbl
 copy check_con_tbl from stdin;
 RESULT:
-	ERROR - Catalog Error: Table with name check_con_tbl does not exist!
-Did you mean "CHAR_TBL"?
+	ERROR - IO Error: No files found that match the pattern "/dev/stdin"
 
 -----------
 QUERY:
 
 1
-\N
-\.
+-- \N
+-- \.
 copy check_con_tbl from stdin;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "1"
@@ -1546,7 +1547,7 @@ RESULT:
 QUERY:
 
 0
-\.
+-- \.
 select * from check_con_tbl;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "0"
@@ -1589,7 +1590,7 @@ QUERY:
 2	3	2
 3	2	3
 4	1	4
-\.
+-- \.
 
 CREATE POLICY p1 ON rls_t1 FOR SELECT USING (a % 2 = 0);
 RESULT:
@@ -1808,7 +1809,7 @@ RESULT:
 QUERY:
  -- fail
 test1
-\.
+-- \.
 
 CREATE FUNCTION fun_instead_of_insert_tbl() RETURNS trigger AS $$
 BEGIN
@@ -1840,7 +1841,7 @@ RESULT:
 QUERY:
 
 test1
-\.
+-- \.
 
 SELECT * FROM instead_of_insert_tbl;
 RESULT:
@@ -1885,7 +1886,7 @@ RESULT:
 QUERY:
 
 test1
-\.
+-- \.
 
 SELECT * FROM instead_of_insert_tbl;
 RESULT:
@@ -1923,7 +1924,7 @@ a	{2}	2
 4	{a, 4}	4
 
 5	{5}	5
-\.
+-- \.
 COPY check_ign_err FROM STDIN WITH (on_error ignore);
 RESULT:
 	ERROR - Parser Error: syntax error at or near "1"
@@ -1940,7 +1941,7 @@ a	{2}	2
 6	a
 7	{7}	a
 8	{8}	8
-\.
+-- \.
 SELECT * FROM check_ign_err;
 RESULT:
 	ERROR - Parser Error: syntax error at or near "1"
@@ -1949,7 +1950,7 @@ RESULT:
 QUERY:
 
 
--- test datatype error that can/* REPLACED */''t be handled as soft: should fail
+-- test datatype error that can/* REPLACED */ ''t be handled as soft: should fail
 CREATE TABLE hard_err(foo widget);
 RESULT:
 	ERROR - Catalog Error: Type with name widget does not exist!
@@ -1961,13 +1962,13 @@ QUERY:
 COPY hard_err FROM STDIN WITH (on_error ignore);
 RESULT:
 	ERROR - Catalog Error: Table with name hard_err does not exist!
-Did you mean "CHAR_TBL"?
+Did you mean "y"?
 
 -----------
 QUERY:
 
 1
-\.
+-- \.
 
 -- test missing data: should fail
 COPY check_ign_err FROM STDIN WITH (on_error ignore);
@@ -1978,7 +1979,7 @@ RESULT:
 QUERY:
 
 1	{1}
-\.
+-- \.
 
 -- test extra data: should fail
 COPY check_ign_err FROM STDIN WITH (on_error ignore);
@@ -1989,7 +1990,7 @@ RESULT:
 QUERY:
 
 1	{1}	3	abc
-\.
+-- \.
 
 -- clean up
 DROP TABLE forcetest;
@@ -2002,7 +2003,7 @@ QUERY:
 DROP TABLE vistest;
 RESULT:
 	ERROR - Catalog Error: Table with name vistest does not exist!
-Did you mean "pg_views"?
+Did you mean "testnl"?
 
 -----------
 QUERY:
@@ -2095,7 +2096,7 @@ QUERY:
 DROP TABLE hard_err;
 RESULT:
 	ERROR - Catalog Error: Table with name hard_err does not exist!
-Did you mean "CHAR_TBL"?
+Did you mean "y"?
 
 -----------
 QUERY:
@@ -2127,7 +2128,7 @@ QUERY:
 
 1	value	'2022-07-04'
 2	\D	'2022-07-05'
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 RESULT:
@@ -2154,7 +2155,7 @@ QUERY:
 
 1,value,2022-07-04
 2,\D,2022-07-05
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 RESULT:
@@ -2245,25 +2246,25 @@ RESULT:
 -----------
 QUERY:
 
-\D	value	'2022-07-04'
+-- \D	value	/* REPLACED */ ''2022-07-04/* REPLACED */ ''
 2	\D	'2022-07-05'
-\.
+-- \.
 
 copy copy_default from stdin with (format csv, default '\D');
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Parser Error: syntax error at or near "2"
 
 -----------
 QUERY:
 
-\D,value,2022-07-04
+-- \D,value,2022-07-04
 2,\D,2022-07-05
-\.
+-- \.
 
--- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */''s not recognized
+-- The DEFAULT marker must be unquoted and unescaped or it/* REPLACED */ ''s not recognized
 copy copy_default from stdin with (default '\D');
 RESULT:
-	ERROR - Parser Error: syntax error at or near "\"
+	ERROR - Parser Error: syntax error at or near "2"
 
 -----------
 QUERY:
@@ -2271,7 +2272,7 @@ QUERY:
 1	\D	'2022-07-04'
 2	\\D	'2022-07-04'
 3	"\D"	'2022-07-04'
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 RESULT:
@@ -2299,7 +2300,7 @@ QUERY:
 1,\D,2022-07-04
 2,\\D,2022-07-04
 3,"\D",2022-07-04
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 RESULT:
@@ -2328,7 +2329,7 @@ QUERY:
 1	value	'2022-07-04'
 2	\D	'2022-07-03'
 3	\D	\D
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 RESULT:
@@ -2356,7 +2357,7 @@ QUERY:
 1,value,2022-07-04
 2,\D,2022-07-03
 3,\D,\D
-\.
+-- \.
 
 select id, text_value, ts_value from copy_default;
 RESULT:

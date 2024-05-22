@@ -2,7 +2,7 @@
 -----------
 QUERY:
 -- directory paths are passed to us in environment variables
--- \getenv abs_srcdir '/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests'
+-- \getenv abs_srcdir PG_ABS_SRCDIR
 
 CREATE TABLE testjsonb (
        j jsonb
@@ -14,10 +14,10 @@ RESULT:
 QUERY:
 
 
--- \set filename /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests' '/data/jsonb.data'
-COPY testjsonb FROM /* REPLACED */'/home/keuscha/Documents/FS2024/AST/project/AST24-SQL-dialects-comparison/postgres_tests/data/jsonb.data';
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/jsonb.data'
+COPY testjsonb FROM /* REPLACED */ PG_ABS_SRCDIR '/data/jsonb.data';
 RESULT:
-	[]
+	ERROR - function missing required argument 'table' (pos 2)
 
 -----------
 QUERY:
@@ -136,7 +136,7 @@ RESULT:
 
 -----------
 QUERY:
-	-- OK, even though it/* REPLACED */''s too large for int8
+	-- OK, even though it/* REPLACED */ ''s too large for int8
 SELECT '1e100'::jsonb;
 RESULT:
 	[(10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,)]
@@ -504,7 +504,7 @@ QUERY:
  -- OK
 SELECT '{
 		"one": 1,
-		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */''two/* REPLACED */''
+		"two":,"two",  -- ERROR extraneous comma before field /* REPLACED */ ''two/* REPLACED */ ''
 		"three":
 		true}'::jsonb;
 RESULT:
@@ -1601,12 +1601,12 @@ QUERY:
 -- array exists - array elements should behave as keys
 SELECT count(*) from testjsonb  WHERE j->'array' ? 'bar';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
--- type sensitive array exists - should return no rows (since /* REPLACED */''exists/* REPLACED */'' only
+-- type sensitive array exists - should return no rows (since /* REPLACED */ ''exists/* REPLACED */ '' only
 -- matches strings that are either object keys or array elements)
 SELECT count(*) from testjsonb  WHERE j->'array' ? '5'::text;
 RESULT:
@@ -1618,7 +1618,7 @@ QUERY:
 -- However, a raw scalar is *contained* within the array
 SELECT count(*) from testjsonb  WHERE j->'array' @> '5'::jsonb;
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4223,42 +4223,42 @@ QUERY:
 -- indexing
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC"}';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC", "public":true}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25.0}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ? 'public';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4272,63 +4272,63 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?| ARRAY['public','disabled'];
 RESULT:
-	[(337,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?& ARRAY['public','disabled'];
 RESULT:
-	[(42,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '"CC" == $.wait';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == "CC" && true == $.public';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25.0';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($)';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public)';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4342,63 +4342,63 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) || exists($.disabled)';
 RESULT:
-	[(337,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) && exists($.disabled)';
 RESULT:
-	[(42,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? ("CC" == @)';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.wait == "CC" && true == @.public)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.age ? (@ == 25)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.age == 25.0)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.public';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4428,49 +4428,49 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC"}';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC", "public":true}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25.0}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"array":["foo"]}';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"array":["bar"]}';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4478,14 +4478,14 @@ QUERY:
 -- exercise GIN_SEARCH_MODE_ALL
 SELECT count(*) FROM testjsonb WHERE j @> '{}';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ? 'public';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4499,14 +4499,14 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?| ARRAY['public','disabled'];
 RESULT:
-	[(337,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j ?& ARRAY['public','disabled'];
 RESULT:
-	[(42,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4522,98 +4522,98 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.wait == null))';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.wait ? (@ == null))';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '"CC" == $.wait';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == "CC" && true == $.public';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25.0';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "foo"';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "bar"';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.array[*] == "bar"))';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array ? (@[*] == "bar"))';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array[*] ? (@ == "bar"))';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($)';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public)';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4627,14 +4627,14 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) || exists($.disabled)';
 RESULT:
-	[(337,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.public) && exists($.disabled)';
 RESULT:
-	[(42,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4649,70 +4649,70 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? ("CC" == @)';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.wait == "CC" && true == @.public)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.age ? (@ == 25)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.age == 25.0)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.array[*] == "bar")';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array ? (@[*] == "bar")';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array[*] ? (@ == "bar")';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.public';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4735,12 +4735,12 @@ QUERY:
 
 SELECT count(*) from testjsonb  WHERE j->'array' ? 'bar';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
--- type sensitive array exists - should return no rows (since /* REPLACED */''exists/* REPLACED */'' only
+-- type sensitive array exists - should return no rows (since /* REPLACED */ ''exists/* REPLACED */ '' only
 -- matches strings that are either object keys or array elements)
 SELECT count(*) from testjsonb  WHERE j->'array' ? '5'::text;
 RESULT:
@@ -4752,7 +4752,7 @@ QUERY:
 -- However, a raw scalar is *contained* within the array
 SELECT count(*) from testjsonb  WHERE j->'array' @> '5'::jsonb;
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4768,14 +4768,14 @@ QUERY:
 
 SELECT count(*) FROM (SELECT (jsonb_each(j)).key FROM testjsonb) AS wow;
 RESULT:
-	[(4791,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT key, count(*) FROM (SELECT (jsonb_each(j)).key FROM testjsonb) AS wow GROUP BY key ORDER BY count DESC, key;
 RESULT:
-	[('line', 884), ('query', 207), ('pos', 203), ('node', 202), ('space', 197), ('status', 195), ('public', 194), ('title', 190), ('wait', 190), ('org', 189), ('user', 189), ('coauthors', 188), ('disabled', 185), ('indexed', 184), ('cleaned', 180), ('bad', 179), ('date', 179), ('world', 176), ('state', 172), ('subtitle', 169), ('auth', 168), ('abstract', 161), ('array', 5), ('age', 2), ('foo', 2), ('fool', 1)]
+	[]
 
 -----------
 QUERY:
@@ -4784,7 +4784,7 @@ QUERY:
 -- sort/hash
 SELECT count(distinct j) FROM testjsonb;
 RESULT:
-	[(894,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4798,7 +4798,7 @@ QUERY:
 
 SELECT count(*) FROM (SELECT j FROM (SELECT * FROM testjsonb UNION ALL SELECT * FROM testjsonb) js GROUP BY j) js2;
 RESULT:
-	[(894,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4819,7 +4819,7 @@ QUERY:
 
 SELECT count(*) FROM (SELECT j FROM (SELECT * FROM testjsonb UNION ALL SELECT * FROM testjsonb) js GROUP BY j) js2;
 RESULT:
-	[(894,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4886,14 +4886,14 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j > '{"p":1}';
 RESULT:
-	[(884,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j = '{"pos":98, "line":371, "node":"CBA", "indexed":true}';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4924,35 +4924,35 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":null}';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC"}';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"wait":"CC", "public":true}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @> '{"age":25.0}';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4960,7 +4960,7 @@ QUERY:
 -- exercise GIN_SEARCH_MODE_ALL
 SELECT count(*) FROM testjsonb WHERE j @> '{}';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -4968,91 +4968,91 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == null';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.wait == null))';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.wait ? (@ == null))';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '"CC" == $.wait';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.wait == "CC" && true == $.public';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.age == 25.0';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "foo"';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ '$.array[*] == "bar"';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($ ? (@.array[*] == "bar"))';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array ? (@[*] == "bar"))';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($.array[*] ? (@ == "bar"))';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @@ 'exists($)';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -5068,70 +5068,70 @@ QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? (@ == null)';
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.wait ? ("CC" == @)';
 RESULT:
-	[(15,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.wait == "CC" && true == @.public)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.age ? (@ == 25)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.age == 25.0)';
 RESULT:
-	[(2,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$ ? (@.array[*] == "bar")';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array ? (@[*] == "bar")';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.array[*] ? (@ == "bar")';
 RESULT:
-	[(3,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$';
 RESULT:
-	[(1012,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 SELECT count(*) FROM testjsonb WHERE j @? '$.public';
 RESULT:
-	[(194,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -6471,7 +6471,7 @@ RESULT:
 -----------
 QUERY:
 
--- adding doesn/* REPLACED */''t do anything if elements before last aren/* REPLACED */''t present
+-- adding doesn/* REPLACED */ ''t do anything if elements before last aren/* REPLACED */ ''t present
 select jsonb_set('{"a":1,"b":[0,1,2],"c":{"d":4}}','{x,-33}','{"foo":123}');
 RESULT:
 	[({'a': 1, 'b': [0, 1, 2], 'c': {'d': 4}},)]
@@ -6543,15 +6543,12 @@ QUERY:
 
 -- jsonb_set_lax
 
-\pset null NULL
+-- \pset null NULL
 
 -- pass though non nulls to jsonb_set
 select jsonb_set_lax('{"a":1,"b":2}','{b}','5') ;
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 5: \pset null NULL
-        ^
-
+	[({'a': 1, 'b': 5},)]
 
 -----------
 QUERY:
@@ -6628,15 +6625,12 @@ RESULT:
 QUERY:
 
 
-\pset null ''
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
 
 -- jsonb_insert
 select jsonb_insert('{"a": [0,1,2]}', '{a, 1}', '"new_value"');
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 3: \pset null ''
-        ^
-
+	[({'a': [0, 'new_value', 1, 2]},)]
 
 -----------
 QUERY:
@@ -7640,7 +7634,7 @@ RESULT:
 QUERY:
 
 
--- trying replace assuming a composite object, but it/* REPLACED */''s an element or a value
+-- trying replace assuming a composite object, but it/* REPLACED */ ''s an element or a value
 
 delete from test_jsonb_subscript;
 RESULT:
@@ -7702,7 +7696,7 @@ DETAIL:  The path assumes key is a composite object, but it is a scalar value.
 QUERY:
 
 
--- trying replace assuming a composite object, but it/* REPLACED */''s a raw scalar
+-- trying replace assuming a composite object, but it/* REPLACED */ ''s a raw scalar
 
 delete from test_jsonb_subscript;
 RESULT:
@@ -7793,26 +7787,20 @@ RESULT:
 -----------
 QUERY:
 
-\x
+-- \x
 table test_jsonb_subscript;
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 2: \x
-        ^
-
+	[('foo', {'foo': 'baz'}), ('xyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzy', {'xyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzyxyzzy': 'baz'})]
 
 -----------
 QUERY:
 
-\x
+-- \x
 
 -- jsonb to tsvector
 select to_tsvector('{"a": "aaa bbb ddd ccc", "b": ["eee fff ggg"], "c": {"d": "hhh iii"}}'::jsonb);
 RESULT:
-	ERROR - syntax error at or near "\"
-LINE 2: \x
-        ^
-
+	[("'aaa':1 'bbb':2 'ccc':4 'ddd':3 'eee':6 'fff':7 'ggg':8 'hhh':10 'iii':11",)]
 
 -----------
 QUERY:

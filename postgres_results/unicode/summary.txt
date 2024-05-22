@@ -2,82 +2,99 @@ Guest DBMS identified: postgres
 -----------
 QUERY:
 SELECT getdatabaseencoding() <> 'UTF8' AS skip_test \gset
-\if :skip_test
-\quit
-\endif
+-- \if :skip_test
+-- \quit
+-- \endif
 
-SELECT U&'\0061\0308bc' <> U&'\00E4bc' COLLATE "C" AS sanity_check
-RESULT: ['duckdb: SAME']
-
------------
-QUERY:
-SELECT unicode_version() IS NOT NULL
-RESULT: ['duckdb: ERROR']
+SELECT U&'\0061\0308bc' <> U&'\00E4bc' COLLATE "C" AS sanity_check;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-SELECT unicode_assigned(U&'abc')
-RESULT: ['duckdb: ERROR']
+
+
+SELECT unicode_version() IS NOT NULL;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT unicode_assigned(U&'abc\+10FFFF')
-RESULT: ['duckdb: ERROR']
+
+SELECT unicode_assigned(U&'abc');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize('')
-RESULT: ['duckdb: ERROR']
+
+SELECT unicode_assigned(U&'abc\+10FFFF');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize(U&'\0061\0308\24D1c') = U&'\00E4\24D1c' COLLATE "C" AS test_default
-RESULT: ['duckdb: ERROR']
+
+
+SELECT normalize('');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize(U&'\0061\0308\24D1c', NFC) = U&'\00E4\24D1c' COLLATE "C" AS test_nfc
-RESULT: ['duckdb: ERROR']
+
+SELECT normalize(U&'\0061\0308\24D1c') = U&'\00E4\24D1c' COLLATE "C" AS test_default;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize(U&'\00E4bc', NFC) = U&'\00E4bc' COLLATE "C" AS test_nfc_idem
-RESULT: ['duckdb: ERROR']
+
+SELECT normalize(U&'\0061\0308\24D1c', NFC) = U&'\00E4\24D1c' COLLATE "C" AS test_nfc;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize(U&'\00E4\24D1c', NFD) = U&'\0061\0308\24D1c' COLLATE "C" AS test_nfd
-RESULT: ['duckdb: ERROR']
+
+SELECT normalize(U&'\00E4bc', NFC) = U&'\00E4bc' COLLATE "C" AS test_nfc_idem;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize(U&'\0061\0308\24D1c', NFKC) = U&'\00E4bc' COLLATE "C" AS test_nfkc
-RESULT: ['duckdb: ERROR']
+
+SELECT normalize(U&'\00E4\24D1c', NFD) = U&'\0061\0308\24D1c' COLLATE "C" AS test_nfd;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT normalize(U&'\00E4\24D1c', NFKD) = U&'\0061\0308bc' COLLATE "C" AS test_nfkd
-RESULT: ['duckdb: ERROR']
+
+SELECT normalize(U&'\0061\0308\24D1c', NFKC) = U&'\00E4bc' COLLATE "C" AS test_nfkc;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT "normalize"('abc', 'def')
-RESULT: ['duckdb: SAME']
+
+SELECT normalize(U&'\00E4\24D1c', NFKD) = U&'\0061\0308bc' COLLATE "C" AS test_nfkd;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- run-time error
 
-SELECT U&'\00E4\24D1c' IS NORMALIZED AS test_default
-RESULT: ['duckdb: ERROR']
 
------------
-QUERY:
-SELECT U&'\00E4\24D1c' IS NFC NORMALIZED AS test_nfc
-RESULT: ['duckdb: ERROR']
+SELECT "normalize"('abc', 'def');
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
+  -- run-time error
+
+SELECT U&'\00E4\24D1c' IS NORMALIZED AS test_default;
+RESULT: [duckdb: ERROR, mysql: ERROR]
+
+-----------
+QUERY:
+
+SELECT U&'\00E4\24D1c' IS NFC NORMALIZED AS test_nfc;
+RESULT: [duckdb: ERROR, mysql: ERROR]
+
+-----------
+QUERY:
+
+
 SELECT num, val,
     val IS NFC NORMALIZED AS NFC,
     val IS NFD NORMALIZED AS NFD,
@@ -89,25 +106,27 @@ FROM
           (3, U&'\00E4\24D1c'),
           (4, U&'\0061\0308\24D1c'),
           (5, '')) vals (num, val)
-ORDER BY num
-RESULT: ['duckdb: ERROR']
+ORDER BY num;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT is_normalized('abc', 'def')
-RESULT: ['duckdb: SAME']
 
------------
-QUERY:
--- run-time error
-RESULT: ['duckdb: ERROR']
+
+SELECT is_normalized('abc', 'def');
+RESULT: [duckdb: SAME, mysql: SAME]
 =========================================
 Summary for test case unicode/test.sql of postgres
 =========================================
 
 =================
 Results for duckdb
-SAME: 3 queries, which is 17.65%
+SAME: 3 queries, which is 18.75%
 DIFFERENT: 0 queries, which is 0.00%
-ERROR: 14 queries, which is 82.35%
-Guest results are identical to expected results
+ERROR: 13 queries, which is 81.25%
+
+=================
+Results for mysql
+SAME: 3 queries, which is 18.75%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 13 queries, which is 81.25%

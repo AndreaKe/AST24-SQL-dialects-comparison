@@ -1,0 +1,3681 @@
+
+-----------
+QUERY:
+-- directory paths are passed to us in environment variables
+-- \getenv abs_srcdir PG_ABS_SRCDIR
+
+--
+-- Sanity checks for text search catalogs
+--
+-- NB: we assume the oidjoins test will have caught any dangling links,
+-- that is OID or REGPROC fields that are not zero and do not match some
+-- row in the linked-to table.  However, if we want to enforce that a link
+-- field can/* REPLACED */ ''t be 0, we have to check it here.
+
+-- Find unexpected zero link entries
+
+SELECT oid, prsname
+FROM pg_ts_parser
+WHERE prsnamespace = 0 OR prsstart = 0 OR prstoken = 0 OR prsend = 0 OR
+      -- prsheadline is optional
+      prslextype = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_ts_parser' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT oid, dictname
+FROM pg_ts_dict
+WHERE dictnamespace = 0 OR dictowner = 0 OR dicttemplate = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_ts_dict' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT oid, tmplname
+FROM pg_ts_template
+WHERE tmplnamespace = 0 OR tmpllexize = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_ts_template' doesn't exist")
+
+-----------
+QUERY:
+  -- tmplinit is optional
+
+SELECT oid, cfgname
+FROM pg_ts_config
+WHERE cfgnamespace = 0 OR cfgowner = 0 OR cfgparser = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_ts_config' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT mapcfg, maptokentype, mapseqno
+FROM pg_ts_config_map
+WHERE mapcfg = 0 OR mapdict = 0;
+RESULT:
+	ERROR - (1146, "Table 'test.pg_ts_config_map' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Look for pg_ts_config_map entries that aren/* REPLACED */ ''t one of parser/* REPLACED */ ''s token types
+SELECT * FROM
+  ( SELECT oid AS cfgid, (ts_token_type(cfgparser)).tokid AS tokid
+    FROM pg_ts_config ) AS tt
+RIGHT JOIN pg_ts_config_map AS m
+    ON (tt.cfgid=m.mapcfg AND tt.tokid=m.maptokentype)
+WHERE
+    tt.cfgid IS NULL OR tt.tokid IS NULL;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.tokid AS tokid\n    FROM pg_ts_config ) AS tt\nRIGHT JOIN pg_ts_config_map AS m\n ' at line 3")
+
+-----------
+QUERY:
+
+
+-- Load some test data
+CREATE TABLE test_tsvector(
+	t text,
+	a tsvector
+);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tsvector\n)' at line 4")
+
+-----------
+QUERY:
+
+
+-- \set filename /* REPLACED */ PG_ABS_SRCDIR '/data/tsearch.data'
+COPY test_tsvector FROM /* REPLACED */ PG_ABS_SRCDIR '/data/tsearch.data';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COPY test_tsvector FROM /* REPLACED */  '/home/keuscha/Documents/FS2024/AST/proj' at line 2")
+
+-----------
+QUERY:
+
+
+ANALYZE test_tsvector;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'test_tsvector' at line 1")
+
+-----------
+QUERY:
+
+
+-- test basic text search behavior without indexes, then with
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr|qh'' at line 3")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr&qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq&yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq|yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq&yt)|(wr&qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq|yt)&(wr|qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'w:*|q:*'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ any ('{wr,qh}')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> !yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(pl <-> yh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(yh <-> pl)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(qe <2> qt)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:D'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:D'' at line 1")
+
+-----------
+QUERY:
+
+
+create index wowidx on test_tsvector using gist (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'using gist (a)' at line 1")
+
+-----------
+QUERY:
+
+
+SET enable_seqscan=OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+SET enable_indexscan=ON;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+SET enable_bitmapscan=OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_bitmapscan'")
+
+-----------
+QUERY:
+
+
+explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr&qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq&yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq|yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq&yt)|(wr&qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq|yt)&(wr|qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'w:*|q:*'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ any ('{wr,qh}')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> !yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(pl <-> yh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(yh <-> pl)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(qe <2> qt)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:D'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:D'' at line 1")
+
+-----------
+QUERY:
+
+
+SET enable_indexscan=OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+SET enable_bitmapscan=ON;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_bitmapscan'")
+
+-----------
+QUERY:
+
+
+explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr&qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq&yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq|yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq&yt)|(wr&qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq|yt)&(wr|qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'w:*|q:*'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ any ('{wr,qh}')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> !yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(pl <-> yh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(yh <-> pl)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(qe <2> qt)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:D'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:D'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test siglen parameter of GiST tsvector_ops
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(foo=1));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(foo=1))' at line 2")
+
+-----------
+QUERY:
+
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=0));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(siglen=0))' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=2048));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(siglen=2048))' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100,foo='bar'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(siglen=100,foo='bar'))' at line 1")
+
+-----------
+QUERY:
+
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100, siglen = 200));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(siglen=100, siglen = 200))' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE INDEX wowidx2 ON test_tsvector USING gist (a tsvector_ops(siglen=1));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(siglen=1))' at line 1")
+
+-----------
+QUERY:
+
+
+-- \d test_tsvector
+
+DROP INDEX wowidx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 3")
+
+-----------
+QUERY:
+
+
+EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr&qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq&yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq|yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq&yt)|(wr&qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq|yt)&(wr|qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'w:*|q:*'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ any ('{wr,qh}')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> !yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(pl <-> yh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(yh <-> pl)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(qe <2> qt)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:D'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:D'' at line 1")
+
+-----------
+QUERY:
+
+
+DROP INDEX wowidx2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE INDEX wowidx ON test_tsvector USING gist (a tsvector_ops(siglen=484));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (a tsvector_ops(siglen=484))' at line 1")
+
+-----------
+QUERY:
+
+
+-- \d test_tsvector
+
+EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr&qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq&yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq|yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq&yt)|(wr&qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq|yt)&(wr|qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'w:*|q:*'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ any ('{wr,qh}')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> !yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(pl <-> yh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(yh <-> pl)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(qe <2> qt)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:D'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:D'' at line 1")
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+RESET enable_indexscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_indexscan' at line 1")
+
+-----------
+QUERY:
+
+RESET enable_bitmapscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_bitmapscan' at line 1")
+
+-----------
+QUERY:
+
+
+DROP INDEX wowidx;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE INDEX wowidx ON test_tsvector USING gin (a);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gin (a)' at line 1")
+
+-----------
+QUERY:
+
+
+SET enable_seqscan=OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+-- GIN only supports bitmapscan, so no need to test plain indexscan
+
+explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh'' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr|qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr&qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr&qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq&yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq&yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'eq|yt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'eq|yt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq&yt)|(wr&qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq&yt)|(wr&qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '(eq|yt)&(wr|qh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '(eq|yt)&(wr|qh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'w:*|q:*';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'w:*|q:*'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ any ('{wr,qh}');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ any ('{wr,qh}')' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!no_such_lexeme';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!no_such_lexeme'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!pl <-> !yh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!pl <-> !yh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!yh <-> pl';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!yh <-> pl'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qe <2> qt';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qe <2> qt'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(pl <-> yh)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(pl <-> yh)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(yh <-> pl)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(yh <-> pl)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!(qe <2> qt)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!(qe <2> qt)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wd:D'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:A';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:A'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!wd:D'' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test optimization of non-empty GIN_SEARCH_MODE_ALL queries
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM test_tsvector WHERE a @@ '!qh'' at line 2")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ '!qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ '!qh'' at line 1")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh'' at line 1")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ 'wr' AND a @@ '!qh'' at line 1")
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO test_tsvector VALUES ('???', 'DFG:1A,2B,6C,10 FGH');
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsvector' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM ts_stat('SELECT a FROM test_tsvector') ORDER BY ndoc DESC, nentry DESC, word LIMIT 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('SELECT a FROM test_tsvector') ORDER BY ndoc DESC, nentry DESC, word LIMIT 10' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM ts_stat('SELECT a FROM test_tsvector', 'AB') ORDER BY ndoc DESC, nentry DESC, word;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('SELECT a FROM test_tsvector', 'AB') ORDER BY ndoc DESC, nentry DESC, word' at line 1")
+
+-----------
+QUERY:
+
+
+--dictionaries and to_tsvector
+
+SELECT ts_lexize('english_stem', 'skies');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--dictionaries and to_tsvector\n\nSELECT ts_lexize('english_stem', 'skies')' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_lexize('english_stem', 'identity');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_lexize does not exist')
+
+-----------
+QUERY:
+
+
+SELECT * FROM ts_token_type('default');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('default')' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM ts_parse('default', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1aew.werc.ewr/?ad=qwe&dw 2aew.werc.ewr http://3aew.werc.ewr/?ad=qwe&dw http://4aew.werc.ewr http://5aew.werc.ewr:8100/?  ad=qwe&dw 6aew.werc.ewr:8100/?ad=qwe&dw 7aew.werc.ewr:8100/?ad=qwe&dw=%20%32 +4.0e-10 qwe qwe qwqwe 234.435 455 5.005 teodor@stack.net teodor@123-stack.net 123_teodor@stack.net 123-teodor@stack.net qwe-wer asdf <fr>qwer jf sdjk<we hjwer <werrwe> ewr1> ewri2 <a href="qwe<qwe>">
+/usr/local/fff /awdf/dwqe/4325 rewt/ewr wefjn /wqe-324/ewr gist.h gist.h.c gist.c. readline 4.2 4.2. 4.2, readline-4.2 readline-4.2. 234
+<i <b> wow  < jqw <> qwerty');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('default', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1ae' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT to_tsvector('english', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1aew.werc.ewr/?ad=qwe&dw 2aew.werc.ewr http://3aew.werc.ewr/?ad=qwe&dw http://4aew.werc.ewr http://5aew.werc.ewr:8100/?  ad=qwe&dw 6aew.werc.ewr:8100/?ad=qwe&dw 7aew.werc.ewr:8100/?ad=qwe&dw=%20%32 +4.0e-10 qwe qwe qwqwe 234.435 455 5.005 teodor@stack.net teodor@123-stack.net 123_teodor@stack.net 123-teodor@stack.net qwe-wer asdf <fr>qwer jf sdjk<we hjwer <werrwe> ewr1> ewri2 <a href="qwe<qwe>">
+/usr/local/fff /awdf/dwqe/4325 rewt/ewr wefjn /wqe-324/ewr gist.h gist.h.c gist.c. readline 4.2 4.2. 4.2, readline-4.2 readline-4.2. 234
+<i <b> wow  < jqw <> qwerty');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsvector does not exist')
+
+-----------
+QUERY:
+
+
+SELECT length(to_tsvector('english', '345 qwe@efd.r '' http://www.com/ http://aew.werc.ewr/?ad=qwe&dw 1aew.werc.ewr/?ad=qwe&dw 2aew.werc.ewr http://3aew.werc.ewr/?ad=qwe&dw http://4aew.werc.ewr http://5aew.werc.ewr:8100/?  ad=qwe&dw 6aew.werc.ewr:8100/?ad=qwe&dw 7aew.werc.ewr:8100/?ad=qwe&dw=%20%32 +4.0e-10 qwe qwe qwqwe 234.435 455 5.005 teodor@stack.net teodor@123-stack.net 123_teodor@stack.net 123-teodor@stack.net qwe-wer asdf <fr>qwer jf sdjk<we hjwer <werrwe> ewr1> ewri2 <a href="qwe<qwe>">
+/usr/local/fff /awdf/dwqe/4325 rewt/ewr wefjn /wqe-324/ewr gist.h gist.h.c gist.c. readline 4.2 4.2. 4.2, readline-4.2 readline-4.2. 234
+<i <b> wow  < jqw <> qwerty'));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsvector does not exist')
+
+-----------
+QUERY:
+
+
+-- ts_debug
+
+SELECT * from ts_debug('english', '<myns:foo-bar_baz.blurfl>abc&nm1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', '<myns:foo-bar_baz.blurfl>abc&nm1' at line 3")
+
+-----------
+QUERY:
+def&#xa9;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'def&#xa9' at line 1")
+
+-----------
+QUERY:
+ghi&#245;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'ghi&#245' at line 1")
+
+-----------
+QUERY:
+jkl</myns:foo-bar_baz.blurfl>');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'jkl</myns:foo-bar_baz.blurfl>')' at line 1")
+
+-----------
+QUERY:
+
+
+-- check parsing of URLs
+SELECT * from ts_debug('english', 'http://www.harewoodsolutions.co.uk/press.aspx</span>');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'http://www.harewoodsolutions.co.uk/press.aspx</span>')' at line 2")
+
+-----------
+QUERY:
+
+SELECT * from ts_debug('english', 'http://aew.wer0c.ewr/id?ad=qwe&dw<span>');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'http://aew.wer0c.ewr/id?ad=qwe&dw<span>')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * from ts_debug('english', 'http://5aew.werc.ewr:8100/?');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'http://5aew.werc.ewr:8100/?')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * from ts_debug('english', '5aew.werc.ewr:8100/?xx');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', '5aew.werc.ewr:8100/?xx')' at line 1")
+
+-----------
+QUERY:
+
+SELECT token, alias,
+  dictionaries, dictionaries is null as dnull, array_dims(dictionaries) as ddims,
+  lexemes, lexemes is null as lnull, array_dims(lexemes) as ldims
+from ts_debug('english', 'a title');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'a title')' at line 4")
+
+-----------
+QUERY:
+
+
+-- to_tsquery
+
+SELECT to_tsquery('english', 'qwe & sKies ');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('simple', 'qwe & sKies ');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '''the wether'':dc & ''           sKies '':BC ');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 'asd&(and|fghj)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(asd&and)|fghj');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(asd&!and)|fghj');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(the|and&(i&1))&fghj');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT plainto_tsquery('english', 'the and z 1))& fghj');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT plainto_tsquery('english', 'foo bar') && plainto_tsquery('english', 'asd');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT plainto_tsquery('english', 'foo bar') || plainto_tsquery('english', 'asd fg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT plainto_tsquery('english', 'foo bar') || !!plainto_tsquery('english', 'asd fg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT plainto_tsquery('english', 'foo bar') && 'asd | fg';
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- Check stop word deletion, a and s are stop-words
+SELECT to_tsquery('english', '!(a & !b) & c');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '!(a & !b)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT to_tsquery('english', '(1 <-> 2) <-> a');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(1 <-> a) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(a <-> 1) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 'a <-> (1 <-> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '1 <-> (a <-> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '1 <-> (2 <-> a)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT to_tsquery('english', '(1 <-> 2) <3> a');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(1 <-> a) <3> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(a <-> 1) <3> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 'a <3> (1 <-> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '1 <3> (a <-> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '1 <3> (2 <-> a)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT to_tsquery('english', '(1 <3> 2) <-> a');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(1 <3> a) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(a <3> 1) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 'a <-> (1 <3> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '1 <-> (a <3> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '1 <-> (2 <3> a)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT to_tsquery('english', '((a <-> 1) <-> 2) <-> s');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(2 <-> (a <-> 1)) <-> s');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '((1 <-> a) <-> 2) <-> s');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(2 <-> (1 <-> a)) <-> s');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 's <-> ((a <-> 1) <-> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 's <-> (2 <-> (a <-> 1))');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 's <-> ((1 <-> a) <-> 2)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 's <-> (2 <-> (1 <-> a))');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT to_tsquery('english', '((a <-> 1) <-> s) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(s <-> (a <-> 1)) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '((1 <-> a) <-> s) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '(s <-> (1 <-> a)) <-> 2');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '2 <-> ((a <-> 1) <-> s)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '2 <-> (s <-> (a <-> 1))');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '2 <-> ((1 <-> a) <-> s)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '2 <-> (s <-> (1 <-> a))');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SELECT to_tsquery('english', 'foo <-> (a <-> (the <-> bar))');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', '((foo <-> a) <-> the) <-> bar');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('english', 'foo <-> a <-> the <-> bar');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT phraseto_tsquery('english', 'PostgreSQL can be extended by the user in many ways');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.phraseto_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'paint&water'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'breath&motion&water'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'ocean'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(to_tsvector('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+'), to_tsquery('english', 'painted <-> Ship'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(strip(to_tsvector('both stripped')),
+                  to_tsquery('both & stripped'));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rank_cd does not exist')
+
+-----------
+QUERY:
+
+
+SELECT ts_rank_cd(to_tsvector('unstripped') || strip(to_tsvector('stripped')),
+                  to_tsquery('unstripped & stripped'));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rank_cd does not exist')
+
+-----------
+QUERY:
+
+
+--headline tests
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--headline tests\nSELECT ts_headline('english', '\nDay after day, day after day,\n ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'paint&water'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'breath&motion&water'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'ocean'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'day & drink'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'day | drink'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'day | !drink'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'painted <-> Ship & drink'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'painted <-> Ship | drink'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'painted <-> Ship | !drink'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', phraseto_tsquery('english', 'painted Ocean'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\nDay after day, day after day,\n  We stuck, nor breath nor motion,\nAs idle as a ' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', phraseto_tsquery('english', 'idle as a painted Ship'));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english',
+'Lorem ipsum urna.  Nullam nullam ullamcorper urna.',
+to_tsquery('english','Lorem') && phraseto_tsquery('english','ullamcorper urna'),
+'MaxWords=100, MinWords=1');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_headline does not exist')
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english',
+'Lorem ipsum urna.  Nullam nullam ullamcorper urna.',
+phraseto_tsquery('english','ullamcorper urna'),
+'MaxWords=100, MinWords=5');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_headline does not exist')
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('english', '
+<html>
+<!-- some comment -->
+<body>
+Sea view wow <u>foo bar</u> <i>qq</i>
+<a href="http://www.google.com/foo.bar.html" target="_blank">YES &nbsp;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\n<html>\n<!-- some comment -->\n<body>\nSea view wow <u>foo bar</u> <i>qq</i>\n<a h' at line 1")
+
+-----------
+QUERY:
+</a>
+ff-bg
+<script>
+       document.write(15);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '</a>\nff-bg\n<script>\n       document.write(15)' at line 1")
+
+-----------
+QUERY:
+
+</script>
+</body>
+</html>',
+to_tsquery('english', 'sea&foo'), 'HighlightAll=true');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '</script>\n</body>\n</html>',\nto_tsquery('english', 'sea&foo'), 'HighlightAll=true' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_headline('simple', '1 2 3 1 3'::text, '1 <-> 3', 'MaxWords=2, MinWords=1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text, '1 <-> 3', 'MaxWords=2, MinWords=1')' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_headline('simple', '1 2 3 1 3'::text, '1 & 3', 'MaxWords=4, MinWords=1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text, '1 & 3', 'MaxWords=4, MinWords=1')' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_headline('simple', '1 2 3 1 3'::text, '1 <-> 3', 'MaxWords=4, MinWords=1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text, '1 <-> 3', 'MaxWords=4, MinWords=1')' at line 1")
+
+-----------
+QUERY:
+
+
+--Check if headline fragments work
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Check if headline fragments work\nSELECT ts_headline('english', '\nDay after day' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'ocean'), 'MaxFragments=1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+--Check if more than one fragments are displayed
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Check if more than one fragments are displayed\nSELECT ts_headline('english', '' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'Coleridge & stuck'), 'MaxFragments=2');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+--Fragments when there all query words are not in the document
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Fragments when there all query words are not in the document\nSELECT ts_headlin' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'ocean & seahorse'), 'MaxFragments=1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+--FragmentDelimiter option
+SELECT ts_headline('english', '
+Day after day, day after day,
+  We stuck, nor breath nor motion,
+As idle as a painted Ship
+  Upon a painted Ocean.
+Water, water, every where
+  And all the boards did shrink;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--FragmentDelimiter option\nSELECT ts_headline('english', '\nDay after day, day af' at line 1")
+
+-----------
+QUERY:
+
+Water, water, every where,
+  Nor any drop to drink.
+S. T. Coleridge (1772-1834)
+', to_tsquery('english', 'Coleridge & stuck'), 'MaxFragments=2,FragmentDelimiter=***');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'Water, water, every where,\n  Nor any drop to drink.\nS. T. Coleridge (1772-1834)\n' at line 1")
+
+-----------
+QUERY:
+
+
+--Fragments with phrase search
+SELECT ts_headline('english',
+'Lorem ipsum urna.  Nullam nullam ullamcorper urna.',
+to_tsquery('english','Lorem') && phraseto_tsquery('english','ullamcorper urna'),
+'MaxFragments=100, MaxWords=100, MinWords=1');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Fragments with phrase search\nSELECT ts_headline('english',\n'Lorem ipsum urna. ' at line 1")
+
+-----------
+QUERY:
+
+
+-- Edge cases with empty query
+SELECT ts_headline('english',
+'', to_tsquery('english', ''));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_headline does not exist')
+
+-----------
+QUERY:
+
+SELECT ts_headline('english',
+'foo bar', to_tsquery('english', ''));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_headline does not exist')
+
+-----------
+QUERY:
+
+
+--Rewrite sub system
+
+CREATE TABLE test_tsquery (txtkeyword TEXT, txtsample TEXT);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--Rewrite sub system\n\nCREATE TABLE test_tsquery (txtkeyword TEXT, txtsample TEXT' at line 1")
+
+-----------
+QUERY:
+
+-- \set ECHO none
+-- \copy test_tsquery from stdin
+'New York'	new <-> york | big <-> apple | nyc
+Moscow	moskva | moscow
+'Sanct Peter'	Peterburg | peter | 'Sanct Peterburg'
+foo & bar & qq	foo & (bar | qq) & city
+1 & (2 <-> 3)	2 <-> 4
+5 <-> 6	5 <-> 7
+-- \.
+-- \set ECHO all
+
+ALTER TABLE test_tsquery ADD COLUMN keyword tsquery;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''New York'\tnew <-> york | big <-> apple | nyc\nMoscow\tmoskva | moscow\n'Sanct Pete' at line 3")
+
+-----------
+QUERY:
+
+UPDATE test_tsquery SET keyword = to_tsquery('english', txtkeyword);
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+ALTER TABLE test_tsquery ADD COLUMN sample tsquery;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tsquery' at line 1")
+
+-----------
+QUERY:
+
+UPDATE test_tsquery SET sample = to_tsquery('english', txtsample::text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text)' at line 1")
+
+-----------
+QUERY:
+
+
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <  'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <= 'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword = 'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >= 'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >  'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE UNIQUE INDEX bt_tsq ON test_tsquery (keyword);
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+
+SET enable_seqscan=OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <  'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword <= 'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword = 'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >= 'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT COUNT(*) FROM test_tsquery WHERE keyword >  'new <-> york';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsquery' doesn't exist")
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rewrite('foo & bar & qq & new & york',  'new & york'::tsquery, 'big & apple | nyc | new & york & city');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tsquery, 'big & apple | nyc | new & york & city')' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite(ts_rewrite('new & !york ', 'york', '!jersey'),
+                  'jersey', 'mexico');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+
+SELECT ts_rewrite('moscow', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite('moscow & hotel', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite('bar & qq & foo & (new <-> york)', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rewrite( 'moscow', 'SELECT keyword, sample FROM test_tsquery');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( 'moscow & hotel', 'SELECT keyword, sample FROM test_tsquery');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( 'bar & qq & foo & (new <-> york)', 'SELECT keyword, sample FROM test_tsquery');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+
+SELECT ts_rewrite('1 & (2 <-> 3)', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite('1 & (2 <2> 3)', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite('5 <-> (1 & (2 <-> 3))', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite('5 <-> (6 | 8)', 'SELECT keyword, sample FROM test_tsquery'::text );
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text )' at line 1")
+
+-----------
+QUERY:
+
+
+-- Check empty substitution
+SELECT ts_rewrite(to_tsquery('5 & (6 | 5)'), to_tsquery('5'), to_tsquery(''));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+SELECT ts_rewrite(to_tsquery('!5'), to_tsquery('5'), to_tsquery(''));
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+
+SELECT keyword FROM test_tsquery WHERE keyword @> 'new';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@> 'new'' at line 1")
+
+-----------
+QUERY:
+
+SELECT keyword FROM test_tsquery WHERE keyword @> 'moscow';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@> 'moscow'' at line 1")
+
+-----------
+QUERY:
+
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'new';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''new'' at line 1")
+
+-----------
+QUERY:
+
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'moscow';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''moscow'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow & hotel') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'bar & qq & foo & (new <-> york)') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow & hotel') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'bar & qq & foo & (new <-> york)') AS query' at line 1")
+
+-----------
+QUERY:
+
+
+CREATE INDEX qq ON test_tsquery USING gist (keyword tsquery_ops);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'USING gist (keyword tsquery_ops)' at line 1")
+
+-----------
+QUERY:
+
+SET enable_seqscan=OFF;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+
+SELECT keyword FROM test_tsquery WHERE keyword @> 'new';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@> 'new'' at line 1")
+
+-----------
+QUERY:
+
+SELECT keyword FROM test_tsquery WHERE keyword @> 'moscow';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@> 'moscow'' at line 1")
+
+-----------
+QUERY:
+
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'new';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''new'' at line 1")
+
+-----------
+QUERY:
+
+SELECT keyword FROM test_tsquery WHERE keyword <@ 'moscow';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''moscow'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow & hotel') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'bar & qq & foo & (new <-> york)') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'moscow & hotel') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'moscow & hotel') AS query' at line 1")
+
+-----------
+QUERY:
+
+SELECT ts_rewrite( query, 'SELECT keyword, sample FROM test_tsquery' ) FROM to_tsquery('english', 'bar & qq & foo & (new <-> york)') AS query;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('english', 'bar & qq & foo & (new <-> york)') AS query' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.ts_rewrite does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsvector('foo bar') @@
+  ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@\n  ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz')' at line 1")
+
+-----------
+QUERY:
+
+SELECT to_tsvector('bar baz') @@
+  ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@\n  ts_rewrite(tsquery_phrase('foo', 'foo'), 'foo', 'bar | baz')' at line 1")
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+
+--test GUC
+SET default_text_search_config=simple;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--test GUC\nSET default_text_search_config=simple' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT to_tsvector('SKIES My booKs');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsvector does not exist')
+
+-----------
+QUERY:
+
+SELECT plainto_tsquery('SKIES My booKs');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('SKIES & My | booKs');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+SET default_text_search_config=english;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'default_text_search_config'")
+
+-----------
+QUERY:
+
+
+SELECT to_tsvector('SKIES My booKs');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsvector does not exist')
+
+-----------
+QUERY:
+
+SELECT plainto_tsquery('SKIES My booKs');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.plainto_tsquery does not exist')
+
+-----------
+QUERY:
+
+SELECT to_tsquery('SKIES & My | booKs');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+--trigger
+CREATE TRIGGER tsvectorupdate
+BEFORE UPDATE OR INSERT ON test_tsvector
+FOR EACH ROW EXECUTE PROCEDURE tsvector_update_trigger(a, 'pg_catalog.english', t);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--trigger\nCREATE TRIGGER tsvectorupdate\nBEFORE UPDATE OR INSERT ON test_tsvector' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ to_tsquery('345&qwerty')' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO test_tsvector (t) VALUES ('345 qwerty');
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsvector' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ to_tsquery('345&qwerty')' at line 1")
+
+-----------
+QUERY:
+
+UPDATE test_tsvector SET t = null WHERE t = '345 qwerty';
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsvector' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ to_tsquery('345&qwerty')' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO test_tsvector (t) VALUES ('345 qwerty');
+RESULT:
+	ERROR - (1146, "Table 'test.test_tsvector' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ to_tsquery('345&qwerty')' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test inlining of immutable constant functions
+
+-- to_tsquery(text) is not immutable, so it won/* REPLACED */ ''t be inlined
+explain (costs off)
+select * from test_tsquery, to_tsquery('new') q where txtsample @@ q;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect * from test_tsquery, to_tsquery('new') q where txtsample @@ q' at line 4")
+
+-----------
+QUERY:
+
+
+-- to_tsquery(regconfig, text) is an immutable function.
+-- That allows us to get rid of using function scan and join at all.
+explain (costs off)
+select * from test_tsquery, to_tsquery('english', 'new') q where txtsample @@ q;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect * from test_tsquery, to_tsquery('english', 'new') q where txts' at line 3")
+
+-----------
+QUERY:
+
+
+-- test finding items in GIN/* REPLACED */ ''s pending list
+create temp table pendtest (ts tsvector);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table pendtest (ts tsvector)' at line 2")
+
+-----------
+QUERY:
+
+create index pendtest_idx on pendtest using gin(ts);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'using gin(ts)' at line 1")
+
+-----------
+QUERY:
+
+insert into pendtest values (to_tsvector('Lore ipsam'));
+RESULT:
+	ERROR - (1146, "Table 'test.pendtest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into pendtest values (to_tsvector('Lore ipsum'));
+RESULT:
+	ERROR - (1146, "Table 'test.pendtest' doesn't exist")
+
+-----------
+QUERY:
+
+select * from pendtest where 'ipsu:*'::tsquery @@ ts;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tsquery @@ ts' at line 1")
+
+-----------
+QUERY:
+
+select * from pendtest where 'ipsa:*'::tsquery @@ ts;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tsquery @@ ts' at line 1")
+
+-----------
+QUERY:
+
+select * from pendtest where 'ips:*'::tsquery @@ ts;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tsquery @@ ts' at line 1")
+
+-----------
+QUERY:
+
+select * from pendtest where 'ipt:*'::tsquery @@ ts;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tsquery @@ ts' at line 1")
+
+-----------
+QUERY:
+
+select * from pendtest where 'ipi:*'::tsquery @@ ts;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tsquery @@ ts' at line 1")
+
+-----------
+QUERY:
+
+
+--check OP_PHRASE on index
+create temp table phrase_index_test(fts tsvector);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '--check OP_PHRASE on index\ncreate temp table phrase_index_test(fts tsvector)' at line 1")
+
+-----------
+QUERY:
+
+insert into phrase_index_test values ('A fat cat has just eaten a rat.');
+RESULT:
+	ERROR - (1146, "Table 'test.phrase_index_test' doesn't exist")
+
+-----------
+QUERY:
+
+insert into phrase_index_test values (to_tsvector('english', 'A fat cat has just eaten a rat.'));
+RESULT:
+	ERROR - (1146, "Table 'test.phrase_index_test' doesn't exist")
+
+-----------
+QUERY:
+
+create index phrase_index_test_idx on phrase_index_test using gin(fts);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'using gin(fts)' at line 1")
+
+-----------
+QUERY:
+
+set enable_seqscan = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+select * from phrase_index_test where fts @@ phraseto_tsquery('english', 'fat cat');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '@@ phraseto_tsquery('english', 'fat cat')' at line 1")
+
+-----------
+QUERY:
+
+set enable_seqscan = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+
+-- test websearch_to_tsquery function
+select websearch_to_tsquery('simple', 'I have a fat:*ABCD cat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'orange:**AABBCCDD');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat:A!cat:B|rat:C<');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat:A : cat:B');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+select websearch_to_tsquery('simple', 'fat*rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat-rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat_rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- weights are completely ignored
+select websearch_to_tsquery('simple', 'abc : def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc:def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'a:::b');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc:d');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', ':');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- these operators are ignored
+select websearch_to_tsquery('simple', 'abc & def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc | def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc <-> def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc (pg or class)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- NOT is ignored in quotes
+select websearch_to_tsquery('english', 'My brand new smartphone');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'My brand "new smartphone"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'My brand "new -smartphone"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- test OR operator
+select websearch_to_tsquery('simple', 'cat or rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'cat OR rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'cat "OR" rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'cat OR');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'OR rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', '"fat cat OR rat"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat (cat OR rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'or OR or');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- OR is an operator here ...
+select websearch_to_tsquery('simple', '"fat cat"or"fat rat"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or(rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or)rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or&rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or|rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or!rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or<rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or>rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'fat or ');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- ... but not here
+select websearch_to_tsquery('simple', 'abc orange');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc OR1234');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc or-abc');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('simple', 'abc OR_abc');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+-- test quotes
+select websearch_to_tsquery('english', '"pg_class pg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'pg_class pg"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '"pg_class pg"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '"pg_class : pg"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'abc "pg_class pg"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '"pg_class pg" def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'abc "pg pg_class pg" def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', ' or "pg pg_class pg" or ');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '""pg pg_class pg""');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'abc """"" def');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'cat -"fat rat"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'cat -"fat rat" cheese');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'abc "def -"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'abc "def :"');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+select websearch_to_tsquery('english', '"A fat cat" has just eaten a -rat.');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '"A fat cat" has just eaten OR !rat.');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '"A fat cat" has just (+eaten OR -rat)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+select websearch_to_tsquery('english', 'this is ----fine');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '(()) )))) this ||| is && -fine, "dear friend" OR good');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', 'an old <-> cat " is fine &&& too');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+select websearch_to_tsquery('english', '"A the" OR just on');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('english', '"a fat cat" ate a rat');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+
+select to_tsvector('english', 'A fat cat ate a rat') @@
+	websearch_to_tsquery('english', '"a fat cat" ate a rat');
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'@@\n\twebsearch_to_tsquery(\'english\', \'"a fat cat" ate a rat\')\' at line 1')
+
+-----------
+QUERY:
+
+
+select to_tsvector('english', 'A fat grey cat ate a rat') @@
+	websearch_to_tsquery('english', '"a fat cat" ate a rat');
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'@@\n\twebsearch_to_tsquery(\'english\', \'"a fat cat" ate a rat\')\' at line 1')
+
+-----------
+QUERY:
+
+
+-- cases handled by gettoken_tsvector()
+select websearch_to_tsquery('''');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('''abc''''def''');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('\abc');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.websearch_to_tsquery does not exist')
+
+-----------
+QUERY:
+
+select websearch_to_tsquery('\');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''\\')' at line 1")

@@ -6,7 +6,7 @@ QUERY:
 --
 
 CREATE TYPE rainbow AS ENUM ('red', 'orange', 'yellow', 'green', 'blue', 'purple');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -16,7 +16,7 @@ QUERY:
 -- Did it create the right number of rows?
 --
 SELECT COUNT(*) FROM pg_enum WHERE enumtypid = 'rainbow'::regtype;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -26,13 +26,13 @@ QUERY:
 -- I/O functions
 --
 SELECT 'red'::rainbow;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'mauve'::rainbow;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -40,38 +40,38 @@ QUERY:
 
 -- Also try it with non-error-throwing API
 SELECT pg_input_is_valid('red', 'rainbow');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT pg_input_is_valid('mauve', 'rainbow');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM pg_input_error_info('mauve', 'rainbow');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
-\x
+-- \x
 SELECT * FROM pg_input_error_info(repeat('too_long', 32), 'rainbow');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
-\x
+-- \x
 
 --
 -- adding new values
 --
 
 CREATE TYPE planets AS ENUM ( 'venus', 'earth', 'mars' );
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -81,14 +81,14 @@ SELECT enumlabel, enumsortorder
 FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY 2;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 ALTER TYPE planets ADD VALUE 'uranus';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -98,32 +98,32 @@ SELECT enumlabel, enumsortorder
 FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY 2;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 ALTER TYPE planets ADD VALUE 'mercury' BEFORE 'venus';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE planets ADD VALUE 'saturn' BEFORE 'uranus';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE planets ADD VALUE 'jupiter' AFTER 'mars';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE planets ADD VALUE 'neptune' AFTER 'uranus';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -133,7 +133,7 @@ SELECT enumlabel, enumsortorder
 FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY 2;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -143,7 +143,7 @@ SELECT enumlabel, enumsortorder
 FROM pg_enum
 WHERE enumtypid = 'planets'::regtype
 ORDER BY enumlabel::planets;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -152,14 +152,14 @@ QUERY:
 -- errors for adding labels
 ALTER TYPE planets ADD VALUE
   'plutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutoplutopluto';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 ALTER TYPE planets ADD VALUE 'pluto' AFTER 'zeus';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -169,7 +169,7 @@ QUERY:
 
 --  existing value gives error
 ALTER TYPE planets ADD VALUE 'mercury';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -177,7 +177,7 @@ QUERY:
 
 -- unless IF NOT EXISTS is specified
 ALTER TYPE planets ADD VALUE IF NOT EXISTS 'mercury';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -185,14 +185,14 @@ QUERY:
 
 -- should be neptune, not mercury
 SELECT enum_last(NULL::planets);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 ALTER TYPE planets ADD VALUE IF NOT EXISTS 'pluto';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -200,7 +200,7 @@ QUERY:
 
 -- should be pluto, i.e. the new value
 SELECT enum_last(NULL::planets);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -211,188 +211,188 @@ QUERY:
 --
 
 create type insenum as enum ('L1', 'L2');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 alter type insenum add value 'i1' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i2' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i3' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i4' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i5' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i6' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i7' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i8' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i9' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i10' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i11' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i12' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i13' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i14' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i15' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i16' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i17' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i18' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i19' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i20' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i21' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i22' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i23' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i24' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i25' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i26' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i27' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i28' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i29' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 alter type insenum add value 'i30' before 'L2';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -400,14 +400,14 @@ QUERY:
 
 -- The exact values of enumsortorder will now depend on the local properties
 -- of float4, but in any reasonable implementation we should get at least
--- 20 splits before having to renumber /* REPLACED */, so only hide values > 20.
+-- 20 splits before having to renumber /* REPLACED */ , so only hide values > 20.
 
 SELECT enumlabel,
        case when enumsortorder > 20 then null else enumsortorder end as so
 FROM pg_enum
 WHERE enumtypid = 'insenum'::regtype
 ORDER BY enumsortorder;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -417,28 +417,28 @@ QUERY:
 -- Basic table creation, row selection
 --
 CREATE TABLE enumtest (col rainbow);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest values ('red'), ('orange'), ('yellow'), ('green');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 COPY enumtest FROM stdin;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 blue
 purple
-\.
+-- \.
 SELECT * FROM enumtest;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -448,37 +448,37 @@ QUERY:
 -- Operators, no index
 --
 SELECT * FROM enumtest WHERE col = 'orange';
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col >= 'yellow' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col < 'green' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <= 'green' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -488,13 +488,13 @@ QUERY:
 -- Cast to/from text
 --
 SELECT 'red'::rainbow::text || 'hithere';
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'red'::text::rainbow = 'red'::rainbow;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -504,19 +504,19 @@ QUERY:
 -- Aggregates
 --
 SELECT min(col) FROM enumtest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest WHERE col < 'green';
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
@@ -526,13 +526,13 @@ QUERY:
 -- Index tests, force use of index
 --
 SET enable_seqscan = off;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SET enable_bitmapscan = off;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -542,67 +542,67 @@ QUERY:
 -- Btree index / opclass with the various operators
 --
 CREATE UNIQUE INDEX enumtest_btree ON enumtest USING btree (col);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col = 'orange';
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col >= 'yellow' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col < 'green' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col <= 'green' ORDER BY col;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT min(col) FROM enumtest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT max(col) FROM enumtest WHERE col < 'green';
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP INDEX enumtest_btree;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -612,19 +612,19 @@ QUERY:
 -- Hash index / opclass with the = operator
 --
 CREATE INDEX enumtest_hash ON enumtest USING hash (col);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM enumtest WHERE col = 'orange';
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP INDEX enumtest_hash;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -634,13 +634,13 @@ QUERY:
 -- End index tests
 --
 RESET enable_seqscan;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 RESET enable_bitmapscan;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -650,31 +650,31 @@ QUERY:
 -- Domains over enums
 --
 CREATE DOMAIN rgb AS rainbow CHECK (VALUE IN ('red', 'green', 'blue'));
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'red'::rgb;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'purple'::rgb;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT 'purple'::rainbow::rgb;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 DROP DOMAIN rgb;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -684,37 +684,37 @@ QUERY:
 -- Arrays
 --
 SELECT '{red,green,blue}'::rainbow[];
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT ('{red,green,blue}'::rainbow[])[2];
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'red' = ANY ('{red,green,blue}'::rainbow[]);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'yellow' = ANY ('{red,green,blue}'::rainbow[]);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'red' = ALL ('{red,green,blue}'::rainbow[]);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'red' = ALL ('{red,red}'::rainbow[]);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -724,63 +724,63 @@ QUERY:
 -- Support functions
 --
 SELECT enum_first(NULL::rainbow);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT enum_last('green'::rainbow);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT enum_range(NULL::rainbow);
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT enum_range('orange'::rainbow, 'green'::rainbow);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT enum_range(NULL, 'green'::rainbow);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT enum_range('orange'::rainbow, NULL);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT enum_range(NULL::rainbow, NULL);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 --
--- User functions, can/* REPLACED */''t test perl/python etc here since may not be compiled.
+-- User functions, can/* REPLACED */ ''t test perl/python etc here since may not be compiled.
 --
 CREATE FUNCTION echo_me(anyenum) RETURNS text AS $$
 BEGIN
 RETURN $1::text || 'omg';
 END
 $$ LANGUAGE plpgsql;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT echo_me('red'::rainbow);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -793,35 +793,35 @@ BEGIN
 RETURN $1::text || 'wtf';
 END
 $$ LANGUAGE plpgsql;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT echo_me('red'::rainbow);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 --
--- If we drop the original generic one, we don/* REPLACED */''t have to qualify the type
--- anymore, since there/* REPLACED */''s only one match
+-- If we drop the original generic one, we don/* REPLACED */ ''t have to qualify the type
+-- anymore, since there/* REPLACED */ ''s only one match
 --
 DROP FUNCTION echo_me(anyenum);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT echo_me('red');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP FUNCTION echo_me(rainbow);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -831,37 +831,37 @@ QUERY:
 -- RI triggers on enum types
 --
 CREATE TABLE enumtest_parent (id rainbow PRIMARY KEY);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE TABLE enumtest_child (parent rainbow REFERENCES enumtest_parent);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest_parent VALUES ('red');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest_child VALUES ('red');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO enumtest_child VALUES ('blue');
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fail
 DELETE FROM enumtest_parent;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -870,19 +870,19 @@ QUERY:
 -- cross-type RI should fail
 --
 CREATE TYPE bogus AS ENUM('good', 'bad', 'ugly');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE TABLE enumtest_bogus_child(parent bogus REFERENCES enumtest_parent);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 DROP TYPE bogus;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -890,7 +890,7 @@ QUERY:
 
 -- check renaming a value
 ALTER TYPE rainbow RENAME VALUE 'red' TO 'crimson';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -899,21 +899,21 @@ SELECT enumlabel, enumsortorder
 FROM pg_enum
 WHERE enumtypid = 'rainbow'::regtype
 ORDER BY 2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- check that renaming a non-existent value fails
 ALTER TYPE rainbow RENAME VALUE 'red' TO 'crimson';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 -- check that renaming to an existent value fails
 ALTER TYPE rainbow RENAME VALUE 'blue' TO 'green';
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -923,82 +923,82 @@ QUERY:
 -- check transactional behaviour of ALTER TYPE ... ADD VALUE
 --
 CREATE TYPE bogus AS ENUM('good');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 -- check that we can add new values to existing enums in a transaction
--- but we can/* REPLACED */''t use them
+-- but we can/* REPLACED */ ''t use them
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus ADD VALUE 'new';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SAVEPOINT x;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT 'new'::bogus;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- unsafe
 ROLLBACK TO x;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT enum_first(null::bogus);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
   -- safe
 SELECT enum_last(null::bogus);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- unsafe
 ROLLBACK TO x;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT enum_range(null::bogus);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- unsafe
 ROLLBACK TO x;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 COMMIT;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT 'new'::bogus;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1007,40 +1007,40 @@ SELECT enumlabel, enumsortorder
 FROM pg_enum
 WHERE enumtypid = 'bogus'::regtype
 ORDER BY 2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 -- check that we recognize the case where the enum already existed but was
--- modified in the current txn /* REPLACED */, this should not be considered safe
+-- modified in the current txn /* REPLACED */ , this should not be considered safe
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME TO bogon;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE bogon ADD VALUE 'bad';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'bad'::bogon;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1048,32 +1048,32 @@ QUERY:
 
 -- but a renamed value is safe to use later in same transaction
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME VALUE 'good' to 'bad';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT 'bad'::bogus;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
 DROP TYPE bogus;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1081,76 +1081,76 @@ QUERY:
 
 -- check that values created during CREATE TYPE can be used in any case
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE TYPE bogus AS ENUM('good','bad','ugly');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME TO bogon;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select enum_range(null::bogon);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
--- ideally, we/* REPLACED */''d allow this usage /* REPLACED */, but it requires keeping track of whether
+-- ideally, we/* REPLACED */ ''d allow this usage /* REPLACED */ , but it requires keeping track of whether
 -- the enum type was created in the current transaction, which is expensive
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE TYPE bogus AS ENUM('good');
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE bogus RENAME TO bogon;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE bogon ADD VALUE 'bad';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ALTER TYPE bogon ADD VALUE 'ugly';
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 select enum_range(null::bogon);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fails
 ROLLBACK;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1160,25 +1160,25 @@ QUERY:
 -- Cleanup
 --
 DROP TABLE enumtest_child;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TABLE enumtest_parent;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TABLE enumtest;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TYPE rainbow;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1188,26 +1188,26 @@ QUERY:
 -- Verify properly cleaned up
 --
 SELECT COUNT(*) FROM pg_type WHERE typname = 'rainbow';
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM pg_enum WHERE NOT EXISTS
   (SELECT 1 FROM pg_type WHERE pg_type.oid = enumtypid);
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 =========================================
 Summary for test case enum/test.sql of postgres
 =========================================
 
 =================
 Results for duckdb
-SAME: 73 queries, which is 42.94%
-DIFFERENT: 11 queries, which is 6.47%
-ERROR: 86 queries, which is 50.59%
+SAME: 59 queries, which is 34.71%
+DIFFERENT: 13 queries, which is 7.65%
+ERROR: 98 queries, which is 57.65%
 
 =================
-Results for mySQL
-SAME: 47 queries, which is 27.65%
+Results for mysql
+SAME: 32 queries, which is 18.82%
 DIFFERENT: 0 queries, which is 0.00%
-ERROR: 123 queries, which is 72.35%
+ERROR: 138 queries, which is 81.18%

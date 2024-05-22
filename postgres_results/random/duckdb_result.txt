@@ -16,12 +16,14 @@ QUERY:
 -- of failure, per https://en.wikipedia.org/wiki/Birthday_problem)
 SELECT r, count(*)
 FROM (SELECT random() r FROM generate_series(1, 1000)) ss
-GROUP BY r HAVING count(*) > 1
+GROUP BY r HAVING count(*) > 1;
 RESULT:
-	duckdb: []
+	[]
 
 -----------
 QUERY:
+
+
 -- The range should be [0, 1).  We can expect that at least one out of 2000
 -- random values is in the lowest or highest 1% of the range with failure
 -- probability less than about 1e-9.
@@ -29,12 +31,14 @@ QUERY:
 SELECT count(*) FILTER (WHERE r < 0 OR r >= 1) AS out_of_range,
        (count(*) FILTER (WHERE r < 0.01)) > 0 AS has_small,
        (count(*) FILTER (WHERE r > 0.99)) > 0 AS has_large
-FROM (SELECT random() r FROM generate_series(1, 2000)) ss
+FROM (SELECT random() r FROM generate_series(1, 2000)) ss;
 RESULT:
-	duckdb: [(0, True, True)]
+	[(0, True, True)]
 
 -----------
 QUERY:
+
+
 -- Check for uniform distribution using the Kolmogorov-Smirnov test.
 
 CREATE FUNCTION ks_test_uniform_random()
@@ -56,56 +60,65 @@ BEGIN
   RETURN ok;
 END
 $$
-LANGUAGE plpgsql
+LANGUAGE plpgsql;
 RESULT:
-	duckdb: Parser Error: syntax error at or near "RETURNS"
+	ERROR - Parser Error: syntax error at or near "RETURNS"
 
 -----------
 QUERY:
+
+
 -- As written, ks_test_uniform_random() returns true about 99.9%
 -- of the time.  To get down to a roughly 1e-9 test failure rate,
 -- just run it 3 times and accept if any one of them passes.
 SELECT ks_test_uniform_random() OR
        ks_test_uniform_random() OR
-       ks_test_uniform_random() AS uniform
+       ks_test_uniform_random() AS uniform;
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name ks_test_uniform_random does not exist!
+	ERROR - Catalog Error: Scalar Function with name ks_test_uniform_random does not exist!
 Did you mean "random"?
 
 -----------
 QUERY:
+
+
 -- now test random_normal()
 
 -- As above, there should be no duplicates in 1000 random_normal() values.
 SELECT r, count(*)
 FROM (SELECT random_normal() r FROM generate_series(1, 1000)) ss
-GROUP BY r HAVING count(*) > 1
+GROUP BY r HAVING count(*) > 1;
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name random_normal does not exist!
+	ERROR - Catalog Error: Scalar Function with name random_normal does not exist!
 Did you mean "random"?
 
 -----------
 QUERY:
+
+
 -- ... unless we force the range (standard deviation) to zero.
 -- This is a good place to check that the mean input does something, too.
 SELECT r, count(*)
 FROM (SELECT random_normal(10, 0) r FROM generate_series(1, 100)) ss
-GROUP BY r
+GROUP BY r;
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name random_normal does not exist!
+	ERROR - Catalog Error: Scalar Function with name random_normal does not exist!
 Did you mean "random"?
 
 -----------
 QUERY:
+
 SELECT r, count(*)
 FROM (SELECT random_normal(-10, 0) r FROM generate_series(1, 100)) ss
-GROUP BY r
+GROUP BY r;
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name random_normal does not exist!
+	ERROR - Catalog Error: Scalar Function with name random_normal does not exist!
 Did you mean "random"?
 
 -----------
 QUERY:
+
+
 -- Check standard normal distribution using the Kolmogorov-Smirnov test.
 
 CREATE FUNCTION ks_test_normal_random()
@@ -128,56 +141,67 @@ BEGIN
   RETURN ok;
 END
 $$
-LANGUAGE plpgsql
+LANGUAGE plpgsql;
 RESULT:
-	duckdb: Parser Error: syntax error at or near "RETURNS"
+	ERROR - Parser Error: syntax error at or near "RETURNS"
 
 -----------
 QUERY:
+
+
 -- As above, ks_test_normal_random() returns true about 99.9%
 -- of the time, so try it 3 times and accept if any test passes.
 SELECT ks_test_normal_random() OR
        ks_test_normal_random() OR
-       ks_test_normal_random() AS standard_normal
+       ks_test_normal_random() AS standard_normal;
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name ks_test_normal_random does not exist!
+	ERROR - Catalog Error: Scalar Function with name ks_test_normal_random does not exist!
 Did you mean "random"?
 
 -----------
 QUERY:
+
+
 -- setseed() should produce a reproducible series of random() values.
 
-SELECT setseed(0.5)
+SELECT setseed(0.5);
 RESULT:
-	duckdb: [(None,)]
+	[(None,)]
 
 -----------
 QUERY:
-SELECT random() FROM generate_series(1, 10)
+
+
+SELECT random() FROM generate_series(1, 10);
 RESULT:
-	duckdb: [(0.3210018107201904,), (0.32396263419650495,), (0.26481061102822423,), (0.3227976802736521,), (0.8162050950340927,), (0.7268393433187157,), (0.7521320984233171,), (0.3168771527707577,), (0.7728274865075946,), (0.5457521628122777,)]
+	[(0.3210018107201904,), (0.32396263419650495,), (0.26481061102822423,), (0.3227976802736521,), (0.8162050950340927,), (0.7268393433187157,), (0.7521320984233171,), (0.3168771527707577,), (0.7728274865075946,), (0.5457521628122777,)]
 
 -----------
 QUERY:
--- Likewise for random_normal() /* REPLACED */, however, since its implementation relies
+
+
+-- Likewise for random_normal() /* REPLACED */ , however, since its implementation relies
 -- on libm functions that have different roundoff behaviors on different
 -- machines, we have to round off the results a bit to get consistent output.
-SET extra_float_digits = -1
+SET extra_float_digits = -1;
 RESULT:
-	duckdb: Catalog Error: unrecognized configuration parameter "extra_float_digits"
+	ERROR - Catalog Error: unrecognized configuration parameter "extra_float_digits"
 
 Did you mean: "threads"
 
 -----------
 QUERY:
-SELECT random_normal() FROM generate_series(1, 10)
+
+
+SELECT random_normal() FROM generate_series(1, 10);
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name random_normal does not exist!
+	ERROR - Catalog Error: Scalar Function with name random_normal does not exist!
 Did you mean "random"?
 
 -----------
 QUERY:
-SELECT random_normal(mean => 1, stddev => 0.1) r FROM generate_series(1, 10)
+
+SELECT random_normal(mean => 1, stddev => 0.1) r FROM generate_series(1, 10);
 RESULT:
-	duckdb: Catalog Error: Scalar Function with name random_normal does not exist!
+	ERROR - Catalog Error: Scalar Function with name random_normal does not exist!
 Did you mean "random"?

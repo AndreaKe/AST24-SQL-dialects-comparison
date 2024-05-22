@@ -8,465 +8,542 @@ CREATE TABLE test_replica_identity (
        nonkey text,
        CONSTRAINT test_replica_identity_unique_defer UNIQUE (keya, keyb) DEFERRABLE,
        CONSTRAINT test_replica_identity_unique_nondefer UNIQUE (keya, keyb)
-)
+) ;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE TABLE test_replica_identity_othertable (id serial primary key)
+
+
+CREATE TABLE test_replica_identity_othertable (id serial primary key);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE TABLE test_replica_identity_t3 (id serial constraint pk primary key deferrable)
+
+CREATE TABLE test_replica_identity_t3 (id serial constraint pk primary key deferrable);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE INDEX test_replica_identity_keyab ON test_replica_identity (keya, keyb)
+
+
+CREATE INDEX test_replica_identity_keyab ON test_replica_identity (keya, keyb);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE UNIQUE INDEX test_replica_identity_keyab_key ON test_replica_identity (keya, keyb)
+
+CREATE UNIQUE INDEX test_replica_identity_keyab_key ON test_replica_identity (keya, keyb);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE UNIQUE INDEX test_replica_identity_nonkey ON test_replica_identity (keya, nonkey)
+
+CREATE UNIQUE INDEX test_replica_identity_nonkey ON test_replica_identity (keya, nonkey);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE INDEX test_replica_identity_hash ON test_replica_identity USING hash (nonkey)
+
+CREATE INDEX test_replica_identity_hash ON test_replica_identity USING hash (nonkey);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE UNIQUE INDEX test_replica_identity_expr ON test_replica_identity (keya, keyb, (3))
+
+CREATE UNIQUE INDEX test_replica_identity_expr ON test_replica_identity (keya, keyb, (3));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE UNIQUE INDEX test_replica_identity_partial ON test_replica_identity (keya, keyb) WHERE keyb != '3'
+
+CREATE UNIQUE INDEX test_replica_identity_partial ON test_replica_identity (keya, keyb) WHERE keyb != '3';
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
--- default is /* REPLACED */''d/* REPLACED */''/DEFAULT for user created tables
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+
+-- default is /* REPLACED */ ''d/* REPLACED */ ''/DEFAULT for user created tables
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('d',)]
+	[('d',)]
 
 -----------
 QUERY:
--- but /* REPLACED */''none/* REPLACED */'' for system tables
-SELECT relreplident FROM pg_class WHERE oid = 'pg_class'::regclass
+
+-- but /* REPLACED */ ''none/* REPLACED */ '' for system tables
+SELECT relreplident FROM pg_class WHERE oid = 'pg_class'::regclass;
 RESULT:
-	postgres: [('n',)]
+	[('n',)]
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'pg_constraint'::regclass
+
+SELECT relreplident FROM pg_class WHERE oid = 'pg_constraint'::regclass;
 RESULT:
-	postgres: [('n',)]
+	[('n',)]
 
 -----------
 QUERY:
+
+
 ----
 -- Make sure we detect ineligible indexes
 ----
 
 -- fail, not unique
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab;
 RESULT:
-	postgres: cannot use non-unique index "test_replica_identity_keyab" as replica identity
+	ERROR - cannot use non-unique index "test_replica_identity_keyab" as replica identity
 
 
 -----------
 QUERY:
+
 -- fail, not a candidate key, nullable column
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_nonkey
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_nonkey;
 RESULT:
-	postgres: index "test_replica_identity_nonkey" cannot be used as replica identity because column "nonkey" is nullable
+	ERROR - index "test_replica_identity_nonkey" cannot be used as replica identity because column "nonkey" is nullable
 
 
 -----------
 QUERY:
+
 -- fail, hash indexes cannot do uniqueness
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_hash
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_hash;
 RESULT:
-	postgres: cannot use non-unique index "test_replica_identity_hash" as replica identity
+	ERROR - cannot use non-unique index "test_replica_identity_hash" as replica identity
 
 
 -----------
 QUERY:
+
 -- fail, expression index
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_expr
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_expr;
 RESULT:
-	postgres: cannot use expression index "test_replica_identity_expr" as replica identity
+	ERROR - cannot use expression index "test_replica_identity_expr" as replica identity
 
 
 -----------
 QUERY:
+
 -- fail, partial index
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_partial
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_partial;
 RESULT:
-	postgres: cannot use partial index "test_replica_identity_partial" as replica identity
+	ERROR - cannot use partial index "test_replica_identity_partial" as replica identity
 
 
 -----------
 QUERY:
+
 -- fail, not our index
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_othertable_pkey
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_othertable_pkey;
 RESULT:
-	postgres: "test_replica_identity_othertable_pkey" is not an index for table "test_replica_identity"
+	ERROR - "test_replica_identity_othertable_pkey" is not an index for table "test_replica_identity"
 
 
 -----------
 QUERY:
+
 -- fail, deferrable
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_defer
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_defer;
 RESULT:
-	postgres: cannot use non-immediate index "test_replica_identity_unique_defer" as replica identity
+	ERROR - cannot use non-immediate index "test_replica_identity_unique_defer" as replica identity
 
 
 -----------
 QUERY:
+
 -- fail, deferrable
-ALTER TABLE test_replica_identity_t3 REPLICA IDENTITY USING INDEX pk
+ALTER TABLE test_replica_identity_t3 REPLICA IDENTITY USING INDEX pk;
 RESULT:
-	postgres: cannot use non-immediate index "pk" as replica identity
+	ERROR - cannot use non-immediate index "pk" as replica identity
 
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('d',)]
+	[('d',)]
 
 -----------
 QUERY:
+
+
 ----
 -- Make sure index cases succeed
 ----
 
 -- succeed, primary key
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_pkey
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_pkey;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('i',)]
+	[('i',)]
 
 -----------
 QUERY:
+
 -- \d test_replica_identity
 
 -- succeed, nondeferrable unique constraint over nonnullable cols
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_nondefer
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_unique_nondefer;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
+
 -- succeed unique index over nonnullable cols
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key
+
+ALTER TABLE test_replica_identity REPLICA IDENTITY USING INDEX test_replica_identity_keyab_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('i',)]
+	[('i',)]
 
 -----------
 QUERY:
+
 -- \d test_replica_identity
-SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident
+SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident;
 RESULT:
-	postgres: [(1,)]
+	[(1,)]
 
 -----------
 QUERY:
+
+
 ----
 -- Make sure non index cases work
 ----
-ALTER TABLE test_replica_identity REPLICA IDENTITY DEFAULT
+ALTER TABLE test_replica_identity REPLICA IDENTITY DEFAULT;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('d',)]
+	[('d',)]
 
 -----------
 QUERY:
-SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident
+
+SELECT count(*) FROM pg_index WHERE indrelid = 'test_replica_identity'::regclass AND indisreplident;
 RESULT:
-	postgres: [(0,)]
+	[(0,)]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity REPLICA IDENTITY FULL
+
+
+ALTER TABLE test_replica_identity REPLICA IDENTITY FULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('f',)]
+	[('f',)]
 
 -----------
 QUERY:
+
 -- \d+ test_replica_identity
-ALTER TABLE test_replica_identity REPLICA IDENTITY NOTHING
+ALTER TABLE test_replica_identity REPLICA IDENTITY NOTHING;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass
+
+SELECT relreplident FROM pg_class WHERE oid = 'test_replica_identity'::regclass;
 RESULT:
-	postgres: [('n',)]
+	[('n',)]
 
 -----------
 QUERY:
+
+
 ---
 -- Test that ALTER TABLE rewrite preserves nondefault replica identity
 ---
 
 -- constraint variant
-CREATE TABLE test_replica_identity2 (id int UNIQUE NOT NULL)
+CREATE TABLE test_replica_identity2 (id int UNIQUE NOT NULL);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity2 REPLICA IDENTITY USING INDEX test_replica_identity2_id_key
+
+ALTER TABLE test_replica_identity2 REPLICA IDENTITY USING INDEX test_replica_identity2_id_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 -- \d test_replica_identity2
-ALTER TABLE test_replica_identity2 ALTER COLUMN id TYPE bigint
+ALTER TABLE test_replica_identity2 ALTER COLUMN id TYPE bigint;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 -- \d test_replica_identity2
 
 -- straight index variant
-CREATE TABLE test_replica_identity3 (id int NOT NULL)
+CREATE TABLE test_replica_identity3 (id int NOT NULL);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE UNIQUE INDEX test_replica_identity3_id_key ON test_replica_identity3 (id)
+
+CREATE UNIQUE INDEX test_replica_identity3_id_key ON test_replica_identity3 (id);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity3 REPLICA IDENTITY USING INDEX test_replica_identity3_id_key
+
+ALTER TABLE test_replica_identity3 REPLICA IDENTITY USING INDEX test_replica_identity3_id_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 -- \d test_replica_identity3
-ALTER TABLE test_replica_identity3 ALTER COLUMN id TYPE bigint
+ALTER TABLE test_replica_identity3 ALTER COLUMN id TYPE bigint;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 -- \d test_replica_identity3
 
 -- ALTER TABLE DROP NOT NULL is not allowed for columns part of an index
 -- used as replica identity.
-ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL
+ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL;
 RESULT:
-	postgres: column "id" is in index used as replica identity
+	ERROR - column "id" is in index used as replica identity
 
 
 -----------
 QUERY:
--- but it/* REPLACED */''s OK when the identity is FULL
-ALTER TABLE test_replica_identity3 REPLICA IDENTITY FULL
+
+-- but it/* REPLACED */ ''s OK when the identity is FULL
+ALTER TABLE test_replica_identity3 REPLICA IDENTITY FULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL
+
+ALTER TABLE test_replica_identity3 ALTER COLUMN id DROP NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
+
 --
--- Test that replica identity can be set on an index that/* REPLACED */''s not yet valid.
+-- Test that replica identity can be set on an index that/* REPLACED */ ''s not yet valid.
 -- (This matches the way pg_dump will try to dump a partitioned table.)
 --
-CREATE TABLE test_replica_identity4(id integer NOT NULL) PARTITION BY LIST (id)
+CREATE TABLE test_replica_identity4(id integer NOT NULL) PARTITION BY LIST (id);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE TABLE test_replica_identity4_1(id integer NOT NULL)
+
+CREATE TABLE test_replica_identity4_1(id integer NOT NULL);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 ALTER TABLE ONLY test_replica_identity4
-  ATTACH PARTITION test_replica_identity4_1 FOR VALUES IN (1)
+  ATTACH PARTITION test_replica_identity4_1 FOR VALUES IN (1);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 ALTER TABLE ONLY test_replica_identity4
-  ADD CONSTRAINT test_replica_identity4_pkey PRIMARY KEY (id)
+  ADD CONSTRAINT test_replica_identity4_pkey PRIMARY KEY (id);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 ALTER TABLE ONLY test_replica_identity4
-  REPLICA IDENTITY USING INDEX test_replica_identity4_pkey
+  REPLICA IDENTITY USING INDEX test_replica_identity4_pkey;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 ALTER TABLE ONLY test_replica_identity4_1
-  ADD CONSTRAINT test_replica_identity4_1_pkey PRIMARY KEY (id)
+  ADD CONSTRAINT test_replica_identity4_1_pkey PRIMARY KEY (id);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 -- \d+ test_replica_identity4
 ALTER INDEX test_replica_identity4_pkey
-  ATTACH PARTITION test_replica_identity4_1_pkey
+  ATTACH PARTITION test_replica_identity4_1_pkey;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
+
 -- \d+ test_replica_identity4
 
 -- Dropping the primary key is not allowed if that would leave the replica
 -- identity as nullable
 CREATE TABLE test_replica_identity5 (a int not null, b int, c int,
-	PRIMARY KEY (b, c))
+	PRIMARY KEY (b, c));
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-CREATE UNIQUE INDEX test_replica_identity5_a_b_key ON test_replica_identity5 (a, b)
+
+CREATE UNIQUE INDEX test_replica_identity5_a_b_key ON test_replica_identity5 (a, b);
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity5 REPLICA IDENTITY USING INDEX test_replica_identity5_a_b_key
+
+ALTER TABLE test_replica_identity5 REPLICA IDENTITY USING INDEX test_replica_identity5_a_b_key;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey
-RESULT:
-	postgres: column "b" is in index used as replica identity
 
-
------------
-QUERY:
-ALTER TABLE test_replica_identity5 ALTER b SET NOT NULL
+ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey;
 RESULT:
-	postgres: None
-
------------
-QUERY:
-ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey
-RESULT:
-	postgres: None
-
------------
-QUERY:
-ALTER TABLE test_replica_identity5 ALTER b DROP NOT NULL
-RESULT:
-	postgres: column "b" is in index used as replica identity
+	ERROR - column "b" is in index used as replica identity
 
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity
+
+ALTER TABLE test_replica_identity5 ALTER b SET NOT NULL;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity2
+
+ALTER TABLE test_replica_identity5 DROP CONSTRAINT test_replica_identity5_pkey;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity3
+
+ALTER TABLE test_replica_identity5 ALTER b DROP NOT NULL;
 RESULT:
-	postgres: None
+	ERROR - column "b" is in index used as replica identity
+
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity4
+
+
+DROP TABLE test_replica_identity;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity5
+
+DROP TABLE test_replica_identity2;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity_othertable
+
+DROP TABLE test_replica_identity3;
 RESULT:
-	postgres: None
+	[]
 
 -----------
 QUERY:
-DROP TABLE test_replica_identity_t3
+
+DROP TABLE test_replica_identity4;
 RESULT:
-	postgres: None
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity5;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity_othertable;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DROP TABLE test_replica_identity_t3;
+RESULT:
+	[]

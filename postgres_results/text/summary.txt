@@ -5,398 +5,477 @@ QUERY:
 -- TEXT
 --
 
-SELECT text 'this is a text string' = text 'this is a text string' AS true
-RESULT: ['duckdb: SAME']
+SELECT text 'this is a text string' = text 'this is a text string' AS true;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-SELECT text 'this is a text string' = text 'this is a text strin' AS false
-RESULT: ['duckdb: SAME']
+
+
+SELECT text 'this is a text string' = text 'this is a text strin' AS false;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- text_tbl was already created and filled in test_setup.sql.
-SELECT * FROM TEXT_TBL
-RESULT: ['duckdb: SAME']
+SELECT * FROM TEXT_TBL;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
+
+
 -- As of 8.3 we have removed most implicit casts to text, so that for example
 -- this no longer works:
 
-select length(42)
-RESULT: ['duckdb: SAME']
+select length(42);
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
--- But as a special exception for usability/* REPLACED */''s sake, we still allow implicit
+
+
+-- But as a special exception for usability/* REPLACED */ ''s sake, we still allow implicit
 -- casting to text in concatenations, so long as the other input is text or
 -- an unknown literal.  So these work:
 
-select 'four: '::text || 2+2
-RESULT: ['duckdb: SAME']
+select 'four: '::text || 2+2;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-select 'four: ' || 2+2
-RESULT: ['duckdb: SAME']
+
+select 'four: ' || 2+2;
+RESULT: [duckdb: SAME, mysql: DIFFERENT]
 
 -----------
 QUERY:
+
+
 -- but not this:
 
-select 3 || 4.0
-RESULT: ['duckdb: ERROR']
+select 3 || 4.0;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 /*
  * various string functions
  */
-select concat('one')
-RESULT: ['duckdb: SAME']
+select concat('one');
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-select concat(1,2,3,'hello',true, false, to_date('20100309','YYYYMMDD'))
-RESULT: ['duckdb: ERROR']
+
+select concat(1,2,3,'hello',true, false, to_date('20100309','YYYYMMDD'));
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select concat_ws('#','one')
-RESULT: ['duckdb: SAME']
+
+select concat_ws('#','one');
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-select concat_ws('#',1,2,3,'hello',true, false, to_date('20100309','YYYYMMDD'))
-RESULT: ['duckdb: ERROR']
+
+select concat_ws('#',1,2,3,'hello',true, false, to_date('20100309','YYYYMMDD'));
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select concat_ws(',',10,20,null,30)
-RESULT: ['duckdb: SAME']
+
+select concat_ws(',',10,20,null,30);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-select concat_ws('',10,20,null,30)
-RESULT: ['duckdb: SAME']
+
+select concat_ws('',10,20,null,30);
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-select concat_ws(NULL,10,20,null,30) is null
-RESULT: ['duckdb: SAME']
+
+select concat_ws(NULL,10,20,null,30) is null;
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-select reverse('abcde')
-RESULT: ['duckdb: SAME']
+
+select reverse('abcde');
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
-select i, left('ahoj', i), right('ahoj', i) from generate_series(-5, 5) t(i) order by i
-RESULT: ['duckdb: SAME']
+
+select i, left('ahoj', i), right('ahoj', i) from generate_series(-5, 5) t(i) order by i;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-select quote_literal('')
-RESULT: ['duckdb: ERROR']
+
+select quote_literal('');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select quote_literal('abc''')
-RESULT: ['duckdb: ERROR']
+
+select quote_literal('abc''');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select quote_literal(e'\\')
-RESULT: ['duckdb: ERROR']
+
+select quote_literal(e'\\');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- check variadic labeled argument
-select concat(variadic array[1,2,3])
-RESULT: ['duckdb: DIFFERENT']
+select concat(variadic array[1,2,3]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select concat_ws(',', variadic array[1,2,3])
-RESULT: ['duckdb: DIFFERENT']
+
+select concat_ws(',', variadic array[1,2,3]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select concat_ws(',', variadic NULL::int[])
-RESULT: ['duckdb: DIFFERENT']
+
+select concat_ws(',', variadic NULL::int[]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select concat(variadic NULL::int[]) is NULL
-RESULT: ['duckdb: DIFFERENT']
+
+select concat(variadic NULL::int[]) is NULL;
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select concat(variadic '{}'::int[]) = ''
-RESULT: ['duckdb: ERROR']
+
+select concat(variadic '{}'::int[]) = '';
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 --should fail
-select concat_ws(',', variadic 10)
-RESULT: ['duckdb: ERROR']
+select concat_ws(',', variadic 10);
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
+
+
 /*
  * format
  */
-select format(NULL)
-RESULT: ['duckdb: SAME']
+select format(NULL);
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-select format('Hello')
-RESULT: ['duckdb: SAME']
+
+select format('Hello');
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-select format('Hello %s', 'World')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('Hello %s', 'World');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('Hello %%')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('Hello %%');
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('Hello %%%%')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('Hello %%%%');
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- should fail
-select format('Hello %s %s', 'World')
-RESULT: ['duckdb: ERROR']
+select format('Hello %s %s', 'World');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select format('Hello %s')
-RESULT: ['duckdb: ERROR']
+
+select format('Hello %s');
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
-select format('Hello %x', 20)
-RESULT: ['duckdb: ERROR']
+
+select format('Hello %x', 20);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- check literal and sql identifiers
-select format('INSERT INTO %I VALUES(%L,%L)', 'mytab', 10, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+select format('INSERT INTO %I VALUES(%L,%L)', 'mytab', 10, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%s%s%s','Hello', NULL,'World')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('%s%s%s','Hello', NULL,'World');
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('INSERT INTO %I VALUES(%L,%L)', 'mytab', 10, NULL)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('INSERT INTO %I VALUES(%L,%L)', 'mytab', 10, NULL);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('INSERT INTO %I VALUES(%L,%L)', 'mytab', NULL, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('INSERT INTO %I VALUES(%L,%L)', 'mytab', NULL, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- should fail, sql identifier cannot be NULL
-select format('INSERT INTO %I VALUES(%L,%L)', NULL, 10, 'Hello')
-RESULT: ['duckdb: ERROR']
+select format('INSERT INTO %I VALUES(%L,%L)', NULL, 10, 'Hello');
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
+
 -- check positional placeholders
-select format('%1$s %3$s', 1, 2, 3)
-RESULT: ['duckdb: DIFFERENT']
+select format('%1$s %3$s', 1, 2, 3);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%1$s %12$s', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('%1$s %12$s', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- should fail
-select format('%1$s %4$s', 1, 2, 3)
-RESULT: ['duckdb: ERROR']
+select format('%1$s %4$s', 1, 2, 3);
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
-select format('%1$s %13$s', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-RESULT: ['duckdb: ERROR']
+
+select format('%1$s %13$s', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
-select format('%0$s', 'Hello')
-RESULT: ['duckdb: ERROR']
+
+select format('%0$s', 'Hello');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%*0$s', 'Hello')
-RESULT: ['duckdb: ERROR']
+
+select format('%*0$s', 'Hello');
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%1$', 1)
-RESULT: ['duckdb: ERROR']
+
+select format('%1$', 1);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%1$1', 1)
-RESULT: ['duckdb: ERROR']
+
+select format('%1$1', 1);
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- check mix of positional and ordered placeholders
-select format('Hello %s %1$s %s', 'World', 'Hello again')
-RESULT: ['duckdb: DIFFERENT']
+select format('Hello %s %1$s %s', 'World', 'Hello again');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('Hello %s %s, %2$s %2$s', 'World', 'Hello again')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('Hello %s %s, %2$s %2$s', 'World', 'Hello again');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
+
 -- check variadic labeled arguments
-select format('%s, %s', variadic array['Hello','World'])
-RESULT: ['duckdb: DIFFERENT']
+select format('%s, %s', variadic array['Hello','World']);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%s, %s', variadic array[1, 2])
-RESULT: ['duckdb: DIFFERENT']
+
+select format('%s, %s', variadic array[1, 2]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%s, %s', variadic array[true, false])
-RESULT: ['duckdb: DIFFERENT']
+
+select format('%s, %s', variadic array[true, false]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%s, %s', variadic array[true, false]::text[])
-RESULT: ['duckdb: DIFFERENT']
+
+select format('%s, %s', variadic array[true, false]::text[]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- check variadic with positional placeholders
-select format('%2$s, %1$s', variadic array['first', 'second'])
-RESULT: ['duckdb: DIFFERENT']
+select format('%2$s, %1$s', variadic array['first', 'second']);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
-select format('%2$s, %1$s', variadic array[1, 2])
-RESULT: ['duckdb: DIFFERENT']
+
+select format('%2$s, %1$s', variadic array[1, 2]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- variadic argument can be array type NULL, but should not be referenced
-select format('Hello', variadic NULL::int[])
-RESULT: ['duckdb: DIFFERENT']
+select format('Hello', variadic NULL::int[]);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- variadic argument allows simulating more than FUNC_MAX_ARGS parameters
 select format(string_agg('%s',','), variadic array_agg(i))
-from generate_series(1,200) g(i)
-RESULT: ['duckdb: DIFFERENT']
+from generate_series(1,200) g(i);
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- check field widths and left, right alignment
-select format('>>%10s<<', 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+select format('>>%10s<<', 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%10s<<', NULL)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%10s<<', NULL);
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%10s<<', '')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%10s<<', '');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%-10s<<', '')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%-10s<<', '');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%-10s<<', 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%-10s<<', 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%-10s<<', NULL)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%-10s<<', NULL);
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%1$10s<<', 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%1$10s<<', 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%1$-10I<<', 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%1$-10I<<', 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%2$*1$L<<', 10, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%2$*1$L<<', 10, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%2$*1$L<<', 10, NULL)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%2$*1$L<<', 10, NULL);
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%2$*1$L<<', -10, NULL)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%2$*1$L<<', -10, NULL);
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%*s<<', 10, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%*s<<', 10, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%*1$s<<', 10, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%*1$s<<', 10, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%-s<<', 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%-s<<', 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%10L<<', NULL)
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%10L<<', NULL);
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%2$*1$L<<', NULL, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%2$*1$L<<', NULL, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 
 -----------
 QUERY:
-select format('>>%2$*1$L<<', 0, 'Hello')
-RESULT: ['duckdb: DIFFERENT']
+
+select format('>>%2$*1$L<<', 0, 'Hello');
+RESULT: [duckdb: DIFFERENT, mysql: DIFFERENT]
 =========================================
 Summary for test case text/test.sql of postgres
 =========================================
@@ -406,4 +485,9 @@ Results for duckdb
 SAME: 15 queries, which is 20.55%
 DIFFERENT: 40 queries, which is 54.79%
 ERROR: 18 queries, which is 24.66%
-Guest results are identical to expected results
+
+=================
+Results for mysql
+SAME: 12 queries, which is 16.44%
+DIFFERENT: 21 queries, which is 28.77%
+ERROR: 40 queries, which is 54.79%

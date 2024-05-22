@@ -1,0 +1,3323 @@
+
+-----------
+QUERY:
+--
+-- STRINGS
+-- Test various data entry syntaxes.
+--
+
+-- SQL string continuation syntax
+-- E021-03 character string literals
+SELECT 'first line'
+' - next line'
+	' - third line'
+	AS "Three lines to one";
+RESULT:
+	(('first line - next line - third line',),)
+
+-----------
+QUERY:
+
+
+-- illegal string continuation syntax
+SELECT 'first line'
+' - next line' /* this comment is not allowed here */
+' - third line'
+	AS "Illegal comment within continuation";
+RESULT:
+	(('first line - next line - third line',),)
+
+-----------
+QUERY:
+
+
+-- Unicode escapes
+SET standard_conforming_strings TO on;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO on' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'&"d\\0061t\\+000061"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061" UESCAPE '*';
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'!\' AS U&"d*0061t\\+000061" UESCAPE \'*\'\' at line 1')
+
+-----------
+QUERY:
+
+SELECT U&'a\\b' AS "a\b";
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+
+SELECT U&' \' UESCAPE '!' AS "tricky";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'!\' AS "tricky"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'tricky' AS U&"\" UESCAPE '!';
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'&"\\" UESCAPE \'!\'\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT U&'wrong: \061';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \+0061';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: +0061' UESCAPE +;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '+' at line 1")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: +0061' UESCAPE '+';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''+'' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT U&'wrong: \db99';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \db99xy';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \db99\\';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \db99\0061';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \+00db99\+000061';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \+2FFFFF';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- while we/* REPLACED */ ''re here, check the same cases in E-style literals
+SELECT E'd\u0061t\U00000061' AS "data";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'AS "data"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT E'a\\b' AS "a\b";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'AS "a\\b"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT E'wrong: \u061';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \U0061';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \udb99';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \udb99xy';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \udb99\\';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \udb99\u0061';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \U0000db99\U00000061';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT E'wrong: \U002FFFFF';
+RESULT:
+	ERROR - (1054, "Unknown column 'E' in 'field list'")
+
+-----------
+QUERY:
+
+
+SET standard_conforming_strings TO off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO off' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'&"d\\0061t\\+000061"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061" UESCAPE '*';
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'!\' AS U&"d*0061t\\+000061" UESCAPE \'*\'\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT U&' \' UESCAPE '!' AS "tricky";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'!\' AS "tricky"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'tricky' AS U&"\" UESCAPE '!';
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'&"\\" UESCAPE \'!\'\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT U&'wrong: \061';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: \+0061';
+RESULT:
+	ERROR - (1054, "Unknown column 'U' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT U&'wrong: +0061' UESCAPE '+';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''+'' at line 1")
+
+-----------
+QUERY:
+
+
+RESET standard_conforming_strings;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'standard_conforming_strings' at line 1")
+
+-----------
+QUERY:
+
+
+-- bytea
+SET bytea_output TO hex;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO hex' at line 2")
+
+-----------
+QUERY:
+
+SELECT E'\\xDeAdBeE'::bytea;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea' at line 1")
+
+-----------
+QUERY:
+
+SELECT E'\\xDeAdBeEx'::bytea;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea' at line 1")
+
+-----------
+QUERY:
+
+SELECT E'De\\678dBeEf'::bytea;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea' at line 1")
+
+-----------
+QUERY:
+
+
+SET bytea_output TO escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO escape' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test non-error-throwing API too
+SELECT pg_input_is_valid(E'\\xDeAdBeE', 'bytea');
+RESULT:
+	ERROR - (1584, 'Incorrect parameters in the call to stored function `pg_input_is_valid`')
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info(E'\\xDeAdBeE', 'bytea');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(E'\\\\xDeAdBeE', 'bytea')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info(E'\\xDeAdBeEx', 'bytea');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(E'\\\\xDeAdBeEx', 'bytea')' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM pg_input_error_info(E'foo\\99bar', 'bytea');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(E'foo\\\\99bar', 'bytea')' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- test conversions between various string types
+-- E021-10 implicit casting among the character data types
+--
+
+SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_TBL;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'text) AS "text(char)" FROM CHAR_TBL\' at line 6')
+
+-----------
+QUERY:
+
+
+SELECT CAST(f1 AS text) AS "text(varchar)" FROM VARCHAR_TBL;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'text) AS "text(varchar)" FROM VARCHAR_TBL\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT CAST(name 'namefield' AS text) AS "text(name)";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'namefield\' AS text) AS "text(name)"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- since this is an explicit cast, it should truncate w/o error:
+SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_TBL;
+RESULT:
+	(('doh!',), ('hi de ho n',))
+
+-----------
+QUERY:
+
+-- note: implicit-cast case is tested in char.sql
+
+SELECT CAST(f1 AS char(20)) AS "char(text)" FROM TEXT_TBL;
+RESULT:
+	(('doh!',), ('hi de ho neighbor',))
+
+-----------
+QUERY:
+
+
+SELECT CAST(f1 AS char(10)) AS "char(varchar)" FROM VARCHAR_TBL;
+RESULT:
+	(('a',), ('ab',), ('abcd',), ('abcd',))
+
+-----------
+QUERY:
+
+
+SELECT CAST(name 'namefield' AS char(10)) AS "char(name)";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'namefield\' AS char(10)) AS "char(name)"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT CAST(f1 AS varchar) AS "varchar(text)" FROM TEXT_TBL;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'varchar) AS "varchar(text)" FROM TEXT_TBL\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT CAST(f1 AS varchar) AS "varchar(char)" FROM CHAR_TBL;
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'varchar) AS "varchar(char)" FROM CHAR_TBL\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT CAST(name 'namefield' AS varchar) AS "varchar(name)";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'namefield\' AS varchar) AS "varchar(name)"\' at line 1')
+
+-----------
+QUERY:
+
+
+--
+-- test SQL string functions
+-- E### and T### are feature reference numbers from SQL99
+--
+
+-- E021-09 trim function
+SELECT TRIM(BOTH FROM '  bunch o blanks  ') = 'bunch o blanks' AS "bunch o blanks";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT TRIM(LEADING FROM '  bunch o blanks  ') = 'bunch o blanks  ' AS "bunch o blanks  ";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT TRIM(TRAILING FROM '  bunch o blanks  ') = '  bunch o blanks' AS "  bunch o blanks";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT TRIM(BOTH 'x' FROM 'xxxxxsome Xsxxxxx') = 'some Xs' AS "some Xs";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+-- E021-06 substring expression
+SELECT SUBSTRING('1234567890' FROM 3) = '34567890' AS "34567890";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT SUBSTRING('1234567890' FROM 4 FOR 3) = '456' AS "456";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+-- test overflow cases
+SELECT SUBSTRING('string' FROM 2 FOR 2147483646) AS "tring";
+RESULT:
+	(('tring',),)
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('string' FROM -10 FOR 2147483646) AS "string";
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('string' FROM -10 FOR -2147483646) AS "error";
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+
+-- T581 regular expression substring (with SQL/* REPLACED */ ''s bizarre regexp syntax)
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"(b_d)#"%' ESCAPE '#') AS "bcd";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a#"(b_d)#"%\' ESCAPE \'#\') AS "bcd"\' at line 2')
+
+-----------
+QUERY:
+
+-- obsolete SQL99 syntax
+SELECT SUBSTRING('abcdefg' FROM 'a#"(b_d)#"%' FOR '#') AS "bcd";
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+
+-- No match should return NULL
+SELECT SUBSTRING('abcdefg' SIMILAR '#"(b_d)#"%' ESCAPE '#') IS NULL AS "True";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'#"(b_d)#"%\' ESCAPE \'#\') IS NULL AS "True"\' at line 2')
+
+-----------
+QUERY:
+
+
+-- Null inputs should return NULL
+SELECT SUBSTRING('abcdefg' SIMILAR '%' ESCAPE NULL) IS NULL AS "True";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'%\' ESCAPE NULL) IS NULL AS "True"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING(NULL SIMILAR '%' ESCAPE '#') IS NULL AS "True";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'%\' ESCAPE \'#\') IS NULL AS "True"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('abcdefg' SIMILAR NULL ESCAPE '#') IS NULL AS "True";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR NULL ESCAPE \'#\') IS NULL AS "True"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- The first and last parts should act non-greedy
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%#"g' ESCAPE '#') AS "bcdef";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a#"%#"g\' ESCAPE \'#\') AS "bcdef"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('abcdefg' SIMILAR 'a*#"%#"g*' ESCAPE '#') AS "abcdefg";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a*#"%#"g*\' ESCAPE \'#\') AS "abcdefg"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- Vertical bar in any part affects only that part
+SELECT SUBSTRING('abcdefg' SIMILAR 'a|b#"%#"g' ESCAPE '#') AS "bcdef";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a|b#"%#"g\' ESCAPE \'#\') AS "bcdef"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%#"x|g' ESCAPE '#') AS "bcdef";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a#"%#"x|g\' ESCAPE \'#\') AS "bcdef"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%|ab#"g' ESCAPE '#') AS "bcdef";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a#"%|ab#"g\' ESCAPE \'#\') AS "bcdef"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- Can/* REPLACED */ ''t have more than two part separators
+SELECT SUBSTRING('abcdefg' SIMILAR 'a*#"%#"g*#"x' ESCAPE '#') AS "error";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a*#"%#"g*#"x\' ESCAPE \'#\') AS "error"\' at line 2')
+
+-----------
+QUERY:
+
+
+-- Postgres extension: with 0 or 1 separator, assume parts 1 and 3 are empty
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%g' ESCAPE '#') AS "bcdefg";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a#"%g\' ESCAPE \'#\') AS "bcdefg"\' at line 2')
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('abcdefg' SIMILAR 'a%g' ESCAPE '#') AS "abcdefg";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'SIMILAR \'a%g\' ESCAPE \'#\') AS "abcdefg"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- substring() with just two arguments is not allowed by SQL spec /* REPLACED */ ,
+-- we accept it, but we interpret the pattern as a POSIX regexp not SQL
+SELECT SUBSTRING('abcdefg' FROM 'c.e') AS "cde";
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+
+-- With a parenthesized subexpression, return only what matches the subexpr
+SELECT SUBSTRING('abcdefg' FROM 'b(.*)f') AS "cde";
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+-- Check case where we have a match, but not a subexpression match
+SELECT SUBSTRING('foo' FROM 'foo(bar)?') IS NULL AS t;
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+-- Check behavior of SIMILAR TO, which uses largely the same regexp variant
+SELECT 'abcdefg' SIMILAR TO '_bcd%' AS true;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd%' AS true' at line 2")
+
+-----------
+QUERY:
+
+SELECT 'abcdefg' SIMILAR TO 'bcd%' AS false;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO 'bcd%' AS false' at line 1")
+
+-----------
+QUERY:
+
+SELECT 'abcdefg' SIMILAR TO '_bcd#%' ESCAPE '#' AS false;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd#%' ESCAPE '#' AS false' at line 1")
+
+-----------
+QUERY:
+
+SELECT 'abcd%' SIMILAR TO '_bcd#%' ESCAPE '#' AS true;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd#%' ESCAPE '#' AS true' at line 1")
+
+-----------
+QUERY:
+
+-- Postgres uses /* REPLACED */ ''\/* REPLACED */ '' as the default escape character, which is not per spec
+SELECT 'abcdefg' SIMILAR TO '_bcd\%' AS false;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd\\%' AS false' at line 2")
+
+-----------
+QUERY:
+
+-- and an empty string to mean /* REPLACED */ ''no escape/* REPLACED */ '', which is also not per spec
+SELECT 'abcd\efg' SIMILAR TO '_bcd\%' ESCAPE '' AS true;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd\\%' ESCAPE '' AS true' at line 2")
+
+-----------
+QUERY:
+
+-- these behaviors are per spec, though:
+SELECT 'abcdefg' SIMILAR TO '_bcd%' ESCAPE NULL AS null;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd%' ESCAPE NULL AS null' at line 2")
+
+-----------
+QUERY:
+
+SELECT 'abcdefg' SIMILAR TO '_bcd#%' ESCAPE '##' AS error;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO '_bcd#%' ESCAPE '##' AS error' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test backslash escapes in regexp_replace/* REPLACED */ ''s replacement string
+SELECT regexp_replace('1112223333', E'(\\d{3})(\\d{3})(\\d{4})', E'(\\1) \\2-\\3');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+SELECT regexp_replace('foobarrbazz', E'(.)\\1', E'X\\&Y', 'g');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+SELECT regexp_replace('foobarrbazz', E'(.)\\1', E'X\\\\Y', 'g');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+-- not an error, though perhaps it should be:
+SELECT regexp_replace('foobarrbazz', E'(.)\\1', E'X\\Y\\1Z\\');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+
+SELECT regexp_replace('AAA   BBB   CCC   ', E'\\s+', ' ', 'g');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+SELECT regexp_replace('AAA', '^|$', 'Z', 'g');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'gi');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+-- invalid regexp option
+SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'z');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+
+-- extended regexp_replace tests
+SELECT regexp_replace('A PostgreSQL function', 'A|e|i|o|u', 'X', 1);
+RESULT:
+	(('X PXstgrXSQL fXnctXXn',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'A|e|i|o|u', 'X', 1, 2);
+RESULT:
+	(('A PXstgreSQL function',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 0, 'i');
+RESULT:
+	(('X PXstgrXSQL fXnctXXn',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 1, 'i');
+RESULT:
+	(('X PostgreSQL function',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 2, 'i');
+RESULT:
+	(('A PXstgreSQL function',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 3, 'i');
+RESULT:
+	(('A PostgrXSQL function',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 9, 'i');
+RESULT:
+	(('A PostgreSQL function',),)
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'A|e|i|o|u', 'X', 7, 0, 'i');
+RESULT:
+	(('A PostgrXSQL fXnctXXn',),)
+
+-----------
+QUERY:
+
+-- /* REPLACED */ ''g/* REPLACED */ '' flag should be ignored when N is specified
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, 1, 'g');
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_replace')
+
+-----------
+QUERY:
+
+-- errors
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', -1, 0, 'i');
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_replace'")
+
+-----------
+QUERY:
+
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', 1, -1, 'i');
+RESULT:
+	(('X PostgreSQL function',),)
+
+-----------
+QUERY:
+
+-- erroneous invocation of non-extended form
+SELECT regexp_replace('A PostgreSQL function', 'a|e|i|o|u', 'X', '1');
+RESULT:
+	(('X PXstgrXSQL fXnctXXn',),)
+
+-----------
+QUERY:
+
+
+--  regexp_count tests
+SELECT regexp_count('123123123123123', '(12)3');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_count('123123123123', '123', 1);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_count('123123123123', '123', 3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_count('123123123123', '123', 33);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_count('ABCABCABCABC', 'Abc', 1, '');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_count('ABCABCABCABC', 'Abc', 1, 'i');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+-- errors
+SELECT regexp_count('123123123123', '123', 0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_count('123123123123', '123', -3);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_count does not exist')
+
+-----------
+QUERY:
+
+
+-- regexp_like tests
+SELECT regexp_like('Steven', '^Ste(v|ph)en$');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT regexp_like('a'||CHR(10)||'d', 'a.d', 'n');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.CHR does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_like('a'||CHR(10)||'d', 'a.d', 's');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.CHR does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_like('abc', ' a . c ', 'x');
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_like')
+
+-----------
+QUERY:
+
+SELECT regexp_like('abc', 'a.c', 'g');
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_like')
+
+-----------
+QUERY:
+  -- error
+
+-- regexp_instr tests
+SELECT regexp_instr('abcdefghi', 'd.f');
+RESULT:
+	((4,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcdefghi', 'd.q');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c');
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 2);
+RESULT:
+	((4,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 3);
+RESULT:
+	((7,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 4);
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'A.C', 1, 2, 0, 'i');
+RESULT:
+	((4,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 0);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 1);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 2);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 3);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 4);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 0, 'i', 5);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 0);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 1);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 2);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 3);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 4);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+SELECT regexp_instr('1234567890', '(123)(4(56)(78))', 1, 1, 1, 'i', 5);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+-- Check case where we have a match, but not a subexpression match
+SELECT regexp_instr('foo', 'foo(bar)?', 1, 1, 0, '', 1);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+-- errors
+SELECT regexp_instr('abcabcabc', 'a.c', 0, 1);
+RESULT:
+	ERROR - (3686, 'Index out of bounds in regular expression search.')
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 0);
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, -1);
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_instr: return_option must be 1 or 0.')
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, 2);
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_instr: return_option must be 1 or 0.')
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, 0, 'g');
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_instr')
+
+-----------
+QUERY:
+
+SELECT regexp_instr('abcabcabc', 'a.c', 1, 1, 0, '', -1);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_instr'")
+
+-----------
+QUERY:
+
+
+-- regexp_substr tests
+SELECT regexp_substr('abcdefghi', 'd.f');
+RESULT:
+	(('def',),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcdefghi', 'd.q') IS NULL AS t;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c');
+RESULT:
+	(('abc',),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c', 2);
+RESULT:
+	(('abc',),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 3);
+RESULT:
+	(('abc',),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 4) IS NULL AS t;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'A.C', 1, 2, 'i');
+RESULT:
+	(('abc',),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 0);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 1);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 2);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 3);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 4);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+SELECT regexp_substr('1234567890', '(123)(4(56)(78))', 1, 1, 'i', 5) IS NULL AS t;
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+-- Check case where we have a match, but not a subexpression match
+SELECT regexp_substr('foo', 'foo(bar)?', 1, 1, '', 1) IS NULL AS t;
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+-- errors
+SELECT regexp_substr('abcabcabc', 'a.c', 0, 1);
+RESULT:
+	ERROR - (1583, "Incorrect parameters in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 0);
+RESULT:
+	(('abc',),)
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 1, 'g');
+RESULT:
+	ERROR - (1210, 'Incorrect arguments to regexp_substr')
+
+-----------
+QUERY:
+
+SELECT regexp_substr('abcabcabc', 'a.c', 1, 1, '', -1);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'regexp_substr'")
+
+-----------
+QUERY:
+
+
+-- set so we can tell NULL from empty string
+-- \pset null /* REPLACED */ ''\\N/* REPLACED */ ''
+
+-- return all matches from regexp
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(beque)$re$)' at line 5")
+
+-----------
+QUERY:
+
+
+-- test case insensitive
+SELECT regexp_matches('foObARbEqUEbAz', $re$(bar)(beque)$re$, 'i');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(beque)$re$, 'i')' at line 2")
+
+-----------
+QUERY:
+
+
+-- global option - more than one match
+SELECT regexp_matches('foobarbequebazilbarfbonk', $re$(b[^b]+)(b[^b]+)$re$, 'g');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '[^b]+)(b[^b]+)$re$, 'g')' at line 2")
+
+-----------
+QUERY:
+
+
+-- empty capture group (matched empty string)
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.*)(beque)$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(.*)(beque)$re$)' at line 2")
+
+-----------
+QUERY:
+
+-- no match
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)(beque)$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(.+)(beque)$re$)' at line 2")
+
+-----------
+QUERY:
+
+-- optional capture group did not match, null entry in array
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)?(beque)$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(.+)?(beque)$re$)' at line 2")
+
+-----------
+QUERY:
+
+
+-- no capture groups
+SELECT regexp_matches('foobarbequebaz', $re$barbeque$re$);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_matches does not exist')
+
+-----------
+QUERY:
+
+
+-- start/end-of-line matches are of zero length
+SELECT regexp_matches('foo' || chr(10) || 'bar' || chr(10) || 'bequq' || chr(10) || 'baz', '^', 'mg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_matches does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_matches('foo' || chr(10) || 'bar' || chr(10) || 'bequq' || chr(10) || 'baz', '$', 'mg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_matches does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_matches('1' || chr(10) || '2' || chr(10) || '3' || chr(10) || '4' || chr(10), '^.?', 'mg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_matches does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_matches(chr(10) || '1' || chr(10) || '2' || chr(10) || '3' || chr(10) || '4' || chr(10), '.?$', 'mg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_matches does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_matches(chr(10) || '1' || chr(10) || '2' || chr(10) || '3' || chr(10) || '4', '.?$', 'mg');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_matches does not exist')
+
+-----------
+QUERY:
+
+
+-- give me errors
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$, 'gz');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(beque)$re$, 'gz')' at line 2")
+
+-----------
+QUERY:
+
+SELECT regexp_matches('foobarbequebaz', $re$(barbeque$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1")
+
+-----------
+QUERY:
+
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque){2,1}$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(beque){2,1}$re$)' at line 1")
+
+-----------
+QUERY:
+
+
+-- split string on regexp
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', $re$\s+$re$) AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('the quick brown fox jumps over the lazy dog', $re$\\s+$re$) AS foo' at line 2")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', $re$\s+$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\s+$re$)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', $re$\s*$re$) AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('the quick brown fox jumps over the lazy dog', $re$\\s*$re$) AS foo' at line 1")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', $re$\s*$re$);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\s*$re$)' at line 1")
+
+-----------
+QUERY:
+
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', '') AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('the quick brown fox jumps over the lazy dog', '') AS foo' at line 1")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', '');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+-- case insensitive
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'i') AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'i') AS foo' at line 2")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'i');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+-- no match of pattern
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumps over the lazy dog', 'nomatch') AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('the quick brown fox jumps over the lazy dog', 'nomatch') AS foo' at line 2")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('the quick brown fox jumps over the lazy dog', 'nomatch');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+-- some corner cases
+SELECT regexp_split_to_array('123456','1');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('123456','6');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('123456','.');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('123456','');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('123456','(?:)');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('1','');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+-- errors
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'zippy') AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'zippy') AS foo' at line 2")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'iz');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+-- global option meaningless for regexp_split
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'g') AS foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'g') AS foo' at line 2")
+
+-----------
+QUERY:
+
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPs ovEr The lazy dOG', 'e', 'g');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.regexp_split_to_array does not exist')
+
+-----------
+QUERY:
+
+
+-- change NULL-display back
+-- \pset null /* REPLACED */ ''/* REPLACED */ ''
+
+-- E021-11 position expression
+SELECT POSITION('4' IN '1234567890') = '4' AS "4";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT POSITION('5' IN '1234567890') = '5' AS "5";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+-- T312 character overlay function
+SELECT OVERLAY('abcdef' PLACING '45' FROM 4) AS "abc45f";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'45\' FROM 4) AS "abc45f"\' at line 2')
+
+-----------
+QUERY:
+
+
+SELECT OVERLAY('yabadoo' PLACING 'daba' FROM 5) AS "yabadaba";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'daba\' FROM 5) AS "yabadaba"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT OVERLAY('yabadoo' PLACING 'daba' FROM 5 FOR 0) AS "yabadabadoo";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'daba\' FROM 5 FOR 0) AS "yabadabadoo"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT OVERLAY('babosa' PLACING 'ubb' FROM 2 FOR 4) AS "bubba";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'ubb\' FROM 2 FOR 4) AS "bubba"\' at line 1')
+
+-----------
+QUERY:
+
+
+--
+-- test LIKE
+-- Be sure to form every test as a LIKE/NOT LIKE pair.
+--
+
+-- simplest examples
+-- E061-04 like predicate
+SELECT 'hawkeye' LIKE 'h%' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT LIKE 'h%' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'hawkeye' LIKE 'H%' AS "false";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT LIKE 'H%' AS "true";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'hawkeye' LIKE 'indio%' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT LIKE 'indio%' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT 'hawkeye' LIKE 'h%eye' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT LIKE 'h%eye' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'indio' LIKE '_ndio' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'indio' NOT LIKE '_ndio' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'indio' LIKE 'in__o' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'indio' NOT LIKE 'in__o' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'indio' LIKE 'in_o' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT 'indio' NOT LIKE 'in_o' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT 'abc'::name LIKE '_b_' AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::name LIKE \'_b_\' AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'abc'::name NOT LIKE '_b_' AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::name NOT LIKE \'_b_\' AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT 'abc'::bytea LIKE '_b_'::bytea AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bytea LIKE \'_b_\'::bytea AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'abc'::bytea NOT LIKE '_b_'::bytea AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bytea NOT LIKE \'_b_\'::bytea AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- unused escape character
+SELECT 'hawkeye' LIKE 'h%' ESCAPE '#' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT LIKE 'h%' ESCAPE '#' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'indio' LIKE 'ind_o' ESCAPE '$' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'indio' NOT LIKE 'ind_o' ESCAPE '$' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+-- escape character
+-- E061-05 like predicate with escape clause
+SELECT 'h%' LIKE 'h#%' ESCAPE '#' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'h%' NOT LIKE 'h#%' ESCAPE '#' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'h%wkeye' LIKE 'h#%' ESCAPE '#' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT 'h%wkeye' NOT LIKE 'h#%' ESCAPE '#' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT 'h%wkeye' LIKE 'h#%%' ESCAPE '#' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'h%wkeye' NOT LIKE 'h#%%' ESCAPE '#' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'h%awkeye' LIKE 'h#%a%k%e' ESCAPE '#' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'h%awkeye' NOT LIKE 'h#%a%k%e' ESCAPE '#' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'indio' LIKE '_ndio' ESCAPE '$' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'indio' NOT LIKE '_ndio' ESCAPE '$' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'i_dio' LIKE 'i$_d_o' ESCAPE '$' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'i_dio' NOT LIKE 'i$_d_o' ESCAPE '$' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'i_dio' LIKE 'i$_nd_o' ESCAPE '$' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT 'i_dio' NOT LIKE 'i$_nd_o' ESCAPE '$' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT 'i_dio' LIKE 'i$_d%o' ESCAPE '$' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'i_dio' NOT LIKE 'i$_d%o' ESCAPE '$' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'a_c'::bytea LIKE 'a$__'::bytea ESCAPE '$'::bytea AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bytea LIKE \'a$__\'::bytea ESCAPE \'$\'::bytea AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'a_c'::bytea NOT LIKE 'a$__'::bytea ESCAPE '$'::bytea AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bytea NOT LIKE \'a$__\'::bytea ESCAPE \'$\'::bytea AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+-- escape character same as pattern character
+SELECT 'maca' LIKE 'm%aca' ESCAPE '%' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'maca' NOT LIKE 'm%aca' ESCAPE '%' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'ma%a' LIKE 'm%a%%a' ESCAPE '%' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'ma%a' NOT LIKE 'm%a%%a' ESCAPE '%' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'bear' LIKE 'b_ear' ESCAPE '_' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'bear' NOT LIKE 'b_ear' ESCAPE '_' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'be_r' LIKE 'b_e__r' ESCAPE '_' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+SELECT 'be_r' NOT LIKE 'b_e__r' ESCAPE '_' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT 'be_r' LIKE '__e__r' ESCAPE '_' AS "false";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+SELECT 'be_r' NOT LIKE '__e__r' ESCAPE '_' AS "true";
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+
+--
+-- test ILIKE (case-insensitive LIKE)
+-- Be sure to form every test as an ILIKE/NOT ILIKE pair.
+--
+
+SELECT 'hawkeye' ILIKE 'h%' AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'h%\' AS "true"\' at line 6')
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT ILIKE 'h%' AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'ILIKE \'h%\' AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT 'hawkeye' ILIKE 'H%' AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'H%\' AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT ILIKE 'H%' AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'ILIKE \'H%\' AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT 'hawkeye' ILIKE 'H%Eye' AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'H%Eye\' AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'hawkeye' NOT ILIKE 'H%Eye' AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'ILIKE \'H%Eye\' AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT 'Hawkeye' ILIKE 'h%' AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'\'h%\' AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'Hawkeye' NOT ILIKE 'h%' AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'ILIKE \'h%\' AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT 'ABC'::name ILIKE '_b_' AS "true";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::name ILIKE \'_b_\' AS "true"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT 'ABC'::name NOT ILIKE '_b_' AS "false";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::name NOT ILIKE \'_b_\' AS "false"\' at line 1')
+
+-----------
+QUERY:
+
+
+--
+-- test %/_ combination cases, cf bugs #4821 and #5478
+--
+
+SELECT 'foo' LIKE '_%' as t, 'f' LIKE '_%' as t, '' LIKE '_%' as f;
+RESULT:
+	((1, 1, 0),)
+
+-----------
+QUERY:
+
+SELECT 'foo' LIKE '%_' as t, 'f' LIKE '%_' as t, '' LIKE '%_' as f;
+RESULT:
+	((1, 1, 0),)
+
+-----------
+QUERY:
+
+
+SELECT 'foo' LIKE '__%' as t, 'foo' LIKE '___%' as t, 'foo' LIKE '____%' as f;
+RESULT:
+	((1, 1, 0),)
+
+-----------
+QUERY:
+
+SELECT 'foo' LIKE '%__' as t, 'foo' LIKE '%___' as t, 'foo' LIKE '%____' as f;
+RESULT:
+	((1, 1, 0),)
+
+-----------
+QUERY:
+
+
+SELECT 'jack' LIKE '%____%' AS t;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+
+--
+-- basic tests of LIKE with indexes
+--
+
+CREATE TABLE texttest (a text PRIMARY KEY, b int);
+RESULT:
+	ERROR - (1170, "BLOB/TEXT column 'a' used in key specification without a key length")
+
+-----------
+QUERY:
+
+SELECT * FROM texttest WHERE a LIKE '%1%';
+RESULT:
+	ERROR - (1146, "Table 'test.texttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TABLE byteatest (a bytea PRIMARY KEY, b int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'bytea PRIMARY KEY, b int)' at line 1")
+
+-----------
+QUERY:
+
+SELECT * FROM byteatest WHERE a LIKE '%1%';
+RESULT:
+	ERROR - (1146, "Table 'test.byteatest' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE texttest, byteatest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.texttest,test.byteatest'")
+
+-----------
+QUERY:
+
+
+
+--
+-- test implicit type conversion
+--
+
+-- E021-07 character concatenation
+SELECT 'unknown' || ' and unknown' AS "Concat unknown types";
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT text 'text' || ' and unknown' AS "Concat text to unknown type";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'|| \' and unknown\' AS "Concat text to unknown type"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT char(20) 'characters' || ' and text' AS "Concat char to unknown type";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'|| \' and text\' AS "Concat char to unknown type"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT text 'text' || char(20) ' and characters' AS "Concat text to char";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'|| char(20) \' and characters\' AS "Concat text to char"\' at line 1')
+
+-----------
+QUERY:
+
+
+SELECT text 'text' || varchar ' and varchar' AS "Concat text to varchar";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'|| varchar \' and varchar\' AS "Concat text to varchar"\' at line 1')
+
+-----------
+QUERY:
+
+
+--
+-- test substr with toasted text values
+--
+CREATE TABLE toasttest(f1 text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+insert into toasttest values(repeat('1234567890',10000));
+RESULT:
+	ERROR - (1406, "Data too long for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+insert into toasttest values(repeat('1234567890',10000));
+RESULT:
+	ERROR - (1406, "Data too long for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+
+--
+-- Ensure that some values are uncompressed, to test the faster substring
+-- operation used in that case
+--
+alter table toasttest alter column f1 set storage external;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'storage external' at line 5")
+
+-----------
+QUERY:
+
+insert into toasttest values(repeat('1234567890',10000));
+RESULT:
+	ERROR - (1406, "Data too long for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+insert into toasttest values(repeat('1234567890',10000));
+RESULT:
+	ERROR - (1406, "Data too long for column 'f1' at row 1")
+
+-----------
+QUERY:
+
+
+-- If the starting position is zero or less, then return from the start of the string
+-- adjusting the length to be consistent with the /* REPLACED */ ''negative start/* REPLACED */ '' per SQL.
+SELECT substr(f1, -1, 5) from toasttest;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+-- If the length is less than zero, an ERROR is thrown.
+SELECT substr(f1, 5, -1) from toasttest;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+-- If no third argument (length) is provided, the length to the end of the
+-- string is assumed.
+SELECT substr(f1, 99995) from toasttest;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+-- If start plus length is > string length, the result is truncated to
+-- string length
+SELECT substr(f1, 99995, 10) from toasttest;
+RESULT:
+	()
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE toasttest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- expect >0 blocks
+SELECT pg_relation_size(reltoastrelid) = 0 AS is_empty
+  FROM pg_class where relname = 'toasttest';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+TRUNCATE TABLE toasttest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+ALTER TABLE toasttest set (toast_tuple_target = 4080);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'set (toast_tuple_target = 4080)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+INSERT INTO toasttest values (repeat('1234567890',300));
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+-- expect 0 blocks
+SELECT pg_relation_size(reltoastrelid) = 0 AS is_empty
+  FROM pg_class where relname = 'toasttest';
+RESULT:
+	ERROR - (1146, "Table 'test.pg_class' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE toasttest;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+--
+-- test substr with toasted bytea values
+--
+CREATE TABLE toasttest(f1 bytea);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'bytea)' at line 4")
+
+-----------
+QUERY:
+
+
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Ensure that some values are uncompressed, to test the faster substring
+-- operation used in that case
+--
+alter table toasttest alter column f1 set storage external;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'storage external' at line 5")
+
+-----------
+QUERY:
+
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- If the length is less than zero, an ERROR is thrown.
+SELECT substr(f1, 5, -1) from toasttest;
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE toasttest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.toasttest'")
+
+-----------
+QUERY:
+
+
+-- test internally compressing datums
+
+-- this tests compressing a datum to a very small size which exercises a
+-- corner case in packed-varlena handling: even though small, the compressed
+-- datum must be given a 4-byte header because there are no bits to indicate
+-- compression in a 1-byte header
+
+CREATE TABLE toasttest (c char(4096));
+RESULT:
+	ERROR - (1074, "Column length too big for column 'c' (max = 255); use BLOB or TEXT instead")
+
+-----------
+QUERY:
+
+INSERT INTO toasttest VALUES('x');
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT length(c), c::text FROM toasttest;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text FROM toasttest' at line 1")
+
+-----------
+QUERY:
+
+SELECT c FROM toasttest;
+RESULT:
+	ERROR - (1146, "Table 'test.toasttest' doesn't exist")
+
+-----------
+QUERY:
+
+DROP TABLE toasttest;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.toasttest'")
+
+-----------
+QUERY:
+
+
+--
+-- test length
+--
+
+SELECT length('abcdef') AS "length_6";
+RESULT:
+	((6,),)
+
+-----------
+QUERY:
+
+
+--
+-- test strpos
+--
+
+SELECT strpos('abcdef', 'cd') AS "pos_3";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.strpos does not exist')
+
+-----------
+QUERY:
+
+
+SELECT strpos('abcdef', 'xy') AS "pos_0";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.strpos does not exist')
+
+-----------
+QUERY:
+
+
+SELECT strpos('abcdef', '') AS "pos_1";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.strpos does not exist')
+
+-----------
+QUERY:
+
+
+SELECT strpos('', 'xy') AS "pos_0";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.strpos does not exist')
+
+-----------
+QUERY:
+
+
+SELECT strpos('', '') AS "pos_1";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.strpos does not exist')
+
+-----------
+QUERY:
+
+
+--
+-- test replace
+--
+SELECT replace('abcdef', 'de', '45') AS "abc45f";
+RESULT:
+	(('abc45f',),)
+
+-----------
+QUERY:
+
+
+SELECT replace('yabadabadoo', 'ba', '123') AS "ya123da123doo";
+RESULT:
+	(('ya123da123doo',),)
+
+-----------
+QUERY:
+
+
+SELECT replace('yabadoo', 'bad', '') AS "yaoo";
+RESULT:
+	(('yaoo',),)
+
+-----------
+QUERY:
+
+
+--
+-- test split_part
+--
+select split_part('','@',1) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('','@',-1) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','',1) AS "joeuser@mydatabase";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','',2) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','',-1) AS "joeuser@mydatabase";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','',-2) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',0) AS "an error";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@@',1) AS "joeuser@mydatabase";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@@',2) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',1) AS "joeuser";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',2) AS "mydatabase";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',3) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('@joeuser@mydatabase@','@',2) AS "joeuser";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',-1) AS "mydatabase";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',-2) AS "joeuser";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('joeuser@mydatabase','@',-3) AS "empty string";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+select split_part('@joeuser@mydatabase@','@',-2) AS "mydatabase";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.split_part does not exist')
+
+-----------
+QUERY:
+
+
+--
+-- test to_bin, to_oct, and to_hex
+--
+select to_bin(-1234) AS "11111111111111111111101100101110";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_bin does not exist')
+
+-----------
+QUERY:
+
+select to_bin(-1234::bigint);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bigint)' at line 1")
+
+-----------
+QUERY:
+
+select to_bin(256*256*256 - 1) AS "111111111111111111111111";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_bin does not exist')
+
+-----------
+QUERY:
+
+select to_bin(256::bigint*256::bigint*256::bigint*256::bigint - 1) AS "11111111111111111111111111111111";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bigint*256::bigint*256::bigint*256::bigint - 1) AS "11111111111111111111111111\' at line 1')
+
+-----------
+QUERY:
+
+
+select to_oct(-1234) AS "37777775456";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_oct does not exist')
+
+-----------
+QUERY:
+
+select to_oct(-1234::bigint) AS "1777777777777777775456";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bigint) AS "1777777777777777775456"\' at line 1')
+
+-----------
+QUERY:
+
+select to_oct(256*256*256 - 1) AS "77777777";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_oct does not exist')
+
+-----------
+QUERY:
+
+select to_oct(256::bigint*256::bigint*256::bigint*256::bigint - 1) AS "37777777777";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bigint*256::bigint*256::bigint*256::bigint - 1) AS "37777777777"\' at line 1')
+
+-----------
+QUERY:
+
+
+select to_hex(-1234) AS "fffffb2e";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_hex does not exist')
+
+-----------
+QUERY:
+
+select to_hex(-1234::bigint) AS "fffffffffffffb2e";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bigint) AS "fffffffffffffb2e"\' at line 1')
+
+-----------
+QUERY:
+
+select to_hex(256*256*256 - 1) AS "ffffff";
+RESULT:
+	ERROR - (1305, 'FUNCTION test.to_hex does not exist')
+
+-----------
+QUERY:
+
+select to_hex(256::bigint*256::bigint*256::bigint*256::bigint - 1) AS "ffffffff";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bigint*256::bigint*256::bigint*256::bigint - 1) AS "ffffffff"\' at line 1')
+
+-----------
+QUERY:
+
+
+--
+-- SHA-2
+--
+SET bytea_output TO hex;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO hex' at line 4")
+
+-----------
+QUERY:
+
+
+--
+-- encode/decode
+--
+SELECT encode('\x1234567890abcdef00', 'hex');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.encode does not exist')
+
+-----------
+QUERY:
+
+SELECT encode(('\x' || repeat('1234567890abcdef0001', 7))::bytea, 'base64');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 'base64')' at line 1")
+
+-----------
+QUERY:
+
+SELECT encode('\x1234567890abcdef00', 'escape');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.encode does not exist')
+
+-----------
+QUERY:
+
+
+--
+-- get_bit/set_bit etc
+--
+SELECT get_bit('\x1234567890abcdef00'::bytea, 43);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 43)' at line 4")
+
+-----------
+QUERY:
+
+SELECT get_bit('\x1234567890abcdef00'::bytea, 99);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 99)' at line 1")
+
+-----------
+QUERY:
+
+SELECT set_bit('\x1234567890abcdef00'::bytea, 99, 0);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 99, 0)' at line 1")
+
+-----------
+QUERY:
+  -- error
+SELECT get_byte('\x1234567890abcdef00'::bytea, 3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 3)' at line 2")
+
+-----------
+QUERY:
+
+SELECT get_byte('\x1234567890abcdef00'::bytea, 99);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 99)' at line 1")
+
+-----------
+QUERY:
+
+SELECT set_byte('\x1234567890abcdef00'::bytea, 99, 11);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea, 99, 11)' at line 1")
+
+-----------
+QUERY:
+  -- error
+
+--
+-- test behavior of escape_string_warning and standard_conforming_strings options
+--
+set escape_string_warning = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'escape_string_warning'")
+
+-----------
+QUERY:
+
+set standard_conforming_strings = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'standard_conforming_strings'")
+
+-----------
+QUERY:
+
+
+show escape_string_warning;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'escape_string_warning' at line 1")
+
+-----------
+QUERY:
+
+show standard_conforming_strings;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'standard_conforming_strings' at line 1")
+
+-----------
+QUERY:
+
+
+set escape_string_warning = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'escape_string_warning'")
+
+-----------
+QUERY:
+
+set standard_conforming_strings = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'standard_conforming_strings'")
+
+-----------
+QUERY:
+
+
+show escape_string_warning;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'escape_string_warning' at line 1")
+
+-----------
+QUERY:
+
+show standard_conforming_strings;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'standard_conforming_strings' at line 1")
+
+-----------
+QUERY:
+
+
+select 'a\bcd' as f1, 'a\b''cd' as f2, 'a\b''''cd' as f3, 'abcd\'   as f4, 'ab\''cd' as f5, '\\' as f6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\''cd' as f5, '\\\\' as f6' at line 1")
+
+-----------
+QUERY:
+
+
+set standard_conforming_strings = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'standard_conforming_strings'")
+
+-----------
+QUERY:
+
+
+select 'a\\bcd' as f1, 'a\\b\'cd' as f2, 'a\\b\'''cd' as f3, 'abcd\\'   as f4, 'ab\\\'cd' as f5, '\\\\' as f6;
+RESULT:
+	(('a\\bcd', "a\\b'cd", "a\\b''cd", 'abcd\\', "ab\\'cd", '\\\\'),)
+
+-----------
+QUERY:
+
+
+set escape_string_warning = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'escape_string_warning'")
+
+-----------
+QUERY:
+
+set standard_conforming_strings = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'standard_conforming_strings'")
+
+-----------
+QUERY:
+
+
+select 'a\bcd' as f1, 'a\b''cd' as f2, 'a\b''''cd' as f3, 'abcd\'   as f4, 'ab\''cd' as f5, '\\' as f6;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '\\''cd' as f5, '\\\\' as f6' at line 1")
+
+-----------
+QUERY:
+
+
+set standard_conforming_strings = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'standard_conforming_strings'")
+
+-----------
+QUERY:
+
+
+select 'a\\bcd' as f1, 'a\\b\'cd' as f2, 'a\\b\'''cd' as f3, 'abcd\\'   as f4, 'ab\\\'cd' as f5, '\\\\' as f6;
+RESULT:
+	(('a\\bcd', "a\\b'cd", "a\\b''cd", 'abcd\\', "ab\\'cd", '\\\\'),)
+
+-----------
+QUERY:
+
+
+reset standard_conforming_strings;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'standard_conforming_strings' at line 1")
+
+-----------
+QUERY:
+
+
+
+--
+-- Additional string functions
+--
+SET bytea_output TO escape;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO escape' at line 4")
+
+-----------
+QUERY:
+
+
+SELECT initcap('hi THOMAS');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.initcap does not exist')
+
+-----------
+QUERY:
+
+
+SELECT lpad('hi', 5, 'xy');
+RESULT:
+	(('xyxhi',),)
+
+-----------
+QUERY:
+
+SELECT lpad('hi', 5);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'lpad'")
+
+-----------
+QUERY:
+
+SELECT lpad('hi', -5, 'xy');
+RESULT:
+	((None,),)
+
+-----------
+QUERY:
+
+SELECT lpad('hello', 2);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'lpad'")
+
+-----------
+QUERY:
+
+SELECT lpad('hi', 5, '');
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+
+SELECT rpad('hi', 5, 'xy');
+RESULT:
+	(('hixyx',),)
+
+-----------
+QUERY:
+
+SELECT rpad('hi', 5);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'rpad'")
+
+-----------
+QUERY:
+
+SELECT rpad('hi', -5, 'xy');
+RESULT:
+	((None,),)
+
+-----------
+QUERY:
+
+SELECT rpad('hello', 2);
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'rpad'")
+
+-----------
+QUERY:
+
+SELECT rpad('hi', 5, '');
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+
+SELECT ltrim('zzzytrim', 'xyz');
+RESULT:
+	ERROR - (1582, "Incorrect parameter count in the call to native function 'ltrim'")
+
+-----------
+QUERY:
+
+
+SELECT translate('', '14', 'ax');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.translate does not exist')
+
+-----------
+QUERY:
+
+SELECT translate('12345', '14', 'ax');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.translate does not exist')
+
+-----------
+QUERY:
+
+SELECT translate('12345', '134', 'a');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.translate does not exist')
+
+-----------
+QUERY:
+
+
+SELECT ascii('x');
+RESULT:
+	((120,),)
+
+-----------
+QUERY:
+
+SELECT ascii('');
+RESULT:
+	((0,),)
+
+-----------
+QUERY:
+
+
+SELECT chr(65);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.chr does not exist')
+
+-----------
+QUERY:
+
+SELECT chr(0);
+RESULT:
+	ERROR - (1305, 'FUNCTION test.chr does not exist')
+
+-----------
+QUERY:
+
+
+SELECT repeat('Pg', 4);
+RESULT:
+	(('PgPgPgPg',),)
+
+-----------
+QUERY:
+
+SELECT repeat('Pg', -4);
+RESULT:
+	(('',),)
+
+-----------
+QUERY:
+
+SELECT SUBSTRING('string'::bytea FROM -10 FOR -2147483646) AS "error";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'::bytea FROM -10 FOR -2147483646) AS "error"\' at line 1')
+
+-----------
+QUERY:
+
+SELECT encode(overlay(E'Th\\000omas'::bytea placing E'Th\\001omas'::bytea from 2),'escape');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea placing E'Th\\\\001omas'::bytea from 2),'escape')' at line 1")
+
+-----------
+QUERY:
+
+SELECT encode(overlay(E'Th\\000omas'::bytea placing E'\\002\\003'::bytea from 8),'escape');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea placing E'\\\\002\\\\003'::bytea from 8),'escape')' at line 1")
+
+-----------
+QUERY:
+
+SELECT encode(overlay(E'Th\\000omas'::bytea placing E'\\002\\003'::bytea from 5 for 3),'escape');
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea placing E'\\\\002\\\\003'::bytea from 5 for 3),'escape')' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT bit_count('\x1234567890'::bytea);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::bytea)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT unistr('\0064at\+0000610');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('d\u0061t\U000000610');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('a\\b');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+-- errors:
+SELECT unistr('wrong: \db99');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \db99\0061');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \+00db99\+000061');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \+2FFFFF');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \udb99\u0061');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \U0000db99\U00000061');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \U002FFFFF');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')
+
+-----------
+QUERY:
+
+SELECT unistr('wrong: \xyz');
+RESULT:
+	ERROR - (1305, 'FUNCTION test.unistr does not exist')

@@ -1,0 +1,1687 @@
+
+-----------
+QUERY:
+--
+-- UNION (also INTERSECT, EXCEPT)
+--
+
+-- Simple UNION constructs
+
+SELECT 1 AS two UNION SELECT 2 ORDER BY 1;
+RESULT:
+	((1,), (2,))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS one UNION SELECT 1 ORDER BY 1;
+RESULT:
+	((1,),)
+
+-----------
+QUERY:
+
+
+SELECT 1 AS two UNION ALL SELECT 2;
+RESULT:
+	((1,), (2,))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS two UNION ALL SELECT 1;
+RESULT:
+	((1,), (1,))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS three UNION SELECT 2 UNION SELECT 3 ORDER BY 1;
+RESULT:
+	((1,), (2,), (3,))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS two UNION SELECT 2 UNION SELECT 2 ORDER BY 1;
+RESULT:
+	((1,), (2,))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS three UNION SELECT 2 UNION ALL SELECT 2 ORDER BY 1;
+RESULT:
+	((1,), (2,), (2,))
+
+-----------
+QUERY:
+
+
+SELECT 1.1 AS two UNION SELECT 2.2 ORDER BY 1;
+RESULT:
+	((Decimal('1.1'),), (Decimal('2.2'),))
+
+-----------
+QUERY:
+
+
+-- Mixed types
+
+SELECT 1.1 AS two UNION SELECT 2 ORDER BY 1;
+RESULT:
+	((Decimal('1.1'),), (Decimal('2.0'),))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS two UNION SELECT 2.2 ORDER BY 1;
+RESULT:
+	((Decimal('1.0'),), (Decimal('2.2'),))
+
+-----------
+QUERY:
+
+
+SELECT 1 AS one UNION SELECT 1.0::float8 ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float8 ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT 1.1 AS two UNION ALL SELECT 2 ORDER BY 1;
+RESULT:
+	((Decimal('1.1'),), (Decimal('2.0'),))
+
+-----------
+QUERY:
+
+
+SELECT 1.0::float8 AS two UNION ALL SELECT 1 ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float8 AS two UNION ALL SELECT 1 ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT 1.1 AS three UNION SELECT 2 UNION SELECT 3 ORDER BY 1;
+RESULT:
+	((Decimal('1.1'),), (Decimal('2.0'),), (Decimal('3.0'),))
+
+-----------
+QUERY:
+
+
+SELECT 1.1::float8 AS two UNION SELECT 2 UNION SELECT 2.0::float8 ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::float8 AS two UNION SELECT 2 UNION SELECT 2.0::float8 ORDER BY 1' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT 1.1 AS three UNION SELECT 2 UNION ALL SELECT 2 ORDER BY 1;
+RESULT:
+	((Decimal('1.1'),), (Decimal('2.0'),), (Decimal('2.0'),))
+
+-----------
+QUERY:
+
+
+SELECT 1.1 AS two UNION (SELECT 2 UNION ALL SELECT 2) ORDER BY 1;
+RESULT:
+	((Decimal('1.1'),), (Decimal('2.0'),))
+
+-----------
+QUERY:
+
+
+--
+-- Try testing from tables...
+--
+
+SELECT f1 AS five FROM FLOAT8_TBL
+UNION
+SELECT f1 FROM FLOAT8_TBL
+ORDER BY 1;
+RESULT:
+	((-1.2345678901234e+200,), (-1004.3,), (-34.84,), (-1.2345678901234e-200,), (0.0,))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS ten FROM FLOAT8_TBL
+UNION ALL
+SELECT f1 FROM FLOAT8_TBL;
+RESULT:
+	((0.0,), (-34.84,), (-1004.3,), (-1.2345678901234e+200,), (-1.2345678901234e-200,), (0.0,), (-34.84,), (-1004.3,), (-1.2345678901234e+200,), (-1.2345678901234e-200,))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS nine FROM FLOAT8_TBL
+UNION
+SELECT f1 FROM INT4_TBL
+ORDER BY 1;
+RESULT:
+	((-1.2345678901234e+200,), (-2147483647.0,), (-123456.0,), (-1004.3,), (-34.84,), (-1.2345678901234e-200,), (0.0,), (123456.0,), (2147483647.0,))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS ten FROM FLOAT8_TBL
+UNION ALL
+SELECT f1 FROM INT4_TBL;
+RESULT:
+	((0.0,), (-34.84,), (-1004.3,), (-1.2345678901234e+200,), (-1.2345678901234e-200,), (0.0,), (123456.0,), (-123456.0,), (2147483647.0,), (-2147483647.0,))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS five FROM FLOAT8_TBL
+  WHERE f1 BETWEEN -1e6 AND 1e6
+UNION
+SELECT f1 FROM INT4_TBL
+  WHERE f1 BETWEEN 0 AND 1000000
+ORDER BY 1;
+RESULT:
+	((-1004.3,), (-34.84,), (-1.2345678901234e-200,), (0.0,), (123456.0,))
+
+-----------
+QUERY:
+
+
+SELECT CAST(f1 AS char(4)) AS three FROM VARCHAR_TBL
+UNION
+SELECT f1 FROM CHAR_TBL
+ORDER BY 1;
+RESULT:
+	(('a',), ('ab',), ('abcd',))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS three FROM VARCHAR_TBL
+UNION
+SELECT CAST(f1 AS varchar) FROM CHAR_TBL
+ORDER BY 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar) FROM CHAR_TBL\nORDER BY 1' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT f1 AS eight FROM VARCHAR_TBL
+UNION ALL
+SELECT f1 FROM CHAR_TBL;
+RESULT:
+	(('a',), ('ab',), ('abcd',), ('abcd',), ('a',), ('ab',), ('abcd',), ('abcd',))
+
+-----------
+QUERY:
+
+
+SELECT f1 AS five FROM TEXT_TBL
+UNION
+SELECT f1 FROM VARCHAR_TBL
+UNION
+SELECT TRIM(TRAILING FROM f1) FROM CHAR_TBL
+ORDER BY 1;
+RESULT:
+	(('a',), ('ab',), ('abcd',), ('doh!',), ('hi de ho neighbor',))
+
+-----------
+QUERY:
+
+
+--
+-- INTERSECT and EXCEPT
+--
+
+SELECT q2 FROM int8_tbl INTERSECT SELECT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q2 FROM int8_tbl INTERSECT ALL SELECT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q2 FROM int8_tbl EXCEPT SELECT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q2 FROM int8_tbl EXCEPT ALL SELECT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q2 FROM int8_tbl EXCEPT ALL SELECT DISTINCT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl EXCEPT SELECT q2 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl EXCEPT ALL SELECT q2 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl EXCEPT ALL SELECT DISTINCT q2 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl EXCEPT ALL SELECT q1 FROM int8_tbl FOR NO KEY UPDATE;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'NO KEY UPDATE' at line 1")
+
+-----------
+QUERY:
+
+
+-- nested cases
+(SELECT 1,2,3 UNION SELECT 4,5,6) INTERSECT SELECT 4,5,6;
+RESULT:
+	((4, 5, 6),)
+
+-----------
+QUERY:
+
+(SELECT 1,2,3 UNION SELECT 4,5,6 ORDER BY 1,2) INTERSECT SELECT 4,5,6;
+RESULT:
+	((4, 5, 6),)
+
+-----------
+QUERY:
+
+(SELECT 1,2,3 UNION SELECT 4,5,6) EXCEPT SELECT 4,5,6;
+RESULT:
+	((1, 2, 3),)
+
+-----------
+QUERY:
+
+(SELECT 1,2,3 UNION SELECT 4,5,6 ORDER BY 1,2) EXCEPT SELECT 4,5,6;
+RESULT:
+	((1, 2, 3),)
+
+-----------
+QUERY:
+
+
+-- exercise both hashed and sorted implementations of UNION/INTERSECT/EXCEPT
+
+set enable_hashagg to on;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to on' at line 3")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect count(*) from\n  ( select unique1 from tenk1 union select fivet' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select count(*) from
+  ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect count(*) from\n  ( select unique1 from tenk1 intersect select f' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from
+  ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect unique1 from tenk1 except select unique2 from tenk1 where uniq' at line 1")
+
+-----------
+QUERY:
+
+select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+set enable_hashagg to off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to off' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect count(*) from\n  ( select unique1 from tenk1 union select fivet' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select count(*) from
+  ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect count(*) from\n  ( select unique1 from tenk1 intersect select f' at line 1")
+
+-----------
+QUERY:
+
+select count(*) from
+  ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect unique1 from tenk1 except select unique2 from tenk1 where uniq' at line 1")
+
+-----------
+QUERY:
+
+select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
+RESULT:
+	ERROR - (1146, "Table 'test.tenk1' doesn't exist")
+
+-----------
+QUERY:
+
+
+reset enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+
+-- non-hashable type
+set enable_hashagg to on;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to on' at line 2")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select x from (values ('11'::varbit), ('10'::varbit)) _(x) union select x from (values ('11'::varbit), ('10'::varbit)) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values ('11'::varbit), ('10'::varbit)) _(x) union sele' at line 1")
+
+-----------
+QUERY:
+
+
+set enable_hashagg to off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to off' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select x from (values ('11'::varbit), ('10'::varbit)) _(x) union select x from (values ('11'::varbit), ('10'::varbit)) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values ('11'::varbit), ('10'::varbit)) _(x) union sele' at line 1")
+
+-----------
+QUERY:
+
+
+reset enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+
+-- arrays
+set enable_hashagg to on;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to on' at line 2")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array[1, 2]), (array[1, 3])) _(x) union select' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (a' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array[1, 2]), (array[1, 3])) _(x) intersect se' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2])' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array[1, 2]), (array[1, 3])) _(x) except selec' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (' at line 1")
+
+-----------
+QUERY:
+
+
+-- non-hashable type
+explain (costs off)
+select x from (values (array['10'::varbit]), (array['11'::varbit])) _(x) union select x from (values (array['10'::varbit]), (array['01'::varbit])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array['10'::varbit]), (array['11'::varbit])) _' at line 2")
+
+-----------
+QUERY:
+
+select x from (values (array['10'::varbit]), (array['11'::varbit])) _(x) union select x from (values (array['10'::varbit]), (array['01'::varbit])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array['10'::varbit]), (array['11'::varbit])) _(x) union select x from (values (' at line 1")
+
+-----------
+QUERY:
+
+
+set enable_hashagg to off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to off' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array[1, 2]), (array[1, 3])) _(x) union select' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (a' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array[1, 2]), (array[1, 3])) _(x) intersect se' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2])' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (array[1, 2]), (array[1, 3])) _(x) except selec' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (' at line 1")
+
+-----------
+QUERY:
+
+
+reset enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+
+-- records
+set enable_hashagg to on;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to on' at line 2")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row(1, 2)), (row(1, 3))) _(x) union select x f' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, ' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row(1, 2)), (row(1, 3))) _(x) except select x ' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1,' at line 1")
+
+-----------
+QUERY:
+
+
+-- non-hashable type
+
+-- With an anonymous row type, the typcache does not report that the
+-- type is hashable.  (Otherwise, this would fail at execution time.)
+explain (costs off)
+select x from (values (row('10'::varbit)), (row('11'::varbit))) _(x) union select x from (values (row('10'::varbit)), (row('01'::varbit))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row('10'::varbit)), (row('11'::varbit))) _(x) ' at line 5")
+
+-----------
+QUERY:
+
+select x from (values (row('10'::varbit)), (row('11'::varbit))) _(x) union select x from (values (row('10'::varbit)), (row('01'::varbit))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row('10'::varbit)), (row('11'::varbit))) _(x) union select x from (values (row(' at line 1")
+
+-----------
+QUERY:
+
+
+-- With a defined row type, the typcache can inspect the type/* REPLACED */ ''s fields
+-- for hashability.
+create type ct1 as (f1 varbit);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type ct1 as (f1 varbit)' at line 3")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (row('10'::varbit)::ct1), (row('11'::varbit)::ct1)) _(x) union select x from (values (row('10'::varbit)::ct1), (row('01'::varbit)::ct1)) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row('10'::varbit)::ct1), (row('11'::varbit)::c' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row('10'::varbit)::ct1), (row('11'::varbit)::ct1)) _(x) union select x from (values (row('10'::varbit)::ct1), (row('01'::varbit)::ct1)) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row('10'::varbit)::ct1), (row('11'::varbit)::ct1)) _(x) union select x from (va' at line 1")
+
+-----------
+QUERY:
+
+drop type ct1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'type ct1' at line 1")
+
+-----------
+QUERY:
+
+
+set enable_hashagg to off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'to off' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row(1, 2)), (row(1, 3))) _(x) union select x f' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, ' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect x from (values (row(1, 2)), (row(1, 3))) _(x) except select x ' at line 1")
+
+-----------
+QUERY:
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1,' at line 1")
+
+-----------
+QUERY:
+
+
+reset enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Mixed types
+--
+
+SELECT f1 FROM float8_tbl INTERSECT SELECT f1 FROM int4_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.float8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT f1 FROM float8_tbl EXCEPT SELECT f1 FROM int4_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.float8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Operator precedence and (((((extra))))) parentheses
+--
+
+SELECT q1 FROM int8_tbl INTERSECT SELECT q2 FROM int8_tbl UNION ALL SELECT q2 FROM int8_tbl  ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl INTERSECT (((SELECT q2 FROM int8_tbl UNION ALL SELECT q2 FROM int8_tbl))) ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+(((SELECT q1 FROM int8_tbl INTERSECT SELECT q2 FROM int8_tbl ORDER BY 1))) UNION ALL SELECT q2 FROM int8_tbl;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl UNION ALL SELECT q2 FROM int8_tbl EXCEPT SELECT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT q1 FROM int8_tbl UNION ALL (((SELECT q2 FROM int8_tbl EXCEPT SELECT q1 FROM int8_tbl ORDER BY 1)));
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+(((SELECT q1 FROM int8_tbl UNION ALL SELECT q2 FROM int8_tbl))) EXCEPT SELECT q1 FROM int8_tbl ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Subqueries with ORDER BY & LIMIT clauses
+--
+
+-- In this syntax, ORDER BY/LIMIT apply to the result of the EXCEPT
+SELECT q1,q2 FROM int8_tbl EXCEPT SELECT q2,q1 FROM int8_tbl
+ORDER BY q2,q1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- This should fail, because q2 isn/* REPLACED */ ''t a name of an EXCEPT output column
+SELECT q1 FROM int8_tbl EXCEPT SELECT q2 FROM int8_tbl ORDER BY q2 LIMIT 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- But this should work:
+SELECT q1 FROM int8_tbl EXCEPT (((SELECT q2 FROM int8_tbl ORDER BY q2 LIMIT 1))) ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- New syntaxes (7.1) permit new tests
+--
+
+(((((select * from int8_tbl)))));
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Check behavior with empty select list (allowed since 9.4)
+--
+
+select union select;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'union select' at line 5")
+
+-----------
+QUERY:
+
+select intersect select;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'intersect select' at line 1")
+
+-----------
+QUERY:
+
+select except select;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'except select' at line 1")
+
+-----------
+QUERY:
+
+
+-- check hashed implementation
+set enable_hashagg = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+set enable_sort = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select from generate_series(1,5) union select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect from generate_series(1,5) union select from generate_series(1,' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select from generate_series(1,5) intersect select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect from generate_series(1,5) intersect select from generate_serie' at line 1")
+
+-----------
+QUERY:
+
+
+select from generate_series(1,5) union select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) union select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) union all select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) union all select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) intersect select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) intersect select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) intersect all select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) intersect all select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) except select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) except select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) except all select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) except all select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+
+-- check sorted implementation
+set enable_hashagg = false;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_hashagg'")
+
+-----------
+QUERY:
+
+set enable_sort = true;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_sort'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select from generate_series(1,5) union select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect from generate_series(1,5) union select from generate_series(1,' at line 1")
+
+-----------
+QUERY:
+
+explain (costs off)
+select from generate_series(1,5) intersect select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect from generate_series(1,5) intersect select from generate_serie' at line 1")
+
+-----------
+QUERY:
+
+
+select from generate_series(1,5) union select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) union select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) union all select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) union all select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) intersect select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) intersect select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) intersect all select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) intersect all select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) except select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) except select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+select from generate_series(1,5) except all select from generate_series(1,3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'from generate_series(1,5) except all select from generate_series(1,3)' at line 1")
+
+-----------
+QUERY:
+
+
+reset enable_hashagg;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_hashagg' at line 1")
+
+-----------
+QUERY:
+
+reset enable_sort;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_sort' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Check handling of a case with unknown constants.  We don/* REPLACED */ ''t guarantee
+-- an undecorated constant will work in all cases, but historically this
+-- usage has worked, so test we don/* REPLACED */ ''t break it.
+--
+
+SELECT a.f1 FROM (SELECT 'test' AS f1 FROM varchar_tbl) a
+UNION
+SELECT b.f1 FROM (SELECT f1 FROM varchar_tbl) b
+ORDER BY 1;
+RESULT:
+	ERROR - (1146, "Table 'test.varchar_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- This should fail, but it should produce an error cursor
+SELECT '3.4'::numeric UNION SELECT 'foo';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::numeric UNION SELECT 'foo'' at line 2")
+
+-----------
+QUERY:
+
+
+--
+-- Test that expression-index constraints can be pushed down through
+-- UNION or UNION ALL
+--
+
+CREATE TEMP TABLE t1 (a text, b text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE t1 (a text, b text)' at line 6")
+
+-----------
+QUERY:
+
+CREATE INDEX t1_ab_idx on t1 ((a || b));
+RESULT:
+	ERROR - (1146, "Table 'test.t1' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE t2 (ab text primary key);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE t2 (ab text primary key)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO t1 VALUES ('a', 'b'), ('x', 'y');
+RESULT:
+	ERROR - (1146, "Table 'test.t1' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO t2 VALUES ('ab'), ('xy');
+RESULT:
+	ERROR - (1146, "Table 'test.t2' doesn't exist")
+
+-----------
+QUERY:
+
+
+set enable_seqscan = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+set enable_indexscan = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexscan'")
+
+-----------
+QUERY:
+
+set enable_bitmapscan = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_bitmapscan'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+ SELECT * FROM
+ (SELECT a || b AS ab FROM t1
+  UNION ALL
+  SELECT * FROM t2) t
+ WHERE ab = 'ab';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n SELECT * FROM\n (SELECT a || b AS ab FROM t1\n  UNION ALL\n  SELECT * F' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+ SELECT * FROM
+ (SELECT a || b AS ab FROM t1
+  UNION
+  SELECT * FROM t2) t
+ WHERE ab = 'ab';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n SELECT * FROM\n (SELECT a || b AS ab FROM t1\n  UNION\n  SELECT * FROM ' at line 1")
+
+-----------
+QUERY:
+
+
+--
+-- Test that ORDER BY for UNION ALL can be pushed down to inheritance
+-- children.
+--
+
+CREATE TEMP TABLE t1c (b text, a text);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE t1c (b text, a text)' at line 6")
+
+-----------
+QUERY:
+
+ALTER TABLE t1c INHERIT t1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'INHERIT t1' at line 1")
+
+-----------
+QUERY:
+
+CREATE TEMP TABLE t2c (primary key (ab)) INHERITS (t2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE t2c (primary key (ab)) INHERITS (t2)' at line 1")
+
+-----------
+QUERY:
+
+INSERT INTO t1c VALUES ('v', 'w'), ('c', 'd'), ('m', 'n'), ('e', 'f');
+RESULT:
+	ERROR - (1146, "Table 'test.t1c' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO t2c VALUES ('vw'), ('cd'), ('mn'), ('ef');
+RESULT:
+	ERROR - (1146, "Table 'test.t2c' doesn't exist")
+
+-----------
+QUERY:
+
+CREATE INDEX t1c_ab_idx on t1c ((a || b));
+RESULT:
+	ERROR - (1146, "Table 'test.t1c' doesn't exist")
+
+-----------
+QUERY:
+
+
+set enable_seqscan = on;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_seqscan'")
+
+-----------
+QUERY:
+
+set enable_indexonlyscan = off;
+RESULT:
+	ERROR - (1193, "Unknown system variable 'enable_indexonlyscan'")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+  SELECT * FROM
+  (SELECT a || b AS ab FROM t1
+   UNION ALL
+   SELECT ab FROM t2) t
+  ORDER BY 1 LIMIT 8;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n  SELECT * FROM\n  (SELECT a || b AS ab FROM t1\n   UNION ALL\n   SELECT' at line 1")
+
+-----------
+QUERY:
+
+
+  SELECT * FROM
+  (SELECT a || b AS ab FROM t1
+   UNION ALL
+   SELECT ab FROM t2) t
+  ORDER BY 1 LIMIT 8;
+RESULT:
+	ERROR - (1146, "Table 'test.t1' doesn't exist")
+
+-----------
+QUERY:
+
+
+reset enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")
+
+-----------
+QUERY:
+
+reset enable_indexscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_indexscan' at line 1")
+
+-----------
+QUERY:
+
+reset enable_bitmapscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_bitmapscan' at line 1")
+
+-----------
+QUERY:
+
+
+-- This simpler variant of the above test has been observed to fail differently
+
+create table events (event_id int primary key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create table other_events (event_id int primary key);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+create table events_child () inherits (events);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') inherits (events)' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select event_id
+ from (select event_id from events
+       union all
+       select event_id from other_events) ss
+ order by event_id;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect event_id\n from (select event_id from events\n       union all\n ' at line 1")
+
+-----------
+QUERY:
+
+
+drop table events_child, events, other_events;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.events_child'")
+
+-----------
+QUERY:
+
+
+reset enable_indexonlyscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_indexonlyscan' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test constraint exclusion of UNION ALL subqueries
+explain (costs off)
+ SELECT * FROM
+  (SELECT 1 AS t, * FROM tenk1 a
+   UNION ALL
+   SELECT 2 AS t, * FROM tenk1 b) c
+ WHERE t = 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\n SELECT * FROM\n  (SELECT 1 AS t, * FROM tenk1 a\n   UNION ALL\n   SELEC' at line 2")
+
+-----------
+QUERY:
+
+
+-- Test that we push quals into UNION sub-selects only when it/* REPLACED */ ''s safe
+explain (costs off)
+SELECT * FROM
+  (SELECT 1 AS t, 2 AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4
+ORDER BY x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT * FROM\n  (SELECT 1 AS t, 2 AS x\n   UNION\n   SELECT 2 AS t, 4 A' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT * FROM
+  (SELECT 1 AS t, 2 AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4
+ORDER BY x;
+RESULT:
+	((1, 2),)
+
+-----------
+QUERY:
+
+
+explain (costs off)
+SELECT * FROM
+  (SELECT 1 AS t, generate_series(1,10) AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4
+ORDER BY x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT * FROM\n  (SELECT 1 AS t, generate_series(1,10) AS x\n   UNION\n ' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM
+  (SELECT 1 AS t, generate_series(1,10) AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x < 4
+ORDER BY x;
+RESULT:
+	ERROR - (1305, 'FUNCTION test.generate_series does not exist')
+
+-----------
+QUERY:
+
+
+explain (costs off)
+SELECT * FROM
+  (SELECT 1 AS t, (random()*3)::int AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x > 3
+ORDER BY x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nSELECT * FROM\n  (SELECT 1 AS t, (random()*3)::int AS x\n   UNION\n   SE' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM
+  (SELECT 1 AS t, (random()*3)::int AS x
+   UNION
+   SELECT 2 AS t, 4 AS x) ss
+WHERE x > 3
+ORDER BY x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '()*3)::int AS x\n   UNION\n   SELECT 2 AS t, 4 AS x) ss\nWHERE x > 3\nORDER BY x' at line 2")
+
+-----------
+QUERY:
+
+
+-- Test cases where the native ordering of a sub-select has more pathkeys
+-- than the outer query cares about
+explain (costs off)
+select distinct q1 from
+  (select distinct * from int8_tbl i81
+   union all
+   select distinct * from int8_tbl i82) ss
+where q2 = q2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect distinct q1 from\n  (select distinct * from int8_tbl i81\n   uni' at line 3")
+
+-----------
+QUERY:
+
+
+select distinct q1 from
+  (select distinct * from int8_tbl i81
+   union all
+   select distinct * from int8_tbl i82) ss
+where q2 = q2;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select distinct q1 from
+  (select distinct * from int8_tbl i81
+   union all
+   select distinct * from int8_tbl i82) ss
+where -q1 = q2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect distinct q1 from\n  (select distinct * from int8_tbl i81\n   uni' at line 1")
+
+-----------
+QUERY:
+
+
+select distinct q1 from
+  (select distinct * from int8_tbl i81
+   union all
+   select distinct * from int8_tbl i82) ss
+where -q1 = q2;
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Test proper handling of parameterized appendrel paths when the
+-- potential join qual is expensive
+create function expensivefunc(int) returns int
+language plpgsql immutable strict cost 10000
+as $$begin return $1; end$$;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'int) returns int\nlanguage plpgsql immutable strict cost 10000\nas $$begin return ' at line 3")
+
+-----------
+QUERY:
+
+
+create temp table t3 as select generate_series(-1000,1000) as x;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'temp table t3 as select generate_series(-1000,1000) as x' at line 1")
+
+-----------
+QUERY:
+
+create index t3i on t3 (expensivefunc(x));
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'x))' at line 1")
+
+-----------
+QUERY:
+
+analyze t3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 't3' at line 1")
+
+-----------
+QUERY:
+
+
+explain (costs off)
+select * from
+  (select * from t3 a union all select * from t3 b) ss
+  join int4_tbl on f1 = expensivefunc(x);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect * from\n  (select * from t3 a union all select * from t3 b) ss\n' at line 1")
+
+-----------
+QUERY:
+
+select * from
+  (select * from t3 a union all select * from t3 b) ss
+  join int4_tbl on f1 = expensivefunc(x);
+RESULT:
+	ERROR - (1146, "Table 'test.t3' doesn't exist")
+
+-----------
+QUERY:
+
+
+drop table t3;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.t3'")
+
+-----------
+QUERY:
+
+drop function expensivefunc(int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(int)' at line 1")
+
+-----------
+QUERY:
+
+
+-- Test handling of appendrel quals that const-simplify into an AND
+explain (costs off)
+select * from
+  (select *, 0 as x from int8_tbl a
+   union all
+   select *, 1 as x from int8_tbl b) ss
+where (x = 0) or (q1 >= q2 and q1 <= q2);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect * from\n  (select *, 0 as x from int8_tbl a\n   union all\n   sel' at line 2")
+
+-----------
+QUERY:
+
+select * from
+  (select *, 0 as x from int8_tbl a
+   union all
+   select *, 1 as x from int8_tbl b) ss
+where (x = 0) or (q1 >= q2 and q1 <= q2);
+RESULT:
+	ERROR - (1146, "Table 'test.int8_tbl' doesn't exist")
+
+-----------
+QUERY:
+
+
+--
+-- Test the planner/* REPLACED */ ''s ability to produce cheap startup plans with Append nodes
+--
+
+-- Ensure we get a Nested Loop join between tenk1 and tenk2
+explain (costs off)
+select t1.unique1 from tenk1 t1
+inner join tenk2 t2 on t1.tenthous = t2.tenthous and t2.thousand = 0
+   union all
+(values(1)) limit 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect t1.unique1 from tenk1 t1\ninner join tenk2 t2 on t1.tenthous = ' at line 6")
+
+-----------
+QUERY:
+
+
+-- Ensure there is no problem if cheapest_startup_path is NULL
+explain (costs off)
+select * from tenk1 t1
+left join lateral
+  (select t1.tenthous from tenk2 t2 union all (values(1)))
+on true limit 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'costs off)\nselect * from tenk1 t1\nleft join lateral\n  (select t1.tenthous from t' at line 2")

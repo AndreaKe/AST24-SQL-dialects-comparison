@@ -3,7 +3,7 @@ Guest DBMS identified: postgres
 QUERY:
 -- create a table to use as a basis for views and materialized views in various combinations
 CREATE TABLE mvtest_t (id int NOT NULL PRIMARY KEY, type text NOT NULL, amt numeric NOT NULL);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -14,7 +14,7 @@ INSERT INTO mvtest_t VALUES
   (3, 'y', 5),
   (4, 'y', 7),
   (5, 'z', 11);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -22,13 +22,13 @@ QUERY:
 
 -- we want a view based on the table, too, since views present additional challenges
 CREATE VIEW mvtest_tv AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tv ORDER BY type;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -37,49 +37,49 @@ QUERY:
 -- create a materialized view with no data, and confirm correct behavior
 EXPLAIN (costs off)
   CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_tm AS SELECT type, sum(amt) AS totamt FROM mvtest_t GROUP BY type WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tm ORDER BY type;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_tm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT relispopulated FROM pg_class WHERE oid = 'mvtest_tm'::regclass;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX mvtest_tm_type ON mvtest_tm (type);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tm ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -88,80 +88,80 @@ QUERY:
 -- create various views
 EXPLAIN (costs off)
   CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_tvm AS SELECT * FROM mvtest_tv ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_tmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_tvmm AS SELECT sum(totamt) AS grandtot FROM mvtest_tvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX mvtest_tvmm_expr ON mvtest_tvmm ((grandtot > 0));
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX mvtest_tvmm_pred ON mvtest_tvmm (grandtot) WHERE grandtot < 0;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE VIEW mvtest_tvv AS SELECT sum(totamt) AS grandtot FROM mvtest_tv;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 EXPLAIN (costs off)
   CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_tvvm AS SELECT * FROM mvtest_tvv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE VIEW mvtest_tvvmv AS SELECT * FROM mvtest_tvvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_bb AS SELECT * FROM mvtest_tvvmv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE INDEX mvtest_aa ON mvtest_bb (grandtot);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -175,13 +175,13 @@ QUERY:
 
 -- test schema behavior
 CREATE SCHEMA mvtest_mvschema;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ALTER MATERIALIZED VIEW mvtest_tvm SET SCHEMA mvtest_mvschema;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -189,7 +189,7 @@ QUERY:
 -- \d+ mvtest_tvm
 -- \d+ mvtest_tvmm
 SET search_path = mvtest_mvschema, public;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -198,7 +198,7 @@ QUERY:
 
 -- modify the underlying table data
 INSERT INTO mvtest_t VALUES (6, 'z', 13);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -206,43 +206,43 @@ QUERY:
 
 -- confirm pre- and post-refresh contents of fairly simple materialized views
 SELECT * FROM mvtest_tm ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvm ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_tvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tm ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvm ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 RESET search_path;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -251,102 +251,102 @@ QUERY:
 -- confirm pre- and post-refresh contents of nested materialized views
 EXPLAIN (costs off)
   SELECT * FROM mvtest_tmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 EXPLAIN (costs off)
   SELECT * FROM mvtest_tvmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 EXPLAIN (costs off)
   SELECT * FROM mvtest_tvvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_tmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_tvmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_tvvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 EXPLAIN (costs off)
   SELECT * FROM mvtest_tmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 EXPLAIN (costs off)
   SELECT * FROM mvtest_tvmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 EXPLAIN (costs off)
   SELECT * FROM mvtest_tvvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvmm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_tvvm;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -354,7 +354,7 @@ QUERY:
 
 -- test diemv when the mv does not exist
 DROP MATERIALIZED VIEW IF EXISTS no_such_mv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -362,7 +362,7 @@ QUERY:
 
 -- make sure invalid combination of options is prohibited
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_tvmm WITH NO DATA;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -370,7 +370,7 @@ QUERY:
 
 -- no tuple locks on materialized views
 SELECT * FROM mvtest_tvvm FOR SHARE;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -378,7 +378,7 @@ QUERY:
 
 -- test join of mv and view
 SELECT type, m.totamt AS mtot, v.totamt AS vtot FROM mvtest_tm m LEFT JOIN mvtest_tv v USING (type) ORDER BY type;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -386,7 +386,7 @@ QUERY:
 
 -- make sure that dependencies are reported properly when they block the drop
 DROP TABLE mvtest_t;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -396,19 +396,19 @@ QUERY:
 -- and make sure that transactional behavior is correct on rollback
 -- incidentally leaving some interesting materialized views for pg_dump testing
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 DROP TABLE mvtest_t CASCADE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -416,40 +416,40 @@ QUERY:
 
 -- some additional tests not using base tables
 CREATE VIEW mvtest_vt1 AS SELECT 1 moo;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE VIEW mvtest_vt2 AS SELECT moo, 2*moo FROM mvtest_vt1 UNION ALL SELECT moo, 3*moo FROM mvtest_vt1;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 -- \d+ mvtest_vt2
 CREATE MATERIALIZED VIEW mv_test2 AS SELECT moo, 2*moo FROM mvtest_vt2 UNION ALL SELECT moo, 3*moo FROM mvtest_vt2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- \d+ mv_test2
 CREATE MATERIALIZED VIEW mv_test3 AS SELECT * FROM mv_test2 WHERE moo = 12345;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT relispopulated FROM pg_class WHERE oid = 'mv_test3'::regclass;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 DROP VIEW mvtest_vt1 CASCADE;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -457,43 +457,43 @@ QUERY:
 
 -- test that duplicate values on unique index prevent refresh
 CREATE TABLE mvtest_foo(a, b) AS VALUES(1, 10);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON mvtest_mv(a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO mvtest_foo SELECT * FROM mvtest_foo;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 DROP TABLE mvtest_foo CASCADE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -501,61 +501,61 @@ QUERY:
 
 -- make sure that all columns covered by unique indexes works
 CREATE TABLE mvtest_foo(a, b, c) AS VALUES(1, 2, 3);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv AS SELECT * FROM mvtest_foo;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON mvtest_mv (a);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON mvtest_mv (b);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX on mvtest_mv (c);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO mvtest_foo VALUES(2, 3, 4);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 INSERT INTO mvtest_foo VALUES(3, 4, 5);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TABLE mvtest_foo CASCADE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -563,20 +563,20 @@ QUERY:
 
 -- allow subquery to reference unpopulated matview if WITH NO DATA is specified
 CREATE MATERIALIZED VIEW mvtest_mv1 AS SELECT 1 AS col1 WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv2 AS SELECT * FROM mvtest_mv1
   WHERE col1 = (SELECT LEAST(col1) FROM mvtest_mv1) WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP MATERIALIZED VIEW mvtest_mv1 CASCADE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -584,7 +584,7 @@ QUERY:
 
 -- make sure that types with unusual equality tests work
 CREATE TABLE mvtest_boxes (id serial primary key, b box);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -593,43 +593,43 @@ INSERT INTO mvtest_boxes (b) VALUES
   ('(32,32),(31,31)'),
   ('(2.0000004,2.0000004),(1,1)'),
   ('(1.9999996,1.9999996),(1,1)');
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_boxmv AS SELECT * FROM mvtest_boxes;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX mvtest_boxmv_id ON mvtest_boxmv (id);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 UPDATE mvtest_boxes SET b = '(2,2),(1,1)' WHERE id = 2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_boxmv;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_boxmv ORDER BY id;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TABLE mvtest_boxes CASCADE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -637,156 +637,156 @@ QUERY:
 
 -- make sure that column names are handled correctly
 CREATE TABLE mvtest_v (i int, j int);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj, kk) AS SELECT i, j FROM mvtest_v;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  -- error
 CREATE MATERIALIZED VIEW mvtest_mv_v (ii, jj) AS SELECT i, j FROM mvtest_v;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok
 CREATE MATERIALIZED VIEW mvtest_mv_v_2 (ii) AS SELECT i, j FROM mvtest_v;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok
 CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj, kk) AS SELECT i, j FROM mvtest_v WITH NO DATA;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  -- error
 CREATE MATERIALIZED VIEW mvtest_mv_v_3 (ii, jj) AS SELECT i, j FROM mvtest_v WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok
 CREATE MATERIALIZED VIEW mvtest_mv_v_4 (ii) AS SELECT i, j FROM mvtest_v WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok
 ALTER TABLE mvtest_v RENAME COLUMN i TO x;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 INSERT INTO mvtest_v values (1, 2);
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX mvtest_mv_v_ii ON mvtest_mv_v (ii);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv_v;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 UPDATE mvtest_v SET j = 3 WHERE x = 1;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_v;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv_v_2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv_v_3;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv_v_4;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_v;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_mv_v;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_mv_v_2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_mv_v_3;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_mv_v_4;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TABLE mvtest_v CASCADE;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 
--- Check that unknown literals are converted to /* REPLACED */''text/* REPLACED */'' in CREATE MATVIEW,
--- so that we don/* REPLACED */''t end up with unknown-type columns.
+-- Check that unknown literals are converted to /* REPLACED */ ''text/* REPLACED */ '' in CREATE MATVIEW,
+-- so that we don/* REPLACED */ ''t end up with unknown-type columns.
 CREATE MATERIALIZED VIEW mv_unspecified_types AS
   SELECT 42 as i, 42.5 as num, 'foo' as u, 'foo'::unknown as u2, null as n;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 -- \d+ mv_unspecified_types
 SELECT * FROM mv_unspecified_types;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP MATERIALIZED VIEW mv_unspecified_types;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -794,25 +794,25 @@ QUERY:
 
 -- make sure that create WITH NO DATA does not plan the query (bug #13907)
 create materialized view mvtest_error as select 1/0 as x;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fail
 create materialized view mvtest_error as select 1/0 as x with no data;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 refresh materialized view mvtest_error;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
   -- fail here
 drop materialized view mvtest_error;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -820,37 +820,37 @@ QUERY:
 
 -- make sure that matview rows can be referenced as source rows (bug #9398)
 CREATE TABLE mvtest_v AS SELECT generate_series(1,10) AS a;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv_v AS SELECT a FROM mvtest_v WHERE a <= 5;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DELETE FROM mvtest_v WHERE EXISTS ( SELECT * FROM mvtest_mv_v WHERE mvtest_mv_v.a = mvtest_v.a );
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_v;
-RESULT: [duckdb: DIFFERENT, mySQL: ERROR]
+RESULT: [duckdb: DIFFERENT, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest_mv_v;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP TABLE mvtest_v CASCADE;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -858,13 +858,13 @@ QUERY:
 
 -- make sure running as superuser works when MV owned by another role (bug #11208)
 CREATE ROLE regress_user_mvtest;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 SET ROLE regress_user_mvtest;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -879,70 +879,70 @@ CREATE TABLE mvtest_foo_data AS SELECT i,
   fipshash(random()::text) AS newdata2,
   fipshash(random()::text) AS diff
   FROM generate_series(1, 10) i;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW mvtest_mv_foo AS SELECT * FROM mvtest_foo_data;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS mvtest_mv_foo AS SELECT * FROM mvtest_foo_data;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE UNIQUE INDEX ON mvtest_mv_foo (i);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 RESET ROLE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW mvtest_mv_foo;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY mvtest_mv_foo;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP OWNED BY regress_user_mvtest CASCADE;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP ROLE regress_user_mvtest;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 
 -- Concurrent refresh requires a unique index on the materialized
--- view. Test what happens if it/* REPLACED */''s dropped during the refresh.
+-- view. Test what happens if it/* REPLACED */ ''s dropped during the refresh.
 SET search_path = mvtest_mvschema, public;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -954,7 +954,7 @@ BEGIN
   RETURN true;
 END;
 $$ LANGUAGE plpgsql;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -962,32 +962,32 @@ QUERY:
 
 CREATE MATERIALIZED VIEW drop_idx_matview AS
   SELECT 1 as i WHERE mvtest_drop_the_index();
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 CREATE UNIQUE INDEX mvtest_drop_idx ON drop_idx_matview (i);
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY drop_idx_matview;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 DROP MATERIALIZED VIEW drop_idx_matview;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- clean up
 RESET search_path;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
@@ -995,7 +995,7 @@ QUERY:
 
 -- make sure that create WITH NO DATA works via SPI
 BEGIN;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1007,31 +1007,31 @@ BEGIN
   CREATE MATERIALIZED VIEW mvtest2 AS SELECT 1 AS x WITH NO DATA;
 END;
 $$ LANGUAGE plpgsql;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT mvtest_func();
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest1;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 SELECT * FROM mvtest2;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 ROLLBACK;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1039,40 +1039,40 @@ QUERY:
 
 -- INSERT privileges if relation owner is not allowed to insert.
 CREATE SCHEMA matview_schema;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
 
 CREATE USER regress_matview_user;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
 
 ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
   REVOKE INSERT ON TABLES FROM regress_matview_user;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 GRANT ALL ON SCHEMA matview_schema TO public;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 SET SESSION AUTHORIZATION regress_matview_user;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW matview_schema.mv_withdata1 (a) AS
   SELECT generate_series(1, 10) WITH DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1080,20 +1080,20 @@ QUERY:
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW matview_schema.mv_withdata2 (a) AS
   SELECT generate_series(1, 10) WITH DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW matview_schema.mv_withdata2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW matview_schema.mv_nodata1 (a) AS
   SELECT generate_series(1, 10) WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1101,19 +1101,19 @@ QUERY:
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW matview_schema.mv_nodata2 (a) AS
   SELECT generate_series(1, 10) WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 REFRESH MATERIALIZED VIEW matview_schema.mv_nodata2;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 RESET SESSION AUTHORIZATION;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1121,20 +1121,20 @@ QUERY:
 
 ALTER DEFAULT PRIVILEGES FOR ROLE regress_matview_user
   GRANT INSERT ON TABLES TO regress_matview_user;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 
 DROP SCHEMA matview_schema CASCADE;
-RESULT: [duckdb: SAME, mySQL: ERROR]
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
 
 DROP USER regress_matview_user;
-RESULT: [duckdb: ERROR, mySQL: SAME]
+RESULT: [duckdb: ERROR, mysql: SAME]
 
 -----------
 QUERY:
@@ -1142,34 +1142,34 @@ QUERY:
 
 -- CREATE MATERIALIZED VIEW ... IF NOT EXISTS
 CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
 
 CREATE MATERIALIZED VIEW matview_ine_tab AS SELECT 1 / 0;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  -- error
 CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
   SELECT 1 / 0;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok
 CREATE MATERIALIZED VIEW matview_ine_tab AS
   SELECT 1 / 0 WITH NO DATA;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
  -- error
 CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
   SELECT 1 / 0 WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1177,7 +1177,7 @@ QUERY:
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW matview_ine_tab AS
     SELECT 1 / 0;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1185,7 +1185,7 @@ QUERY:
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
     SELECT 1 / 0;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
@@ -1193,7 +1193,7 @@ QUERY:
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW matview_ine_tab AS
     SELECT 1 / 0 WITH NO DATA;
-RESULT: [duckdb: SAME, mySQL: SAME]
+RESULT: [duckdb: SAME, mysql: SAME]
 
 -----------
 QUERY:
@@ -1201,13 +1201,13 @@ QUERY:
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
     SELECT 1 / 0 WITH NO DATA;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
  -- ok
 DROP MATERIALIZED VIEW matview_ine_tab;
-RESULT: [duckdb: ERROR, mySQL: ERROR]
+RESULT: [duckdb: ERROR, mysql: ERROR]
 =========================================
 Summary for test case matview/test.sql of postgres
 =========================================
@@ -1219,7 +1219,7 @@ DIFFERENT: 1 queries, which is 0.56%
 ERROR: 135 queries, which is 75.42%
 
 =================
-Results for mySQL
+Results for mysql
 SAME: 42 queries, which is 23.46%
 DIFFERENT: 0 queries, which is 0.00%
 ERROR: 137 queries, which is 76.54%

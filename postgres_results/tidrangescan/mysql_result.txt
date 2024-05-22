@@ -1,0 +1,370 @@
+
+-----------
+QUERY:
+-- tests for tidrangescans
+
+SET enable_seqscan TO off;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TO off' at line 3")
+
+-----------
+QUERY:
+
+CREATE TABLE tidrangescan(id integer, data text);
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+-- empty table
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)'' at line 2")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- insert enough tuples to fill at least two pages
+INSERT INTO tidrangescan SELECT i,repeat('x', 100) FROM generate_series(1,200) AS s(i);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(1,200) AS s(i)' at line 2")
+
+-----------
+QUERY:
+
+
+-- remove all tuples after the 10th tuple on each page.  Trying to ensure
+-- we get the same layout with all CPU architectures and smaller than standard
+-- page sizes.
+DELETE FROM tidrangescan
+WHERE substring(ctid::text FROM ',(\d+)\)')::integer > 10 OR substring(ctid::text FROM '\((\d+),')::integer > 2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::text FROM ',(\\d+)\\)')::integer > 10 OR substring(ctid::text FROM '\\((\\d+),')::' at line 5")
+
+-----------
+QUERY:
+
+VACUUM tidrangescan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VACUUM tidrangescan' at line 1")
+
+-----------
+QUERY:
+
+
+-- range scans with upper bound
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid < '(1,0)'' at line 2")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid < '(0,0)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- range scans with lower bound
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid > '(2,8)'' at line 2")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid;
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)'' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- range scans with both bounds
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= ctid;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= cti' at line 2")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= ctid;
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+EXPLAIN (COSTS OFF)
+SELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)' at line 1")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- extreme offsets
+SELECT ctid FROM tidrangescan WHERE ctid > '(0,65535)' AND ctid < '(1,0)' LIMIT 1;
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)' LIMIT 1;
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+SELECT ctid FROM tidrangescan WHERE ctid > '(4294967295,65535)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)';
+RESULT:
+	ERROR - (1054, "Unknown column 'ctid' in 'field list'")
+
+-----------
+QUERY:
+
+
+-- NULLs in the range cannot return tuples
+SELECT ctid FROM tidrangescan WHERE ctid >= (SELECT NULL::tid);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '::tid)' at line 2")
+
+-----------
+QUERY:
+
+
+-- rescans
+EXPLAIN (COSTS OFF)
+SELECT t.ctid,t2.c FROM tidrangescan t,
+LATERAL (SELECT count(*) c FROM tidrangescan t2 WHERE t2.ctid <= t.ctid) t2
+WHERE t.ctid < '(1,0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nSELECT t.ctid,t2.c FROM tidrangescan t,\nLATERAL (SELECT count(*) c FR' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT t.ctid,t2.c FROM tidrangescan t,
+LATERAL (SELECT count(*) c FROM tidrangescan t2 WHERE t2.ctid <= t.ctid) t2
+WHERE t.ctid < '(1,0)';
+RESULT:
+	ERROR - (1054, "Unknown column 't2.ctid' in 'where clause'")
+
+-----------
+QUERY:
+
+
+-- cursors
+
+-- Ensure we get a TID Range scan without a Materialize node.
+EXPLAIN (COSTS OFF)
+DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COSTS OFF)\nDECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid ' at line 4")
+
+-----------
+QUERY:
+
+
+BEGIN;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)'' at line 1")
+
+-----------
+QUERY:
+
+FETCH NEXT c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH NEXT c' at line 1")
+
+-----------
+QUERY:
+
+FETCH NEXT c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH NEXT c' at line 1")
+
+-----------
+QUERY:
+
+FETCH PRIOR c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH PRIOR c' at line 1")
+
+-----------
+QUERY:
+
+FETCH FIRST c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH FIRST c' at line 1")
+
+-----------
+QUERY:
+
+FETCH LAST c;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FETCH LAST c' at line 1")
+
+-----------
+QUERY:
+
+COMMIT;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+DROP TABLE tidrangescan;
+RESULT:
+	[]
+
+-----------
+QUERY:
+
+
+RESET enable_seqscan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'enable_seqscan' at line 1")

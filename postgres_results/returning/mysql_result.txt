@@ -1,0 +1,545 @@
+
+-----------
+QUERY:
+--
+-- Test INSERT/UPDATE/DELETE RETURNING
+--
+
+-- Simple cases
+
+CREATE TEMP TABLE foo (f1 serial, f2 text, f3 int default 42);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE foo (f1 serial, f2 text, f3 int default 42)' at line 7")
+
+-----------
+QUERY:
+
+
+INSERT INTO foo (f2,f3)
+  VALUES ('test', DEFAULT), ('More', 11), (upper('more'), 7+9)
+  RETURNING *, f1+f3 AS sum;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *, f1+f3 AS sum' at line 3")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+
+UPDATE foo SET f2 = lower(f2), f3 = DEFAULT RETURNING foo.*, f1+f3 AS sum13;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING foo.*, f1+f3 AS sum13' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+
+DELETE FROM foo WHERE f1 > 2 RETURNING f3, f2, f1, least(f1,f3);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING f3, f2, f1, least(f1,f3)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Subplans and initplans in the RETURNING list
+
+INSERT INTO foo SELECT f1+10, f2, f3+99 FROM foo
+  RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,
+    EXISTS(SELECT * FROM int4_tbl) AS initplan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '*, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,\n    EXISTS(SELECT * FROM int4' at line 4")
+
+-----------
+QUERY:
+
+
+UPDATE foo SET f3 = f3 * 2
+  WHERE f1 > 10
+  RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,
+    EXISTS(SELECT * FROM int4_tbl) AS initplan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,\n    EXISTS(SELECT *' at line 3")
+
+-----------
+QUERY:
+
+
+DELETE FROM foo
+  WHERE f1 > 10
+  RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,
+    EXISTS(SELECT * FROM int4_tbl) AS initplan;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *, f1+112 IN (SELECT q1 FROM int8_tbl) AS subplan,\n    EXISTS(SELECT *' at line 3")
+
+-----------
+QUERY:
+
+
+-- Joins
+
+UPDATE foo SET f3 = f3*2
+  FROM int4_tbl i
+  WHERE foo.f1 + 123455 = i.f1
+  RETURNING foo.*, i.f1 as "i.f1";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'FROM int4_tbl i\n  WHERE foo.f1 + 123455 = i.f1\n  RETURNING foo.*, i.f1 as "i.f1"\' at line 4')
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+
+DELETE FROM foo
+  USING int4_tbl i
+  WHERE foo.f1 + 123455 = i.f1
+  RETURNING foo.*, i.f1 as "i.f1";
+RESULT:
+	ERROR - (1064, 'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'RETURNING foo.*, i.f1 as "i.f1"\' at line 4')
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check inheritance cases
+
+CREATE TEMP TABLE foochild (fc int) INHERITS (foo);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE foochild (fc int) INHERITS (foo)' at line 3")
+
+-----------
+QUERY:
+
+
+INSERT INTO foochild VALUES(123,'child',999,-123);
+RESULT:
+	ERROR - (1146, "Table 'test.foochild' doesn't exist")
+
+-----------
+QUERY:
+
+
+ALTER TABLE foo ADD COLUMN f4 int8 DEFAULT 99;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM foochild;
+RESULT:
+	ERROR - (1146, "Table 'test.foochild' doesn't exist")
+
+-----------
+QUERY:
+
+
+UPDATE foo SET f4 = f4 + f3 WHERE f4 = 99 RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM foochild;
+RESULT:
+	ERROR - (1146, "Table 'test.foochild' doesn't exist")
+
+-----------
+QUERY:
+
+
+UPDATE foo SET f3 = f3*2
+  FROM int8_tbl i
+  WHERE foo.f1 = i.q2
+  RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'FROM int8_tbl i\n  WHERE foo.f1 = i.q2\n  RETURNING *' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM foochild;
+RESULT:
+	ERROR - (1146, "Table 'test.foochild' doesn't exist")
+
+-----------
+QUERY:
+
+
+DELETE FROM foo
+  USING int8_tbl i
+  WHERE foo.f1 = i.q2
+  RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *' at line 4")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM foochild;
+RESULT:
+	ERROR - (1146, "Table 'test.foochild' doesn't exist")
+
+-----------
+QUERY:
+
+
+DROP TABLE foochild;
+RESULT:
+	ERROR - (1051, "Unknown table 'test.foochild'")
+
+-----------
+QUERY:
+
+
+-- Rules and views
+
+CREATE TEMP VIEW voo AS SELECT f1, f2 FROM foo;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW voo AS SELECT f1, f2 FROM foo' at line 3")
+
+-----------
+QUERY:
+
+
+CREATE RULE voo_i AS ON INSERT TO voo DO INSTEAD
+  INSERT INTO foo VALUES(new.*, 57);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RULE voo_i AS ON INSERT TO voo DO INSTEAD\n  INSERT INTO foo VALUES(new.*, 57)' at line 1")
+
+-----------
+QUERY:
+
+
+INSERT INTO voo VALUES(11,'zit');
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+-- fails:
+INSERT INTO voo VALUES(12,'zoo') RETURNING *, f1*2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *, f1*2' at line 2")
+
+-----------
+QUERY:
+
+
+-- fails, incompatible list:
+CREATE OR REPLACE RULE voo_i AS ON INSERT TO voo DO INSTEAD
+  INSERT INTO foo VALUES(new.*, 57) RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RULE voo_i AS ON INSERT TO voo DO INSTEAD\n  INSERT INTO foo VALUES(new.*, 57) RE' at line 2")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE RULE voo_i AS ON INSERT TO voo DO INSTEAD
+  INSERT INTO foo VALUES(new.*, 57) RETURNING f1, f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RULE voo_i AS ON INSERT TO voo DO INSTEAD\n  INSERT INTO foo VALUES(new.*, 57) RE' at line 1")
+
+-----------
+QUERY:
+
+
+-- should still work
+INSERT INTO voo VALUES(13,'zit2');
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+-- works now
+INSERT INTO voo VALUES(14,'zoo2') RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *' at line 2")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM voo;
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE RULE voo_u AS ON UPDATE TO voo DO INSTEAD
+  UPDATE foo SET f1 = new.f1, f2 = new.f2 WHERE f1 = old.f1
+  RETURNING f1, f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RULE voo_u AS ON UPDATE TO voo DO INSTEAD\n  UPDATE foo SET f1 = new.f1, f2 = new' at line 1")
+
+-----------
+QUERY:
+
+
+update voo set f1 = f1 + 1 where f2 = 'zoo2';
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+update voo set f1 = f1 + 1 where f2 = 'zoo2' RETURNING *, f1*2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *, f1*2' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM voo;
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE OR REPLACE RULE voo_d AS ON DELETE TO voo DO INSTEAD
+  DELETE FROM foo WHERE f1 = old.f1
+  RETURNING f1, f2;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RULE voo_d AS ON DELETE TO voo DO INSTEAD\n  DELETE FROM foo WHERE f1 = old.f1\n  ' at line 1")
+
+-----------
+QUERY:
+
+
+DELETE FROM foo WHERE f1 = 13;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+DELETE FROM foo WHERE f2 = 'zit' RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM voo;
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Try a join case
+
+CREATE TEMP TABLE joinme (f2j text, other int);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP TABLE joinme (f2j text, other int)' at line 3")
+
+-----------
+QUERY:
+
+INSERT INTO joinme VALUES('more', 12345);
+RESULT:
+	ERROR - (1146, "Table 'test.joinme' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO joinme VALUES('zoo2', 54321);
+RESULT:
+	ERROR - (1146, "Table 'test.joinme' doesn't exist")
+
+-----------
+QUERY:
+
+INSERT INTO joinme VALUES('other', 0);
+RESULT:
+	ERROR - (1146, "Table 'test.joinme' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE TEMP VIEW joinview AS
+  SELECT foo.*, other FROM foo JOIN joinme ON (f2 = f2j);
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'TEMP VIEW joinview AS\n  SELECT foo.*, other FROM foo JOIN joinme ON (f2 = f2j)' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM joinview;
+RESULT:
+	ERROR - (1146, "Table 'test.joinview' doesn't exist")
+
+-----------
+QUERY:
+
+
+CREATE RULE joinview_u AS ON UPDATE TO joinview DO INSTEAD
+  UPDATE foo SET f1 = new.f1, f3 = new.f3
+    FROM joinme WHERE f2 = f2j AND f2 = old.f2
+    RETURNING foo.*, other;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RULE joinview_u AS ON UPDATE TO joinview DO INSTEAD\n  UPDATE foo SET f1 = new.f1' at line 1")
+
+-----------
+QUERY:
+
+
+UPDATE joinview SET f1 = f1 + 1 WHERE f3 = 57 RETURNING *, other + 1;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING *, other + 1' at line 1")
+
+-----------
+QUERY:
+
+
+SELECT * FROM joinview;
+RESULT:
+	ERROR - (1146, "Table 'test.joinview' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM foo;
+RESULT:
+	ERROR - (1146, "Table 'test.foo' doesn't exist")
+
+-----------
+QUERY:
+
+SELECT * FROM voo;
+RESULT:
+	ERROR - (1146, "Table 'test.voo' doesn't exist")
+
+-----------
+QUERY:
+
+
+-- Check aliased target relation
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING *;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS bar DEFAULT VALUES RETURNING *' at line 2")
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING foo.*;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS bar DEFAULT VALUES RETURNING foo.*' at line 2")
+
+-----------
+QUERY:
+ -- fails, wrong name
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING bar.*;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS bar DEFAULT VALUES RETURNING bar.*' at line 2")
+
+-----------
+QUERY:
+ -- ok
+INSERT INTO foo AS bar DEFAULT VALUES RETURNING bar.f3;
+RESULT:
+	ERROR - (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'AS bar DEFAULT VALUES RETURNING bar.f3' at line 2")

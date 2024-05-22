@@ -1,48 +1,58 @@
 Guest DBMS identified: postgres
 -----------
 QUERY:
-SET max_parallel_maintenance_workers TO 4
-RESULT: ['duckdb: ERROR']
+SET max_parallel_maintenance_workers TO 4;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-SET min_parallel_index_scan_size TO '128kB'
-RESULT: ['duckdb: ERROR']
+
+SET min_parallel_index_scan_size TO '128kB';
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
--- Bug #17245: Make sure that we don/* REPLACED */''t totally fail to VACUUM individual indexes that
+
+
+-- Bug #17245: Make sure that we don/* REPLACED */ ''t totally fail to VACUUM individual indexes that
 -- happen to be below min_parallel_index_scan_size during parallel VACUUM:
-CREATE TABLE parallel_vacuum_table (a int) WITH (autovacuum_enabled = off)
-RESULT: ['duckdb: SAME']
+CREATE TABLE parallel_vacuum_table (a int) WITH (autovacuum_enabled = off);
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-INSERT INTO parallel_vacuum_table SELECT i from generate_series(1, 10000) i
-RESULT: ['duckdb: ERROR']
+
+INSERT INTO parallel_vacuum_table SELECT i from generate_series(1, 10000) i;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- Parallel VACUUM will never be used unless there are at least two indexes
 -- that exceed min_parallel_index_scan_size.  Create two such indexes, and
 -- a third index that is smaller than min_parallel_index_scan_size.
-CREATE INDEX regular_sized_index ON parallel_vacuum_table(a)
-RESULT: ['duckdb: SAME']
+CREATE INDEX regular_sized_index ON parallel_vacuum_table(a);
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-CREATE INDEX typically_sized_index ON parallel_vacuum_table(a)
-RESULT: ['duckdb: SAME']
+
+CREATE INDEX typically_sized_index ON parallel_vacuum_table(a);
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
+
 -- Note: vacuum_in_leader_small_index can apply deduplication, making it ~3x
 -- smaller than the other indexes
-CREATE INDEX vacuum_in_leader_small_index ON parallel_vacuum_table((1))
-RESULT: ['duckdb: ERROR']
+CREATE INDEX vacuum_in_leader_small_index ON parallel_vacuum_table((1));
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- Verify (as best we can) that the cost model for parallel VACUUM
 -- will make our VACUUM run in parallel, while always leaving it up to the
 -- parallel leader to handle the vacuum_in_leader_small_index index:
@@ -52,58 +62,66 @@ FROM pg_class
 WHERE oid = 'vacuum_in_leader_small_index'::regclass AND
   pg_relation_size(oid) <
   pg_size_bytes(current_setting('min_parallel_index_scan_size'))
-) as leader_will_handle_small_index
-RESULT: ['duckdb: ERROR']
+) as leader_will_handle_small_index;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
 SELECT count(*) as trigger_parallel_vacuum_nindexes
 FROM pg_class
 WHERE oid in ('regular_sized_index'::regclass, 'typically_sized_index'::regclass) AND
   pg_relation_size(oid) >=
-  pg_size_bytes(current_setting('min_parallel_index_scan_size'))
-RESULT: ['duckdb: ERROR']
+  pg_size_bytes(current_setting('min_parallel_index_scan_size'));
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- Parallel VACUUM with B-Tree page deletions, ambulkdelete calls:
-DELETE FROM parallel_vacuum_table
-RESULT: ['duckdb: SAME']
+DELETE FROM parallel_vacuum_table;
+RESULT: [duckdb: SAME, mysql: ERROR]
 
 -----------
 QUERY:
-VACUUM (PARALLEL 4, INDEX_CLEANUP ON) parallel_vacuum_table
-RESULT: ['duckdb: ERROR']
+
+VACUUM (PARALLEL 4, INDEX_CLEANUP ON) parallel_vacuum_table;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
+
+
 -- Since vacuum_in_leader_small_index uses deduplication, we expect an
 -- assertion failure with bug #17245 (in the absence of bugfix):
-INSERT INTO parallel_vacuum_table SELECT i FROM generate_series(1, 10000) i
-RESULT: ['duckdb: ERROR']
+INSERT INTO parallel_vacuum_table SELECT i FROM generate_series(1, 10000) i;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-RESET max_parallel_maintenance_workers
-RESULT: ['duckdb: ERROR']
+
+
+RESET max_parallel_maintenance_workers;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 
 -----------
 QUERY:
-RESET min_parallel_index_scan_size
-RESULT: ['duckdb: ERROR']
 
------------
-QUERY:
--- Deliberately don/* REPLACED */''t drop table, to get further coverage from tools like
--- pg_amcheck in some testing scenarios
-RESULT: ['duckdb: ERROR']
+RESET min_parallel_index_scan_size;
+RESULT: [duckdb: ERROR, mysql: ERROR]
 =========================================
 Summary for test case vacuum_parallel/test.sql of postgres
 =========================================
 
 =================
 Results for duckdb
-SAME: 4 queries, which is 26.67%
+SAME: 4 queries, which is 28.57%
 DIFFERENT: 0 queries, which is 0.00%
-ERROR: 11 queries, which is 73.33%
-Guest results are identical to expected results
+ERROR: 10 queries, which is 71.43%
+
+=================
+Results for mysql
+SAME: 0 queries, which is 0.00%
+DIFFERENT: 0 queries, which is 0.00%
+ERROR: 14 queries, which is 100.00%

@@ -783,9 +783,9 @@ RESULT:
 QUERY:
 
 
--- Sort pushdown can/* REPLACED */''t go below where expressions are part of the rel target.
+-- Sort pushdown can/* REPLACED */ ''t go below where expressions are part of the rel target.
 -- In particular this is interesting for volatile expressions which have to
--- go above joins since otherwise we/* REPLACED */''ll incorrectly use expression evaluations
+-- go above joins since otherwise we/* REPLACED */ ''ll incorrectly use expression evaluations
 -- across multiple rows.
 set enable_hashagg=off;
 RESULT:
@@ -841,7 +841,7 @@ QUERY:
 explain (costs off) select distinct sub.unique1, stringu1
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
 RESULT:
-	[('Unique',), ('  ->  Nested Loop',), ('        ->  Gather Merge',), ('              Workers Planned: 2',), ('              ->  Sort',), ('                    Sort Key: tenk1.unique1, tenk1.stringu1',), ('                    ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('        ->  Function Scan on generate_series',)]
+	[('Unique',), ('  ->  Nested Loop',), ('        ->  Gather Merge',), ('              Workers Planned: 1',), ('              ->  Sort',), ('                    Sort Key: tenk1.unique1, tenk1.stringu1',), ('                    ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('        ->  Function Scan on generate_series',)]
 
 -----------
 QUERY:
@@ -850,7 +850,7 @@ explain (costs off) select sub.unique1, stringu1
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
 RESULT:
-	[('Nested Loop',), ('  ->  Gather Merge',), ('        Workers Planned: 2',), ('        ->  Sort',), ('              Sort Key: tenk1.unique1, tenk1.stringu1',), ('              ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('  ->  Function Scan on generate_series',)]
+	[('Nested Loop',), ('  ->  Gather Merge',), ('        Workers Planned: 1',), ('        ->  Sort',), ('              Sort Key: tenk1.unique1, tenk1.stringu1',), ('              ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('  ->  Function Scan on generate_series',)]
 
 -----------
 QUERY:
@@ -859,7 +859,7 @@ QUERY:
 explain (costs off) select distinct sub.unique1, md5(stringu1)
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
 RESULT:
-	[('Unique',), ('  ->  Nested Loop',), ('        ->  Gather Merge',), ('              Workers Planned: 2',), ('              ->  Sort',), ('                    Sort Key: tenk1.unique1, (md5((tenk1.stringu1)::text)) COLLATE "C"',), ('                    ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('        ->  Function Scan on generate_series',)]
+	[('Unique',), ('  ->  Nested Loop',), ('        ->  Gather Merge',), ('              Workers Planned: 1',), ('              ->  Sort',), ('                    Sort Key: tenk1.unique1, (md5((tenk1.stringu1)::text)) COLLATE "C"',), ('                    ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('        ->  Function Scan on generate_series',)]
 
 -----------
 QUERY:
@@ -868,20 +868,20 @@ explain (costs off) select sub.unique1, md5(stringu1)
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
 RESULT:
-	[('Nested Loop',), ('  ->  Gather Merge',), ('        Workers Planned: 2',), ('        ->  Sort',), ('              Sort Key: tenk1.unique1, (md5((tenk1.stringu1)::text)) COLLATE "C"',), ('              ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('  ->  Function Scan on generate_series',)]
+	[('Nested Loop',), ('  ->  Gather Merge',), ('        Workers Planned: 1',), ('        ->  Sort',), ('              Sort Key: tenk1.unique1, (md5((tenk1.stringu1)::text)) COLLATE "C"',), ('              ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('  ->  Function Scan on generate_series',)]
 
 -----------
 QUERY:
 
 -- Parallel sort with an aggregate that can be safely generated in parallel,
--- but we can/* REPLACED */''t sort by partial aggregate values.
+-- but we can/* REPLACED */ ''t sort by partial aggregate values.
 explain (costs off) select count(*)
 from tenk1 t1
 join tenk1 t2 on t1.unique1 = t2.unique2
 join tenk1 t3 on t2.unique1 = t3.unique1
 order by count(*);
 RESULT:
-	[('Sort',), ('  Sort Key: (count(*))',), ('  ->  Finalize Aggregate',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Partial Aggregate',), ('                    ->  Parallel Hash Join',), ('                          Hash Cond: (t2.unique1 = t3.unique1)',), ('                          ->  Parallel Hash Join',), ('                                Hash Cond: (t1.unique1 = t2.unique2)',), ('                                ->  Parallel Index Only Scan using tenk1_unique1 on tenk1 t1',), ('                                ->  Parallel Hash',), ('                                      ->  Parallel Index Scan using tenk1_unique2 on tenk1 t2',), ('                          ->  Parallel Hash',), ('                                ->  Parallel Index Only Scan using tenk1_unique1 on tenk1 t3',)]
+	[('Sort',), ('  Sort Key: (count(*))',), ('  ->  Aggregate',), ('        ->  Nested Loop',), ('              Join Filter: (t2.unique1 = t3.unique1)',), ('              ->  Nested Loop',), ('                    Join Filter: (t1.unique1 = t2.unique2)',), ('                    ->  Index Scan using tenk1_unique1 on tenk1 t2',), ('                    ->  Index Only Scan using tenk1_unique1 on tenk1 t1',), ('              ->  Index Only Scan using tenk1_unique1 on tenk1 t3',)]
 
 -----------
 QUERY:
@@ -893,7 +893,7 @@ explain (costs off) select distinct
   (select t.unique1 from tenk1 where tenk1.unique1 = t.unique1)
 from tenk1 t, generate_series(1, 1000);
 RESULT:
-	[('Unique',), ('  ->  Sort',), ('        Sort Key: t.unique1, ((SubPlan 1))',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Nested Loop',), ('                    ->  Parallel Index Only Scan using tenk1_unique1 on tenk1 t',), ('                    ->  Function Scan on generate_series',), ('              SubPlan 1',), ('                ->  Index Only Scan using tenk1_unique1 on tenk1',), ('                      Index Cond: (unique1 = t.unique1)',)]
+	[('Unique',), ('  ->  Sort',), ('        Sort Key: t.unique1, ((SubPlan 1))',), ('        ->  Nested Loop',), ('              ->  Index Only Scan using tenk1_unique1 on tenk1 t',), ('              ->  Function Scan on generate_series',), ('              SubPlan 1',), ('                ->  Index Only Scan using tenk1_unique1 on tenk1',), ('                      Index Cond: (unique1 = t.unique1)',)]
 
 -----------
 QUERY:
@@ -904,7 +904,7 @@ explain (costs off) select
 from tenk1 t, generate_series(1, 1000)
 order by 1, 2;
 RESULT:
-	[('Sort',), ('  Sort Key: t.unique1, ((SubPlan 1))',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Nested Loop',), ('              ->  Parallel Index Only Scan using tenk1_unique1 on tenk1 t',), ('              ->  Function Scan on generate_series',), ('        SubPlan 1',), ('          ->  Index Only Scan using tenk1_unique1 on tenk1',), ('                Index Cond: (unique1 = t.unique1)',)]
+	[('Sort',), ('  Sort Key: t.unique1, ((SubPlan 1))',), ('  ->  Nested Loop',), ('        ->  Index Only Scan using tenk1_unique1 on tenk1 t',), ('        ->  Function Scan on generate_series',), ('        SubPlan 1',), ('          ->  Index Only Scan using tenk1_unique1 on tenk1',), ('                Index Cond: (unique1 = t.unique1)',)]
 
 -----------
 QUERY:
@@ -913,7 +913,7 @@ QUERY:
 explain (costs off) select distinct sub.unique1, stringu1 || random()::text
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
 RESULT:
-	[('Unique',), ('  ->  Sort',), ('        Sort Key: tenk1.unique1, (((tenk1.stringu1)::text || (random())::text)) COLLATE "C"',), ('        ->  Gather',), ('              Workers Planned: 2',), ('              ->  Nested Loop',), ('                    ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('                    ->  Function Scan on generate_series',)]
+	[('Unique',), ('  ->  Sort',), ('        Sort Key: tenk1.unique1, (((tenk1.stringu1)::text || (random())::text)) COLLATE "C"',), ('        ->  Nested Loop',), ('              ->  Index Scan using tenk1_unique1 on tenk1',), ('              ->  Function Scan on generate_series',)]
 
 -----------
 QUERY:
@@ -922,7 +922,7 @@ explain (costs off) select sub.unique1, stringu1 || random()::text
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
 RESULT:
-	[('Sort',), ('  Sort Key: tenk1.unique1, (((tenk1.stringu1)::text || (random())::text)) COLLATE "C"',), ('  ->  Gather',), ('        Workers Planned: 2',), ('        ->  Nested Loop',), ('              ->  Parallel Index Scan using tenk1_unique1 on tenk1',), ('              ->  Function Scan on generate_series',)]
+	[('Sort',), ('  Sort Key: tenk1.unique1, (((tenk1.stringu1)::text || (random())::text)) COLLATE "C"',), ('  ->  Nested Loop',), ('        ->  Index Scan using tenk1_unique1 on tenk1',), ('        ->  Function Scan on generate_series',)]
 
 -----------
 QUERY:

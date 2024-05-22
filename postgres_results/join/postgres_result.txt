@@ -632,7 +632,7 @@ where exists(select * from tenk1 b
              where a.twothousand = b.twothousand and a.fivethous <> b.fivethous)
       and i4.f1 = a.tenthous;
 RESULT:
-	[('Hash Semi Join',), ('  Hash Cond: (a.twothousand = b.twothousand)',), ('  Join Filter: (a.fivethous <> b.fivethous)',), ('  ->  Hash Join',), ('        Hash Cond: (a.tenthous = i4.f1)',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Hash',), ('              ->  Seq Scan on int4_tbl i4',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 b',)]
+	[('Nested Loop Semi Join',), ('  Join Filter: ((a.fivethous <> b.fivethous) AND (a.twothousand = b.twothousand))',), ('  ->  Hash Join',), ('        Hash Cond: (i4.f1 = a.tenthous)',), ('        ->  Seq Scan on int4_tbl i4',), ('        ->  Hash',), ('              ->  Seq Scan on tenk1 a',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -768,7 +768,7 @@ RESULT:
 QUERY:
 
 
--- Cases with non-nullable expressions in subquery results /* REPLACED */,
+-- Cases with non-nullable expressions in subquery results /* REPLACED */ ,
 -- make sure these go to null as expected
 SELECT * FROM
 (SELECT name, n as s2_n, 2 as s2_2 FROM t2) as s2
@@ -1050,7 +1050,7 @@ select count(*) from tenk1 a where unique1 in
   (select unique1 from tenk1 b join tenk1 c using (unique1)
    where b.unique2 = 42);
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1065,7 +1065,7 @@ select count(*) from tenk1 x where
   x.unique1 = 0 and
   x.unique1 in (select aa.f1 from int4_tbl aa,float8_tbl bb where aa.f1=bb.f1);
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1098,7 +1098,7 @@ select count(*) from tenk1 x where
   x.unique1 = 0 and
   x.unique1 in (select aa.f1 from int4_tbl aa,float8_tbl bb where aa.f1=bb.f1);
 RESULT:
-	[(1,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1173,7 +1173,7 @@ from
   tenk1 t5
 where t4.thousand = t5.unique1 and ss.x1 = t4.tenthous and ss.x2 = t5.stringu1;
 RESULT:
-	[(1000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1190,7 +1190,7 @@ select a.f1, b.f1, t.thousand, t.tenthous from
   (select sum(f1) as f1 from int4_tbl i4b) b
 where b.f1 = t.thousand and a.f1 = b.f1 and (a.f1+b.f1+999) = t.tenthous;
 RESULT:
-	[('Nested Loop',), ('  ->  Nested Loop',), ('        Join Filter: ((sum(i4b.f1)) = ((sum(i4a.f1) + 1)))',), ('        ->  Aggregate',), ('              ->  Seq Scan on int4_tbl i4a',), ('        ->  Aggregate',), ('              ->  Seq Scan on int4_tbl i4b',), ('  ->  Index Only Scan using tenk1_thous_tenthous on tenk1 t',), ('        Index Cond: ((thousand = (sum(i4b.f1))) AND (tenthous = ((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999)))',)]
+	[('Nested Loop',), ('  Join Filter: ((t.thousand = (sum(i4b.f1))) AND (((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999) = t.tenthous))',), ('  ->  Nested Loop',), ('        Join Filter: (t.thousand = ((sum(i4a.f1) + 1)))',), ('        ->  Seq Scan on tenk1 t',), ('        ->  Aggregate',), ('              ->  Seq Scan on int4_tbl i4a',), ('  ->  Aggregate',), ('        ->  Seq Scan on int4_tbl i4b',)]
 
 -----------
 QUERY:
@@ -1254,7 +1254,7 @@ select * from onek t1
   left join onek t3 on t2.unique1 != t3.unique1
   left join onek t4 on t3.unique1 = t4.unique1;
 RESULT:
-	[('Nested Loop Left Join',), ('  Join Filter: (t2.unique1 <> t3.unique1)',), ('  ->  Hash Left Join',), ('        Hash Cond: (t1.unique1 = t2.unique1)',), ('        ->  Seq Scan on onek t1',), ('        ->  Hash',), ('              ->  Seq Scan on onek t2',), ('  ->  Materialize',), ('        ->  Hash Left Join',), ('              Hash Cond: (t3.unique1 = t4.unique1)',), ('              ->  Seq Scan on onek t3',), ('              ->  Hash',), ('                    ->  Seq Scan on onek t4',)]
+	[('Nested Loop Left Join',), ('  Join Filter: (t3.unique1 = t4.unique1)',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (t2.unique1 <> t3.unique1)',), ('        ->  Nested Loop Left Join',), ('              Join Filter: (t1.unique1 = t2.unique1)',), ('              ->  Seq Scan on onek t1',), ('              ->  Seq Scan on onek t2',), ('        ->  Seq Scan on onek t3',), ('  ->  Seq Scan on onek t4',)]
 
 -----------
 QUERY:
@@ -1331,7 +1331,7 @@ select * from int4_tbl t1
              left join tenk1 t4 on s.f1 > 1)
     on s.f1 = t1.f1;
 RESULT:
-	[('Nested Loop Left Join',), ('  Join Filter: (t2.f1 > 1)',), ('  ->  Hash Right Join',), ('        Hash Cond: (t2.f1 = t1.f1)',), ('        ->  Nested Loop Left Join',), ('              Join Filter: (t2.f1 > 0)',), ("              Filter: (t2.f1 <> COALESCE(t3.f1, '-1'::integer))",), ('              ->  Seq Scan on int4_tbl t2',), ('              ->  Materialize',), ('                    ->  Seq Scan on int4_tbl t3',), ('        ->  Hash',), ('              ->  Seq Scan on int4_tbl t1',), ('  ->  Materialize',), ('        ->  Seq Scan on tenk1 t4',)]
+	[('Hash Right Join',), ('  Hash Cond: (t2.f1 = t1.f1)',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (t2.f1 > 0)',), ("        Filter: (t2.f1 <> COALESCE(t3.f1, '-1'::integer))",), ('        ->  Nested Loop Left Join',), ('              Join Filter: (t2.f1 > 1)',), ('              ->  Seq Scan on int4_tbl t2',), ('              ->  Seq Scan on tenk1 t4',), ('        ->  Materialize',), ('              ->  Seq Scan on int4_tbl t3',), ('  ->  Hash',), ('        ->  Seq Scan on int4_tbl t1',)]
 
 -----------
 QUERY:
@@ -1343,7 +1343,7 @@ select * from onek t1
     left join onek t3 on t2.unique1 = t3.unique1
     left join onek t4 on t3.unique1 = t4.unique1 and t2.unique2 = t4.unique2;
 RESULT:
-	[('Hash Left Join',), ('  Hash Cond: ((t3.unique1 = t4.unique1) AND (t2.unique2 = t4.unique2))',), ('  ->  Hash Left Join',), ('        Hash Cond: (t2.unique1 = t3.unique1)',), ('        ->  Hash Left Join',), ('              Hash Cond: (t1.unique1 = t2.unique1)',), ('              ->  Seq Scan on onek t1',), ('              ->  Hash',), ('                    ->  Seq Scan on onek t2',), ('        ->  Hash',), ('              ->  Seq Scan on onek t3',), ('  ->  Hash',), ('        ->  Seq Scan on onek t4',)]
+	[('Nested Loop Left Join',), ('  Join Filter: ((t3.unique1 = t4.unique1) AND (t2.unique2 = t4.unique2))',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (t2.unique1 = t3.unique1)',), ('        ->  Nested Loop Left Join',), ('              Join Filter: (t1.unique1 = t2.unique1)',), ('              ->  Seq Scan on onek t1',), ('              ->  Seq Scan on onek t2',), ('        ->  Seq Scan on onek t3',), ('  ->  Seq Scan on onek t4',)]
 
 -----------
 QUERY:
@@ -1407,7 +1407,7 @@ select * from onek t1
       (select * from onek t3 where t3.two = t2.two offset 0) s
       on t2.unique1 = 1;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Seq Scan on onek t1',), ('  ->  Materialize',), ('        ->  Nested Loop Left Join',), ('              Join Filter: (t2.unique1 = 1)',), ('              ->  Seq Scan on onek t2',), ('              ->  Memoize',), ('                    Cache Key: t2.two',), ('                    Cache Mode: binary',), ('                    ->  Seq Scan on onek t3',), ('                          Filter: (two = t2.two)',)]
+	[('Nested Loop Left Join',), ('  ->  Seq Scan on onek t1',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (t2.unique1 = 1)',), ('        ->  Seq Scan on onek t2',), ('        ->  Seq Scan on onek t3',), ('              Filter: (two = t2.two)',)]
 
 -----------
 QUERY:
@@ -1450,7 +1450,7 @@ select count(*) from
   (select * from tenk1 y order by y.unique2) y
   on x.thousand = y.unique2 and x.twothousand = y.hundred and x.fivethous = y.unique2;
 RESULT:
-	[('Aggregate',), ('  ->  Merge Left Join',), ('        Merge Cond: (x.thousand = y.unique2)',), ('        Join Filter: ((x.twothousand = y.hundred) AND (x.fivethous = y.unique2))',), ('        ->  Sort',), ('              Sort Key: x.thousand, x.twothousand, x.fivethous',), ('              ->  Seq Scan on tenk1 x',), ('        ->  Materialize',), ('              ->  Index Scan using tenk1_unique2 on tenk1 y',)]
+	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((x.thousand = y.unique2) AND (x.twothousand = y.hundred) AND (x.fivethous = y.unique2))',), ('        ->  Sort',), ('              Sort Key: x.thousand, x.twothousand, x.fivethous',), ('              ->  Seq Scan on tenk1 x',), ('        ->  Sort',), ('              Sort Key: y.unique2',), ('              ->  Seq Scan on tenk1 y',)]
 
 -----------
 QUERY:
@@ -1462,7 +1462,7 @@ select count(*) from
   (select * from tenk1 y order by y.unique2) y
   on x.thousand = y.unique2 and x.twothousand = y.hundred and x.fivethous = y.unique2;
 RESULT:
-	[(10000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -1501,7 +1501,7 @@ from tenk1 x inner join tenk1 y on x.thousand = y.thousand
 group by x.thousand, x.twothousand
 order by x.thousand desc, x.twothousand;
 RESULT:
-	[('GroupAggregate',), ('  Group Key: x.thousand, x.twothousand',), ('  ->  Incremental Sort',), ('        Sort Key: x.thousand DESC, x.twothousand',), ('        Presorted Key: x.thousand',), ('        ->  Merge Join',), ('              Merge Cond: (y.thousand = x.thousand)',), ('              ->  Index Only Scan Backward using tenk1_thous_tenthous on tenk1 y',), ('              ->  Sort',), ('                    Sort Key: x.thousand DESC',), ('                    ->  Seq Scan on tenk1 x',)]
+	[('GroupAggregate',), ('  Group Key: x.thousand, x.twothousand',), ('  ->  Incremental Sort',), ('        Sort Key: x.thousand DESC, x.twothousand',), ('        Presorted Key: x.thousand',), ('        ->  Merge Join',), ('              Merge Cond: (x.thousand = y.thousand)',), ('              ->  Sort',), ('                    Sort Key: x.thousand DESC',), ('                    ->  Seq Scan on tenk1 x',), ('              ->  Sort',), ('                    Sort Key: y.thousand DESC',), ('                    ->  Seq Scan on tenk1 y',)]
 
 -----------
 QUERY:
@@ -1571,7 +1571,7 @@ QUERY:
 
 
 -- Both DELETE and UPDATE allow the specification of additional tables
--- to /* REPLACED */''join/* REPLACED */'' against to determine which rows should be modified.
+-- to /* REPLACED */ ''join/* REPLACED */ '' against to determine which rows should be modified.
 
 CREATE TEMP TABLE t1 (a int, b int);
 RESULT:
@@ -1929,7 +1929,7 @@ explain (costs off)
 select count(*) from tenk1 a, tenk1 b
   where a.hundred = b.thousand and (b.fivethous % 10) < 10;
 RESULT:
-	[('Aggregate',), ('  ->  Hash Join',), ('        Hash Cond: (a.hundred = b.thousand)',), ('        ->  Index Only Scan using tenk1_hundred on tenk1 a',), ('        ->  Hash',), ('              ->  Seq Scan on tenk1 b',), ('                    Filter: ((fivethous % 10) < 10)',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        Join Filter: (a.hundred = b.thousand)',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Seq Scan on tenk1 b',), ('              Filter: ((fivethous % 10) < 10)',)]
 
 -----------
 QUERY:
@@ -1937,7 +1937,7 @@ QUERY:
 select count(*) from tenk1 a, tenk1 b
   where a.hundred = b.thousand and (b.fivethous % 10) < 10;
 RESULT:
-	[(100000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -2070,7 +2070,7 @@ explain (costs off)
 select a.* from tenk1 a
 where unique1 in (select unique2 from tenk1 b);
 RESULT:
-	[('Hash Semi Join',), ('  Hash Cond: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Hash',), ('        ->  Index Only Scan using tenk1_unique2 on tenk1 b',)]
+	[('Nested Loop Semi Join',), ('  Join Filter: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -2081,7 +2081,7 @@ explain (costs off)
 select a.* from tenk1 a
 where unique1 not in (select unique2 from tenk1 b);
 RESULT:
-	[('Seq Scan on tenk1 a',), ('  Filter: (NOT (ANY (unique1 = (hashed SubPlan 1).col1)))',), ('  SubPlan 1',), ('    ->  Index Only Scan using tenk1_unique2 on tenk1 b',)]
+	[('Seq Scan on tenk1 a',), ('  Filter: (NOT (ANY (unique1 = (hashed SubPlan 1).col1)))',), ('  SubPlan 1',), ('    ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -2091,7 +2091,7 @@ explain (costs off)
 select a.* from tenk1 a
 where exists (select 1 from tenk1 b where a.unique1 = b.unique2);
 RESULT:
-	[('Hash Semi Join',), ('  Hash Cond: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Hash',), ('        ->  Index Only Scan using tenk1_unique2 on tenk1 b',)]
+	[('Nested Loop Semi Join',), ('  Join Filter: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -2101,7 +2101,7 @@ explain (costs off)
 select a.* from tenk1 a
 where not exists (select 1 from tenk1 b where a.unique1 = b.unique2);
 RESULT:
-	[('Hash Anti Join',), ('  Hash Cond: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Hash',), ('        ->  Index Only Scan using tenk1_unique2 on tenk1 b',)]
+	[('Nested Loop Anti Join',), ('  Join Filter: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -2111,7 +2111,7 @@ explain (costs off)
 select a.* from tenk1 a left join tenk1 b on a.unique1 = b.unique2
 where b.unique2 is null;
 RESULT:
-	[('Hash Anti Join',), ('  Hash Cond: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Hash',), ('        ->  Index Only Scan using tenk1_unique2 on tenk1 b',)]
+	[('Nested Loop Anti Join',), ('  Join Filter: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on tenk1 a',), ('  ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -2388,14 +2388,14 @@ QUERY:
 
 execute foo(true);
 RESULT:
-	[(10000,)]
+	[(0,)]
 
 -----------
 QUERY:
 
 execute foo(false);
 RESULT:
-	[(10000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -2766,7 +2766,7 @@ SELECT qq, unique1
   USING (qq)
   INNER JOIN tenk1 c ON qq = unique2;
 RESULT:
-	[('Nested Loop',), ('  ->  Hash Full Join',), ("        Hash Cond: ((COALESCE(a.q1, '0'::bigint)) = (COALESCE(b.q2, '-1'::bigint)))",), ('        ->  Seq Scan on int8_tbl a',), ('        ->  Hash',), ('              ->  Seq Scan on int8_tbl b',), ('  ->  Index Scan using tenk1_unique2 on tenk1 c',), ("        Index Cond: (unique2 = COALESCE((COALESCE(a.q1, '0'::bigint)), (COALESCE(b.q2, '-1'::bigint))))",)]
+	[('Nested Loop',), ("  Join Filter: (c.unique2 = COALESCE((COALESCE(a.q1, '0'::bigint)), (COALESCE(b.q2, '-1'::bigint))))",), ('  ->  Hash Full Join',), ("        Hash Cond: ((COALESCE(a.q1, '0'::bigint)) = (COALESCE(b.q2, '-1'::bigint)))",), ('        ->  Seq Scan on int8_tbl a',), ('        ->  Hash',), ('              ->  Seq Scan on int8_tbl b',), ('  ->  Seq Scan on tenk1 c',)]
 
 -----------
 QUERY:
@@ -2780,7 +2780,7 @@ SELECT qq, unique1
   USING (qq)
   INNER JOIN tenk1 c ON qq = unique2;
 RESULT:
-	[(123, 4596), (123, 4596), (456, 7318)]
+	[]
 
 -----------
 QUERY:
@@ -3057,7 +3057,7 @@ select * from
   q1, q2
 where q1 = thousand or q2 = thousand;
 RESULT:
-	[('Hash Join',), ('  Hash Cond: (tenk1.twothousand = int4_tbl.f1)',), ('  ->  Nested Loop',), ('        ->  Nested Loop',), ('              ->  Seq Scan on q1',), ('              ->  Seq Scan on q2',), ('        ->  Bitmap Heap Scan on tenk1',), ('              Recheck Cond: ((q1.q1 = thousand) OR (q2.q2 = thousand))',), ('              ->  BitmapOr',), ('                    ->  Bitmap Index Scan on tenk1_thous_tenthous',), ('                          Index Cond: (thousand = q1.q1)',), ('                    ->  Bitmap Index Scan on tenk1_thous_tenthous',), ('                          Index Cond: (thousand = q2.q2)',), ('  ->  Hash',), ('        ->  Seq Scan on int4_tbl',)]
+	[('Nested Loop',), ('  Join Filter: (tenk1.twothousand = int4_tbl.f1)',), ('  ->  Nested Loop',), ('        Join Filter: ((q1.q1 = tenk1.thousand) OR (q2.q2 = tenk1.thousand))',), ('        ->  Nested Loop',), ('              ->  Seq Scan on tenk1',), ('              ->  Seq Scan on q1',), ('        ->  Seq Scan on q2',), ('  ->  Seq Scan on int4_tbl',)]
 
 -----------
 QUERY:
@@ -3069,7 +3069,7 @@ select * from
   q1, q2
 where thousand = (q1 + q2);
 RESULT:
-	[('Hash Join',), ('  Hash Cond: (tenk1.twothousand = int4_tbl.f1)',), ('  ->  Nested Loop',), ('        ->  Nested Loop',), ('              ->  Seq Scan on q1',), ('              ->  Seq Scan on q2',), ('        ->  Bitmap Heap Scan on tenk1',), ('              Recheck Cond: (thousand = (q1.q1 + q2.q2))',), ('              ->  Bitmap Index Scan on tenk1_thous_tenthous',), ('                    Index Cond: (thousand = (q1.q1 + q2.q2))',), ('  ->  Hash',), ('        ->  Seq Scan on int4_tbl',)]
+	[('Nested Loop',), ('  Join Filter: (tenk1.twothousand = int4_tbl.f1)',), ('  ->  Nested Loop',), ('        Join Filter: (tenk1.thousand = (q1.q1 + q2.q2))',), ('        ->  Nested Loop',), ('              ->  Seq Scan on tenk1',), ('              ->  Seq Scan on q1',), ('        ->  Seq Scan on q2',), ('  ->  Seq Scan on int4_tbl',)]
 
 -----------
 QUERY:
@@ -3084,14 +3084,14 @@ select * from
   tenk1, int8_tbl a, int8_tbl b
 where thousand = a.q1 and tenthous = b.q1 and a.q2 = 1 and b.q2 = 2;
 RESULT:
-	[('Nested Loop',), ('  ->  Seq Scan on int8_tbl b',), ('        Filter: (q2 = 2)',), ('  ->  Nested Loop',), ('        ->  Seq Scan on int8_tbl a',), ('              Filter: (q2 = 1)',), ('        ->  Index Scan using tenk1_thous_tenthous on tenk1',), ('              Index Cond: ((thousand = a.q1) AND (tenthous = b.q1))',)]
+	[('Nested Loop',), ('  Join Filter: (tenk1.tenthous = b.q1)',), ('  ->  Nested Loop',), ('        Join Filter: (tenk1.thousand = a.q1)',), ('        ->  Seq Scan on tenk1',), ('        ->  Seq Scan on int8_tbl a',), ('              Filter: (q2 = 1)',), ('  ->  Seq Scan on int8_tbl b',), ('        Filter: (q2 = 2)',)]
 
 -----------
 QUERY:
 
 
 --
--- test a corner case in which we shouldn/* REPLACED */''t apply the star-schema optimization
+-- test a corner case in which we shouldn/* REPLACED */ ''t apply the star-schema optimization
 --
 
 explain (costs off)
@@ -3108,7 +3108,7 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
 RESULT:
-	[('Nested Loop',), ('  ->  Nested Loop',), ('        Join Filter: (t1.stringu1 > t2.stringu2)',), ('        ->  Nested Loop',), ('              ->  Nested Loop',), ('                    ->  Seq Scan on onerow',), ('                    ->  Seq Scan on onerow onerow_1',), ('              ->  Index Scan using tenk1_unique2 on tenk1 t1',), ('                    Index Cond: ((unique2 = (11)) AND (unique2 < 42))',), ('        ->  Index Scan using tenk1_unique1 on tenk1 t2',), ('              Index Cond: (unique1 = (3))',), ('  ->  Seq Scan on int4_tbl i1',), ('        Filter: (f1 = 0)',)]
+	[('Nested Loop',), ('  ->  Nested Loop',), ('        Join Filter: ((t1.stringu1 > t2.stringu2) AND (t2.unique1 = (3)))',), ('        ->  Nested Loop',), ('              Join Filter: (t1.unique2 = 11)',), ('              ->  Nested Loop',), ('                    ->  Seq Scan on tenk1 t1',), ('                          Filter: (unique2 < 42)',), ('                    ->  Seq Scan on onerow',), ('              ->  Seq Scan on onerow onerow_1',), ('        ->  Seq Scan on tenk1 t2',), ('  ->  Seq Scan on int4_tbl i1',), ('        Filter: (f1 = 0)',)]
 
 -----------
 QUERY:
@@ -3127,13 +3127,13 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
 RESULT:
-	[(11, 'WFAAAA', 3, 'LKIAAA')]
+	[]
 
 -----------
 QUERY:
 
 
--- variant that isn/* REPLACED */''t quite a star-schema case
+-- variant that isn/* REPLACED */ ''t quite a star-schema case
 
 select ss1.d1 from
   tenk1 as t1
@@ -3173,7 +3173,7 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
 RESULT:
-	[('Nested Loop',), ('  Join Filter: (t1.stringu1 > t2.stringu2)',), ('  ->  Nested Loop',), ('        ->  Seq Scan on int4_tbl i1',), ('              Filter: (f1 = 0)',), ('        ->  Index Scan using tenk1_unique2 on tenk1 t1',), ('              Index Cond: ((unique2 = (11)) AND (unique2 < 42))',), ('  ->  Index Scan using tenk1_unique1 on tenk1 t2',), ('        Index Cond: (unique1 = (3))',)]
+	[('Nested Loop',), ('  Join Filter: ((t1.stringu1 > t2.stringu2) AND (t2.unique1 = (3)))',), ('  ->  Nested Loop',), ('        Join Filter: (t1.unique2 = (11))',), ('        ->  Seq Scan on tenk1 t1',), ('              Filter: (unique2 < 42)',), ('        ->  Seq Scan on int4_tbl i1',), ('              Filter: (f1 = 0)',), ('  ->  Seq Scan on tenk1 t2',)]
 
 -----------
 QUERY:
@@ -3192,13 +3192,13 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
 RESULT:
-	[(11, 'WFAAAA', 3, 'LKIAAA')]
+	[]
 
 -----------
 QUERY:
 
 
--- Here/* REPLACED */''s a variant that we can/* REPLACED */''t fold too aggressively, though,
+-- Here/* REPLACED */ ''s a variant that we can/* REPLACED */ ''t fold too aggressively, though,
 -- or we end up with noplace to evaluate the lateral PHV
 explain (verbose, costs off)
 select * from
@@ -3320,7 +3320,7 @@ explain (costs off)
 select unique1 from tenk1, (select * from f_immutable_int4(1) x) x
 where x = unique1;
 RESULT:
-	[('Index Only Scan using tenk1_unique1 on tenk1',), ('  Index Cond: (unique1 = 1)',)]
+	[('Seq Scan on tenk1',), ('  Filter: (1 = unique1)',)]
 
 -----------
 QUERY:
@@ -3331,7 +3331,7 @@ select unique1, x.*
 from tenk1, (select *, random() from f_immutable_int4(1) x) x
 where x = unique1;
 RESULT:
-	[('Nested Loop',), ('  Output: tenk1.unique1, (1), (random())',), ('  ->  Result',), ('        Output: 1, random()',), ('  ->  Index Only Scan using tenk1_unique1 on public.tenk1',), ('        Output: tenk1.unique1',), ('        Index Cond: (tenk1.unique1 = (1))',)]
+	[('Nested Loop',), ('  Output: tenk1.unique1, (1), (random())',), ('  Join Filter: (tenk1.unique1 = (1))',), ('  ->  Seq Scan on public.tenk1',), ('        Output: tenk1.unique1, tenk1.unique2, tenk1.two, tenk1.four, tenk1.ten, tenk1.twenty, tenk1.hundred, tenk1.thousand, tenk1.twothousand, tenk1.fivethous, tenk1.tenthous, tenk1.odd, tenk1.even, tenk1.stringu1, tenk1.stringu2, tenk1.string4',), ('  ->  Result',), ('        Output: 1, random()',)]
 
 -----------
 QUERY:
@@ -3340,7 +3340,7 @@ QUERY:
 explain (costs off)
 select unique1 from tenk1, f_immutable_int4(1) x where x = unique1;
 RESULT:
-	[('Index Only Scan using tenk1_unique1 on tenk1',), ('  Index Cond: (unique1 = 1)',)]
+	[('Seq Scan on tenk1',), ('  Filter: (1 = unique1)',)]
 
 -----------
 QUERY:
@@ -3349,7 +3349,7 @@ QUERY:
 explain (costs off)
 select unique1 from tenk1, lateral f_immutable_int4(1) x where x = unique1;
 RESULT:
-	[('Index Only Scan using tenk1_unique1 on tenk1',), ('  Index Cond: (unique1 = 1)',)]
+	[('Seq Scan on tenk1',), ('  Filter: (1 = unique1)',)]
 
 -----------
 QUERY:
@@ -3367,7 +3367,7 @@ QUERY:
 explain (costs off)
 select unique1, x from tenk1 join f_immutable_int4(1) x on unique1 = x;
 RESULT:
-	[('Index Only Scan using tenk1_unique1 on tenk1',), ('  Index Cond: (unique1 = 1)',)]
+	[('Seq Scan on tenk1',), ('  Filter: (unique1 = 1)',)]
 
 -----------
 QUERY:
@@ -3376,7 +3376,7 @@ QUERY:
 explain (costs off)
 select unique1, x from tenk1 left join f_immutable_int4(1) x on unique1 = x;
 RESULT:
-	[('Nested Loop Left Join',), ('  Join Filter: (tenk1.unique1 = 1)',), ('  ->  Index Only Scan using tenk1_unique1 on tenk1',), ('  ->  Materialize',), ('        ->  Result',)]
+	[('Nested Loop Left Join',), ('  Join Filter: (tenk1.unique1 = 1)',), ('  ->  Seq Scan on tenk1',), ('  ->  Result',)]
 
 -----------
 QUERY:
@@ -3385,7 +3385,7 @@ QUERY:
 explain (costs off)
 select unique1, x from tenk1 right join f_immutable_int4(1) x on unique1 = x;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Result',), ('  ->  Index Only Scan using tenk1_unique1 on tenk1',), ('        Index Cond: (unique1 = 1)',)]
+	[('Nested Loop Left Join',), ('  ->  Result',), ('  ->  Seq Scan on tenk1',), ('        Filter: (unique1 = 1)',)]
 
 -----------
 QUERY:
@@ -3394,7 +3394,7 @@ QUERY:
 explain (costs off)
 select unique1, x from tenk1 full join f_immutable_int4(1) x on unique1 = x;
 RESULT:
-	[('Merge Full Join',), ('  Merge Cond: (tenk1.unique1 = (1))',), ('  ->  Index Only Scan using tenk1_unique1 on tenk1',), ('  ->  Sort',), ('        Sort Key: (1)',), ('        ->  Result',)]
+	[('Hash Full Join',), ('  Hash Cond: ((1) = tenk1.unique1)',), ('  ->  Result',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1',)]
 
 -----------
 QUERY:
@@ -3521,7 +3521,7 @@ select (t2.*).unique1, f_field_select(t2) from tenk1 t1
     left join onek t2 on t1.unique1 = t2.unique1
     left join int8_tbl t3 on true;
 RESULT:
-	[('Nested Loop Left Join',), ('  Output: t2.unique1, t2.unique2',), ('  ->  Hash Left Join',), ('        Output: t2.unique1, t2.unique2',), ('        Hash Cond: (t1.unique1 = t2.unique1)',), ('        ->  Index Only Scan using tenk1_unique1 on public.tenk1 t1',), ('              Output: t1.unique1',), ('        ->  Hash',), ('              Output: t2.unique1, t2.unique2',), ('              ->  Seq Scan on public.onek t2',), ('                    Output: t2.unique1, t2.unique2',), ('  ->  Materialize',), ('        ->  Seq Scan on public.int8_tbl t3',)]
+	[('Nested Loop Left Join',), ('  Output: t2.unique1, t2.unique2',), ('  ->  Nested Loop Left Join',), ('        Output: t2.unique1, t2.unique2',), ('        Join Filter: (t1.unique1 = t2.unique1)',), ('        ->  Seq Scan on public.tenk1 t1',), ('              Output: t1.unique1, t1.unique2, t1.two, t1.four, t1.ten, t1.twenty, t1.hundred, t1.thousand, t1.twothousand, t1.fivethous, t1.tenthous, t1.odd, t1.even, t1.stringu1, t1.stringu2, t1.string4',), ('        ->  Seq Scan on public.onek t2',), ('              Output: t2.unique1, t2.unique2, t2.two, t2.four, t2.ten, t2.twenty, t2.hundred, t2.thousand, t2.twothousand, t2.fivethous, t2.tenthous, t2.odd, t2.even, t2.stringu1, t2.stringu2, t2.string4',), ('  ->  Seq Scan on public.int8_tbl t3',), ('        Output: t3.q1, t3.q2',)]
 
 -----------
 QUERY:
@@ -3544,7 +3544,7 @@ explain (costs off)
 select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or (a.unique2 = 3 and b.hundred = 4);
 RESULT:
-	[('Nested Loop',), ('  Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.hundred = 4)))',), ('  ->  Bitmap Heap Scan on tenk1 b',), ('        Recheck Cond: ((unique1 = 2) OR (hundred = 4))',), ('        ->  BitmapOr',), ('              ->  Bitmap Index Scan on tenk1_unique1',), ('                    Index Cond: (unique1 = 2)',), ('              ->  Bitmap Index Scan on tenk1_hundred',), ('                    Index Cond: (hundred = 4)',), ('  ->  Materialize',), ('        ->  Bitmap Heap Scan on tenk1 a',), ('              Recheck Cond: ((unique1 = 1) OR (unique2 = 3))',), ('              ->  BitmapOr',), ('                    ->  Bitmap Index Scan on tenk1_unique1',), ('                          Index Cond: (unique1 = 1)',), ('                    ->  Bitmap Index Scan on tenk1_unique2',), ('                          Index Cond: (unique2 = 3)',)]
+	[('Nested Loop',), ('  Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.hundred = 4)))',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: ((unique1 = 1) OR (unique2 = 3))',), ('  ->  Seq Scan on tenk1 b',), ('        Filter: ((unique1 = 2) OR (hundred = 4))',)]
 
 -----------
 QUERY:
@@ -3553,7 +3553,7 @@ explain (costs off)
 select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or (a.unique2 = 3 and b.ten = 4);
 RESULT:
-	[('Nested Loop',), ('  Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.ten = 4)))',), ('  ->  Seq Scan on tenk1 b',), ('        Filter: ((unique1 = 2) OR (ten = 4))',), ('  ->  Materialize',), ('        ->  Bitmap Heap Scan on tenk1 a',), ('              Recheck Cond: ((unique1 = 1) OR (unique2 = 3))',), ('              ->  BitmapOr',), ('                    ->  Bitmap Index Scan on tenk1_unique1',), ('                          Index Cond: (unique1 = 1)',), ('                    ->  Bitmap Index Scan on tenk1_unique2',), ('                          Index Cond: (unique2 = 3)',)]
+	[('Nested Loop',), ('  Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.ten = 4)))',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: ((unique1 = 1) OR (unique2 = 3))',), ('  ->  Seq Scan on tenk1 b',), ('        Filter: ((unique1 = 2) OR (ten = 4))',)]
 
 -----------
 QUERY:
@@ -3563,7 +3563,7 @@ select * from tenk1 a join tenk1 b on
   (a.unique1 = 1 and b.unique1 = 2) or
   ((a.unique2 = 3 or a.unique2 = 7) and b.hundred = 4);
 RESULT:
-	[('Nested Loop',), ('  Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR (((a.unique2 = 3) OR (a.unique2 = 7)) AND (b.hundred = 4)))',), ('  ->  Bitmap Heap Scan on tenk1 b',), ('        Recheck Cond: ((unique1 = 2) OR (hundred = 4))',), ('        ->  BitmapOr',), ('              ->  Bitmap Index Scan on tenk1_unique1',), ('                    Index Cond: (unique1 = 2)',), ('              ->  Bitmap Index Scan on tenk1_hundred',), ('                    Index Cond: (hundred = 4)',), ('  ->  Materialize',), ('        ->  Bitmap Heap Scan on tenk1 a',), ('              Recheck Cond: ((unique1 = 1) OR (unique2 = 3) OR (unique2 = 7))',), ('              ->  BitmapOr',), ('                    ->  Bitmap Index Scan on tenk1_unique1',), ('                          Index Cond: (unique1 = 1)',), ('                    ->  Bitmap Index Scan on tenk1_unique2',), ('                          Index Cond: (unique2 = 3)',), ('                    ->  Bitmap Index Scan on tenk1_unique2',), ('                          Index Cond: (unique2 = 7)',)]
+	[('Nested Loop',), ('  Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR (((a.unique2 = 3) OR (a.unique2 = 7)) AND (b.hundred = 4)))',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: ((unique1 = 1) OR (unique2 = 3) OR (unique2 = 7))',), ('  ->  Seq Scan on tenk1 b',), ('        Filter: ((unique1 = 2) OR (hundred = 4))',)]
 
 -----------
 QUERY:
@@ -3579,7 +3579,7 @@ select * from tenk1 t1 left join
   on t1.hundred = t2.hundred and t1.ten = t3.ten
 where t1.unique1 = 1;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Index Scan using tenk1_unique1 on tenk1 t1',), ('        Index Cond: (unique1 = 1)',), ('  ->  Nested Loop',), ('        Join Filter: (t1.ten = t3.ten)',), ('        ->  Bitmap Heap Scan on tenk1 t2',), ('              Recheck Cond: (t1.hundred = hundred)',), ('              ->  Bitmap Index Scan on tenk1_hundred',), ('                    Index Cond: (hundred = t1.hundred)',), ('        ->  Index Scan using tenk1_unique2 on tenk1 t3',), ('              Index Cond: (unique2 = t2.thousand)',)]
+	[('Nested Loop Left Join',), ('  Join Filter: ((t1.hundred = t2.hundred) AND (t1.ten = t3.ten))',), ('  ->  Seq Scan on tenk1 t1',), ('        Filter: (unique1 = 1)',), ('  ->  Nested Loop',), ('        Join Filter: (t2.thousand = t3.unique2)',), ('        ->  Seq Scan on tenk1 t2',), ('        ->  Seq Scan on tenk1 t3',)]
 
 -----------
 QUERY:
@@ -3591,7 +3591,7 @@ select * from tenk1 t1 left join
   on t1.hundred = t2.hundred and t1.ten + t2.ten = t3.ten
 where t1.unique1 = 1;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Index Scan using tenk1_unique1 on tenk1 t1',), ('        Index Cond: (unique1 = 1)',), ('  ->  Nested Loop',), ('        Join Filter: ((t1.ten + t2.ten) = t3.ten)',), ('        ->  Bitmap Heap Scan on tenk1 t2',), ('              Recheck Cond: (t1.hundred = hundred)',), ('              ->  Bitmap Index Scan on tenk1_hundred',), ('                    Index Cond: (hundred = t1.hundred)',), ('        ->  Index Scan using tenk1_unique2 on tenk1 t3',), ('              Index Cond: (unique2 = t2.thousand)',)]
+	[('Nested Loop Left Join',), ('  Join Filter: ((t1.hundred = t2.hundred) AND ((t1.ten + t2.ten) = t3.ten))',), ('  ->  Seq Scan on tenk1 t1',), ('        Filter: (unique1 = 1)',), ('  ->  Nested Loop',), ('        Join Filter: (t2.thousand = t3.unique2)',), ('        ->  Seq Scan on tenk1 t2',), ('        ->  Seq Scan on tenk1 t3',)]
 
 -----------
 QUERY:
@@ -3603,7 +3603,7 @@ select count(*) from
   left join tenk1 c on a.unique2 = b.unique1 and c.thousand = a.thousand
   join int4_tbl on b.thousand = f1;
 RESULT:
-	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (a.unique2 = b.unique1)',), ('        ->  Nested Loop',), ('              ->  Nested Loop',), ('                    ->  Seq Scan on int4_tbl',), ('                    ->  Bitmap Heap Scan on tenk1 b',), ('                          Recheck Cond: (thousand = int4_tbl.f1)',), ('                          ->  Bitmap Index Scan on tenk1_thous_tenthous',), ('                                Index Cond: (thousand = int4_tbl.f1)',), ('              ->  Index Scan using tenk1_unique1 on tenk1 a',), ('                    Index Cond: (unique1 = b.unique2)',), ('        ->  Index Only Scan using tenk1_thous_tenthous on tenk1 c',), ('              Index Cond: (thousand = a.thousand)',)]
+	[('Aggregate',), ('  ->  Nested Loop Left Join',), ('        Join Filter: ((a.unique2 = b.unique1) AND (c.thousand = a.thousand))',), ('        ->  Nested Loop',), ('              Join Filter: (a.unique1 = b.unique2)',), ('              ->  Hash Join',), ('                    Hash Cond: (int4_tbl.f1 = b.thousand)',), ('                    ->  Seq Scan on int4_tbl',), ('                    ->  Hash',), ('                          ->  Seq Scan on tenk1 b',), ('              ->  Seq Scan on tenk1 a',), ('        ->  Seq Scan on tenk1 c',)]
 
 -----------
 QUERY:
@@ -3614,7 +3614,7 @@ select count(*) from
   left join tenk1 c on a.unique2 = b.unique1 and c.thousand = a.thousand
   join int4_tbl on b.thousand = f1;
 RESULT:
-	[(10,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -3628,7 +3628,7 @@ select b.unique1 from
   right join int4_tbl i2 on i2.f1 = b.tenthous
   order by 1;
 RESULT:
-	[('Sort',), ('  Sort Key: b.unique1',), ('  ->  Nested Loop Left Join',), ('        ->  Seq Scan on int4_tbl i2',), ('        ->  Nested Loop Left Join',), ('              Join Filter: (b.unique1 = 42)',), ('              ->  Nested Loop',), ('                    ->  Nested Loop',), ('                          ->  Seq Scan on int4_tbl i1',), ('                          ->  Index Scan using tenk1_thous_tenthous on tenk1 b',), ('                                Index Cond: ((thousand = i1.f1) AND (tenthous = i2.f1))',), ('                    ->  Index Scan using tenk1_unique1 on tenk1 a',), ('                          Index Cond: (unique1 = b.unique2)',), ('              ->  Index Only Scan using tenk1_thous_tenthous on tenk1 c',), ('                    Index Cond: (thousand = a.thousand)',)]
+	[('Sort',), ('  Sort Key: b.unique1',), ('  ->  Hash Left Join',), ('        Hash Cond: (i2.f1 = b.tenthous)',), ('        ->  Seq Scan on int4_tbl i2',), ('        ->  Hash',), ('              ->  Nested Loop Left Join',), ('                    Join Filter: ((b.unique1 = 42) AND (c.thousand = a.thousand))',), ('                    ->  Nested Loop',), ('                          Join Filter: (a.unique1 = b.unique2)',), ('                          ->  Hash Join',), ('                                Hash Cond: (i1.f1 = b.thousand)',), ('                                ->  Seq Scan on int4_tbl i1',), ('                                ->  Hash',), ('                                      ->  Seq Scan on tenk1 b',), ('                          ->  Seq Scan on tenk1 a',), ('                    ->  Seq Scan on tenk1 c',)]
 
 -----------
 QUERY:
@@ -3641,7 +3641,7 @@ select b.unique1 from
   right join int4_tbl i2 on i2.f1 = b.tenthous
   order by 1;
 RESULT:
-	[(0,), (None,), (None,), (None,), (None,)]
+	[(None,), (None,), (None,), (None,), (None,)]
 
 -----------
 QUERY:
@@ -3656,7 +3656,7 @@ select * from
 where fault = 122
 order by fault;
 RESULT:
-	[('Nested Loop Left Join',), ("  Filter: ((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1) = 122)",), ('  ->  Seq Scan on int8_tbl',), ('  ->  Index Scan using tenk1_unique2 on tenk1',), ('        Index Cond: (unique2 = int8_tbl.q2)',)]
+	[('Hash Left Join',), ('  Hash Cond: (int8_tbl.q2 = tenk1.unique2)',), ("  Filter: ((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1) = 122)",), ('  ->  Seq Scan on int8_tbl',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1',)]
 
 -----------
 QUERY:
@@ -3670,7 +3670,7 @@ select * from
 where fault = 122
 order by fault;
 RESULT:
-	[(None, 123, 122)]
+	[(None, 123, 122), (None, 123, 122)]
 
 -----------
 QUERY:
@@ -3708,7 +3708,7 @@ select q1, unique2, thousand, hundred
   from int8_tbl a left join tenk1 b on q1 = unique2
   where coalesce(thousand,123) = q1 and q1 = coalesce(hundred,123);
 RESULT:
-	[('Nested Loop Left Join',), ('  Filter: ((COALESCE(b.thousand, 123) = COALESCE(b.hundred, 123)) AND (a.q1 = COALESCE(b.hundred, 123)))',), ('  ->  Seq Scan on int8_tbl a',), ('  ->  Index Scan using tenk1_unique2 on tenk1 b',), ('        Index Cond: (unique2 = a.q1)',)]
+	[('Hash Left Join',), ('  Hash Cond: (a.q1 = b.unique2)',), ('  Filter: ((COALESCE(b.thousand, 123) = COALESCE(b.hundred, 123)) AND (a.q1 = COALESCE(b.hundred, 123)))',), ('  ->  Seq Scan on int8_tbl a',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -3718,7 +3718,7 @@ select q1, unique2, thousand, hundred
   from int8_tbl a left join tenk1 b on q1 = unique2
   where coalesce(thousand,123) = q1 and q1 = coalesce(hundred,123);
 RESULT:
-	[]
+	[(123, None, None, None), (123, None, None, None)]
 
 -----------
 QUERY:
@@ -3729,7 +3729,7 @@ select f1, unique2, case when unique2 is null then f1 else 0 end
   from int4_tbl a left join tenk1 b on f1 = unique2
   where (case when unique2 is null then f1 else 0 end) = 0;
 RESULT:
-	[('Nested Loop Left Join',), ('  Filter: (CASE WHEN (b.unique2 IS NULL) THEN a.f1 ELSE 0 END = 0)',), ('  ->  Seq Scan on int4_tbl a',), ('  ->  Index Only Scan using tenk1_unique2 on tenk1 b',), ('        Index Cond: (unique2 = a.f1)',)]
+	[('Hash Left Join',), ('  Hash Cond: (a.f1 = b.unique2)',), ('  Filter: (CASE WHEN (b.unique2 IS NULL) THEN a.f1 ELSE 0 END = 0)',), ('  ->  Seq Scan on int4_tbl a',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -3739,7 +3739,7 @@ select f1, unique2, case when unique2 is null then f1 else 0 end
   from int4_tbl a left join tenk1 b on f1 = unique2
   where (case when unique2 is null then f1 else 0 end) = 0;
 RESULT:
-	[(0, 0, 0)]
+	[(0, None, 0)]
 
 -----------
 QUERY:
@@ -3754,7 +3754,7 @@ select a.unique1, b.unique1, c.unique1, coalesce(b.twothousand, a.twothousand)
   from tenk1 a left join tenk1 b on b.thousand = a.unique1                        left join tenk1 c on c.unique2 = coalesce(b.twothousand, a.twothousand)
   where a.unique2 < 10 and coalesce(b.twothousand, a.twothousand) = 44;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Nested Loop Left Join',), ('        Filter: (COALESCE(b.twothousand, a.twothousand) = 44)',), ('        ->  Index Scan using tenk1_unique2 on tenk1 a',), ('              Index Cond: (unique2 < 10)',), ('        ->  Bitmap Heap Scan on tenk1 b',), ('              Recheck Cond: (thousand = a.unique1)',), ('              ->  Bitmap Index Scan on tenk1_thous_tenthous',), ('                    Index Cond: (thousand = a.unique1)',), ('  ->  Index Scan using tenk1_unique2 on tenk1 c',), ('        Index Cond: (unique2 = 44)',)]
+	[('Nested Loop Left Join',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (b.thousand = a.unique1)',), ('        Filter: (COALESCE(b.twothousand, a.twothousand) = 44)',), ('        ->  Seq Scan on tenk1 a',), ('              Filter: (unique2 < 10)',), ('        ->  Seq Scan on tenk1 b',), ('  ->  Seq Scan on tenk1 c',), ('        Filter: (unique2 = 44)',)]
 
 -----------
 QUERY:
@@ -3809,7 +3809,7 @@ left join
   ) foo3
 using (join_key);
 RESULT:
-	[('Nested Loop Left Join',), ('  Output: "*VALUES*".column1, i1.f1, (666)',), ('  Join Filter: ("*VALUES*".column1 = i1.f1)',), ('  ->  Values Scan on "*VALUES*"',), ('        Output: "*VALUES*".column1',), ('  ->  Materialize',), ('        Output: i1.f1, (666)',), ('        ->  Nested Loop Left Join',), ('              Output: i1.f1, 666',), ('              ->  Seq Scan on public.int4_tbl i1',), ('                    Output: i1.f1',), ('              ->  Index Only Scan using tenk1_unique2 on public.tenk1 i2',), ('                    Output: i2.unique2',), ('                    Index Cond: (i2.unique2 = i1.f1)',)]
+	[('Hash Right Join',), ('  Output: "*VALUES*".column1, i1.f1, (666)',), ('  Hash Cond: (i1.f1 = "*VALUES*".column1)',), ('  ->  Hash Left Join',), ('        Output: i1.f1, 666',), ('        Hash Cond: (i1.f1 = i2.unique2)',), ('        ->  Seq Scan on public.int4_tbl i1',), ('              Output: i1.f1',), ('        ->  Hash',), ('              Output: i2.unique2',), ('              ->  Seq Scan on public.tenk1 i2',), ('                    Output: i2.unique2',), ('  ->  Hash',), ('        Output: "*VALUES*".column1',), ('        ->  Values Scan on "*VALUES*"',), ('              Output: "*VALUES*".column1',)]
 
 -----------
 QUERY:
@@ -4257,7 +4257,7 @@ select * from
     (tenk1 as a1 full join (select 1 as id) as yy on (a1.unique1 = yy.id))
   on (xx.id = coalesce(yy.id));
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Result',), ('  ->  Hash Full Join',), ('        Hash Cond: (a1.unique1 = (1))',), ('        Filter: (1 = COALESCE((1)))',), ('        ->  Seq Scan on tenk1 a1',), ('        ->  Hash',), ('              ->  Result',)]
+	[('Nested Loop Left Join',), ('  ->  Result',), ('  ->  Hash Full Join',), ('        Hash Cond: ((1) = a1.unique1)',), ('        Filter: (1 = COALESCE((1)))',), ('        ->  Result',), ('        ->  Hash',), ('              ->  Seq Scan on tenk1 a1',)]
 
 -----------
 QUERY:
@@ -4269,7 +4269,7 @@ select * from
     (tenk1 as a1 full join (select 1 as id) as yy on (a1.unique1 = yy.id))
   on (xx.id = coalesce(yy.id));
 RESULT:
-	[(1, 1, 2838, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 'BAAAAA', 'EFEAAA', 'OOOOxx', 1)]
+	[(1, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 1)]
 
 -----------
 QUERY:
@@ -4282,7 +4282,7 @@ QUERY:
 explain (costs off)
   select * from int4_tbl a left join tenk1 b on f1 = unique2 where f1 = 0;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Seq Scan on int4_tbl a',), ('        Filter: (f1 = 0)',), ('  ->  Index Scan using tenk1_unique2 on tenk1 b',), ('        Index Cond: (unique2 = 0)',)]
+	[('Nested Loop Left Join',), ('  ->  Seq Scan on int4_tbl a',), ('        Filter: (f1 = 0)',), ('  ->  Seq Scan on tenk1 b',), ('        Filter: (unique2 = 0)',)]
 
 -----------
 QUERY:
@@ -4291,7 +4291,7 @@ QUERY:
 explain (costs off)
   select * from tenk1 a full join tenk1 b using(unique2) where unique2 = 42;
 RESULT:
-	[('Merge Full Join',), ('  ->  Index Scan using tenk1_unique2 on tenk1 a',), ('        Index Cond: (unique2 = 42)',), ('  ->  Index Scan using tenk1_unique2 on tenk1 b',), ('        Index Cond: (unique2 = 42)',)]
+	[('Merge Full Join',), ('  ->  Seq Scan on tenk1 a',), ('        Filter: (unique2 = 42)',), ('  ->  Materialize',), ('        ->  Seq Scan on tenk1 b',), ('              Filter: (unique2 = 42)',)]
 
 -----------
 QUERY:
@@ -4299,7 +4299,7 @@ QUERY:
 
 --
 -- test that quals attached to an outer join have correct semantics,
--- specifically that they don/* REPLACED */''t re-use expressions computed below the join /* REPLACED */,
+-- specifically that they don/* REPLACED */ ''t re-use expressions computed below the join /* REPLACED */ ,
 -- we force a mergejoin so that coalesce(b.q1, 1) appears as a join input
 --
 
@@ -4362,7 +4362,7 @@ select a.unique1, b.unique2
   from onek a left join onek b on a.unique1 = b.unique2
   where (b.unique2, random() > 0) = any (select q1, random() > 0 from int8_tbl c where c.q1 < b.unique1);
 RESULT:
-	[('Hash Join',), ('  Hash Cond: (b.unique2 = a.unique1)',), ('  ->  Seq Scan on onek b',), ("        Filter: (ANY ((unique2 = (SubPlan 1).col1) AND ((random() > '0'::double precision) = (SubPlan 1).col2)))",), ('        SubPlan 1',), ('          ->  Seq Scan on int8_tbl c',), ('                Filter: (q1 < b.unique1)',), ('  ->  Hash',), ('        ->  Index Only Scan using onek_unique1 on onek a',)]
+	[('Nested Loop',), ('  Join Filter: (a.unique1 = b.unique2)',), ('  ->  Seq Scan on onek a',), ('  ->  Seq Scan on onek b',), ("        Filter: (ANY ((unique2 = (SubPlan 1).col1) AND ((random() > '0'::double precision) = (SubPlan 1).col2)))",), ('        SubPlan 1',), ('          ->  Seq Scan on int8_tbl c',), ('                Filter: (q1 < b.unique1)',)]
 
 -----------
 QUERY:
@@ -4372,7 +4372,7 @@ select a.unique1, b.unique2
   from onek a left join onek b on a.unique1 = b.unique2
   where (b.unique2, random() > 0) = any (select q1, random() > 0 from int8_tbl c where c.q1 < b.unique1);
 RESULT:
-	[(123, 123)]
+	[]
 
 -----------
 QUERY:
@@ -4387,7 +4387,7 @@ select a.unique1, b.unique2
   from onek a full join onek b on a.unique1 = b.unique2
   where a.unique1 = 42;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Index Only Scan using onek_unique1 on onek a',), ('        Index Cond: (unique1 = 42)',), ('  ->  Index Only Scan using onek_unique2 on onek b',), ('        Index Cond: (unique2 = 42)',)]
+	[('Nested Loop Left Join',), ('  ->  Seq Scan on onek a',), ('        Filter: (unique1 = 42)',), ('  ->  Seq Scan on onek b',), ('        Filter: (unique2 = 42)',)]
 
 -----------
 QUERY:
@@ -4397,7 +4397,7 @@ select a.unique1, b.unique2
   from onek a full join onek b on a.unique1 = b.unique2
   where a.unique1 = 42;
 RESULT:
-	[(42, 42)]
+	[]
 
 -----------
 QUERY:
@@ -4408,7 +4408,7 @@ select a.unique1, b.unique2
   from onek a full join onek b on a.unique1 = b.unique2
   where b.unique2 = 43;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Index Only Scan using onek_unique2 on onek b',), ('        Index Cond: (unique2 = 43)',), ('  ->  Index Only Scan using onek_unique1 on onek a',), ('        Index Cond: (unique1 = 43)',)]
+	[('Nested Loop Left Join',), ('  ->  Seq Scan on onek b',), ('        Filter: (unique2 = 43)',), ('  ->  Seq Scan on onek a',), ('        Filter: (unique1 = 43)',)]
 
 -----------
 QUERY:
@@ -4418,7 +4418,7 @@ select a.unique1, b.unique2
   from onek a full join onek b on a.unique1 = b.unique2
   where b.unique2 = 43;
 RESULT:
-	[(43, 43)]
+	[]
 
 -----------
 QUERY:
@@ -4429,7 +4429,7 @@ select a.unique1, b.unique2
   from onek a full join onek b on a.unique1 = b.unique2
   where a.unique1 = 42 and b.unique2 = 42;
 RESULT:
-	[('Nested Loop',), ('  ->  Index Only Scan using onek_unique1 on onek a',), ('        Index Cond: (unique1 = 42)',), ('  ->  Index Only Scan using onek_unique2 on onek b',), ('        Index Cond: (unique2 = 42)',)]
+	[('Nested Loop',), ('  ->  Seq Scan on onek a',), ('        Filter: (unique1 = 42)',), ('  ->  Seq Scan on onek b',), ('        Filter: (unique2 = 42)',)]
 
 -----------
 QUERY:
@@ -4439,7 +4439,7 @@ select a.unique1, b.unique2
   from onek a full join onek b on a.unique1 = b.unique2
   where a.unique1 = 42 and b.unique2 = 42;
 RESULT:
-	[(42, 42)]
+	[]
 
 -----------
 QUERY:
@@ -4681,7 +4681,7 @@ from int8_tbl t1
   left join onek t4
     on t2.q2 < t3.unique2;
 RESULT:
-	[('Nested Loop Left Join',), ('  Join Filter: (t2.q2 < t3.unique2)',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (t2.q1 > t3.unique1)',), ('        ->  Hash Left Join',), ('              Hash Cond: (t1.q2 = t2.q2)',), ('              ->  Seq Scan on int8_tbl t1',), ('              ->  Hash',), ('                    ->  Seq Scan on int8_tbl t2',), ('        ->  Materialize',), ('              ->  Seq Scan on onek t3',), ('  ->  Materialize',), ('        ->  Seq Scan on onek t4',)]
+	[('Nested Loop Left Join',), ('  Join Filter: (t2.q2 < t3.unique2)',), ('  ->  Nested Loop Left Join',), ('        Join Filter: (t2.q1 > t3.unique1)',), ('        ->  Hash Left Join',), ('              Hash Cond: (t1.q2 = t2.q2)',), ('              ->  Seq Scan on int8_tbl t1',), ('              ->  Hash',), ('                    ->  Seq Scan on int8_tbl t2',), ('        ->  Seq Scan on onek t3',), ('  ->  Seq Scan on onek t4',)]
 
 -----------
 QUERY:
@@ -4755,7 +4755,7 @@ QUERY:
 
 -- join removal is not possible when the GROUP BY contains a column that is
 -- not in the join condition.  (Note: as of 9.6, we notice that b.id is a
--- primary key and so drop b.c_id from the GROUP BY of the resulting plan /* REPLACED */,
+-- primary key and so drop b.c_id from the GROUP BY of the resulting plan /* REPLACED */ ,
 -- but this happens too late for join removal in the outer plan level.)
 explain (costs off)
 select d.* from d left join (select * from b group by b.id, b.c_id) s
@@ -5074,7 +5074,7 @@ RESULT:
 QUERY:
 
 
--- join removal bug #17769: can/* REPLACED */''t remove if there/* REPLACED */''s a pushed-down reference
+-- join removal bug #17769: can/* REPLACED */ ''t remove if there/* REPLACED */ ''s a pushed-down reference
 EXPLAIN (COSTS OFF)
 SELECT q2 FROM
   (SELECT *
@@ -5109,7 +5109,7 @@ FROM int4_tbl
            RIGHT JOIN tenk1 ON NULL)
         ON tenk1.unique1 = ss1.x OR tenk1.unique2 = ss1.x;
 RESULT:
-	[('Nested Loop',), ('  ->  Seq Scan on int4_tbl',), ('  ->  Materialize',), ('        ->  Nested Loop Left Join',), ('              Join Filter: NULL::boolean',), ('              Filter: ((tenk1.unique1 = (42)) OR (tenk1.unique2 = (42)))',), ('              ->  Seq Scan on tenk1',), ('              ->  Result',), ('                    One-Time Filter: false',)]
+	[('Nested Loop',), ('  ->  Nested Loop Left Join',), ('        Join Filter: NULL::boolean',), ('        Filter: ((tenk1.unique1 = (42)) OR (tenk1.unique2 = (42)))',), ('        ->  Seq Scan on tenk1',), ('        ->  Result',), ('              One-Time Filter: false',), ('  ->  Seq Scan on int4_tbl',)]
 
 -----------
 QUERY:
@@ -5167,7 +5167,7 @@ from
   on t0.f1 = ss.case1
 where ss.stringu2 !~* ss.case1;
 RESULT:
-	[('Nested Loop',), ("  Join Filter: (t0.f1 = CASE t1.ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END)",), ('  ->  Nested Loop',), ('        ->  Seq Scan on int4_tbl i4',), ('        ->  Index Scan using tenk1_unique2 on tenk1 t1',), ('              Index Cond: (unique2 = i4.f1)',), ("              Filter: (stringu2 !~* CASE ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END)",), ('  ->  Materialize',), ('        ->  Seq Scan on text_tbl t0',)]
+	[('Nested Loop',), ('  Join Filter: (t1.unique2 = i4.f1)',), ('  ->  Nested Loop',), ("        Join Filter: (t0.f1 = CASE t1.ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END)",), ('        ->  Seq Scan on text_tbl t0',), ('        ->  Seq Scan on tenk1 t1',), ("              Filter: (stringu2 !~* CASE ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END)",), ('  ->  Seq Scan on int4_tbl i4',)]
 
 -----------
 QUERY:
@@ -5185,7 +5185,7 @@ from
   on t0.f1 = ss.case1
 where ss.stringu2 !~* ss.case1;
 RESULT:
-	[('doh!',)]
+	[]
 
 -----------
 QUERY:
@@ -5343,7 +5343,7 @@ select i8.*, ss.v, t.unique2
     left join tenk1 t on t.unique2 = ss.v
 where q2 = 456;
 RESULT:
-	[('Nested Loop Left Join',), ('  Output: i8.q1, i8.q2, ((i4.f1 + 1)), t.unique2',), ('  ->  Nested Loop Left Join',), ('        Output: i8.q1, i8.q2, (i4.f1 + 1)',), ('        ->  Seq Scan on public.int8_tbl i8',), ('              Output: i8.q1, i8.q2',), ('              Filter: (i8.q2 = 456)',), ('        ->  Seq Scan on public.int4_tbl i4',), ('              Output: i4.f1',), ('              Filter: (i4.f1 = 1)',), ('  ->  Index Only Scan using tenk1_unique2 on public.tenk1 t',), ('        Output: t.unique2',), ('        Index Cond: (t.unique2 = ((i4.f1 + 1)))',)]
+	[('Nested Loop Left Join',), ('  Output: i8.q1, i8.q2, ((i4.f1 + 1)), t.unique2',), ('  Join Filter: (t.unique2 = ((i4.f1 + 1)))',), ('  ->  Nested Loop Left Join',), ('        Output: i8.q1, i8.q2, (i4.f1 + 1)',), ('        ->  Seq Scan on public.int8_tbl i8',), ('              Output: i8.q1, i8.q2',), ('              Filter: (i8.q2 = 456)',), ('        ->  Seq Scan on public.int4_tbl i4',), ('              Output: i4.f1',), ('              Filter: (i4.f1 = 1)',), ('  ->  Seq Scan on public.tenk1 t',), ('        Output: t.unique1, t.unique2, t.two, t.four, t.ten, t.twenty, t.hundred, t.thousand, t.twothousand, t.fivethous, t.tenthous, t.odd, t.even, t.stringu1, t.stringu2, t.string4',)]
 
 -----------
 QUERY:
@@ -5363,7 +5363,7 @@ QUERY:
 
 
 -- and check a related issue where we miscompute required relids for
--- a PHV that/* REPLACED */''s been translated to a child rel
+-- a PHV that/* REPLACED */ ''s been translated to a child rel
 create temp table parttbl (a integer primary key) partition by range (a);
 RESULT:
 	[]
@@ -5408,7 +5408,7 @@ RESULT:
 QUERY:
 
 
--- bug #8444: we/* REPLACED */''ve historically allowed duplicate aliases within aliased JOINs
+-- bug #8444: we/* REPLACED */ ''ve historically allowed duplicate aliases within aliased JOINs
 
 select * from
   int8_tbl x join (int4_tbl x cross join int4_tbl y) j on q1 = f1;
@@ -5523,7 +5523,7 @@ RESULT:
 QUERY:
 
 
--- Don/* REPLACED */''t remove self-join for the case of equality of two different unique columns.
+-- Don/* REPLACED */ ''t remove self-join for the case of equality of two different unique columns.
 explain (costs off)
 select * from sj t1, sj t2 where t1.a = t2.c and t1.b is not null;
 RESULT:
@@ -5546,7 +5546,7 @@ RESULT:
 QUERY:
 
 
--- We can/* REPLACED */''t use a cross-EC generated self join qual because of current logic of
+-- We can/* REPLACED */ ''t use a cross-EC generated self join qual because of current logic of
 -- the generate_join_implied_equalities routine.
 explain (costs off)
 select * from sj t1, sj t2 where t1.a = t1.b and t1.b = t2.b and t2.b = t2.a;
@@ -5568,7 +5568,7 @@ QUERY:
 
 
 -- Double self-join removal.
--- Use a condition on /* REPLACED */''b + 1/* REPLACED */'', not on /* REPLACED */''b/* REPLACED */'', for the second join, so that
+-- Use a condition on /* REPLACED */ ''b + 1/* REPLACED */ '', not on /* REPLACED */ ''b/* REPLACED */ '', for the second join, so that
 -- the equivalence class is different from the first one, and we can
 -- test the non-ec code path.
 explain (costs off)
@@ -5709,7 +5709,7 @@ RESULT:
 QUERY:
 
 
--- Don/* REPLACED */''t remove SJ
+-- Don/* REPLACED */ ''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND j1.a = 2 AND j2.a = 3;
 RESULT:
@@ -5805,8 +5805,8 @@ RESULT:
 QUERY:
 
 
--- SJE Corner case: a /* REPLACED */''a.x=a.x/* REPLACED */'' clause, have replaced with /* REPLACED */''a.x IS NOT NULL/* REPLACED */''
--- after SJ elimination it shouldn/* REPLACED */''t be a mergejoinable clause.
+-- SJE Corner case: a /* REPLACED */ ''a.x=a.x/* REPLACED */ '' clause, have replaced with /* REPLACED */ ''a.x IS NOT NULL/* REPLACED */ ''
+-- after SJ elimination it shouldn/* REPLACED */ ''t be a mergejoinable clause.
 EXPLAIN (COSTS OFF)
 SELECT t4.*
 FROM (SELECT t1.*, t2.a AS a1 FROM sj t1, sj t2 WHERE t1.b = t2.b) AS t3
@@ -5846,7 +5846,7 @@ RESULT:
 -----------
 QUERY:
 
--- Don/* REPLACED */''t remove SJ
+-- Don/* REPLACED */ ''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2
 	WHERE j1.b = j2.b AND j1.a*j1.a = 1 AND j2.a*j2.a = 2;
@@ -5925,7 +5925,7 @@ RESULT:
 QUERY:
 
 
--- Don/* REPLACED */''t remove SJ
+-- Don/* REPLACED */ ''t remove SJ
 EXPLAIN (COSTS OFF)
 	SELECT * FROM sj j1, sj j2
 	WHERE j1.b = j2.b AND 2 = j1.a AND j1.c = 3 AND j2.a = 1 AND 3 = j2.c;
@@ -5944,7 +5944,7 @@ RESULT:
 QUERY:
 
 
--- Don/* REPLACED */''t remove SJ
+-- Don/* REPLACED */ ''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND j1.a = 2;
 RESULT:
@@ -5954,7 +5954,7 @@ RESULT:
 QUERY:
 
 
--- Don/* REPLACED */''t remove SJ
+-- Don/* REPLACED */ ''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND 2 = j2.a;
 RESULT:
@@ -5964,7 +5964,7 @@ RESULT:
 QUERY:
 
 
--- Don/* REPLACED */''t remove SJ
+-- Don/* REPLACED */ ''t remove SJ
 EXPLAIN (COSTS OFF)
 SELECT * FROM sj j1, sj j2 WHERE j1.b = j2.b AND (j1.a = 1 OR j2.a = 1);
 RESULT:
@@ -6049,7 +6049,7 @@ QUERY:
 
 
 -- Test that a non-EC-derived join clause is processed correctly. Use an
--- outer join so that we can/* REPLACED */''t form an EC.
+-- outer join so that we can/* REPLACED */ ''t form an EC.
 explain (costs off) select * from sj p join sj q on p.a = q.a
   left join sj r on p.a + q.a = r.a;
 RESULT:
@@ -6059,7 +6059,7 @@ RESULT:
 QUERY:
 
 
--- FIXME this constant false filter doesn/* REPLACED */''t look good. Should we merge
+-- FIXME this constant false filter doesn/* REPLACED */ ''t look good. Should we merge
 -- equivalence classes?
 explain (costs off)
 select * from sj p, sj q where p.a = q.a and p.b = 1 and q.b = 2;
@@ -6073,7 +6073,7 @@ QUERY:
 -- Check that attr_needed is updated correctly after self-join removal. In this
 -- test, the join of j1 with j2 is removed. k1.b is required at either j1 or j2.
 -- If this info is lost, join targetlist for (k1, k2) will not contain k1.b.
--- Use index scan for k1 so that we don/* REPLACED */''t get /* REPLACED */''b/* REPLACED */'' from physical tlist used for
+-- Use index scan for k1 so that we don/* REPLACED */ ''t get /* REPLACED */ ''b/* REPLACED */ '' from physical tlist used for
 -- seqscan. Also disable reordering of joins because this test depends on a
 -- particular join tree.
 create table sk (a int, b int);
@@ -6269,7 +6269,7 @@ RESULT:
 QUERY:
 
 
--- Check that SJE doesn/* REPLACED */''t replace the target relation
+-- Check that SJE doesn/* REPLACED */ ''t replace the target relation
 EXPLAIN (COSTS OFF)
 WITH t1 AS (SELECT * FROM emp1)
 UPDATE emp1 SET code = t1.code + 1 FROM t1
@@ -6401,9 +6401,9 @@ RESULT:
 QUERY:
 
 
--- We can remove the join even if we find the join can/* REPLACED */''t duplicate rows and
+-- We can remove the join even if we find the join can/* REPLACED */ ''t duplicate rows and
 -- the base quals of each side are different.  In the following case we end up
--- moving quals over to s1 to make it so it can/* REPLACED */''t match any rows.
+-- moving quals over to s1 to make it so it can/* REPLACED */ ''t match any rows.
 create table sl(a int, b int, c int);
 RESULT:
 	[]
@@ -6462,7 +6462,7 @@ RESULT:
 QUERY:
 
 
--- Join qual isn/* REPLACED */''t mergejoinable, but inner is unique.
+-- Join qual isn/* REPLACED */ ''t mergejoinable, but inner is unique.
 EXPLAIN (COSTS OFF)
 SELECT n2.a FROM sj n1, sj n2 WHERE n1.a <> n2.a AND n2.a = 1;
 RESULT:
@@ -6599,7 +6599,7 @@ HINT:  Perhaps you meant to reference the column "t1.unique1".
 
 -----------
 QUERY:
- -- error, prefer /* REPLACED */''t1/* REPLACED */'' suggestion
+ -- error, prefer /* REPLACED */ ''t1/* REPLACED */ '' suggestion
 select t2.uunique1 from
   tenk1 t1 join tenk2 t2 on t1.two = t2.two;
 RESULT:
@@ -6611,7 +6611,7 @@ HINT:  Perhaps you meant to reference the column "t2.unique1".
 
 -----------
 QUERY:
- -- error, prefer /* REPLACED */''t2/* REPLACED */'' suggestion
+ -- error, prefer /* REPLACED */ ''t2/* REPLACED */ '' suggestion
 select uunique1 from
   tenk1 t1 join tenk2 t2 on t1.two = t2.two;
 RESULT:
@@ -6676,7 +6676,7 @@ QUERY:
 select unique2, x.*
 from tenk1 a, lateral (select * from int4_tbl b where f1 = a.unique1) x;
 RESULT:
-	[(9998, 0)]
+	[]
 
 -----------
 QUERY:
@@ -6685,7 +6685,7 @@ explain (costs off)
   select unique2, x.*
   from tenk1 a, lateral (select * from int4_tbl b where f1 = a.unique1) x;
 RESULT:
-	[('Nested Loop',), ('  ->  Seq Scan on int4_tbl b',), ('  ->  Index Scan using tenk1_unique1 on tenk1 a',), ('        Index Cond: (unique1 = b.f1)',)]
+	[('Hash Join',), ('  Hash Cond: (b.f1 = a.unique1)',), ('  ->  Seq Scan on int4_tbl b',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1 a',)]
 
 -----------
 QUERY:
@@ -6693,7 +6693,7 @@ QUERY:
 select unique2, x.*
 from int4_tbl x, lateral (select unique2 from tenk1 where f1 = unique1) ss;
 RESULT:
-	[(9998, 0)]
+	[]
 
 -----------
 QUERY:
@@ -6702,7 +6702,7 @@ explain (costs off)
   select unique2, x.*
   from int4_tbl x, lateral (select unique2 from tenk1 where f1 = unique1) ss;
 RESULT:
-	[('Nested Loop',), ('  ->  Seq Scan on int4_tbl x',), ('  ->  Index Scan using tenk1_unique1 on tenk1',), ('        Index Cond: (unique1 = x.f1)',)]
+	[('Hash Join',), ('  Hash Cond: (x.f1 = tenk1.unique1)',), ('  ->  Seq Scan on int4_tbl x',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1',)]
 
 -----------
 QUERY:
@@ -6711,7 +6711,7 @@ explain (costs off)
   select unique2, x.*
   from int4_tbl x cross join lateral (select unique2 from tenk1 where f1 = unique1) ss;
 RESULT:
-	[('Nested Loop',), ('  ->  Seq Scan on int4_tbl x',), ('  ->  Index Scan using tenk1_unique1 on tenk1',), ('        Index Cond: (unique1 = x.f1)',)]
+	[('Hash Join',), ('  Hash Cond: (x.f1 = tenk1.unique1)',), ('  ->  Seq Scan on int4_tbl x',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1',)]
 
 -----------
 QUERY:
@@ -6719,7 +6719,7 @@ QUERY:
 select unique2, x.*
 from int4_tbl x left join lateral (select unique1, unique2 from tenk1 where f1 = unique1) ss on true;
 RESULT:
-	[(9998, 0), (None, 123456), (None, -123456), (None, 2147483647), (None, -2147483647)]
+	[(None, 0), (None, 123456), (None, -123456), (None, 2147483647), (None, -2147483647)]
 
 -----------
 QUERY:
@@ -6728,7 +6728,7 @@ explain (costs off)
   select unique2, x.*
   from int4_tbl x left join lateral (select unique1, unique2 from tenk1 where f1 = unique1) ss on true;
 RESULT:
-	[('Nested Loop Left Join',), ('  ->  Seq Scan on int4_tbl x',), ('  ->  Index Scan using tenk1_unique1 on tenk1',), ('        Index Cond: (unique1 = x.f1)',)]
+	[('Hash Left Join',), ('  Hash Cond: (x.f1 = tenk1.unique1)',), ('  ->  Seq Scan on int4_tbl x',), ('  ->  Hash',), ('        ->  Seq Scan on tenk1',)]
 
 -----------
 QUERY:
@@ -6754,7 +6754,7 @@ QUERY:
 -- lateral with function in FROM
 select count(*) from tenk1 a, lateral generate_series(1,two) g;
 RESULT:
-	[(5000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -6762,7 +6762,7 @@ QUERY:
 explain (costs off)
   select count(*) from tenk1 a, lateral generate_series(1,two) g;
 RESULT:
-	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Memoize',), ('              Cache Key: a.two',), ('              Cache Mode: binary',), ('              ->  Function Scan on generate_series g',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Function Scan on generate_series g',)]
 
 -----------
 QUERY:
@@ -6770,16 +6770,16 @@ QUERY:
 explain (costs off)
   select count(*) from tenk1 a cross join lateral generate_series(1,two) g;
 RESULT:
-	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Memoize',), ('              Cache Key: a.two',), ('              Cache Mode: binary',), ('              ->  Function Scan on generate_series g',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Function Scan on generate_series g',)]
 
 -----------
 QUERY:
 
--- don/* REPLACED */''t need the explicit LATERAL keyword for functions
+-- don/* REPLACED */ ''t need the explicit LATERAL keyword for functions
 explain (costs off)
   select count(*) from tenk1 a, generate_series(1,two) g;
 RESULT:
-	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Memoize',), ('              Cache Key: a.two',), ('              Cache Mode: binary',), ('              ->  Function Scan on generate_series g',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Function Scan on generate_series g',)]
 
 -----------
 QUERY:
@@ -6811,7 +6811,7 @@ explain (costs off)
   select count(*) from tenk1 a,
     tenk1 b join lateral (values(a.unique1)) ss(x) on b.unique2 = ss.x;
 RESULT:
-	[('Aggregate',), ('  ->  Merge Join',), ('        Merge Cond: (a.unique1 = b.unique2)',), ('        ->  Index Only Scan using tenk1_unique1 on tenk1 a',), ('        ->  Index Only Scan using tenk1_unique2 on tenk1 b',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        Join Filter: (a.unique1 = b.unique2)',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Seq Scan on tenk1 b',)]
 
 -----------
 QUERY:
@@ -6819,7 +6819,7 @@ QUERY:
 select count(*) from tenk1 a,
   tenk1 b join lateral (values(a.unique1)) ss(x) on b.unique2 = ss.x;
 RESULT:
-	[(10000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -6830,7 +6830,7 @@ explain (costs off)
   select count(*) from tenk1 a,
     tenk1 b join lateral (values(a.unique1),(-1)) ss(x) on b.unique2 = ss.x;
 RESULT:
-	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Nested Loop',), ('              ->  Index Only Scan using tenk1_unique1 on tenk1 a',), ('              ->  Values Scan on "*VALUES*"',), ('        ->  Memoize',), ('              Cache Key: "*VALUES*".column1',), ('              Cache Mode: logical',), ('              ->  Index Only Scan using tenk1_unique2 on tenk1 b',), ('                    Index Cond: (unique2 = "*VALUES*".column1)',)]
+	[('Aggregate',), ('  ->  Nested Loop',), ('        ->  Seq Scan on tenk1 a',), ('        ->  Nested Loop',), ('              Join Filter: (b.unique2 = "*VALUES*".column1)',), ('              ->  Seq Scan on tenk1 b',), ('              ->  Values Scan on "*VALUES*"',)]
 
 -----------
 QUERY:
@@ -6838,7 +6838,7 @@ QUERY:
 select count(*) from tenk1 a,
   tenk1 b join lateral (values(a.unique1),(-1)) ss(x) on b.unique2 = ss.x;
 RESULT:
-	[(10000,)]
+	[(0,)]
 
 -----------
 QUERY:
@@ -7238,7 +7238,7 @@ RESULT:
 QUERY:
 
 
--- check we don/* REPLACED */''t try to do a unique-ified semijoin with LATERAL
+-- check we don/* REPLACED */ ''t try to do a unique-ified semijoin with LATERAL
 explain (verbose, costs off)
 select * from
   (values (0,9998), (1,1000)) v(id,x),
@@ -7246,7 +7246,7 @@ select * from
            where f1 = any (select unique1 from tenk1
                            where unique2 = v.x offset 0)) ss;
 RESULT:
-	[('Nested Loop',), ('  Output: "*VALUES*".column1, "*VALUES*".column2, int4_tbl.f1',), ('  ->  Values Scan on "*VALUES*"',), ('        Output: "*VALUES*".column1, "*VALUES*".column2',), ('  ->  Nested Loop Semi Join',), ('        Output: int4_tbl.f1',), ('        Join Filter: (int4_tbl.f1 = tenk1.unique1)',), ('        ->  Seq Scan on public.int4_tbl',), ('              Output: int4_tbl.f1',), ('        ->  Materialize',), ('              Output: tenk1.unique1',), ('              ->  Index Scan using tenk1_unique2 on public.tenk1',), ('                    Output: tenk1.unique1',), ('                    Index Cond: (tenk1.unique2 = "*VALUES*".column2)',)]
+	[('Nested Loop',), ('  Output: "*VALUES*".column1, "*VALUES*".column2, int4_tbl.f1',), ('  ->  Values Scan on "*VALUES*"',), ('        Output: "*VALUES*".column1, "*VALUES*".column2',), ('  ->  Hash Semi Join',), ('        Output: int4_tbl.f1',), ('        Hash Cond: (int4_tbl.f1 = tenk1.unique1)',), ('        ->  Seq Scan on public.int4_tbl',), ('              Output: int4_tbl.f1',), ('        ->  Hash',), ('              Output: tenk1.unique1',), ('              ->  Seq Scan on public.tenk1',), ('                    Output: tenk1.unique1',), ('                    Filter: (tenk1.unique2 = "*VALUES*".column2)',)]
 
 -----------
 QUERY:
@@ -7257,13 +7257,13 @@ select * from
            where f1 = any (select unique1 from tenk1
                            where unique2 = v.x offset 0)) ss;
 RESULT:
-	[(0, 9998, 0)]
+	[]
 
 -----------
 QUERY:
 
 
--- check proper extParam/allParam handling (this isn/* REPLACED */''t exactly a LATERAL issue,
+-- check proper extParam/allParam handling (this isn/* REPLACED */ ''t exactly a LATERAL issue,
 -- but we can make the test case much more compact with LATERAL)
 explain (verbose, costs off)
 select * from (values (0), (1)) v(id),
@@ -7296,7 +7296,7 @@ RESULT:
 QUERY:
 
 
--- test some error cases where LATERAL should have been used but wasn/* REPLACED */''t
+-- test some error cases where LATERAL should have been used but wasn/* REPLACED */ ''t
 select f1,g from int4_tbl a, (select f1 as g) ss;
 RESULT:
 	ERROR - column "f1" does not exist
@@ -7402,7 +7402,7 @@ RESULT:
 QUERY:
 
 
--- error, can/* REPLACED */''t do this:
+-- error, can/* REPLACED */ ''t do this:
 update xx1 set x2 = f1 from (select * from int4_tbl where f1 = x1) ss;
 RESULT:
 	ERROR - column "x1" does not exist
@@ -7425,7 +7425,7 @@ DETAIL:  There is an entry for table "xx1", but it cannot be referenced from thi
 -----------
 QUERY:
 
--- can/* REPLACED */''t do it even with LATERAL:
+-- can/* REPLACED */ ''t do it even with LATERAL:
 update xx1 set x2 = f1 from lateral (select * from int4_tbl where f1 = x1) ss;
 RESULT:
 	ERROR - invalid reference to FROM-clause entry for table "xx1"
@@ -7437,7 +7437,7 @@ HINT:  There is an entry for table "xx1", but it cannot be referenced from this 
 -----------
 QUERY:
 
--- we might in future allow something like this, but for now it/* REPLACED */''s an error:
+-- we might in future allow something like this, but for now it/* REPLACED */ ''s an error:
 update xx1 set x2 = f1 from xx1, lateral (select * from int4_tbl where f1 = x1) ss;
 RESULT:
 	ERROR - table name "xx1" specified more than once
@@ -7743,7 +7743,7 @@ QUERY:
 
 
 --
--- test planner/* REPLACED */''s ability to mark joins as unique
+-- test planner/* REPLACED */ ''s ability to mark joins as unique
 --
 
 create table j1 (id int primary key);
@@ -7872,7 +7872,7 @@ RESULT:
 QUERY:
 
 
--- a clauseless (cross) join can/* REPLACED */''t be unique
+-- a clauseless (cross) join can/* REPLACED */ ''t be unique
 explain (verbose, costs off)
 select * from j1 cross join j2;
 RESULT:
@@ -8004,7 +8004,7 @@ RESULT:
 QUERY:
 
 
--- ensure there/* REPLACED */''s no unique join when not all columns which are part of the
+-- ensure there/* REPLACED */ ''s no unique join when not all columns which are part of the
 -- unique index are seen in the join clause
 explain (verbose, costs off)
 select * from j1
@@ -8027,7 +8027,7 @@ RESULT:
 QUERY:
 
 
--- ensure we don/* REPLACED */''t detect the join to be unique when quals are not part of the
+-- ensure we don/* REPLACED */ ''t detect the join to be unique when quals are not part of the
 -- join condition
 explain (verbose, costs off)
 select * from j1
@@ -8058,7 +8058,7 @@ RESULT:
 QUERY:
 
 
--- ensure we don/* REPLACED */''t use a partial unique index as unique proofs
+-- ensure we don/* REPLACED */ ''t use a partial unique index as unique proofs
 explain (verbose, costs off)
 select * from j1
 inner join j2 on j1.id2 = j2.id2;
@@ -8175,7 +8175,7 @@ RESULT:
 QUERY:
 
 
--- Exercise array keys /* REPLACED */''find extreme element/* REPLACED */'' B-Tree code
+-- Exercise array keys /* REPLACED */ ''find extreme element/* REPLACED */ '' B-Tree code
 explain (costs off) select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
 where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1 and j2.id1 >= any (array[1,5]);
@@ -8248,7 +8248,7 @@ where exists (select 1 from tenk1 t3
               where t3.thousand = t1.unique1 and t3.tenthous = t2.hundred)
       and t1.unique1 < 1;
 RESULT:
-	[('Nested Loop',), ('  Output: t1.unique1, t2.hundred',), ('  ->  Hash Join',), ('        Output: t1.unique1, t3.tenthous',), ('        Hash Cond: (t3.thousand = t1.unique1)',), ('        ->  HashAggregate',), ('              Output: t3.thousand, t3.tenthous',), ('              Group Key: t3.thousand, t3.tenthous',), ('              ->  Index Only Scan using tenk1_thous_tenthous on public.tenk1 t3',), ('                    Output: t3.thousand, t3.tenthous',), ('        ->  Hash',), ('              Output: t1.unique1',), ('              ->  Index Only Scan using onek_unique1 on public.onek t1',), ('                    Output: t1.unique1',), ('                    Index Cond: (t1.unique1 < 1)',), ('  ->  Index Only Scan using tenk1_hundred on public.tenk1 t2',), ('        Output: t2.hundred',), ('        Index Cond: (t2.hundred = t3.tenthous)',)]
+	[('Nested Loop',), ('  Output: t1.unique1, t2.hundred',), ('  Join Filter: (t2.hundred = t3.tenthous)',), ('  ->  Nested Loop',), ('        Output: t1.unique1, t3.tenthous',), ('        Join Filter: (t1.unique1 = t3.thousand)',), ('        ->  Seq Scan on public.onek t1',), ('              Output: t1.unique1, t1.unique2, t1.two, t1.four, t1.ten, t1.twenty, t1.hundred, t1.thousand, t1.twothousand, t1.fivethous, t1.tenthous, t1.odd, t1.even, t1.stringu1, t1.stringu2, t1.string4',), ('              Filter: (t1.unique1 < 1)',), ('        ->  HashAggregate',), ('              Output: t3.thousand, t3.tenthous',), ('              Group Key: t3.thousand, t3.tenthous',), ('              ->  Seq Scan on public.tenk1 t3',), ('                    Output: t3.unique1, t3.unique2, t3.two, t3.four, t3.ten, t3.twenty, t3.hundred, t3.thousand, t3.twothousand, t3.fivethous, t3.tenthous, t3.odd, t3.even, t3.stringu1, t3.stringu2, t3.string4',), ('  ->  Seq Scan on public.tenk1 t2',), ('        Output: t2.unique1, t2.unique2, t2.two, t2.four, t2.ten, t2.twenty, t2.hundred, t2.thousand, t2.twothousand, t2.fivethous, t2.tenthous, t2.odd, t2.even, t2.stringu1, t2.stringu2, t2.string4',)]
 
 -----------
 QUERY:
@@ -8284,7 +8284,7 @@ where exists (select 1 from j3
               where j3.unique1 = t1.unique1 and j3.tenthous = t2.hundred)
       and t1.unique1 < 1;
 RESULT:
-	[('Nested Loop',), ('  Output: t1.unique1, t2.hundred',), ('  ->  Nested Loop',), ('        Output: t1.unique1, j3.tenthous',), ('        ->  Index Only Scan using onek_unique1 on public.onek t1',), ('              Output: t1.unique1',), ('              Index Cond: (t1.unique1 < 1)',), ('        ->  Index Only Scan using j3_unique1_tenthous_idx on public.j3',), ('              Output: j3.unique1, j3.tenthous',), ('              Index Cond: (j3.unique1 = t1.unique1)',), ('  ->  Index Only Scan using tenk1_hundred on public.tenk1 t2',), ('        Output: t2.hundred',), ('        Index Cond: (t2.hundred = j3.tenthous)',)]
+	[('Nested Loop',), ('  Output: t1.unique1, t2.hundred',), ('  Join Filter: (t2.hundred = j3.tenthous)',), ('  ->  Nested Loop',), ('        Output: t1.unique1, j3.tenthous',), ('        Join Filter: (t1.unique1 = j3.unique1)',), ('        ->  Seq Scan on public.onek t1',), ('              Output: t1.unique1, t1.unique2, t1.two, t1.four, t1.ten, t1.twenty, t1.hundred, t1.thousand, t1.twothousand, t1.fivethous, t1.tenthous, t1.odd, t1.even, t1.stringu1, t1.stringu2, t1.string4',), ('              Filter: (t1.unique1 < 1)',), ('        ->  Seq Scan on public.j3',), ('              Output: j3.unique1, j3.tenthous',), ('  ->  Seq Scan on public.tenk1 t2',), ('        Output: t2.unique1, t2.unique2, t2.two, t2.four, t2.ten, t2.twenty, t2.hundred, t2.thousand, t2.twothousand, t2.fivethous, t2.tenthous, t2.odd, t2.even, t2.stringu1, t2.stringu2, t2.string4',)]
 
 -----------
 QUERY:
