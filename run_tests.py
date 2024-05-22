@@ -21,7 +21,7 @@ logging.debug("PG_LIBDIR={}".format(PG_LIBDIR))
 logging.debug("PG_DLSUFFIX={}".format(PG_DLSUFFIX))
 logging.debug("PG_ABS_BUILDDIR={}".format(PG_ABS_BUILDDIR))
 
-EXCLUDED_TESTS = ['generated', 'collate.windows.win1252', 'data', 'typed_table', 'with', 'psql']
+EXCLUDED_TESTS = ['mysql_tests/big_packets_boundary', 'postgres_tests/generated', 'postgres_tests/collate.windows.win1252', 'postgres_tests/data', 'postgres_tests/typed_table', 'postgres_tests/with', 'postgres_tests/psql']
 
 TEST_PATH = PG_ABS_SRCDIR
 RESULT_PATH = PG_ABS_BUILDDIR 
@@ -686,11 +686,11 @@ def compute_summary(all_results: list[list[CompatibilityCaseWrapper]], dialects:
 
     overall_compatibility = []
 
-    write_to_summary_file(summary_file, "=========================================\n")
+    write_to_summary_file(summary_file, "\n\n=========================================\n")
     write_to_summary_file(summary_file, "Summary for test case {} of {}\n".format(test_name, guest_dbms))
     write_to_summary_file(summary_file, "=========================================\n")  
 
-    print("=========================================")
+    print("\n=========================================")
     print("Summary for test case {} of {}".format(test_name, guest_dbms))
     print("=========================================")  
 
@@ -1009,8 +1009,8 @@ def compute_overall_summary(all_results: list[list[TestResult]], result_folder: 
         logging.debug("dialect {}, d_results: {}".format(d, [str(res) for res in d_results]))
         num_results = len(d_results)
         
-        print(f"\n=================\nOverall results for {d}\n")
-        summary_file.write(f"\n=================\nOverall results for {d}\n")
+        print(f"\n\n========================\nOverall results for {d}\n")
+        summary_file.write(f"\n\n\n=======================\nOverall results for {d}\n")
         for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
             num = len([r for r in d_results if r.compatibility == cc])
             
@@ -1030,8 +1030,11 @@ def execute_tests_in_folder_rec(test_folder: str, result_folder: str)-> list[lis
 
         single_test_path = os.path.join(test_folder, fname)
         logging.debug(f"single test path = {single_test_path}")
+        test = any([substring in single_test_path and fname in single_test_path.split("/") for substring in EXCLUDED_TESTS])
+
+        logging.debug(f"any {test}")
         
-        if os.path.isdir(single_test_path) and fname != "data" and fname not in EXCLUDED_TESTS: # data is a special case because it does not contain tests but the tests data
+        if os.path.isdir(single_test_path) and not any([substring in single_test_path and fname in single_test_path.split("/") for substring in EXCLUDED_TESTS]):
             # when we found a folder, we recurse into it
             logging.debug(f"Found folder {fname}")
             rec_results = execute_tests_in_folder_rec(single_test_path, os.path.join(result_folder, fname))
