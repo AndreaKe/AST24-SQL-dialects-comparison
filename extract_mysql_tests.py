@@ -81,6 +81,7 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
         if re.match(b"--source .*$", l) and not is_wait_until_connected \
             and not (b'$MYSQLTEST_VARDIR' in l) and not (b'$MYSQL_TMP_DIR' in l):
             source_file_path = (re.sub(b"--source\s", b"", l)).decode()
+            source_file_path = re.sub("#.*", "", source_file_path)
             if "/" in source_file_path:
                 source_file_path = (Path(MYSQL_TEST_SUITE_PATH).parent / source_file_path.strip()).absolute()
             else:
@@ -174,7 +175,7 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
     for filename in files:
         filepath = Path(root) / filename
         test_path = Path('mysql_tests') / filepath.stem
-        if SKIP_EXISTING and test_path.is_dir():
+        if SKIP_EXISTING and test_path.exists():
             test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename):
@@ -262,11 +263,14 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                             if query:
                                 query += b"\n"+split[0].strip()
             except Exception as e:
-                os.remove(setup_path.resolve())
-                os.remove(test_path.resolve())
-                if test_path.parent.is_dir():
-                    os.rmdir(test_path.parent.resolve())
-                print(e)
-                failed_file.write(f"{filepath.resolve()}\n")
+                try:
+                    failed_file.write(f"{filepath.resolve()}\n")
+                    #os.remove(setup_path.resolve())
+                    #os.remove(test_path.resolve())
+                    #if test_path.parent.exists():
+                    #    os.rmdir(test_path.parent.resolve())
+                    print(e)
+                except:
+                    pass
             test_file.close()
 failed_file.close()
