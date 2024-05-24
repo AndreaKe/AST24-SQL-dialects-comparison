@@ -22,6 +22,10 @@ logging.debug("PG_DLSUFFIX={}".format(PG_DLSUFFIX))
 logging.debug("PG_ABS_BUILDDIR={}".format(PG_ABS_BUILDDIR))
 
 EXCLUDED_TESTS = ['mysql_tests/big_packets_boundary', 'postgres_tests/generated', 'postgres_tests/collate.windows.win1252', 'postgres_tests/data', 'postgres_tests/typed_table', 'postgres_tests/with', 'postgres_tests/psql']
+# ctype_many, ctype_lating: UnicodeDecodeError utf-8 codec can't decode byte 0xc1 in position 3951: invalid start byte
+# 'mysql_tests/date_formats', 'mysql_tests/ctype_many', 'mysql_tests/ctype_latin1', 
+
+
 
 TEST_PATH = PG_ABS_SRCDIR
 RESULT_PATH = PG_ABS_BUILDDIR 
@@ -88,20 +92,23 @@ class TestResult(object):
     dbms = ""
     compatibility = None
     test = ""
-    percentages = []
+    compatibility_numbers = []
 
-    def __init__(self, dbms, compatibility: CompatibilityCase, test_name, percentages):
+    def __init__(self, dbms, compatibility: CompatibilityCase, test_name, compatibility_numbers):
         self.dbms = dbms
         self.compatibility = compatibility
         self.test = test_name
-        self.percentages = percentages
+        self.compatibility_numbers = compatibility_numbers
 
     def get_summary_string(self)->str:
-        return f"{self.dbms}: {self.compatibility.name} ({self.get_percentage_string()})"
+        return f"{self.dbms}: {self.compatibility.name} ({self.get_compatibility_numbers_string()})"
 
-    def get_percentage_string(self)->str:
-        return ", ".join([f"{p:.2f}% {cc.name}" for (cc, p) in self.percentages])
-
+    def get_compatibility_numbers_string(self)->str:
+        return ", ".join([f"{a} ({p:.2f}%) {cc.name}" for (cc, p, a) in self.compatibility_numbers])
+    
+    def get_absolute_numbers_string(self)->str:
+        return ", ".join([f"{a} {cc.name}" for (cc, _, a) in self.compatibility_numbers])
+    
     def __str__(self):
         return f"{self.test} on {self.dbms} resulted in {self.compatibility.name}"
     
@@ -528,6 +535,9 @@ def get_query_string(query_iter) -> str:
         except StopIteration as e:
             logging.error(f"Index out of bounds. Query: {query}")
             raise e
+    if re.search(r'\s*shutdown\s*', query, re.IGNORECASE) != None:
+        # ignore shutdowns
+        query = ""
 
     try:
         peek = next(query_iter)
@@ -705,17 +715,17 @@ def compute_summary(all_results: list[list[CompatibilityCaseWrapper]], dialects:
         print("\n=================\nResults for {}\n".format(d.name))
         write_to_summary_file(summary_file, "\n=================\nResults for {}\n".format(d.name))
         curr_comp_case = CompatibilityCase.SAME
-        percentages = []
+        compatibility_numbers = []
         for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
             num = len([r for r in d_results if r.result == cc])
             if num > 0:
                 curr_comp_case = cc
             percentage = num/num_results * 100
-            percentages.append((cc, percentage))
-            print("{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
-            write_to_summary_file(summary_file, "{}: {} queries, which is {:.2f}%\n".format(cc.name, num, percentage))
+            compatibility_numbers.append((cc, percentage, num))
+            print("{}:\t{} queries\t{:.2f}%".format(cc.name.ljust(10), num, percentage))
+            write_to_summary_file(summary_file, "{}:\t{} queries\t{:.2f}%\n".format(cc.name.ljust(10), num, percentage))
     
-        overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name, percentages))
+        overall_compatibility.append(TestResult(d.name, curr_comp_case, test_name, compatibility_numbers))
     return overall_compatibility
 
 # functions related to purging
@@ -995,7 +1005,6 @@ def compute_overall_summary(all_results: list[list[TestResult]], result_folder: 
         return
     logging.debug("Computing overall summary...")
     logging.debug("all_results {}".format([str(cc) for row in all_results for cc in row]))
-    logging.debug(f"all_results[0] {str(all_results[0])}")
 
     dialects = [r.dbms for r in all_results[0]]
     
@@ -1004,19 +1013,36 @@ def compute_overall_summary(all_results: list[list[TestResult]], result_folder: 
         for tr in row:
             summary_file.write(tr.get_summary_string()+"\n")
 
+    print("\n\n\n\n==========================================")
+    print("==========================================")
+    print("            Overvall summary")
+    print("==========================================")
+    print("==========================================")  
+
     for d in dialects:
-        d_results = [cc for row in all_results for cc in row if cc.dbms == d]
+        d_results = [test_result for row in all_results for test_result in row if test_result.dbms == d]
         logging.debug("dialect {}, d_results: {}".format(d, [str(res) for res in d_results]))
         num_results = len(d_results)
         
-        print(f"\n\n========================\nOverall results for {d}\n")
-        summary_file.write(f"\n\n\n=======================\nOverall results for {d}\n")
+        print(f"\n\n========================\nOverall results for {d}\n\nTest Cases:")
+        summary_file.write(f"\n\n\n=======================\nOverall results for {d}\n\nTest Cases:\n")
         for cc in [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
             num = len([r for r in d_results if r.compatibility == cc])
             
             percentage = num/num_results * 100
-            print("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
-            summary_file.write("{}: {} test cases, which is {:.2f}%\n".format(cc.name, num, percentage))
+            print("{}:\t{} queries\t{:.2f}%".format(cc.name.ljust(10), num, percentage))
+            summary_file.write("{}:\t{} queries\t{:.2f}%\n".format(cc.name.ljust(10), num, percentage))
+
+        total_queries = float(sum([a for result in d_results for (_, _, a) in result.compatibility_numbers]))
+        print("\nQueries:")
+        summary_file.write("\nQueries:\n")
+
+        for target_cc in  [CompatibilityCase.SAME, CompatibilityCase.DIFFERENT, CompatibilityCase.ERROR]:
+            target_cc_count = sum([a for result in d_results for (cc, _, a) in result.compatibility_numbers if cc == target_cc])
+
+            print("{}:\t{} queries\t{:.2f}%".format(target_cc.name.ljust(10), target_cc_count, target_cc_count/total_queries*100))
+            summary_file.write("{}:\t{} queries\t{:.2f}%\n".format(target_cc.name.ljust(10), target_cc_count, target_cc_count/total_queries))
+           
     
     summary_file.close()
 
@@ -1026,6 +1052,7 @@ def execute_tests_in_folder_rec(test_folder: str, result_folder: str)-> list[lis
     all_results = []
     items = os.listdir(test_folder)
     items.sort()
+    # items = [i for i in items if i[0] >= 'd']
     for fname in items:
 
         single_test_path = os.path.join(test_folder, fname)
