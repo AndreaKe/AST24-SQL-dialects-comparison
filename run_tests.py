@@ -393,7 +393,9 @@ class MySQL(SQLDialectWrapper):
             else: 
                 return self.create_empty_query_result()
         except pymysql.Error as e:
-            return self.create_error_query_result(e)      
+            return self.create_error_query_result(e)    
+        except Exception as e:  
+            return self.create_error_query_result(e)  
 
 
 def init_dialects(guest_dbms: str) -> list[SQLDialectWrapper]:
@@ -404,7 +406,14 @@ def init_dialects(guest_dbms: str) -> list[SQLDialectWrapper]:
 
 # determines and returns the guest dbms based on the file path
 def get_guest_dbms(file_path: str) -> str:
-    return file_path.split("/")[-3].replace("_tests", "")
+    if "mysql_tests" in file_path:
+        return "mysql"
+    elif "postgres_test" in file_path:
+        return "postgres"
+    elif "duckdb_tests" in file_path:
+        return "duckdb"
+    else:
+        return ""
 
 
 def is_guest_dbms(dbms: SQLDialectWrapper, guest_dbms: str) -> bool:
@@ -510,7 +519,7 @@ def compare_to_expected_result(guest_result_file_name: str, expected_result_file
                 logging.error(f"Guest results are different to expected results at line {i}")
                 write_to_summary_file(summary_file, "Guest results are different to expected results")
                 return False
-        logging.info("Guest results are identical to expected results")
+        print("\nGuest results are identical to expected results")
         write_to_summary_file(summary_file, "Guest results are identical to expected results")
         return True
     except Exception as e:
@@ -520,31 +529,34 @@ def compare_to_expected_result(guest_result_file_name: str, expected_result_file
         
 
 # returns the next query
-def get_query_string(query_iter) -> str:
-    query = next(query_iter)
-    dollar_count = query.count('$$')
-    double_quotes_count = query.count('"') - query.count("\"")
-    single_quotes_count = query.count("'") - query.count("\'")
-
-    while dollar_count % 2 != 0 or  double_quotes_count % 2 != 0 or single_quotes_count % 2 != 0:
-        try:
-            query = query + ";" + next(query_iter)
-            dollar_count = query.count('$$')
-            double_quotes_count = query.count('"') - query.count("\"")
-            single_quotes_count = query.count("'") - query.count("\'")
-        except StopIteration as e:
-            logging.error(f"Index out of bounds. Query: {query}")
-            raise e
-    if re.search(r'\s*shutdown\s*', query, re.IGNORECASE) != None:
-        # ignore shutdowns
-        query = ""
-
+def get_query_string(query_iter):
     try:
-        peek = next(query_iter)
-        query_iter = itertools.chain([peek], query_iter)
-        return f"{query};", query_iter
-    except StopIteration:
-        return f"{query}", query_iter # no semicolon here
+        query = next(query_iter).decode("utf-8")
+        dollar_count = query.count('$$')
+        double_quotes_count = query.count('"') - query.count("\"")
+        single_quotes_count = query.count("'") - query.count("\'")
+
+        while dollar_count % 2 != 0 or  double_quotes_count % 2 != 0 or single_quotes_count % 2 != 0:
+            try:
+                query = query + ";" + next(query_iter).decode("utf-8")
+                dollar_count = query.count('$$')
+                double_quotes_count = query.count('"') - query.count("\"")
+                single_quotes_count = query.count("'") - query.count("\'")
+            except StopIteration as e:
+                logging.error(f"Index out of bounds. Query: {query}")
+                raise e
+        if re.search(r'\s*shutdown\s*', query, re.IGNORECASE) != None:
+            # ignore shutdowns
+            query = ""
+
+        try:
+            peek = next(query_iter)
+            query_iter = itertools.chain([peek], query_iter)
+            return f"{query};", query_iter
+        except StopIteration:
+            return f"{query}", query_iter # no semicolon here
+    except UnicodeDecodeError as e:
+        return get_query_string(query_iter)
 
 # transforms a query string read from setup.sql or test.sql to an executable query by
 # replacing some variables by the correct values (e.g. paths that we do not want to hard-code)
@@ -569,7 +581,7 @@ def execute_setup_sql(sql_dialects: list[SQLDialectWrapper], sql_file: str, resu
         for dialect in sql_dialects:
             dialect.open_result_file(result_folder)
 
-    test_file_stream = open(sql_file, 'r')
+    test_file_stream = open(sql_file, 'rb')
     test_file = test_file_stream.read()
     test_file_stream.close()
 
@@ -577,7 +589,7 @@ def execute_setup_sql(sql_dialects: list[SQLDialectWrapper], sql_file: str, resu
 
     logging.debug(f"Guest DBMS identified: {guest_dbms}")
 
-    sql_queries = test_file.split(';') # here we get the individual sql queries!
+    sql_queries = test_file.split(b';') # here we get the individual sql queries!
     query_iter = iter(sql_queries)
     
     while True:
@@ -613,7 +625,7 @@ def execute_test_sql(sql_dialects: list[SQLDialectWrapper], sql_file: str, resul
 
     summary_file = open(os.path.join(result_folder, "summary.txt"), 'w') if not GENERATE_EXPECTED else None
 
-    test_file_stream = open(sql_file, 'r')
+    test_file_stream = open(sql_file, 'rb')
     test_file = test_file_stream.read()
     test_file_stream.close()
 
@@ -622,7 +634,7 @@ def execute_test_sql(sql_dialects: list[SQLDialectWrapper], sql_file: str, resul
     logging.info(f"Guest DBMS identified: {guest_dbms}")
     write_to_summary_file(summary_file, f"Guest DBMS identified: {guest_dbms}")
 
-    sql_queries = test_file.split(';') # here we get the individual sql queries!
+    sql_queries = test_file.split(b';') # here we get the individual sql queries!
     query_iter = iter(sql_queries)
 
     all_results = []
@@ -742,14 +754,14 @@ def is_readonly_query(query: str) -> bool:
 
 # determines and returns tables, functions, types,... that are created in setup.sql but do not appear in test.sql
 def extract_unused_names(setup_file: str, test_file: str) -> list[str]:
-    setup_file_stream = open(setup_file, 'r')
+    setup_file_stream = open(setup_file, 'rb')
     setup_string = setup_file_stream.read()
     setup_file_stream.close()
 
     # extract all tables, functions, ... that are created by the setup file
     create_names = re.findall(re.compile(r'CREATE\s+(?:TABLE|ROLE|FUNCTION|TYPE)\s+([^\s;\(]+)', re.IGNORECASE), setup_string)
 
-    test_file_stream = open(test_file, 'r')
+    test_file_stream = open(test_file, 'rb')
     test_string = test_file_stream.read()
     test_file_stream.close()
 
@@ -780,11 +792,11 @@ def is_create_unused_name(query: str, unused_names: list[str]) -> bool:
 def purge_setup_sql(dialect: SQLDialectWrapper, setup_file: str, setup_tmp_file: str, names_to_remove: list[str]) -> bool:
     logging.debug(f"Purge setup {setup_file}")
 
-    test_file_stream = open(setup_file, 'r')
+    test_file_stream = open(setup_file, 'rb')
     test_file = test_file_stream.read()
     test_file_stream.close()
 
-    sql_queries = test_file.split(';') # here we get the individual sql queries!
+    sql_queries = test_file.split(b';') # here we get the individual sql queries!
     query_iter = iter(sql_queries)
     test_file_stream = open(setup_tmp_file, 'w')
 
@@ -826,7 +838,7 @@ def purge_setup_sql(dialect: SQLDialectWrapper, setup_file: str, setup_tmp_file:
 def purge_test_sql(dialect: SQLDialectWrapper, sql_file: str, expected_file: str) -> bool:
     logging.warning(f"Purge test {sql_file}")
     
-    test_file_stream = open(sql_file, 'r')
+    test_file_stream = open(sql_file, 'rb')
     test_data = test_file_stream.read()
     test_file_stream.close()
 
@@ -1030,8 +1042,8 @@ def compute_overall_summary(all_results: list[list[TestResult]], result_folder: 
             num = len([r for r in d_results if r.compatibility == cc])
             
             percentage = num/num_results * 100
-            print("{}:\t{} queries\t{:.2f}%".format(cc.name.ljust(10), num, percentage))
-            summary_file.write("{}:\t{} queries\t{:.2f}%\n".format(cc.name.ljust(10), num, percentage))
+            print("{}:\t{} test cases\t{:.2f}%".format(cc.name.ljust(10), num, percentage))
+            summary_file.write("{}:\t{} test cases\t{:.2f}%\n".format(cc.name.ljust(10), num, percentage))
 
         total_queries = float(sum([a for result in d_results for (_, _, a) in result.compatibility_numbers]))
         print("\nQueries:")
@@ -1041,7 +1053,7 @@ def compute_overall_summary(all_results: list[list[TestResult]], result_folder: 
             target_cc_count = sum([a for result in d_results for (cc, _, a) in result.compatibility_numbers if cc == target_cc])
 
             print("{}:\t{} queries\t{:.2f}%".format(target_cc.name.ljust(10), target_cc_count, target_cc_count/total_queries*100))
-            summary_file.write("{}:\t{} queries\t{:.2f}%\n".format(target_cc.name.ljust(10), target_cc_count, target_cc_count/total_queries))
+            summary_file.write("{}:\t{} queries\t{:.2f}%\n".format(target_cc.name.ljust(10), target_cc_count, target_cc_count/total_queries*100))
            
     
     summary_file.close()
