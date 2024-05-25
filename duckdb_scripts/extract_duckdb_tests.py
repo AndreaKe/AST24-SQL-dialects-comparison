@@ -2,8 +2,11 @@ import os
 import re
 from pathlib import Path
 
-duckdb_sql_test_dir = '/home/stephanie/duckdb/test/sql' # TODO
-duckdb_build_path = '/home/stephanie/duckdb/build/release' #/test
+## UNFINISHED
+## Proof of Concept 
+
+duckdb_sql_test_dir = (Path.home() / 'duckdb/test/sql').absolute() # TODO
+duckdb_build_path = (Path.home() / 'duckdb/build/release').absolute() #/test
 
 #log_file_path = Path('temp_duckdb/temp.log')
 log_file_path = Path('temp_duckdb')

@@ -4,8 +4,8 @@ import argparse
 from pathlib import Path
 
 SKIP_EXISTING = True
-MYSQL_TEST_SUITE_PATH = (Path.home() / 'mysql2/mysql-server/mysql-test/t').absolute()
-MYSQL_BUILD_PATH = (Path.home() / 'mysql2/mysql-server/build').absolute()
+MYSQL_TEST_SUITE_PATH = (Path.home() / 'mysql/mysql-server/mysql-test/t').absolute()
+MYSQL_BUILD_PATH = (Path.home() / 'mysql/mysql-server/build').absolute()
 
 timestamp_pattern = re.compile(b'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}Z')
 
@@ -38,6 +38,7 @@ def getNextLine(f, currLine):
     isLet = b'SELECT "2024_AST_LET"' in l
     while l and  (isBeginningOfLogFile(l) \
         or re.match(b'.*Query\t$', l) \
+        or re.match(b'.*\[[A-Za-z]*\] .*', l) \
         or b"Query\tSHOW" in l or b"Query\tshow" in l \
         or isLet \
         or b"Connect\t" in l):
@@ -52,7 +53,7 @@ def getNextLine(f, currLine):
     if b'SELECT "2024_AST_SHOW"' in l:
         return f.readline()
     if b'SELECT "2024_AST_LOG_OUTPUT_TABLE' in l:
-        l = f.readLine()
+        l = f.readline()
         l = l.replace(b'"TABLE,FILE"', b'TABLE')
         return l
     if b'SELECT "2024_AST_GENERAL_LOG_OFF' in l:
@@ -125,7 +126,9 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
                 mlQuery_escaped = re.sub(b'"', b'&quot&', mlQuery)
                 mlQuery_escaped = re.sub(b"'", b"&apos&", mlQuery_escaped)
                 mlQuery_escaped = (mlQuery_escaped.strip(b';')).strip(b"\n")
-                f.write((f'SELECT "2024_AST_[{mlQuery_escaped.decode()}]_AST_2024";\n').encode())
+                f.write(b'SELECT "2024_AST_[')
+                f.write(mlQuery_escaped)
+                f.write(b']_AST_2024";\n')
                 mlQuery = b""
                 oldCheckIsError = False
                 prev_line = l
@@ -142,11 +145,11 @@ def rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines):
 parser = argparse.ArgumentParser()
 parser.add_argument("-MYSQL_TEST_SUITE_PATH", 
                     help="path to mySQL test suite folder",
-                    default= (Path.home() / 'mysql2/mysql-server/mysql-test/t').absolute(),
+                    default= (Path.home() / 'mysql-server/mysql-test/t').absolute(),
                     required=False,
                     type=str)
 parser.add_argument("-MYSQL_BUILD_PATH", 
-                    default= (Path.home() / 'mysql2/mysql-server/build').absolute(),
+                    default= (Path.home() / 'mysql-server/build').absolute(),
                     help="mySQL build path",
                     required=False,
                     type=str)
@@ -179,32 +182,31 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
             test_num += 1
             continue
         if filepath.suffix == '.test' and isIncludedTestCase(filename):
-            #and filename == 'mysqlpump_partial_bkp.test': # TODO 
             print(filepath)
-            test_num += 1
-            print(f"Extracting test ({test_num}\{total_num_tests})")
-            with open(filepath.resolve(), "rb") as f1:
-                file_bytes_lines = f1.readlines()
-                log_file_path = temp_path / f"{filepath.stem}.log"
-                prepend_lines = [b'SET GLOBAL log_output = "FILE";\n', \
-                            (f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode(), \
-                            b"SET GLOBAL general_log = 'ON';\n", \
-                            b'SELECT "2024_automated_software_testing";\n']
-                if len(file_bytes_lines) < 4 \
-                    or not file_bytes_lines[3].startswith(b'SELECT "2024_automated_software_testing"'):
-                    f = open(filepath.resolve(), "wb")
-                    f.writelines(prepend_lines)
-                    rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines)
-                    f.close()
-            os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --debug-server > /dev/null") #  --fast  TODO: Ensure it is executed on one thread, log output?
-            os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard; git pull") # TODO
-            test_path.mkdir(exist_ok=True, parents=True)
-            setup_path = test_path / 'setup.sql'
-            with open(setup_path.resolve(), 'wb+') as setup_f:
-                pass
-            test_path = test_path / 'test.sql'
-            test_file = open(test_path.resolve(), 'wb+')
             try:
+                test_num += 1
+                print(f"Extracting test ({test_num}\{total_num_tests})")
+                with open(filepath.resolve(), "rb") as f1:
+                    file_bytes_lines = f1.readlines()
+                    log_file_path = temp_path / f"{filepath.stem}.log"
+                    prepend_lines = [b'SET GLOBAL log_output = "FILE";\n', \
+                             (f'SET GLOBAL general_log_file = "{log_file_path.absolute()}";\n').encode(), \
+                             b"SET GLOBAL general_log = 'ON';\n", \
+                             b'SELECT "2024_automated_software_testing";\n']
+                    if len(file_bytes_lines) < 4 \
+                        or not file_bytes_lines[3].startswith(b'SELECT "2024_automated_software_testing"'):
+                        f = open(filepath.resolve(), "wb")
+                        f.writelines(prepend_lines)
+                        rewrite_test_case(f, log_file_path, file_bytes_lines, prepend_lines)
+                        f.close()
+                os.system(f"{MYSQL_BUILD_PATH}/mysql-test/mysql-test-run {filepath.stem} --debug-server > /dev/null")
+                os.system(f"cd {MYSQL_TEST_SUITE_PATH}; git reset --hard")
+                test_path.mkdir(exist_ok=True, parents=True)
+                setup_path = test_path / 'setup.sql'
+                with open(setup_path.resolve(), 'wb+') as setup_f:
+                    pass
+                test_path = test_path / 'test.sql'
+                test_file = open(test_path.resolve(), 'wb+')
                 with open(log_file_path.resolve(), "rb") as f:
                     f.readline()
                     f.readline()
@@ -222,33 +224,17 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                     while l1 or l2:
                         i += 1
                         if i > 1:
-                            ##print(("Inside swap")
                             l0 = l1
                             l1 = l2
                             l2 = l3
-                        #print("l0: ")
-                        #print(l0)
-                        #print("\n")
-                        #print("l1: ")
-                        #print(l1)
-                        #print("\n")
-                        #print("l2: ")
-                        #print(l2)
-                        #print("\n")
                         if l2:
                             l3 = getNextLine(f, l2)
-                            #print("l3: ")
-                            #print(l3)
-                            #print("\n")
                         if b"SET SQL_LOG_BIN = 0" in l1.upper() \
                             and (b"USE mtr" in l2 or b"use mtr" in l2):
-                            #print("2")
                             break
                         split = l1.split(b'\t')
                         if (timestamp_pattern.match(split[0])):
                             if i>1 and query:
-                                #print(query)
-                                #print("HERE2222222")
                                 test_file.write(query + b';')
                             if b'Query' not in split[1]:
                                 query = None
@@ -262,15 +248,15 @@ for root, dirs, files in os.walk(MYSQL_TEST_SUITE_PATH):
                         else:
                             if query:
                                 query += b"\n"+split[0].strip()
+                test_file.close()
             except Exception as e:
                 try:
                     failed_file.write(f"{filepath.resolve()}\n")
-                    #os.remove(setup_path.resolve())
-                    #os.remove(test_path.resolve())
-                    #if test_path.parent.exists():
-                    #    os.rmdir(test_path.parent.resolve())
+                    os.remove(setup_path.resolve())
+                    os.remove(test_path.resolve())
+                    if test_path.parent.exists():
+                        os.rmdir(test_path.parent.resolve())
                     print(e)
                 except:
                     pass
-            test_file.close()
 failed_file.close()
