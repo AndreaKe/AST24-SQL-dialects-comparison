@@ -130,7 +130,8 @@ When executing `run_tests.py` the following results and summary files are genera
 
    - -MYSQL_TEST_SUITE_PATH is set to 'mysql-server/mysql-test/t' where mysql-server is the root directory of the mysql repository
    - -MYSQL_BUILD_PATH is set to the build folder
-   -dont_skip_existing also already extracted test cases
+
+   - -dont_skip_existing also already extracted test cases
 
   The script modifies the test cases in the repository such that all the executed queries by a test case should appear in query log and afterwards, it executes 'git reset --hard'. Then executes mysql-test-run on each modified test case (one by one), stores the query log inside the temp_mysql folder and writes the extracted test case into the mysql-tests folder. The test cases which it failed to extract are logged into failed.txt.
 
