@@ -8,6 +8,7 @@ from enum import Enum
 import itertools
 import re
 import math
+import datetime
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING) # change level to INFO or DEBUG to see more output
 
@@ -22,8 +23,6 @@ logging.debug("PG_DLSUFFIX={}".format(PG_DLSUFFIX))
 logging.debug("PG_ABS_BUILDDIR={}".format(PG_ABS_BUILDDIR))
 
 EXCLUDED_TESTS = ['mysql_tests/big_packets_boundary', 'postgres_tests/generated', 'postgres_tests/collate.windows.win1252', 'postgres_tests/data', 'postgres_tests/typed_table', 'postgres_tests/with', 'postgres_tests/psql']
-# ctype_many, ctype_lating: UnicodeDecodeError utf-8 codec can't decode byte 0xc1 in position 3951: invalid start byte
-# 'mysql_tests/date_formats', 'mysql_tests/ctype_many', 'mysql_tests/ctype_latin1', 
 
 
 
@@ -75,6 +74,15 @@ logging.debug(f"Purge {PURGE_TESTS}")
 logging.debug(f"Generate expected {GENERATE_EXPECTED}")
 logging.debug(f"Comparte to expected result {COMPARE_TO_EXPECTED_RESULT}")
 
+if "postgres_tests" in TEST_PATH:
+    results_dir = os.path.join(PG_ABS_BUILDDIR, 'results')
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir, mode=0o777)
+    for filename in os.listdir(results_dir):
+        if os.path.isfile(os.path.join(results_dir, filename)):
+            os.remove(os.path.join(results_dir, filename))
+
+
 class QueryStatus(Enum):
     PASS = 1
     ERROR = -1
@@ -83,6 +91,7 @@ class CompatibilityCase(Enum):
     SAME = 1
     DIFFERENT = 0
     ERROR = -1
+    UNKNOWN = -2
 
 # represent the compatibility result of a test executed on a dbms compared to the guest dbms
 # results include the 
@@ -254,6 +263,24 @@ class PostgreSQL(SQLDialectWrapper):
     host = "localhost"
     port = 5432
 
+    COPY_FROM_PATTERN = re.compile(
+        r"COPY\s+"
+        r"(?P<table_name>\w+)"  
+        r"(?:\s*\(\s*(?P<columns>[^\)]+)\s*\))?"  
+        r"\s+FROM\s+"
+        r"(?:'(?P<filename>[^']+)'|PROGRAM\s+'[^']+'|(?P<stdin>STDIN))"  
+        r"(?:\s+\[\s*\[?\s*WITH\s*\]?\s*\([^\)]*\))?" 
+        r"(?:\s+WHERE\s+(?P<condition>.+))?",
+        re.IGNORECASE)  
+    
+    COPY_TO_PATTERN = pattern = re.compile(
+    r"COPY\s+(?:(?P<table_name>\w+)"  # Table name
+    r"(?:\s*\(\s*(?P<columns>[^\)]+)\s*\))?"  # Column names
+    r"|\(\s*(?P<query>[^)]+)\s*\))"
+    r"\s+TO\s+(?:'(?P<filename>[^']+)'|PROGRAM\s+'[^']+'|STDOUT)"  # Filename
+    r"(?:\s+\[\s*\[?\s*WITH\s*\]?\s*\([^\)]*\))?" 
+)
+
     def __init__(self, database_name, dbms, result_file_name):
         self.database_name = database_name if database_name != None else self.database_name
         self.name = dbms if dbms != None else self.name
@@ -303,11 +330,33 @@ class PostgreSQL(SQLDialectWrapper):
     def close_result_file(self):
         self.result_file.close()
 
+    def opener(self, path, flags):
+        return os.open(path, flags, 0o777)
+
     def exec_query(self, query: str) -> QueryResult:
         try:
-            if re.search(r"copy\s+[^\s]*\s+from\s+", query, re.IGNORECASE) != None:
-                self.db_cursor.copy_from(query)
-            self.db_cursor.execute(query)
+            copy_from = self.COPY_FROM_PATTERN.search(query)
+            copy_to = self.COPY_TO_PATTERN.search(query)
+            if copy_from is not None:
+                filename = copy_from.group('filename')
+                if filename is not None:
+                    f = open(filename, 'r')
+                    self.db_cursor.copy_expert(f, query)
+                    f.close()
+                else:
+                    self.db_cursor.execute(query)
+            elif copy_to is not None:
+                filename = copy_to.group('filename')
+                if filename is not None:
+                    os.remove(filename)
+                    f = open(filename, 'w', opener=self.opener)
+                    self.db_cursor.copy_expert(query, f)
+                    os.chmod(filename, 777)
+                    f.close()
+                else:
+                    self.db_cursor.execute(query)
+            else:
+                self.db_cursor.execute(query)
             result = self.db_cursor.fetchall()
             return self.create_query_result(QueryStatus.PASS, result, None)
         except psycopg2.ProgrammingError as e:
@@ -436,6 +485,22 @@ def compare_elements(elem1, elem2, tolerance=FLOAT_TOLERANCE) -> bool:
     else:
         return elem1 == elem2
 
+def map_to_comparable_element(elem):
+    if isinstance(elem, dict):
+        return [(key, value) for key, value in elem.items()]
+    elif isinstance(elem, datetime.datetime):
+        return str(elem)    
+    else:
+        return elem
+
+def sort_results(result):
+    try:
+        return sorted(result, key=lambda x: [(val is None, val) for val in x])
+    except:
+        data = [[map_to_comparable_element(col) for col in row ] for row in result]
+        return sorted(data, key=lambda x: [(val is None, val) for val in x])
+
+
 # compares two query results
 # returns True iff the results are identical
 def is_result_identical(guest_result, host_result, is_ordered: bool)-> bool:
@@ -448,14 +513,7 @@ def is_result_identical(guest_result, host_result, is_ordered: bool)-> bool:
         return compare_elements(guest_result, host_result)
     else:
         logging.debug(guest_result)
-        if isinstance(guest_result[0], dict):
-            logging.debug("comparing dictionaries")
-            self_list = [[(key, value) for key, value in row.items()]for row in guest_result]
-            other_list = [[(key, value) for key, value in row.items()]for row in host_result]
-        else:
-            self_list = guest_result
-            other_list = host_result
-        return compare_elements(sorted(self_list, key=lambda x: [(val is None, val) for val in x]), sorted(other_list, key=lambda x: [(val is None, val) for val in x]))
+        return compare_elements(sort_results(guest_result), sort_results(host_result))
 
 # returns True iff the query contains an order by clause
 def is_ordered(query: str)-> bool:
@@ -475,7 +533,7 @@ def compare_single_result(guest_result: QueryResult, host_result: QueryResult, i
             return CompatibilityCase.DIFFERENT
     except Exception as e:
         logging.error(f"Could not compare results. {e}")
-        return CompatibilityCase.ERROR
+        return CompatibilityCase.UNKNOWN
 
 # compares results of a single query executed on many DBMSs to the guest DBMS result
 # returns a list of compatibility cases
@@ -530,8 +588,20 @@ def compare_to_expected_result(guest_result_file_name: str, expected_result_file
 
 # returns the next query
 def get_query_string(query_iter):
+    COPY_FROM_PATTERN = re.compile(
+        r"COPY\s+"
+        r"(?P<table_name>\w+)"  
+        r"(?:\s*\(\s*(?P<columns>[^\)]+)\s*\))?"  
+        r"\s+FROM\s+STDIN",
+        re.IGNORECASE)  
+    COPY_TO_PATTERN = re.compile(
+    r"COPY\s+(?:(\w+)(?:\s*\(\s*([^\)]+)\s*\))?" 
+    r"|\(\s*([^)]+)\s*\))"
+    r"\s+TO\s+STDOUT" ,
+        re.IGNORECASE)
     try:
         query = next(query_iter).decode("utf-8")
+        query = query.split('-- \\.')[-1]
         dollar_count = query.count('$$')
         double_quotes_count = query.count('"') - query.count("\"")
         single_quotes_count = query.count("'") - query.count("\'")
@@ -545,9 +615,10 @@ def get_query_string(query_iter):
             except StopIteration as e:
                 logging.error(f"Index out of bounds. Query: {query}")
                 raise e
-        if re.search(r'\s*shutdown\s*', query, re.IGNORECASE) != None:
-            # ignore shutdowns
-            query = ""
+        if re.search(r'\s*shutdown\s*', query, re.IGNORECASE) is not None or COPY_FROM_PATTERN.search(query) is not None \
+            or COPY_TO_PATTERN.search(query) is not None:
+            # ignore shutdowns and copy from stdin/ to stdout queries
+            return get_query_string(query_iter)
 
         try:
             peek = next(query_iter)
