@@ -40,7 +40,8 @@ Requirements for running the tests (without extracting them)
 - psycopg2 (2.9.9) including psycopg2.extensions (Python library for PostgreSQL)
 - DuckDB (v0.10.1)
 - duckdb (Python library for DuckDB)
-- MySQL Server 8.0.36 (built from source)
+- MySQL Server 8.0.36 (built from source, cmake with `-
+DWITH_DEBUG=1`)
   - Prerquisites: https://dev.mysql.com/doc/refman/8.0/en/source-installation-prerequisites.html
   - Manual on how to build from source: https://downloads.mysql.com/docs/mysql-sourcebuild-excerpt-8.0-en.pdf
   - Quick way to build from source if you haven't installed the correct version of boost: 
@@ -48,7 +49,7 @@ Requirements for running the tests (without extracting them)
   2. `cd mysql-server`
   3. `mkdir build`
   4. `cd build`
-  5. `cmake .. -DDOWNLOAD_BOOST=1 -DWITH_BOOST=~/boost`
+  5. `cmake .. -DDOWNLOAD_BOOST=1 -DWITH_BOOST=~/boost -DWITH_DEBUG=1`
   6. `make`
 - MySQL Python library (v1.10.0)
 
