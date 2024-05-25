@@ -7,15 +7,15 @@ For this purpose, extract the test suite of one DBMS with its own dialect and fe
 The DBMS/Test Suites supported are:
 
 1. Postgres
-2. mySQL
+2. MySQL
 
-Additionally, we implemented support for executing the extracted test suites not only on Postgres and mySQL but also on DuckDB.
+Additionally, we implemented support for executing the extracted test suites not only on Postgres and MySQL but also on DuckDB.
 
-In this repository you find the scripts used for extracting the test cases of Postgres in the `postgres_scripts` directory and mySQL in `mysql_scripts`.
+In this repository you find the scripts used for extracting the test cases of Postgres in the `postgres_scripts` directory and MySQL in `mysql_scripts`.
 
 Inside the `postgres_tests` directory you find the extracted test cases and our generated expected result files.
 
-Since the mySQL main test suite is very large, we only included a few extracted test here, which you'll find in `mysql_tests`.
+Since the MySQL main test suite is very large, we only included a few extracted test here, which you'll find in `mysql_tests`.
 All of the extracted test cases can be downloaded here: https://polybox.ethz.ch/index.php/s/NELgI95awuaNrTC
 
 After extracting the test suites a certain DBMS we execute them against the other DBMS using our `run_test.py` script, which is described further down below in this README. The script classifies the queries executed into three compatibility cases: SAME, ERROR and DIFFERENT. It also collects statistics. Summaries, query comparison logs and results of executing the test suite of one specific DBMS's test suite can be found in the corresponding '..._results' folder, i.e. the results of executing the Postgres Test Suite against all DBMS can be found in `postgres_results`.
@@ -99,12 +99,12 @@ When executing `run_tests.py` the following results and summary files are genera
 
 - Cannot connect to Postgres:
   - Make sure that the Postgres server is running on the correct port. You can start it for example with `>  postgres -c log_statement=all -c log_destination='stderr,csvlog' -c logging_collector=o`. The user that executes this has to have permission to postgres. You might need to login with the postgres user using `su - postgres` before executing the previous command.
-- Cannot connect to mySQL
+- Cannot connect to MySQL
   - You might have defined a password for MySQL during installation. We use the user root and assume that the password is empty. If that is not the case for you, you can specify the password with `--mysql_pw [your password]`.
 - The MySQL server is running with the --read-only option so it cannot execute this statement
   - Ensure that you have executed 'SET GLOBAL read_only = OFF;' before executing `run_tests.py`.
-- Setting the mySQL root user password to an empty string:
-  - Log in to mySQL using sudo `sudo mysql -u root`, then execute `ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '';` and finally `exit`.
+- Setting the MySQL root user password to an empty string:
+  - Log in to MySQL using sudo `sudo mysql -u root`, then execute `ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '';` and finally `exit`.
 
 ## 3 Extracting Tests from the PostgreSQL Test Suite
 
@@ -123,7 +123,7 @@ When executing `run_tests.py` the following results and summary files are genera
 3. Now the tests are ready to be run on other DBMS
    - `> run_tests.py --test postgres_tests --result postgres_results`
 
-## 4 Extracting Tests from the mySQL Test Suite
+## 4 Extracting Tests from the MySQL Test Suite
 
 1. ` > ./mysql_scripts/extract_mysql_tests.sh -MYSQL_TEST_SUITE_PATH [PATH_TO_MYSQL_TEST_SUITE] -MYSQL_BUILD_PATH [PATH_TO_MYSQL_BUILD_FOLDER]`
 
