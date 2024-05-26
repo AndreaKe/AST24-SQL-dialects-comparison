@@ -135,8 +135,8 @@ When executing `run_tests.py` the following results and summary files are genera
 
   The script modifies the test cases in the repository such that all the executed queries by a test case should appear in query log and afterwards, it executes 'git reset --hard'. Then executes mysql-test-run on each modified test case (one by one), stores the query log inside the temp_mysql folder and writes the extracted test case into the mysql-tests folder. The test cases which it failed to extract are logged into failed.txt.
 
-2. `> run_tests.py --test mysql_tests --result mysql_results --gen_expected`
-   - This generates expected.txt
+2. `> run_tests.py --test mysql_tests --result mysql_results --purge`
+   - This generates expected.txt and filters out non-deterministic queries in test cases
 
 3. Now the tests are ready to be run on other DBMS
    - `> run_tests.py --test mysql_tests --result mysql_results`
