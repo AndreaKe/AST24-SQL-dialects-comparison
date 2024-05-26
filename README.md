@@ -18,7 +18,7 @@ Inside the `postgres_tests` directory you find the extracted test cases and our 
 Since the MySQL main test suite is very large, we only included a few extracted test here, which you'll find in `mysql_tests`.
 All of the extracted test cases can be downloaded here: https://polybox.ethz.ch/index.php/s/NELgI95awuaNrTC
 
-After extracting the test suites a certain DBMS we execute them against the other DBMS using our `run_test.py` script, which is described further down below in this README. The script classifies the queries executed into three compatibility cases: SAME, ERROR and DIFFERENT. It also collects statistics. Summaries, query comparison logs and results of executing the test suite of one specific DBMS's test suite can be found in the corresponding '..._results' folder, i.e. the results of executing the Postgres Test Suite against all DBMS can be found in `postgres_results`.
+After extracting the test suites a certain DBMS we execute them against the other DBMS using our `run_test.py` script, which is described further down below in this README. The script classifies the queries executed into three compatibility cases: SAME, ERROR and DIFFERENT. It also collects statistics. Summaries, query comparison logs and results of executing the test suite of Postgres against all DBMS can be found in `postgres_results`. The results of MySQL are again available for download, since there too many files: https://polybox.ethz.ch/index.php/s/ZcaKsAbJ6EopJ60.
 
 ## 1 Requirements
 
