@@ -13,6 +13,8 @@ for root, _, files in os.walk('mysql_results'):
         if filename == 'summary.txt':
             with open(filepath.absolute(), 'r') as  f:
                 lines = f.readlines()[-9:]
+            if lines == []:
+                continue
             pgSame += int(lines[0].split("\t")[1].replace(" queries", ''))
             pgDiff += int(lines[1].split("\t")[1].replace(" queries", ''))
             pgErr += int(lines[2].split("\t")[1].replace(" queries", ''))
